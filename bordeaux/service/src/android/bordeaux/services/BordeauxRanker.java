@@ -103,24 +103,12 @@ public class BordeauxRanker {
     }
 
     public void loadModel(String filename) {
-        if (!retrieveRanker())
-            throw new RuntimeException(RANKER_NOTAVAILABLE);
-        try {
-            mRanker.LoadModel(filename);
-        } catch (RemoteException e) {
-            Log.e(TAG,"Exception: loading model.");
-            throw new RuntimeException(RANKER_NOTAVAILABLE);
-        }
+        // no longer availabe through the interface
+        return;
     }
 
     public String saveModel(String filename) {
-        if (!retrieveRanker())
-            throw new RuntimeException(RANKER_NOTAVAILABLE);
-        try {
-            return mRanker.SaveModel(filename);
-        } catch (RemoteException e) {
-            Log.e(TAG,"Exception: saving model.");
-            throw new RuntimeException(RANKER_NOTAVAILABLE);
-        }
+        // no longer availabe through the interface
+        return null;
     }
 }

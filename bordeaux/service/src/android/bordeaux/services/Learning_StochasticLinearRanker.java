@@ -16,22 +16,27 @@
 
 package android.bordeaux.services;
 
-import android.content.Context;
 import android.bordeaux.learning.StochasticLinearRanker;
+import android.bordeaux.learning.StochasticLinearRanker.Model;
+import android.bordeaux.services.IBordeauxLearner.ModelChangeCallback;
+import android.os.IBinder;
 import android.util.Log;
-import java.util.List;
-import java.util.ArrayList;
+
 import java.io.*;
+import java.lang.ClassNotFoundException;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
-public class Learning_StochasticLinearRanker extends ILearning_StochasticLinearRanker.Stub {
+public class Learning_StochasticLinearRanker extends ILearning_StochasticLinearRanker.Stub
+        implements IBordeauxLearner {
 
     String TAG = "ILearning_StochasticLinearRanker";
-    Context mContext;
     private StochasticLinearRanker mLearningSlRanker = null;
+    private ModelChangeCallback modelChangeCallback = null;
 
-    public Learning_StochasticLinearRanker(Context context){
-        mContext = context;
+    public Learning_StochasticLinearRanker(){
     }
 
     public boolean UpdateClassifier(List<StringFloat> sample_1, List<StringFloat> sample_2){
@@ -51,6 +56,9 @@ public class Learning_StochasticLinearRanker extends ILearning_StochasticLinearR
         }
         if (mLearningSlRanker == null) mLearningSlRanker = new StochasticLinearRanker();
         boolean res = mLearningSlRanker.updateClassifier(keys_1,values_1,keys_2,values_2);
+        if (res && modelChangeCallback != null) {
+            modelChangeCallback.modelChanged(this);
+        }
         return res;
     }
 
@@ -68,67 +76,45 @@ public class Learning_StochasticLinearRanker extends ILearning_StochasticLinearR
         return res;
     }
 
-    public void LoadModel(String FileName){
-        try{
-            String str = "";
-            StringBuffer buf = new StringBuffer();
-            FileInputStream fis = mContext.openFileInput(FileName);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
-            if (fis!=null) {
-                while ((str = reader.readLine()) != null) {
-                    buf.append(str + "\n" );
-                }
-            }
-            fis.close();
-            String Temps = buf.toString();
-            String[] TempS_Array;
-            TempS_Array = Temps.split("<>");
-            String KeyValueString = TempS_Array[0];
-            String ParamString = TempS_Array[1];
-            String[] TempS1_Array;
-            TempS1_Array = KeyValueString.split("\\|");
-            int len = TempS1_Array.length;
-            String[] keys = new String[len];
-            float[] values = new float[len];
-            for (int i =0; i< len; i++ ){
-                String[] TempSd_Array;
-                TempSd_Array = TempS1_Array[i].split(",");
-                keys[i] = TempSd_Array[0];
-                values[i] = Float.valueOf(TempSd_Array[1].trim()).floatValue();
-            }
-            String[] TempS2_Array;
-            TempS2_Array = ParamString.split("\\|");
-            int lenParam = TempS2_Array.length - 1;
-            float[] parameters = new float[lenParam];
-            for (int i =0; i< lenParam; i++ ){
-                parameters[i] = Float.valueOf(TempS2_Array[i].trim()).floatValue();
-            }
-            if (mLearningSlRanker == null) mLearningSlRanker = new StochasticLinearRanker();
-            boolean res = mLearningSlRanker.loadModel(keys,values, parameters);
-
-        } catch (IOException e){
-        }
-    }
-
-    public String SaveModel(String FileName){
-        ArrayList<String> keys_list = new ArrayList<String>();
-        ArrayList<Float> values_list = new ArrayList<Float>();
-        ArrayList<Float> parameters_list = new ArrayList<Float>();
+    // Beginning of the IBordeauxLearner Interface implementation
+    public byte [] getModel() {
         if (mLearningSlRanker == null) mLearningSlRanker = new StochasticLinearRanker();
-        mLearningSlRanker.getModel(keys_list,values_list, parameters_list);
-        String S_model = "";
-        for (int i = 0; i < keys_list.size(); i++)
-            S_model = S_model + keys_list.get(i) + "," + values_list.get(i) + "|";
-        String S_param ="";
-        for (int i=0; i< parameters_list.size(); i++)
-            S_param = S_param + parameters_list.get(i) + "|";
-        String Final_Str = S_model + "<> " + S_param;
-        try{
-            FileOutputStream fos = mContext.openFileOutput(FileName, Context.MODE_PRIVATE);
-            fos.write(Final_Str.getBytes());
-            fos.close();
-        } catch (IOException e){
+        Model model = mLearningSlRanker.getModel();
+        try {
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+            ObjectOutputStream objStream = new ObjectOutputStream(byteStream);
+            objStream.writeObject(model);
+            //return byteStream.toByteArray();
+            byte[] bytes = byteStream.toByteArray();
+            Log.i(TAG, "getModel: " + bytes);
+            return bytes;
+        } catch (IOException e) {
+            throw new RuntimeException("Can't get model");
         }
-        return S_model;
     }
+
+    public boolean setModel(final byte [] modelData) {
+        try {
+            ByteArrayInputStream input = new ByteArrayInputStream(modelData);
+            ObjectInputStream objStream = new ObjectInputStream(input);
+            Model model = (Model) objStream.readObject();
+            if (mLearningSlRanker == null) mLearningSlRanker = new StochasticLinearRanker();
+            boolean res = mLearningSlRanker.loadModel(model);
+            Log.i(TAG, "LoadModel: " + modelData);
+            return res;
+        } catch (IOException e) {
+            throw new RuntimeException("Can't load model");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Learning class not found");
+        }
+    }
+
+    public IBinder getBinder() {
+        return this;
+    }
+
+    public void setModelChangeCallback(ModelChangeCallback callback) {
+        modelChangeCallback = callback;
+    }
+    // End of IBordeauxLearner Interface implemenation
 }

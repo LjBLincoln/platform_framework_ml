@@ -24,30 +24,25 @@ import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Process;
 import android.os.RemoteCallbackList;
+import android.os.RemoteException;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.bordeaux.R;
-import android.bordeaux.learning.MulticlassPA;
-import android.bordeaux.learning.StochasticLinearRanker;
-import android.util.Log;
-import java.util.List;
-import java.util.ArrayList;
-import java.io.*;
-import java.util.Scanner;
-import java.util.HashMap;
 
-import android.content.pm.PackageManager;
+import android.bordeaux.R;
+import android.util.Log;
+
+import java.io.*;
 
 /**
  * Machine Learning service that runs in a remote process.
@@ -68,16 +63,13 @@ public class BordeauxService extends Service {
     int mValue = 0;
     NotificationManager mNotificationManager;
 
-    MulticlassPA mMulticlassPA_Learner = null;
-
-    // All saved learning session data
-    // TODO: backup to the storage
-    HashMap<String, IBinder> mMulticlassPA_sessions = new HashMap<String, IBinder>();
-    HashMap<String, IBinder> mStochasticLinearRanker_sessions = new HashMap<String, IBinder>();
+    BordeauxSessionManager mSessionManager;
 
     @Override
     public void onCreate() {
+        Log.i(TAG, "Bordeaux service created.");
         mNotificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+        mSessionManager = new BordeauxSessionManager(this);
 
         // Display a notification about us starting.
         // TODO: don't display the notification after the service is
@@ -88,6 +80,9 @@ public class BordeauxService extends Service {
 
     @Override
     public void onDestroy() {
+        // Save the sessions
+        mSessionManager.saveSessions();
+
         // Cancel the persistent notification.
         mNotificationManager.cancel(R.string.remote_service_started);
 
@@ -96,6 +91,8 @@ public class BordeauxService extends Service {
 
         // Unregister all callbacks.
         mCallbacks.kill();
+
+        Log.i(TAG, "Bordeaux service stopped.");
     }
 
     @Override
@@ -107,39 +104,31 @@ public class BordeauxService extends Service {
         return null;
     }
 
+
     // The main interface implemented by the service.
     private final IBordeauxService.Stub mBinder = new IBordeauxService.Stub() {
-        public IBinder getClassifier(String name) {
+        private IBinder getLearningSession(Class learnerClass, String name) {
             PackageManager pm = getPackageManager();
             String uidname = pm.getNameForUid(getCallingUid());
             Log.i(TAG,"Name for uid: " + uidname);
-            // internal unique key that identifies the learning instance.
-            // Composed by the unique id of the package plus the user requested
-            // name.
-            String key = name + "_MulticlassPA_" + getCallingUid();
-            Log.i(TAG, "request classifier session: " + key);
-            if (mMulticlassPA_sessions.containsKey(key)) {
-                return mMulticlassPA_sessions.get(key);
+            BordeauxSessionManager.SessionKey key =
+                    mSessionManager.getSessionKey(uidname, learnerClass, name);
+            Log.i(TAG, "request learning session: " + key.value);
+            try {
+                IBinder iLearner = mSessionManager.getSessionBinder(learnerClass, key);
+                return iLearner;
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Error getting learning interface" + e);
+                return null;
             }
-            IBinder classifier = new Learning_MulticlassPA();
-            mMulticlassPA_sessions.put(key, classifier);
-            Log.i(TAG, "create a new classifier session: " + key);
-            return classifier;
+        }
+
+        public IBinder getClassifier(String name) {
+            return getLearningSession(Learning_MulticlassPA.class, name);
         }
 
         public IBinder getRanker(String name) {
-            // internal unique key that identifies the learning instance.
-            // Composed by the unique id of the package plus the user requested
-            // name.
-            String key = name + "_Ranker_" + getCallingUid();
-            Log.i(TAG, "request ranker session: " + key);
-            if (mStochasticLinearRanker_sessions.containsKey(key)) {
-                return mStochasticLinearRanker_sessions.get(key);
-            }
-            IBinder ranker = new Learning_StochasticLinearRanker(BordeauxService.this);
-            mStochasticLinearRanker_sessions.put(key, ranker);
-            Log.i(TAG, "create a new ranker session: " + key);
-            return ranker;
+            return getLearningSession(Learning_StochasticLinearRanker.class, name);
         }
 
         public void registerCallback(IBordeauxServiceCallback cb) {
@@ -150,16 +139,6 @@ public class BordeauxService extends Service {
             if (cb != null) mCallbacks.unregister(cb);
         }
     };
-
-    /**
-     * A MulticlassPA learning interface.
-     */
-    private final ILearning_MulticlassPA.Stub mMulticlassPABinder = new Learning_MulticlassPA();
-    /**
-     * StochasticLinearRanker interface
-     */
-    private final Learning_StochasticLinearRanker mStochasticLinearRankerBinder = new
-            Learning_StochasticLinearRanker(this);
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {

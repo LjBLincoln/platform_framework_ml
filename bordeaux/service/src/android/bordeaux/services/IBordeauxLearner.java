@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (C) 2012 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,22 @@
 
 package android.bordeaux.services;
 
-/**
- * Example of a secondary interface associated with a service.  (Note that
- * the interface itself doesn't impact, it is just a matter of how you
- * retrieve it from the service.)
- */
-import android.bordeaux.services.StringFloat;
+import android.os.IBinder;
 
+interface IBordeauxLearner {
 
-interface ILearning_StochasticLinearRanker {
+    interface ModelChangeCallback {
 
-    boolean UpdateClassifier(in List<StringFloat> sample_1, in List<StringFloat> sample_2);
-    float ScoreSample(in List<StringFloat> sample);
+        public void modelChanged(IBordeauxLearner learner);
 
+    }
+
+    public byte [] getModel();
+
+    public boolean setModel(final byte [] modelData);
+
+    public IBinder getBinder();
+
+    // call back for the learner model change
+    public void setModelChangeCallback(ModelChangeCallback callback);
 }

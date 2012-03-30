@@ -46,8 +46,10 @@ public class BordeauxManagerService {
     static private ILearning_StochasticLinearRanker mRanker = null;
     static private ILearning_MulticlassPA mClassifier = null;
     static private boolean mStarted = false;
+
     public BordeauxManagerService() {
     }
+
     static private synchronized void bindServices(Context context) {
         if (mStarted) return;
         context.bindService(new Intent(IBordeauxService.class.getName()),
@@ -55,6 +57,16 @@ public class BordeauxManagerService {
         mStarted = true;
 
     }
+
+    // Call the release, before the Context gets destroyed.
+    static public synchronized void release(Context context) {
+        if (mStarted && mConnection != null) {
+            context.unbindService(mConnection);
+            mService = null;
+            mStarted = false;
+        }
+    }
+
     static public synchronized IBordeauxService getService(Context context) {
         if (mService == null) bindServices(context);
         return mService;
@@ -90,6 +102,7 @@ public class BordeauxManagerService {
         }
         return mClassifier;
     }
+
     /**
      * Class for interacting with the main interface of the service.
      */

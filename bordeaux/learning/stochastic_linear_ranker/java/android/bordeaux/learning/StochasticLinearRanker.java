@@ -16,7 +16,10 @@
 
 
 package android.bordeaux.learning;
+
 import android.util.Log;
+
+import java.io.Serializable;
 import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -32,6 +35,13 @@ import java.util.ArrayList;
  */
 public class StochasticLinearRanker {
     String TAG = "StochasticLinearRanker";
+
+    static public class Model implements Serializable {
+        public ArrayList<String> keys = new ArrayList<String>();
+        public ArrayList<Float> values = new ArrayList<Float>();
+        public ArrayList<Float> parameters = new ArrayList<Float>();
+    }
+
     static int VAR_NUM = 15;
     public StochasticLinearRanker() {
         mNativeClassifier = initNativeClassifier();
@@ -52,7 +62,7 @@ public class StochasticLinearRanker {
     }
 
     /**
-     * Get the rank score of the sample, a sample is a list of key, value pairs..
+     * Get the rank score of the sample, a sample is a list of key, value pairs.
      */
     public float scoreSample(String[] keys, float[] values) {
         return nativeScoreSample(keys, values, mNativeClassifier);
@@ -61,7 +71,8 @@ public class StochasticLinearRanker {
     /**
      * Get the current model and parameters of ranker
      */
-    public void getModel(ArrayList keys_list, ArrayList values_list, ArrayList param_list){
+    public Model getModel(){
+        Model model = new Model();
         int len = nativeGetLengthClassifier(mNativeClassifier);
         String[] keys = new String[len];
         float[] values = new float[len];
@@ -69,17 +80,28 @@ public class StochasticLinearRanker {
         nativeGetClassifier(keys, values, param, mNativeClassifier);
         boolean add_flag;
         for (int  i=0; i< keys.length ; i++){
-            add_flag = keys_list.add(keys[i]);
-            add_flag = values_list.add(values[i]);
+            add_flag = model.keys.add(keys[i]);
+            add_flag = model.values.add(values[i]);
         }
         for (int  i=0; i< param.length ; i++)
-            add_flag = param_list.add(param[i]);
+            add_flag = model.parameters.add(param[i]);
+        return model;
     }
 
     /**
      * use the given model and parameters for ranker
      */
-    public boolean loadModel(String [] keys, float[] values, float[] param){
+    public boolean loadModel(Model model) {
+        float[] values = new float[model.values.size()];
+        float[] param = new float[model.parameters.size()];
+        for (int i = 0; i < model.values.size(); ++i) {
+            values[i]  = model.values.get(i);
+        }
+        for (int i = 0; i < model.parameters.size(); ++i) {
+            param[i]  = model.parameters.get(i);
+        }
+        String[] keys = new String[model.keys.size()];
+        model.keys.toArray(keys);
         return nativeLoadClassifier(keys, values, param, mNativeClassifier);
     }
 

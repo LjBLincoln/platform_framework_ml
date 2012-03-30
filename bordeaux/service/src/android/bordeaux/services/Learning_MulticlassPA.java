@@ -17,11 +17,15 @@
 package android.bordeaux.services;
 
 import android.bordeaux.learning.MulticlassPA;
+import android.os.IBinder;
+
 import java.util.List;
 import java.util.ArrayList;
 
-public class Learning_MulticlassPA extends ILearning_MulticlassPA.Stub {
+public class Learning_MulticlassPA extends ILearning_MulticlassPA.Stub
+        implements IBordeauxLearner {
     private MulticlassPA mMulticlassPA_learner;
+    private ModelChangeCallback modelChangeCallback = null;
 
     class IntFloatArray {
         int[] indexArray;
@@ -44,6 +48,24 @@ public class Learning_MulticlassPA extends ILearning_MulticlassPA.Stub {
         mMulticlassPA_learner = new MulticlassPA(2, 2, 0.001f);
     }
 
+    // Beginning of the IBordeauxLearner Interface implementation
+    public byte [] getModel() {
+        return null;
+    }
+
+    public boolean setModel(final byte [] modelData) {
+        return false;
+    }
+
+    public IBinder getBinder() {
+        return this;
+    }
+
+    public void setModelChangeCallback(ModelChangeCallback callback) {
+        modelChangeCallback = callback;
+    }
+    // End of IBordeauxLearner Interface implemenation
+
     // This implementation, combines training and prediction in one step.
     // The return value is the prediction value for the supplied sample. It
     // also update the model with the current sample.
@@ -52,6 +74,9 @@ public class Learning_MulticlassPA extends ILearning_MulticlassPA.Stub {
         mMulticlassPA_learner.sparseTrainOneExample(splited.indexArray,
                                                     splited.floatArray,
                                                     target);
+        if (modelChangeCallback != null) {
+            modelChangeCallback.modelChanged(this);
+        }
     }
 
     public int Classify(List<IntFloat> sample) {

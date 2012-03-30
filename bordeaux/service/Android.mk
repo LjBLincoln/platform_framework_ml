@@ -32,6 +32,7 @@ LOCAL_SRC_FILES += \
         src/android/bordeaux/services/BordeauxClassifier.java \
         src/android/bordeaux/services/BordeauxRanker.java \
         src/android/bordeaux/services/BordeauxManagerService.java \
+        src/android/bordeaux/services/IBordeauxLearner.java \
         src/android/bordeaux/services/Learning_StochasticLinearRanker.java \
         src/android/bordeaux/services/IBordeauxServiceCallback.aidl \
         src/android/bordeaux/services/ILearning_MulticlassPA.aidl \
