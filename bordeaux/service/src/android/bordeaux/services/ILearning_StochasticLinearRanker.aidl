@@ -28,5 +28,7 @@ interface ILearning_StochasticLinearRanker {
 
     boolean UpdateClassifier(in List<StringFloat> sample_1, in List<StringFloat> sample_2);
     float ScoreSample(in List<StringFloat> sample);
-
+    void ResetRanker();
+    boolean SetModelPriorWeight(in List<StringFloat> weight);
+    boolean SetModelParameter(in String key, in String value);
 }

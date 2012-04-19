@@ -53,7 +53,7 @@ public class BordeauxRanker {
         return stringfloat_sample;
     }
 
-    private boolean retrieveRanker() {
+    public boolean retrieveRanker() {
         if (mRanker == null)
             mRanker = BordeauxManagerService.getRanker(mContext, mName);
         // if classifier is not available, return false
@@ -91,6 +91,19 @@ public class BordeauxRanker {
         return true;
     }
 
+    public boolean reset() {
+        if (!retrieveRanker()){
+            Log.e(TAG,"Exception: Ranker is not availible");
+            return false;
+        }
+        try {
+            mRanker.ResetRanker();
+            return true;
+        } catch (RemoteException e) {
+        }
+        return false;
+    }
+
     public float scoreSample(final HashMap<String, Float> sample) {
         if (!retrieveRanker())
             throw new RuntimeException(RANKER_NOTAVAILABLE);
@@ -102,13 +115,25 @@ public class BordeauxRanker {
         }
     }
 
-    public void loadModel(String filename) {
-        // no longer availabe through the interface
-        return;
+    public boolean setPriorWeight(final HashMap<String, Float> sample) {
+        if (!retrieveRanker())
+            throw new RuntimeException(RANKER_NOTAVAILABLE);
+        try {
+            return mRanker.SetModelPriorWeight(getArrayList(sample));
+        } catch (RemoteException e) {
+            Log.e(TAG,"Exception: set prior Weights");
+            throw new RuntimeException(RANKER_NOTAVAILABLE);
+        }
     }
 
-    public String saveModel(String filename) {
-        // no longer availabe through the interface
-        return null;
+    public boolean setParameter(String key, String value) {
+        if (!retrieveRanker())
+            throw new RuntimeException(RANKER_NOTAVAILABLE);
+        try {
+            return mRanker.SetModelParameter(key, value);
+        } catch (RemoteException e) {
+            Log.e(TAG,"Exception: scoring the sample with prior.");
+            throw new RuntimeException(RANKER_NOTAVAILABLE);
+        }
     }
 }

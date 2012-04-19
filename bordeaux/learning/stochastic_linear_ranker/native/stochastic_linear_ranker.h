@@ -48,8 +48,10 @@ class StochasticLinearRanker {
     learning_rate_controller_.SetLambda(lambda_);
     mini_batch_size_ = 1;
     learning_rate_controller_.SetMiniBatchSize(mini_batch_size_);
-    learning_rate_controller_.SetAdaptationMode(INV_LINEAR);
+    adaptation_mode_ = INV_LINEAR;
+    learning_rate_controller_.SetAdaptationMode(adaptation_mode_);
     update_type_ = SL;
+    regularization_type_ = L2;
     kernel_type_ = LINEAR;
     kernel_param_ = 1.0;
     kernel_gain_ = 1.0;
@@ -87,16 +89,21 @@ class StochasticLinearRanker {
   AdaptationMode GetAdaptationMode() const {
     return adaptation_mode_;
   }
-  // This function additionally returns the basic kernel parameter. In case of
+  KernelType GetKernelType() const {
+    return kernel_type_;
+  }
+  // This function returns the basic kernel parameter. In case of
   // polynomial kernel, it implies the degree of the polynomial.  In case of
   // RBF kernel, it implies the sigma parameter. In case of linear kernel,
   // it is not used.
-  // It also returns the kernel gain and bias.
-  KernelType GetKernelType(double *param, double *gain, double *bias) const {
-    *param = kernel_param_;
-    *gain = kernel_gain_;
-    *bias = kernel_bias_;
-    return kernel_type_;
+  double GetKernelParam() const {
+    return kernel_param_;
+  }
+  double GetKernelGain() const {
+    return kernel_gain_;;
+  }
+  double GetKernelBias() const {
+    return kernel_bias_;
   }
   RankLossType GetRankLossType() const {
     return rank_loss_type_;
@@ -125,16 +132,24 @@ class StochasticLinearRanker {
     adaptation_mode_ = m;
     learning_rate_controller_.SetAdaptationMode(m);
   }
-  // This function additionally sets the basic kernel parameter. In case of
+  void SetKernelType(KernelType k ) {
+    kernel_type_ = k;
+  }
+  // This function sets the basic kernel parameter. In case of
   // polynomial kernel, it implies the degree of the polynomial. In case of
   // RBF kernel, it implies the sigma parameter. In case of linear kernel,
   // it is not used.
-  // It also sets the kernel gain and bias. NOTE: in most use cases, gain should
-  // be set to 1.0 and bias to 0.0.
-  void SetKernelType(KernelType k, double param, double gain, double bias) {
-    kernel_type_ = k;
+  void SetKernelParam(double param) {
     kernel_param_ = param;
+  }
+  // This function sets the kernel gain. NOTE: in most use cases, gain should
+  // be set to 1.0.
+  void SetKernelGain(double gain) {
     kernel_gain_ = gain;
+  }
+  // This function sets the kernel bias. NOTE: in most use cases, bias should
+  // be set to 0.0.
+  void SetKernelBias(double bias) {
     kernel_bias_ = bias;
   }
   void SetUpdateType(UpdateType u) {

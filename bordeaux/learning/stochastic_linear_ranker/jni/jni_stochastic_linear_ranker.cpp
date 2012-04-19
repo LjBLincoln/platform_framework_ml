@@ -29,6 +29,7 @@ using learning_stochastic_linear::SparseWeightVector;
 
 void CreateSparseWeightVector(JNIEnv* env, const jobjectArray keys, const float* values,
     const int length, SparseWeightVector<string> * sample) {
+
   for (int i = 0; i < length; ++i) {
     jboolean iscopy;
     jstring s = (jstring) env->GetObjectArrayElement(keys, i);
@@ -36,6 +37,15 @@ void CreateSparseWeightVector(JNIEnv* env, const jobjectArray keys, const float*
     sample->SetElement(key, static_cast<double>(values[i]));
     env->ReleaseStringUTFChars(s,key);
   }
+}
+
+void ConvertParameter2Object(JNIEnv* env, jobjectArray *keys, jobjectArray *values,
+    const char * name , const char * paramValue, int index) {
+
+    jstring jstrK = env->NewStringUTF(name);
+    jstring jstrV = env->NewStringUTF(paramValue);
+    env->SetObjectArrayElement(*keys, index, jstrK);
+    env->SetObjectArrayElement(*values, index, jstrV);
 }
 
 void DecomposeSparseWeightVector(JNIEnv* env, jobjectArray *keys, jfloatArray *values,
@@ -46,9 +56,9 @@ void DecomposeSparseWeightVector(JNIEnv* env, jobjectArray *keys, jfloatArray *v
   for ( SparseWeightVector<string>::Witer_const iter = w_.begin();
     iter != w_.end(); ++iter) {
     std::string key = iter->first;
+    float value = (float) iter->second;
     jstring jstr = env->NewStringUTF(key.c_str());
     env->SetObjectArrayElement(*keys, i, jstr);
-    double value = iter->second;
     jfloat s[1];
     s[0] = value;
     env->SetFloatArrayRegion(*values, i, 1, s);
@@ -56,112 +66,163 @@ void DecomposeSparseWeightVector(JNIEnv* env, jobjectArray *keys, jfloatArray *v
   }
 }
 
-jboolean Java_android_bordeaux_learning_StochasticLinearRanker_nativeLoadClassifier(
+jboolean Java_android_bordeaux_learning_StochasticLinearRanker_nativeSetWeightClassifier(
     JNIEnv* env,
     jobject thiz,
     jobjectArray key_array_model,
     jfloatArray value_array_model,
-    jfloatArray value_array_param,
+    jfloat normalizer_model,
     jint paPtr) {
 
   StochasticLinearRanker<string>* classifier = (StochasticLinearRanker<string>*) paPtr;
-  if (classifier && key_array_model && value_array_model && value_array_param) {
+  if (classifier && key_array_model && value_array_model && normalizer_model) {
     const int keys_m_len = env->GetArrayLength(key_array_model);
     jfloat* values_m = env->GetFloatArrayElements(value_array_model, NULL);
     const int values_m_len = env->GetArrayLength(value_array_model);
-    jfloat* param_m = env->GetFloatArrayElements(value_array_param, NULL);
 
     if (values_m && key_array_model && values_m_len == keys_m_len) {
       SparseWeightVector<string> model;
       CreateSparseWeightVector(env, key_array_model, values_m, values_m_len, &model);
-      model.SetNormalizer((double) param_m[0]);
+      model.SetNormalizer(normalizer_model);
       classifier->LoadWeights(model);
-      classifier->SetIterationNumber((uint64) param_m[1]);
-      classifier->SetNormConstraint((double) param_m[2]);
-
-      switch ((int) param_m[3]){
-      case 0 :
-        classifier->SetRegularizationType(learning_stochastic_linear::L0);
-        break;
-      case 1 :
-        classifier->SetRegularizationType(learning_stochastic_linear::L1);
-        break;
-      case 2 :
-        classifier->SetRegularizationType(learning_stochastic_linear::L2);
-        break;
-      case 3 :
-        classifier->SetRegularizationType(learning_stochastic_linear::L1L2);
-        break;
-      case 4 :
-        classifier->SetRegularizationType(learning_stochastic_linear::L1LInf);
-        break;
-      }
-
-      classifier->SetLambda((double) param_m[4]);
-
-      switch ((int) param_m[5]){
-      case 0 :
-        classifier->SetUpdateType(learning_stochastic_linear::FULL_CS);
-        break;
-      case 1 :
-        classifier->SetUpdateType(learning_stochastic_linear::CLIP_CS);
-        break;
-      case 2 :
-        classifier->SetUpdateType(learning_stochastic_linear::REG_CS);
-        break;
-      case 3 :
-        classifier->SetUpdateType(learning_stochastic_linear::SL);
-        break;
-      case 4 :
-        classifier->SetUpdateType(learning_stochastic_linear::ADAPTIVE_REG);
-        break;
-      }
-
-      switch ((int) param_m[6]){
-      case 0 :
-        classifier->SetAdaptationMode(learning_stochastic_linear::CONST);
-        break;
-      case 1 :
-        classifier->SetAdaptationMode(learning_stochastic_linear::INV_LINEAR);
-        break;
-      case 2 :
-        classifier->SetAdaptationMode(learning_stochastic_linear::INV_QUADRATIC);
-        break;
-      case 3 :
-        classifier->SetAdaptationMode(learning_stochastic_linear::INV_SQRT);
-        break;
-      }
-
-      switch ((int) param_m[7]){
-      case 0 :
-        classifier->SetKernelType(learning_stochastic_linear::LINEAR, (double) param_m[8],
-                                  (double) param_m[9],(double) param_m[10]);
-        break;
-      case 1 : classifier->SetKernelType(learning_stochastic_linear::POLY, (double) param_m[8],
-                                         (double) param_m[9],(double) param_m[10]);
-        break;
-      case 2 : classifier->SetKernelType(learning_stochastic_linear::RBF, (double) param_m[8],
-                                          (double) param_m[9],(double) param_m[10]);
-        break;
-      }
-
-      switch ((int) param_m[11]){
-      case 0 :
-        classifier->SetRankLossType(learning_stochastic_linear::PAIRWISE);
-        break;
-      case 1 :
-        classifier->SetRankLossType(learning_stochastic_linear::RECIPROCAL_RANK);
-        break;
-      }
-
-      classifier->SetAcceptanceProbability((double) param_m[12]);
-      classifier->SetMiniBatchSize((uint64)param_m[13]);
-      classifier->SetGradientL0Norm((int32)param_m[14]);
       env->ReleaseFloatArrayElements(value_array_model, values_m, JNI_ABORT);
-      env->ReleaseFloatArrayElements(value_array_param, param_m, JNI_ABORT);
       return JNI_TRUE;
     }
   }
+  return JNI_FALSE;
+}
+
+jboolean Java_android_bordeaux_learning_StochasticLinearRanker_nativeSetParameterClassifier(
+    JNIEnv* env,
+    jobject thiz,
+    jstring key,
+    jstring value,
+    jint paPtr) {
+
+  StochasticLinearRanker<string>* classifier = (StochasticLinearRanker<string>*) paPtr;
+  jboolean iscopy;
+  const char *cKey = env->GetStringUTFChars(key, &iscopy);
+  const char *cValue = env->GetStringUTFChars(value, &iscopy);
+  float v;
+  if (strcmp(cKey, ITR_NUM) == 0){
+    sscanf(cValue, "%f", &v);
+    classifier->SetIterationNumber((uint64) v);
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, NORM_CONSTRAINT) == 0){
+    sscanf(cValue, "%f", &v);
+    classifier->SetNormConstraint((double) v);
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, REG_TYPE) == 0){
+    if (strcmp(cValue, REG_TYPE_L0 ) == 0)
+      classifier->SetRegularizationType(learning_stochastic_linear::L0);
+    else if (strcmp(cValue, REG_TYPE_L1 ) == 0)
+      classifier->SetRegularizationType(learning_stochastic_linear::L1);
+    else if (strcmp(cValue, REG_TYPE_L2 ) == 0)
+      classifier->SetRegularizationType(learning_stochastic_linear::L2);
+    else if (strcmp(cValue, REG_TYPE_L1L2 ) == 0)
+      classifier->SetRegularizationType(learning_stochastic_linear::L1L2);
+    else if (strcmp(cValue, REG_TYPE_L1LInf ) == 0)
+      classifier->SetRegularizationType(learning_stochastic_linear::L1LInf);
+    else {
+      ALOGE("Error: %s is not a Regularization Type", cValue);
+      return JNI_FALSE;
+    }
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, LAMBDA) == 0){
+    sscanf(cValue, "%f", &v);
+    classifier->SetLambda((double) v);
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, UPDATE_TYPE) == 0){
+    if (strcmp(cValue, UPDATE_TYPE_FULL_CS) == 0)
+      classifier->SetUpdateType(learning_stochastic_linear::FULL_CS);
+    else if (strcmp(cValue, UPDATE_TYPE_CLIP_CS) == 0)
+      classifier->SetUpdateType(learning_stochastic_linear::CLIP_CS);
+    else if (strcmp(cValue, UPDATE_TYPE_REG_CS ) == 0)
+      classifier->SetUpdateType(learning_stochastic_linear::REG_CS);
+    else if (strcmp(cValue, UPDATE_TYPE_SL) == 0)
+      classifier->SetUpdateType(learning_stochastic_linear::SL);
+    else if (strcmp(cValue, UPDATE_TYPE_ADAPTIVE_REG) == 0)
+      classifier->SetUpdateType(learning_stochastic_linear::ADAPTIVE_REG);
+    else {
+      ALOGE("Error: %s is not an Update Type", cValue);
+      return JNI_FALSE;
+    }
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, ADAPT_MODE) == 0){
+    if (strcmp(cValue, ADAPT_MODE_CONST ) == 0)
+      classifier->SetAdaptationMode(learning_stochastic_linear::CONST);
+    else if (strcmp(cValue, ADAPT_MODE_INV_LINEAR ) == 0)
+      classifier->SetAdaptationMode(learning_stochastic_linear::INV_LINEAR);
+    else if (strcmp(cValue, ADAPT_MODE_INV_QUADRATIC ) == 0)
+      classifier->SetAdaptationMode(learning_stochastic_linear::INV_QUADRATIC);
+    else if (strcmp(cValue, ADAPT_MODE_INV_SQRT ) == 0)
+      classifier->SetAdaptationMode(learning_stochastic_linear::INV_SQRT);
+    else {
+      ALOGE("Error: %s is not an Adaptation Mode", cValue);
+      return JNI_FALSE;
+    }
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, KERNEL_TYPE) == 0){
+    if (strcmp(cValue, KERNEL_TYPE_LINEAR ) == 0)
+      classifier->SetKernelType(learning_stochastic_linear::LINEAR);
+    else if (strcmp(cValue, KERNEL_TYPE_POLY ) == 0)
+      classifier->SetKernelType(learning_stochastic_linear::POLY);
+    else if (strcmp(cValue, KERNEL_TYPE_RBF ) == 0)
+      classifier->SetKernelType(learning_stochastic_linear::RBF);
+    else {
+      ALOGE("Error: %s is not a Kernel Type", cValue);
+      return JNI_FALSE;
+    }
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, KERNEL_PARAM) == 0){
+    sscanf(cValue, "%f", &v);
+    classifier->SetKernelParam((double) v);
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, KERNEL_GAIN) == 0){
+    sscanf(cValue, "%f", &v);
+    classifier->SetKernelGain((double) v);
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, KERNEL_BIAS) == 0){
+    sscanf(cValue, "%f", &v);
+    classifier->SetKernelBias((double) v);
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, LOSS_TYPE) == 0){
+    if (strcmp(cValue, LOSS_TYPE_PAIRWISE ) == 0)
+      classifier->SetRankLossType(learning_stochastic_linear::PAIRWISE);
+    else if (strcmp(cValue, LOSS_TYPE_RECIPROCAL_RANK ) == 0)
+      classifier->SetRankLossType(learning_stochastic_linear::RECIPROCAL_RANK);
+    else {
+      ALOGE("Error: %s is not a Kernel Type", cValue);
+      return JNI_FALSE;
+    }
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, ACC_PROB) == 0){
+    sscanf(cValue, "%f", &v);
+    classifier->SetAcceptanceProbability((double) v);
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, MIN_BATCH_SIZE) == 0){
+    sscanf(cValue, "%f", &v);
+    classifier->SetMiniBatchSize((uint64) v);
+    return JNI_TRUE;
+  }
+  else if (strcmp(cKey, GRAD_L0_NORM) == 0){
+    sscanf(cValue, "%f", &v);
+    classifier->SetGradientL0Norm((int32) v);
+    return JNI_TRUE;
+  }
+  ALOGE("Error: %s is not a ranker parameter", cKey);
   return JNI_FALSE;
 }
 
@@ -179,64 +240,154 @@ jint Java_android_bordeaux_learning_StochasticLinearRanker_nativeGetLengthClassi
   return len;
 }
 
-void Java_android_bordeaux_learning_StochasticLinearRanker_nativeGetClassifier(
+std::string ConvertFloat2String(float v){
+    std::stringstream converter;
+    converter << v;
+    return converter.str();
+}
+
+void Java_android_bordeaux_learning_StochasticLinearRanker_nativeGetParameterClassifier(
+    JNIEnv* env,
+    jobject thiz,
+    jobjectArray key_array_param,
+    jobjectArray value_array_param,
+    jint paPtr){
+
+  std::string s;
+  StochasticLinearRanker<string>* classifier = (StochasticLinearRanker<string>*) paPtr;
+  s = ConvertFloat2String((float) classifier->GetIterationNumber());
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, ITR_NUM, s.c_str(), 0 );
+
+  s = ConvertFloat2String((float) classifier->GetNormContraint());
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, NORM_CONSTRAINT, s.c_str(), 1 );
+
+  float value = (float) classifier->GetRegularizationType();
+  switch ((int) value) {
+    case learning_stochastic_linear::L0 :
+      s = REG_TYPE_L0;
+      break;
+    case learning_stochastic_linear::L1 :
+      s = REG_TYPE_L1;
+      break;
+    case learning_stochastic_linear::L2 :
+      s = REG_TYPE_L2;
+      break;
+    case learning_stochastic_linear::L1L2 :
+      s = REG_TYPE_L1L2;
+      break;
+    case learning_stochastic_linear::L1LInf :
+      s = REG_TYPE_L1LInf;
+      break;
+  }
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, REG_TYPE, s.c_str(), 2 );
+
+  s = ConvertFloat2String((float) classifier->GetLambda());
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, LAMBDA, s.c_str(), 3 );
+
+  value = (float) classifier->GetUpdateType();
+  switch ((int) value) {
+    case learning_stochastic_linear::FULL_CS :
+      s = UPDATE_TYPE_FULL_CS;
+      break;
+    case learning_stochastic_linear::CLIP_CS :
+      s = UPDATE_TYPE_CLIP_CS;
+      break;
+    case learning_stochastic_linear::REG_CS :
+      s = UPDATE_TYPE_REG_CS;
+      break;
+    case learning_stochastic_linear::SL :
+      s = UPDATE_TYPE_SL;
+      break;
+    case learning_stochastic_linear::ADAPTIVE_REG :
+      s = UPDATE_TYPE_ADAPTIVE_REG;
+      break;
+  }
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, UPDATE_TYPE, s.c_str(), 4 );
+
+  value = (float) classifier->GetAdaptationMode();
+  switch ((int) value) {
+    case learning_stochastic_linear::CONST :
+      s = ADAPT_MODE_CONST;
+      break;
+    case learning_stochastic_linear::INV_LINEAR :
+      s = ADAPT_MODE_INV_LINEAR;
+      break;
+    case learning_stochastic_linear::INV_QUADRATIC :
+      s = ADAPT_MODE_INV_QUADRATIC;
+      break;
+    case learning_stochastic_linear::INV_SQRT :
+      s = ADAPT_MODE_INV_SQRT;
+      break;
+  }
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, ADAPT_MODE, s.c_str(), 5 );
+
+  value = (float) classifier->GetKernelType();
+  switch ((int) value) {
+    case learning_stochastic_linear::LINEAR :
+      s = KERNEL_TYPE_LINEAR;
+      break;
+    case learning_stochastic_linear::POLY :
+      s = KERNEL_TYPE_POLY;
+      break;
+    case learning_stochastic_linear::RBF :
+      s = KERNEL_TYPE_RBF;
+      break;
+  }
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, KERNEL_TYPE, s.c_str(), 6 );
+
+  s = ConvertFloat2String((float) classifier->GetKernelParam());
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, KERNEL_PARAM, s.c_str(), 7 );
+
+  s = ConvertFloat2String((float) classifier->GetKernelGain());
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, KERNEL_GAIN, s.c_str(), 8 );
+
+  s = ConvertFloat2String((float)classifier->GetKernelBias());
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, KERNEL_BIAS, s.c_str(), 9 );
+
+  value = (float) classifier->GetRankLossType();
+  switch ((int) value) {
+    case learning_stochastic_linear::PAIRWISE :
+      s = LOSS_TYPE_PAIRWISE;
+      break;
+    case learning_stochastic_linear::RECIPROCAL_RANK :
+      s = LOSS_TYPE_RECIPROCAL_RANK;
+      break;
+  }
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, LOSS_TYPE, s.c_str(), 10 );
+
+  s = ConvertFloat2String((float) classifier->GetAcceptanceProbability());
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, ACC_PROB, s.c_str(), 11 );
+
+  s = ConvertFloat2String((float) classifier->GetMiniBatchSize());
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, MIN_BATCH_SIZE, s.c_str(), 12 );
+
+  s = ConvertFloat2String((float) classifier->GetGradientL0Norm());
+  ConvertParameter2Object(env, &key_array_param, &value_array_param, GRAD_L0_NORM, s.c_str(), 13 );
+}
+
+void Java_android_bordeaux_learning_StochasticLinearRanker_nativeGetWeightClassifier(
   JNIEnv* env,
   jobject thiz,
   jobjectArray key_array_model,
   jfloatArray value_array_model,
-  jfloatArray value_array_param,
+  jfloat normalizer,
   jint paPtr) {
 
   StochasticLinearRanker<string>* classifier = (StochasticLinearRanker<string>*) paPtr;
-
   SparseWeightVector<string> M_weights;
   classifier->SaveWeights(&M_weights);
-  double Jni_weight_normalizer = M_weights.GetNormalizer();
-  int Jni_itr_num = classifier->GetIterationNumber();
-  double Jni_norm_cont = classifier->GetNormContraint();
-  int Jni_reg_type = classifier->GetRegularizationType();
-  double Jni_lambda = classifier->GetLambda();
-  int Jni_update_type = classifier->GetUpdateType();
-  int Jni_AdaptationMode = classifier->GetAdaptationMode();
-  double Jni_kernel_param, Jni_kernel_gain, Jni_kernel_bias;
-  int Jni_kernel_type = classifier->GetKernelType(&Jni_kernel_param, &Jni_kernel_gain, &Jni_kernel_bias);
-  int Jni_rank_loss_type = classifier->GetRankLossType();
-  double Jni_accp_prob = classifier->GetAcceptanceProbability();
-  uint64 Jni_min_batch_size = classifier->GetMiniBatchSize();
-  int32 Jni_GradL0Norm = classifier->GetGradientL0Norm();
-  const int Var_num = 15;
-  jfloat s[Var_num]= {  (float) Jni_weight_normalizer,
-                        (float) Jni_itr_num,
-                        (float) Jni_norm_cont,
-                        (float) Jni_reg_type,
-                        (float) Jni_lambda,
-                        (float) Jni_update_type,
-                        (float) Jni_AdaptationMode,
-                        (float) Jni_kernel_type,
-                        (float) Jni_kernel_param,
-                        (float) Jni_kernel_gain,
-                        (float) Jni_kernel_bias,
-                        (float) Jni_rank_loss_type,
-                        (float) Jni_accp_prob,
-                        (float) Jni_min_batch_size,
-                        (float) Jni_GradL0Norm};
-
-  env->SetFloatArrayRegion(value_array_param, 0, Var_num, s);
-
   SparseWeightVector<string>::Wmap w_map = M_weights.GetMap();
   int array_len = w_map.size();
 
+  normalizer = M_weights.GetNormalizer();
   DecomposeSparseWeightVector(env, &key_array_model, &value_array_model, array_len, &M_weights);
 }
 
 jint Java_android_bordeaux_learning_StochasticLinearRanker_initNativeClassifier(JNIEnv* env,
                              jobject thiz) {
   StochasticLinearRanker<string>* classifier = new StochasticLinearRanker<string>();
-  classifier->SetUpdateType(learning_stochastic_linear::REG_CS);
-  classifier->SetRegularizationType(learning_stochastic_linear::L2);
   return ((jint) classifier);
 }
-
 
 jboolean Java_android_bordeaux_learning_StochasticLinearRanker_deleteNativeClassifier(JNIEnv* env,
                                jobject thiz,
@@ -284,7 +435,6 @@ jboolean Java_android_bordeaux_learning_StochasticLinearRanker_nativeUpdateClass
   }
   return JNI_FALSE;
 }
-
 
 jfloat Java_android_bordeaux_learning_StochasticLinearRanker_nativeScoreSample(
   JNIEnv* env,

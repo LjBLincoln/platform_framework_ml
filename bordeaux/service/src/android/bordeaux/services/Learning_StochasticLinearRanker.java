@@ -17,26 +17,35 @@
 package android.bordeaux.services;
 
 import android.bordeaux.learning.StochasticLinearRanker;
-import android.bordeaux.learning.StochasticLinearRanker.Model;
 import android.bordeaux.services.IBordeauxLearner.ModelChangeCallback;
 import android.os.IBinder;
 import android.util.Log;
-
+import java.util.List;
+import java.util.ArrayList;
 import java.io.*;
 import java.lang.ClassNotFoundException;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Learning_StochasticLinearRanker extends ILearning_StochasticLinearRanker.Stub
         implements IBordeauxLearner {
 
-    String TAG = "ILearning_StochasticLinearRanker";
-    private StochasticLinearRanker mLearningSlRanker = null;
+    private final String TAG = "ILearning_StochasticLinearRanker";
+    private StochasticLinearRankerWithPrior mLearningSlRanker = null;
     private ModelChangeCallback modelChangeCallback = null;
 
     public Learning_StochasticLinearRanker(){
+    }
+
+    public void ResetRanker(){
+        if (mLearningSlRanker == null)
+            mLearningSlRanker = new StochasticLinearRankerWithPrior();
+        mLearningSlRanker.resetRanker();
     }
 
     public boolean UpdateClassifier(List<StringFloat> sample_1, List<StringFloat> sample_2){
@@ -54,7 +63,8 @@ public class Learning_StochasticLinearRanker extends ILearning_StochasticLinearR
             keys_2[i] = temp_2.get(i).key;
             values_2[i] = temp_2.get(i).value;
         }
-        if (mLearningSlRanker == null) mLearningSlRanker = new StochasticLinearRanker();
+        if (mLearningSlRanker == null)
+            mLearningSlRanker = new StochasticLinearRankerWithPrior();
         boolean res = mLearningSlRanker.updateClassifier(keys_1,values_1,keys_2,values_2);
         if (res && modelChangeCallback != null) {
             modelChangeCallback.modelChanged(this);
@@ -70,16 +80,32 @@ public class Learning_StochasticLinearRanker extends ILearning_StochasticLinearR
             keys[i] = temp.get(i).key;
             values[i] = temp.get(i).value;
         }
-        if (mLearningSlRanker == null) mLearningSlRanker = new StochasticLinearRanker();
-        float res=mLearningSlRanker .scoreSample(keys,values);
-        res = (float) (Math.exp(res)/(Math.exp(res)+Math.exp(-res)));
-        return res;
+        if (mLearningSlRanker == null)
+            mLearningSlRanker = new StochasticLinearRankerWithPrior();
+        return mLearningSlRanker.scoreSample(keys,values);
+    }
+
+    public boolean SetModelPriorWeight(List<StringFloat> sample) {
+        ArrayList<StringFloat> temp = (ArrayList<StringFloat>)sample;
+        HashMap<String, Float> weights = new HashMap<String, Float>();
+        for (int i = 0; i < temp.size(); i++)
+            weights.put(temp.get(i).key, temp.get(i).value);
+        if (mLearningSlRanker == null)
+            mLearningSlRanker = new StochasticLinearRankerWithPrior();
+        return mLearningSlRanker.setModelPriorWeights(weights);
+    }
+
+    public boolean SetModelParameter(String key, String value) {
+        if (mLearningSlRanker == null)
+            mLearningSlRanker = new StochasticLinearRankerWithPrior();
+        return mLearningSlRanker.setModelParameter(key,value);
     }
 
     // Beginning of the IBordeauxLearner Interface implementation
     public byte [] getModel() {
-        if (mLearningSlRanker == null) mLearningSlRanker = new StochasticLinearRanker();
-        Model model = mLearningSlRanker.getModel();
+        if (mLearningSlRanker == null)
+            mLearningSlRanker = new StochasticLinearRankerWithPrior();
+        StochasticLinearRankerWithPrior.Model model = mLearningSlRanker.getModel();
         try {
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
             ObjectOutputStream objStream = new ObjectOutputStream(byteStream);
@@ -97,8 +123,10 @@ public class Learning_StochasticLinearRanker extends ILearning_StochasticLinearR
         try {
             ByteArrayInputStream input = new ByteArrayInputStream(modelData);
             ObjectInputStream objStream = new ObjectInputStream(input);
-            Model model = (Model) objStream.readObject();
-            if (mLearningSlRanker == null) mLearningSlRanker = new StochasticLinearRanker();
+            StochasticLinearRankerWithPrior.Model model =
+                    (StochasticLinearRankerWithPrior.Model) objStream.readObject();
+            if (mLearningSlRanker == null)
+                mLearningSlRanker = new StochasticLinearRankerWithPrior();
             boolean res = mLearningSlRanker.loadModel(model);
             Log.i(TAG, "LoadModel: " + modelData);
             return res;
