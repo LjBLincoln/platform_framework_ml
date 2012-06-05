@@ -64,24 +64,12 @@ public class BordeauxService extends Service {
     NotificationManager mNotificationManager;
 
     BordeauxSessionManager mSessionManager;
-    AggregatorManager mAggregatorManager;
-    TimeStatsAggregator mTimeStatsAggregator;
-    LocationStatsAggregator mLocationStatsAggregator;
-    MotionStatsAggregator mMotionStatsAggregator;
 
     @Override
     public void onCreate() {
         Log.i(TAG, "Bordeaux service created.");
         mNotificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
         mSessionManager = new BordeauxSessionManager(this);
-        mMotionStatsAggregator = new MotionStatsAggregator();
-        mLocationStatsAggregator = new LocationStatsAggregator();
-        mTimeStatsAggregator = new TimeStatsAggregator();
-        mAggregatorManager = AggregatorManager.getInstance();
-        mAggregatorManager.registerAggregator(mMotionStatsAggregator, mAggregatorManager);
-        mAggregatorManager.registerAggregator(mLocationStatsAggregator, mAggregatorManager);
-        mAggregatorManager.registerAggregator(mTimeStatsAggregator, mAggregatorManager);
-        //Log.i(TAG, "Bordeaux aggregators were registered");
 
         // Display a notification about us starting.
         // TODO: don't display the notification after the service is
@@ -141,14 +129,6 @@ public class BordeauxService extends Service {
 
         public IBinder getRanker(String name) {
             return getLearningSession(Learning_StochasticLinearRanker.class, name);
-        }
-
-        public IBinder getPredictor(String name) {
-            return getLearningSession(Predictor.class, name);
-        }
-
-        public IBinder getAggregatorManager() {
-            return (IBinder) mAggregatorManager;
         }
 
         public void registerCallback(IBordeauxServiceCallback cb) {
