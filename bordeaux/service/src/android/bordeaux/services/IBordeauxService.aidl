@@ -31,6 +31,12 @@ interface IBordeauxService {
     */
     IBinder getClassifier(String name);
 
+    /* Request to access AggregatorManager
+    */
+    IBinder getAggregatorManager();
+    /* Request a Predictor
+    */
+    IBinder getPredictor(String name);
     /**
      * Often you want to allow a service to call back to its clients.
      * This shows how to do so, by registering a callback interface with

@@ -43,7 +43,8 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_TAGS := samples tests
 
-LOCAL_SRC_FILES :=$(call all-java-files-under, multiclass_pa stochastic_linear_ranker)
+LOCAL_SRC_FILES := $(call all-java-files-under, multiclass_pa stochastic_linear_ranker ) \
+                   $(call all-java-files-under, predictor_histogram)
 
 LOCAL_MODULE :=  bordeaux_learners
 
