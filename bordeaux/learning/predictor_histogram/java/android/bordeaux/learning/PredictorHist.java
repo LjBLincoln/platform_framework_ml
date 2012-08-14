@@ -25,18 +25,18 @@ import android.util.Log;
  * A simple impelentation of histograms with sparse enteries using HashMap.
  * User can push examples or extract probabilites from this histogram.
  */
-public class predictorHist {
+public class PredictorHist {
     private HashMap<String, Integer> mCountHist;
     private int mSampleCount;
     String TAG = "PredicrtHist";
 
-    public predictorHist() {
+    public PredictorHist() {
         mCountHist = new HashMap<String, Integer>();
         mSampleCount = 0;
     }
 
     // reset histogram
-    public void ResetPredictorHist() {
+    public void resetPredictorHist() {
         mCountHist.clear();
         mSampleCount = 0;
     }
@@ -52,7 +52,7 @@ public class predictorHist {
 
     //setter
     public void set(HashMap<String, Integer> hist) {
-        ResetPredictorHist();
+        resetPredictorHist();
         for (Map.Entry<String, Integer> x : hist.entrySet()) {
             mCountHist.put(x.getKey(), x.getValue());
             mSampleCount = mSampleCount + x.getValue();
@@ -64,8 +64,9 @@ public class predictorHist {
      */
     public void pushSample( String fs) {
         int histValue = 1;
-        if (mCountHist.get(fs) != null )
+        if (mCountHist.containsKey(fs)) {
             histValue = histValue + mCountHist.get(fs);
+        }
         mCountHist.put(fs,histValue);
         mSampleCount++;
     }
@@ -75,8 +76,9 @@ public class predictorHist {
      */
     public float getProbability(String fs) {
         float res = 0;
-        if (mCountHist.get(fs) != null )
+        if (mCountHist.containsKey(fs)) {
             res = ((float) mCountHist.get(fs)) / ((float)mSampleCount);
+        }
         return res;
     }
 }

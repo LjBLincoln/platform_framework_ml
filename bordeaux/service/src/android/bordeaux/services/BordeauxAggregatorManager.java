@@ -35,11 +35,12 @@ public class BordeauxAggregatorManager {
     private IAggregatorManager mAggregatorManager;
 
     public boolean retrieveAggregatorManager() {
-        if (mAggregatorManager == null)
-            mAggregatorManager = BordeauxManagerService.getAggregatorManager(mContext);
         if (mAggregatorManager == null) {
-            Log.e(TAG, AggregatorManager_NOTAVAILABLE);
-            return false;
+            mAggregatorManager = BordeauxManagerService.getAggregatorManager(mContext);
+            if (mAggregatorManager == null) {
+                Log.e(TAG, AggregatorManager_NOTAVAILABLE);
+                return false;
+            }
         }
         return true;
     }
@@ -61,9 +62,10 @@ public class BordeauxAggregatorManager {
     }
 
     private Map<String, String> getMap(final List<StringString> sample) {
-        HashMap<String, String> m = new HashMap<String, String>();
-        for (int i =0; i < sample.size(); i++)
-            m.put(sample.get(i).key, sample.get(i).value);
-        return (Map) m;
+        HashMap<String, String> map = new HashMap<String, String>();
+        for (int i =0; i < sample.size(); i++) {
+            map.put(sample.get(i).key, sample.get(i).value);
+        }
+        return (Map) map;
     }
 }

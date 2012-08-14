@@ -75,7 +75,7 @@ public class BordeauxService extends Service {
         //mNotificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
         mSessionManager = new BordeauxSessionManager(this);
         mMotionStatsAggregator = new MotionStatsAggregator();
-        mLocationStatsAggregator = new LocationStatsAggregator();
+        mLocationStatsAggregator = new LocationStatsAggregator(this);
         mTimeStatsAggregator = new TimeStatsAggregator();
         mAggregatorManager = AggregatorManager.getInstance();
         mAggregatorManager.registerAggregator(mMotionStatsAggregator, mAggregatorManager);

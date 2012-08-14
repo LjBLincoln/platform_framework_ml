@@ -16,9 +16,11 @@
 
 package android.bordeaux.services;
 
+import android.bordeaux.services.StringFloat;
+
 interface IPredictor {
-    boolean setPredictorParameter( in String s, in String f );
-    void pushNewSample(in String s);
-    void ResetPredictor();
-    float getSampleProbability(in String s);
+    boolean setPredictorParameter(in String key, in String value);
+    void pushNewSample(in String sampleName);
+    void resetPredictor();
+    List<StringFloat> getTopCandidates(in int topK);
 }

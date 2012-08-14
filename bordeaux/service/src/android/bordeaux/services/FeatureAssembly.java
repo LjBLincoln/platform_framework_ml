@@ -29,7 +29,7 @@ import android.bordeaux.services.AggregatorManager;
 import android.bordeaux.services.Aggregator;
 import java.io.Serializable;
 
-public class FeatureAssembly {
+class FeatureAssembly {
     private static final String TAG = "FeatureAssembly";
     private List<String> mPossibleFeatures;
     private HashSet<String> mUseFeatures;
@@ -52,6 +52,24 @@ public class FeatureAssembly {
 
     public Set<String> getUsedFeatures() {
         return (Set) mUseFeatures;
+    }
+
+    public Map<String, String> getFeatureMap() {
+        HashMap<String, String> featureMap = new HashMap<String, String>();
+
+        Iterator itr = mUseFeatures.iterator();
+        while(itr.hasNext()) {
+            String f = (String) itr.next();
+            Map<String, String> features = mAggregatorManager.getDataMap(f);
+
+            // TODO: sanity check for now.
+            if (features.size() > 1) {
+              throw new RuntimeException("Incorrect feature format extracted from aggregator.");
+            }
+
+            featureMap.putAll(features);
+        }
+        return (Map)featureMap;
     }
 
     public String augmentFeatureInputString(String s) {
