@@ -97,8 +97,6 @@ public class BordeauxPredictor {
             for (int i = 0; i < topList.size(); ++i) {
                 topSamples.add(new Pair<String, Float>(topList.get(i).key, topList.get(i).value));
             }
-            Log.e(TAG, "getTopSamples: " + topSamples);
-
             return topSamples;
         } catch(RemoteException e) {
             Log.e(TAG,"Exception: getTopSamples");

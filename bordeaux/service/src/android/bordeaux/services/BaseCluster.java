@@ -14,27 +14,31 @@
  * limitations under the License.
  */
 package android.bordeaux.services;
-
 import android.location.Location;
 import android.text.format.Time;
 import android.util.Log;
 
 import java.lang.Math;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class BaseCluster {
 
     public static String TAG = "BaseCluster";
 
-    protected double[] mCenter;
+    public double[] mCenter;
+  // protected double[] mCenter;
+
+    // Histogram illustrates the pattern of visit during time of day,
+    protected HashMap<String, Long> mHistogram = new HashMap<String, Long>();
 
     protected long mAvgInterval;
     protected long mDuration;
 
-    protected static final double EARTH_RADIUS = 6378100f;
+    protected String mSemanticId;
 
-    public BaseCluster() {
-    }
+    protected static final double EARTH_RADIUS = 6378100f;
 
     public BaseCluster(Location location, long avgInterval) {
         mAvgInterval = avgInterval;
@@ -43,14 +47,52 @@ public class BaseCluster {
         mDuration = 0;
     }
 
+    public BaseCluster() {
+    }
+
+    public String getSemanticId() {
+        return mSemanticId;
+    }
+
+    protected void generateSemanticId(long index) {
+        mSemanticId = "cluser: " + String.valueOf(index);
+    }
+
+    public void setSemanticId(String semanticId) {
+        mSemanticId = semanticId;
+    }
+
+    public boolean hasSemanticId() {
+        return mSemanticId != null;
+    }
+
     protected double[] getLocationVector(Location location) {
+        return getLocationVector(location.getLongitude(), location.getLatitude());
+    }
+
+    protected double[] getLocationVector(double longitude, double latitude) {
         double vector[] = new double[3];
-        double lambda = Math.toRadians(location.getLongitude());
-        double phi = Math.toRadians(location.getLatitude());
+        double lambda = Math.toRadians(longitude);
+        double phi = Math.toRadians(latitude);
+
         vector[0] = Math.cos(lambda) * Math.cos(phi);
         vector[1] = Math.sin(lambda) * Math.cos(phi);
         vector[2] = Math.sin(phi);
         return vector;
+    }
+
+    protected double getCenterLongitude() {
+        // Because latitude ranges from -90 to 90 degrees, cosPhi >= 0.
+        double cosPhi = Math.cos(Math.asin(mCenter[2]));
+        double longitude = Math.toDegrees(Math.asin(mCenter[1] / cosPhi));
+        if (mCenter[0] < 0) {
+            longitude = (longitude > 0) ? 180f - longitude : -180 - longitude;
+        }
+        return longitude;
+    }
+
+    protected double getCenterLatitude() {
+        return Math.toDegrees(Math.asin(mCenter[2]));
     }
 
     private double computeDistance(double[] vector1, double[] vector2) {
@@ -79,6 +121,7 @@ public class BaseCluster {
                     "aborbing cluster failed: inconsistent average invergal ");
         }
 
+        // the new cluster center is the average of the two clusters.
         double currWeight = ((double) mDuration) / (mDuration + cluster.mDuration);
         double newWeight = 1f - currWeight;
         double norm = 0;
@@ -86,9 +129,31 @@ public class BaseCluster {
             mCenter[i] = currWeight * mCenter[i] + newWeight * cluster.mCenter[i];
             norm += mCenter[i] * mCenter[i];
         }
-        // normalize
+        // normalize the center to be unit vector
         for (int i = 0; i < 3; ++i) {
             mCenter[i] /= norm;
+        }
+        absorbHistogram(cluster);
+    }
+
+    public void setCluster(BaseCluster cluster) {
+        for (int i = 0; i < 3; ++i) {
+            mCenter[i] = cluster.mCenter[i];
+        }
+        mHistogram.clear();
+        mHistogram.putAll(cluster.mHistogram);
+        mDuration = cluster.mDuration;
+    }
+
+    private void absorbHistogram(BaseCluster cluster) {
+        for (Map.Entry<String, Long> entry : cluster.mHistogram.entrySet()) {
+            String timeLabel = entry.getKey();
+            long duration = entry.getValue();
+
+            if (mHistogram.containsKey(timeLabel)) {
+                duration += mHistogram.get(timeLabel);
+            }
+            mHistogram.put(timeLabel, duration);
         }
         mDuration += cluster.mDuration;
     }

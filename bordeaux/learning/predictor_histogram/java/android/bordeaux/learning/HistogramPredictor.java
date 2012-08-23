@@ -43,7 +43,8 @@ import java.util.Map.Entry;
  * The first level key is the feature value and the second level key is the app id.
  */
 
-// TODO: Use Parceable or Serializable to load and save this class
+// TODO: use forgetting factor to downweight istances propotional to the time
+// difference between the occurrance and now.
 public class HistogramPredictor {
     final static String TAG = "HistogramPredictor";
 

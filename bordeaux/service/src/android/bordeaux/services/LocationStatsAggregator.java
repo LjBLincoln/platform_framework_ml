@@ -31,19 +31,25 @@ import android.util.Log;
 import java.util.HashMap;
 import java.util.Map;
 
+// TODO: add functionality to detect speed (use GPS) when needed
+// withouth draining the battery quickly
 public class LocationStatsAggregator extends Aggregator {
     final String TAG = "LocationStatsAggregator";
     public static final String CURRENT_LOCATION = "Current Location";
+    public static final String CURRENT_SPEED = "Current Speed";
 
-    private static final long MINIMUM_TIME = 30000; // milliseconds
+    // TODO: Collect location on every minute
+    private static final long MINIMUM_TIME = 60000; // milliseconds
+
+    // reset best location provider on every 5 minutes
+    private static final int BEST_PROVIDER_DURATION = 300000;
+
     private static final float MINIMUM_DISTANCE = 0f; // meter
+
     private static final int LOCATION_CHANGE = 1;
 
-    private static final int BEST_PROVIDER_DURATION = 120000;
-
+    // record time when the location provider is set
     private long mProviderSetTime;
-
-    private final Criteria mCriteria = new Criteria();
 
     private Handler mHandler;
     private HandlerThread mHandlerThread;
@@ -51,31 +57,36 @@ public class LocationStatsAggregator extends Aggregator {
     private ClusterManager mClusterManager;
 
     public LocationStatsAggregator(final Context context) {
-
-        Log.e(TAG, "initialize location manager");
-
-        mLocationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-        setClusteringThread();
-
+        mLocationManager =
+            (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        setClusteringThread(context);
         requestLocationUpdate();
     }
 
     public String[] getListOfFeatures(){
-        String [] list = new String[1];
-        list[0] = CURRENT_LOCATION;
+        String[] list = { CURRENT_LOCATION } ;
         return list;
     }
 
     public Map<String,String> getFeatureValue(String featureName) {
         HashMap<String,String> feature = new HashMap<String,String>();
+
         if (featureName.equals(CURRENT_LOCATION)) {
-            feature.put(CURRENT_LOCATION, mClusterManager.getSemanticLocation());
+
+          // TODO: check last known location first before sending out location request.
+          /*
+            Location location =
+                mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+          */
+
+          // TODO: instead of outputing "unknow" should just not output anything.
+          feature.put(CURRENT_LOCATION, mClusterManager.getSemanticLocation());
         }
         return (Map) feature;
     }
 
-    private void setClusteringThread() {
-        mClusterManager = new ClusterManager();
+    private void setClusteringThread(Context context) {
+        mClusterManager = new ClusterManager(context);
 
         mHandlerThread = new HandlerThread("Location Handler",
                 Process.THREAD_PRIORITY_BACKGROUND);
@@ -103,18 +114,23 @@ public class LocationStatsAggregator extends Aggregator {
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_COARSE);
         criteria.setPowerRequirement(Criteria.POWER_LOW);
+        /*
         criteria.setAltitudeRequired(false);
         criteria.setBearingRequired(false);
-        criteria.setSpeedRequired(false);
+        criteria.setSpeedRequired(true);
+        */
         criteria.setCostAllowed(true);
 
-        String bestProvider = mLocationManager.getBestProvider(criteria, true);
+        String bestProvider = mLocationManager.getBestProvider(criteria, false);
         Log.i(TAG, "Best Location Provider: " + bestProvider);
 
+        String bestAvailableProvider = mLocationManager.getBestProvider(criteria, true);
+        Log.i(TAG, "Best Available Location Provider: " + bestAvailableProvider);
+
         mProviderSetTime = System.currentTimeMillis();
-        if (bestProvider != null) {
+        if (bestAvailableProvider != null) {
             mLocationManager.requestLocationUpdates(
-                bestProvider, MINIMUM_TIME, MINIMUM_DISTANCE, mLocationListener);
+                bestAvailableProvider, MINIMUM_TIME, MINIMUM_DISTANCE, mLocationListener);
         }
     }
 

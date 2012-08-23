@@ -26,24 +26,20 @@ public class SemanticCluster extends BaseCluster {
 
     public static String TAG = "SemanticCluster";
 
-    private String mSemanticId;
-
     public SemanticCluster(LocationCluster cluster, long avgInterval, long semanticIndex) {
         mCenter = new double[3];
         for (int i = 0; i < 3; ++i) {
             mCenter[i] = cluster.mCenter[i];
         }
-        mDuration = cluster.mDuration;
+        mAvgInterval = avgInterval;
+        generateSemanticId(semanticIndex);
+    }
+
+    public SemanticCluster(String semanticId, double longitude, double latitude,
+                           long avgInterval) {
+        setSemanticId(semanticId);
         mAvgInterval = avgInterval;
 
-        setSemanticId(semanticIndex);
-    }
-
-    public String getSemanticId() {
-        return mSemanticId;
-    }
-
-    private void setSemanticId(long index) {
-        mSemanticId = "cluser: " + String.valueOf(index);
+        mCenter = getLocationVector(longitude, latitude);
     }
 }

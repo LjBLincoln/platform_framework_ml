@@ -90,9 +90,12 @@ class AggregatorRecordStorage extends AggregatorStorage {
     // Return all data as a list of Map.
     // Notice that the column names are repeated for each row.
     public List<Map<String, String>> getAllData() {
-        Cursor cursor = mDatabase.rawQuery("select * from " + mTableName + ";", null);
         ArrayList<Map<String, String> > allData = new ArrayList<Map<String, String> >();
-        if (cursor == null) return allData;
+
+        Cursor cursor = mDatabase.rawQuery("select * from " + mTableName + ";", null);
+        if (cursor.getCount() == 0) {
+            return allData;
+        }
         cursor.moveToFirst();
         do {
             HashMap<String, String> oneRow = new HashMap<String, String>();

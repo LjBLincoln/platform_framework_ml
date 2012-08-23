@@ -39,7 +39,7 @@ public class TimeStatsAggregator extends Aggregator {
     static final String MONDAY = "Monday";
     static final String TUESDAY = "Tuesday";
     static final String WEDNESDAY = "Wednesday";
-    static final String THURSDAY = "Tuesday";
+    static final String THURSDAY = "Thursday";
     static final String FRIDAY = "Friday";
     static final String SATURDAY = "Saturday";
     static final String SUNDAY = "Sunday";
@@ -51,9 +51,6 @@ public class TimeStatsAggregator extends Aggregator {
     static final String LATENIGHT = "LateNight";
     static final String DAYTIME = "Daytime";
     static final String NIGHTTIME = "Nighttime";
-
-    final Time mTime = new Time();
-    final HashMap<String, String> mFeatures = new HashMap<String, String>();
 
     public String[] getListOfFeatures(){
         String [] list = new String[4];
@@ -67,69 +64,76 @@ public class TimeStatsAggregator extends Aggregator {
     public Map<String,String> getFeatureValue(String featureName) {
         HashMap<String,String> feature = new HashMap<String,String>();
 
-        updateFeatures();
-        if (mFeatures.containsKey(featureName)) {
-          feature.put(featureName, mFeatures.get(featureName));
+        HashMap<String, String> features =
+            getAllTimeFeatures(System.currentTimeMillis());
+        if (features.containsKey(featureName)) {
+            feature.put(featureName, features.get(featureName));
         } else {
             Log.e(TAG, "There is no Time feature called " + featureName);
         }
         return (Map)feature;
     }
 
-    private void updateFeatures() {
-        mFeatures.clear();
-        mTime.set(System.currentTimeMillis());
+    private static String getTimeOfDay(int hour) {
+        if (hour >= 5 && hour < 11) {
+            return MORNING;
+        } else if (hour >= 11 && hour < 14) {
+            return NOON;
+        } else if (hour >= 14 && hour < 18) {
+            return AFTERNOON;
+        } else if (hour >= 18 && hour < 21) {
+            return EVENING;
+        } else if ((hour >= 21 && hour < 24) ||
+                   (hour >= 0 && hour < 1))  {
+            return NIGHT;
+        } else {
+            return LATENIGHT;
+        }
+    }
 
-        switch (mTime.weekDay) {
+    private static String getDayOfWeek(int day) {
+        switch (day) {
             case Time.SATURDAY:
-                mFeatures.put(DAY_OF_WEEK, SATURDAY);
-                break;
+                return SATURDAY;
             case Time.SUNDAY:
-                mFeatures.put(DAY_OF_WEEK, SUNDAY);
-                break;
+                return SUNDAY;
             case Time.MONDAY:
-                mFeatures.put(DAY_OF_WEEK, MONDAY);
-                break;
+                return MONDAY;
             case Time.TUESDAY:
-                mFeatures.put(DAY_OF_WEEK, TUESDAY);
-                break;
+                return TUESDAY;
             case Time.WEDNESDAY:
-                mFeatures.put(DAY_OF_WEEK, WEDNESDAY);
-                break;
+                return WEDNESDAY;
             case Time.THURSDAY:
-                mFeatures.put(DAY_OF_WEEK, THURSDAY);
-                break;
+                return THURSDAY;
             default:
-                mFeatures.put(DAY_OF_WEEK, FRIDAY);
+                return FRIDAY;
         }
+    }
 
-        if (mTime.hour > 6 && mTime.hour < 19) {
-            mFeatures.put(PERIOD_OF_DAY, DAYTIME);
+    private static String getPeriodOfDay(int hour) {
+        if (hour > 6 && hour < 19) {
+            return DAYTIME;
         } else {
-            mFeatures.put(PERIOD_OF_DAY, NIGHTTIME);
+            return NIGHTTIME;
         }
+    }
 
-        if (mTime.hour >= 5 && mTime.hour < 12) {
-            mFeatures.put(TIME_OF_DAY, MORNING);
-        } else if (mTime.hour >= 12 && mTime.hour < 14) {
-            mFeatures.put(TIME_OF_DAY, NOON);
-        } else if (mTime.hour >= 14 && mTime.hour < 18) {
-            mFeatures.put(TIME_OF_DAY, AFTERNOON);
-        } else if (mTime.hour >= 18 && mTime.hour < 22) {
-            mFeatures.put(TIME_OF_DAY, EVENING);
-        } else if ((mTime.hour >= 22 && mTime.hour < 24) ||
-                   (mTime.hour >= 0 && mTime.hour < 1))  {
-            mFeatures.put(TIME_OF_DAY, NIGHT);
-        } else {
-            mFeatures.put(TIME_OF_DAY, LATENIGHT);
-        }
+    static HashMap<String, String> getAllTimeFeatures(long utcTime) {
+        HashMap<String, String> features = new HashMap<String, String>();
+        Time time = new Time();
+        time.set(utcTime);
 
-        if (mTime.weekDay == Time.SUNDAY || mTime.weekDay == Time.SATURDAY ||
-                (mTime.weekDay == Time.FRIDAY &&
-                mFeatures.get(PERIOD_OF_DAY).equals(NIGHTTIME))) {
-            mFeatures.put(TIME_OF_WEEK, WEEKEND);
+        features.put(DAY_OF_WEEK, getDayOfWeek(time.weekDay));
+        features.put(PERIOD_OF_DAY, getPeriodOfDay(time.hour));
+        features.put(TIME_OF_DAY, getTimeOfDay(time.hour));
+
+        if (time.weekDay == Time.SUNDAY || time.weekDay == Time.SATURDAY ||
+                (time.weekDay == Time.FRIDAY &&
+                features.get(PERIOD_OF_DAY).equals(NIGHTTIME))) {
+            features.put(TIME_OF_WEEK, WEEKEND);
         } else {
-            mFeatures.put(TIME_OF_WEEK, WEEKDAY);
+            features.put(TIME_OF_WEEK, WEEKDAY);
         }
+        return features;
     }
 }

@@ -21,6 +21,8 @@ import android.util.Log;
 
 import java.lang.Math;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LocationCluster extends BaseCluster {
     public static String TAG = "LocationCluster";
@@ -30,13 +32,21 @@ public class LocationCluster extends BaseCluster {
     private boolean mIsNewCluster;
 
     private ArrayList<Location> mLocations = new ArrayList<Location>();
+    private HashMap<String, Long> mNewHistogram = new HashMap<String, Long>();
 
-    public LocationCluster(Location location, long avgInterval) {
+    // TODO: make it a singleton class
+    public LocationCluster(Location location, long duration, long avgInterval) {
         super(location, avgInterval);
         mIsNewCluster = true;
+        addSample(location, duration);
     }
 
-    public void addSample(Location location) {
+    public void addSample(Location location, long duration) {
+        updateTemporalHistogram(location.getTime(), duration);
+
+        // use time field to store duation of this location
+        // TODO: extend Location class with additional field for this.
+        location.setTime(duration);
         mLocations.add(location);
     }
 
@@ -66,6 +76,10 @@ public class LocationCluster extends BaseCluster {
                 mCenter[i] = newCenter[i];
             }
             mDuration = newDuration;
+            mHistogram.clear();
+            mHistogram.putAll(mNewHistogram);
+            mNewHistogram.clear();
+
             mIsNewCluster = false;
         } else {
             // the new center is weight average over latest and existing centers.
@@ -82,10 +96,8 @@ public class LocationCluster extends BaseCluster {
             for (int i = 0; i < 3; ++i) {
                 mCenter[i] /= norm;
             }
-
-            newWeight = FORGETTING_FACTOR;
-            currWeight = 1f - newWeight;
-            mDuration = (long) (mDuration * currWeight + newDuration * newWeight);
+            consolidateHistogram(newWeight, newDuration);
+            mNewHistogram.clear();
         }
     }
 
@@ -112,5 +124,45 @@ public class LocationCluster extends BaseCluster {
             mCenter[i] = cluster.mCenter[i] * Math.cos(radian) +
                     (vector[i] / norm) * Math.sin(radian);
         }
+    }
+
+    private void updateTemporalHistogram(long time, long duration) {
+        HashMap<String, String> timeFeatures = TimeStatsAggregator.getAllTimeFeatures(time);
+
+        String timeOfDay = timeFeatures.get(TimeStatsAggregator.TIME_OF_DAY);
+        long totalDuration = (mNewHistogram.containsKey(timeOfDay)) ?
+            mNewHistogram.get(timeOfDay) + duration : duration;
+        mNewHistogram.put(timeOfDay, totalDuration);
+
+        String periodOfDay = timeFeatures.get(TimeStatsAggregator.PERIOD_OF_DAY);
+        totalDuration = (mNewHistogram.containsKey(periodOfDay)) ?
+            mNewHistogram.get(periodOfDay) + duration : duration;
+        mNewHistogram.put(periodOfDay, totalDuration);
+    }
+
+    private void consolidateHistogram(double weight, long newDuration) {
+        long base = 1000;
+        long newWeight = (long) (weight * base);
+        long currWeight = base - newWeight;
+
+        for (Map.Entry<String, Long> entry : mHistogram.entrySet()) {
+            String timeLabel = entry.getKey();
+            long duration = entry.getValue() * currWeight;
+            if (mNewHistogram.containsKey(timeLabel)) {
+                duration += mNewHistogram.get(timeLabel) * newWeight;
+            }
+            duration /= base;
+            mHistogram.put(timeLabel, duration);
+        }
+
+        for (Map.Entry<String, Long> entry : mNewHistogram.entrySet()) {
+            String timeLabel = entry.getKey();
+            if (!mHistogram.containsKey(timeLabel)) {
+                long duration = newWeight * entry.getValue();
+                duration /= base;
+                mHistogram.put(timeLabel, duration);
+            }
+        }
+        mDuration = (mDuration * currWeight + newDuration * newWeight) / base;
     }
 }
