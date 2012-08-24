@@ -81,7 +81,6 @@ public class BordeauxService extends Service {
         mAggregatorManager.registerAggregator(mMotionStatsAggregator, mAggregatorManager);
         mAggregatorManager.registerAggregator(mLocationStatsAggregator, mAggregatorManager);
         mAggregatorManager.registerAggregator(mTimeStatsAggregator, mAggregatorManager);
-        //Log.i(TAG, "Bordeaux aggregators were registered");
 
         // Display a notification about us starting.
         // TODO: don't display the notification after the service is
