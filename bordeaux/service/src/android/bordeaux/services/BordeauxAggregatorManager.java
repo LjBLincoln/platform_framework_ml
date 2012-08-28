@@ -61,6 +61,39 @@ public class BordeauxAggregatorManager {
         }
     }
 
+    public List<String> getLocationClusters() {
+        if (!retrieveAggregatorManager())
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        try {
+            return mAggregatorManager.getLocationClusters();
+        } catch (RemoteException e) {
+            Log.e(TAG,"Error getting location clusters");
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        }
+    }
+
+    public boolean setFakeLocation(final String name) {
+        if (!retrieveAggregatorManager())
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        try {
+            return mAggregatorManager.setFakeLocation(name);
+        } catch (RemoteException e) {
+            Log.e(TAG,"Error setting fake location:" + name);
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        }
+    }
+
+    public boolean getFakeMode() {
+        if (!retrieveAggregatorManager())
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        try {
+            return mAggregatorManager.getFakeMode();
+        } catch (RemoteException e) {
+            Log.e(TAG,"Error getting fake mode");
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        }
+    }
+
     private Map<String, String> getMap(final List<StringString> sample) {
         HashMap<String, String> map = new HashMap<String, String>();
         for (int i =0; i < sample.size(); i++) {

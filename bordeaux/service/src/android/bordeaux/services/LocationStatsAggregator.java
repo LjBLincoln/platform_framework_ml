@@ -29,6 +29,7 @@ import android.os.Message;
 import android.os.Process;
 import android.util.Log;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 // TODO: add functionality to detect speed (use GPS) when needed
@@ -57,6 +58,9 @@ public class LocationStatsAggregator extends Aggregator {
     private LocationManager mLocationManager;
     private ClusterManager mClusterManager;
 
+    // Fake location, used for testing.
+    private String mFakeLocation = null;
+
     public LocationStatsAggregator(final Context context) {
         mLocationManager =
             (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
@@ -82,10 +86,26 @@ public class LocationStatsAggregator extends Aggregator {
 
             String location = mClusterManager.getSemanticLocation();
             if (!location.equals(UNKNOWN_LOCATION)) {
-                feature.put(CURRENT_LOCATION, location);
+                if (mFakeLocation != null) {
+                    feature.put(CURRENT_LOCATION, mFakeLocation);
+                } else {
+                    feature.put(CURRENT_LOCATION, location);
+                }
             }
         }
         return (Map) feature;
+    }
+
+    public List<String> getClusterNames() {
+        return mClusterManager.getClusterNames();
+    }
+
+    // set a fake location using cluster name.
+    // Set an empty string "" to disable the fake location
+    public void setFakeLocation(String name) {
+        if (name != null && name.length() != 0)
+            mFakeLocation = name;
+        else mFakeLocation = null;
     }
 
     private void setClusteringThread(Context context) {

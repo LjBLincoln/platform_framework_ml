@@ -20,4 +20,11 @@ import android.bordeaux.services.StringString;
 
 interface IAggregatorManager {
     List<StringString> getData(in String dataName);
+
+    // TODO: remove the following interfaces in production
+    // they are only used for demo purpose
+    List<String> getLocationClusters();
+    // use "" to disable the fake location
+    boolean setFakeLocation(in String cluster);
+    boolean getFakeMode();
 }
