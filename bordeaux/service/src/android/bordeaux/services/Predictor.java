@@ -42,8 +42,15 @@ public class Predictor extends IPredictor.Stub
     private HistogramPredictor mPredictor = new HistogramPredictor();
     private FeatureAssembly mFeatureAssembly = new FeatureAssembly();
 
-    public static final String SET_FEATURE = "set feature";
+    public static final String SET_FEATURE = "Set Feature";
+    public static final String USE_HISTORY = "Use History";
 
+    public static final String PREVIOUS_SAMPLE = "Previous Sample";
+
+    private boolean mUseHistory = false;
+    private long mHistorySpan = 0;
+    private String mPrevSample;
+    private long mPrevSampleTime;
 
     /**
      * Reset the Predictor
@@ -62,8 +69,12 @@ public class Predictor extends IPredictor.Stub
      * pushed to the histogram
      */
     public void pushNewSample(String sampleName) {
-        Map<String, String> sampleFeatures = mFeatureAssembly.getFeatureMap();
+        Map<String, String> sampleFeatures = getSampleFeatures();
         Log.e(TAG, "pushNewSample " + sampleName + ": " + sampleFeatures);
+
+        // TODO: move to the end of the function?
+        mPrevSample = sampleName;
+        mPrevSampleTime = System.currentTimeMillis();
 
         mPredictor.addSample(sampleName, sampleFeatures);
         if (modelChangeCallback != null) {
@@ -71,6 +82,17 @@ public class Predictor extends IPredictor.Stub
         }
     }
 
+    private Map<String, String> getSampleFeatures() {
+        Map<String, String> sampleFeatures = mFeatureAssembly.getFeatureMap();
+        long currTime = System.currentTimeMillis();
+
+        if (mUseHistory && mPrevSample != null &&
+            ((currTime - mPrevSampleTime) < mHistorySpan)) {
+            sampleFeatures.put(PREVIOUS_SAMPLE, mPrevSample);
+        }
+
+        return sampleFeatures;
+    }
 
     // TODO: getTopK samples instead get scord for debugging only
     /**
@@ -78,7 +100,7 @@ public class Predictor extends IPredictor.Stub
      */
     public List<StringFloat> getTopCandidates(int topK) {
         ArrayList<StringFloat> result = new ArrayList<StringFloat>(topK);
-        Map<String, String> features = mFeatureAssembly.getFeatureMap();
+        Map<String, String> features = getSampleFeatures();
 
         List<Map.Entry<String, Double> > topApps = mPredictor.findTopClasses(features, topK);
 
@@ -94,7 +116,6 @@ public class Predictor extends IPredictor.Stub
         return result;
     }
 
-
     /**
      * Set parameters for 1) using History in probability estimations e.g. consider the last event
      * and 2) featureAssembly e.g. time and location.
@@ -108,6 +129,10 @@ public class Predictor extends IPredictor.Stub
             } else {
                Log.e(TAG,"Setting on feauture: " + value + " which is not available");
             }
+        } else if (key.equals(USE_HISTORY)) {
+            mUseHistory = true;
+            mHistorySpan = Long.valueOf(value);
+            mPredictor.useFeature(PREVIOUS_SAMPLE);
         } else {
             Log.e(TAG,"Setting parameter " + key + " with " + value + " is not valid");
         }

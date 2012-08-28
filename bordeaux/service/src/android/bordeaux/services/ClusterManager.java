@@ -180,7 +180,6 @@ public class ClusterManager {
         saveSemanticClusters();
     }
 
-
     private void loadSemanticClusters() {
         List<Map<String, String> > allData = mStorage.getAllData();
 
@@ -291,8 +290,9 @@ public class ClusterManager {
     }
 
     public String getSemanticLocation() {
-        String label = UNKNOWN_LOCATION;
+        String label = LocationStatsAggregator.UNKNOWN_LOCATION;
 
+        // instead of using the last location, try acquiring the latest location.
         if (mLastLocation != null) {
             // TODO: use fast neatest neighbor search speed up location search
             for (SemanticCluster cluster: mSemanticClusters) {

@@ -37,6 +37,7 @@ public class LocationStatsAggregator extends Aggregator {
     final String TAG = "LocationStatsAggregator";
     public static final String CURRENT_LOCATION = "Current Location";
     public static final String CURRENT_SPEED = "Current Speed";
+    public static final String UNKNOWN_LOCATION = "Unknown Location";
 
     // TODO: Collect location on every minute
     private static final long MINIMUM_TIME = 60000; // milliseconds
@@ -79,8 +80,10 @@ public class LocationStatsAggregator extends Aggregator {
                 mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
           */
 
-          // TODO: instead of outputing "unknow" should just not output anything.
-          feature.put(CURRENT_LOCATION, mClusterManager.getSemanticLocation());
+            String location = mClusterManager.getSemanticLocation();
+            if (!location.equals(UNKNOWN_LOCATION)) {
+                feature.put(CURRENT_LOCATION, location);
+            }
         }
         return (Map) feature;
     }

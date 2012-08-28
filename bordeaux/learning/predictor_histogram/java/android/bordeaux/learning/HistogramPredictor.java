@@ -42,9 +42,11 @@ import java.util.Map.Entry;
  * for example, location, * time of day, etc. The histogram is kept in a two level hash table.
  * The first level key is the feature value and the second level key is the app id.
  */
-
-// TODO: use forgetting factor to downweight istances propotional to the time
-// difference between the occurrance and now.
+// TODOS:
+// 1. Use forgetting factor to downweight istances propotional to the time
+// 2. Different features could have different weights on prediction scores.
+// 3. Make prediction (on each feature) only when the histogram has collected
+//    sufficient counts.
 public class HistogramPredictor {
     final static String TAG = "HistogramPredictor";
 
