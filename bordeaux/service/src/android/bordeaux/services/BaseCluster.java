@@ -33,21 +33,20 @@ public class BaseCluster {
     // Histogram illustrates the pattern of visit during time of day,
     protected HashMap<String, Long> mHistogram = new HashMap<String, Long>();
 
-    protected long mAvgInterval;
     protected long mDuration;
 
     protected String mSemanticId;
 
     protected static final double EARTH_RADIUS = 6378100f;
 
-    public BaseCluster(Location location, long avgInterval) {
-        mAvgInterval = avgInterval;
+    public BaseCluster(Location location) {
         mCenter = getLocationVector(location);
 
         mDuration = 0;
     }
 
     public BaseCluster() {
+        mCenter = new double[] {0f, 0f, 0f};
     }
 
     public String getSemanticId() {
@@ -116,17 +115,12 @@ public class BaseCluster {
     }
 
     public void absorbCluster(BaseCluster cluster) {
-        if (cluster.mAvgInterval != mAvgInterval) {
-            throw new RuntimeException(
-                    "aborbing cluster failed: inconsistent average invergal ");
-        }
-
         // the new cluster center is the average of the two clusters.
-        double currWeight = ((double) mDuration) / (mDuration + cluster.mDuration);
-        double newWeight = 1f - currWeight;
+        double weight = ((double) mDuration) / (mDuration + cluster.mDuration);
+        double clusterWeight = 1f - weight;
         double norm = 0;
         for (int i = 0; i < 3; ++i) {
-            mCenter[i] = currWeight * mCenter[i] + newWeight * cluster.mCenter[i];
+            mCenter[i] = weight * mCenter[i] + clusterWeight * cluster.mCenter[i];
             norm += mCenter[i] * mCenter[i];
         }
         // normalize the center to be unit vector

@@ -27,16 +27,14 @@ import java.util.Map;
 public class LocationCluster extends BaseCluster {
     public static String TAG = "LocationCluster";
 
-    private static double FORGETTING_FACTOR = 0.1;
-
     private boolean mIsNewCluster;
 
     private ArrayList<Location> mLocations = new ArrayList<Location>();
     private HashMap<String, Long> mNewHistogram = new HashMap<String, Long>();
 
     // TODO: make it a singleton class
-    public LocationCluster(Location location, long duration, long avgInterval) {
-        super(location, avgInterval);
+    public LocationCluster(Location location, long duration) {
+        super(location);
         mIsNewCluster = true;
         addSample(location, duration);
     }
@@ -78,14 +76,11 @@ public class LocationCluster extends BaseCluster {
             mDuration = newDuration;
             mHistogram.clear();
             mHistogram.putAll(mNewHistogram);
-            mNewHistogram.clear();
-
             mIsNewCluster = false;
         } else {
             // the new center is weight average over latest and existing centers.
             // fine tune the weight of new center
             double newWeight = ((double) newDuration) / (newDuration + mDuration);
-            newWeight *= FORGETTING_FACTOR;
             double currWeight = 1f - newWeight;
             double norm = 0;
             for (int i = 0; i < 3; ++i) {
@@ -96,9 +91,18 @@ public class LocationCluster extends BaseCluster {
             for (int i = 0; i < 3; ++i) {
                 mCenter[i] /= norm;
             }
-            consolidateHistogram(newWeight, newDuration);
-            mNewHistogram.clear();
+            // update histogram
+            for (Map.Entry<String, Long> entry : mNewHistogram.entrySet()) {
+                String timeLabel = entry.getKey();
+                long duration = entry.getValue();
+                if (mHistogram.containsKey(timeLabel)) {
+                    duration += mHistogram.get(timeLabel);
+                }
+                mHistogram.put(timeLabel, duration);
+            }
+            mDuration += newDuration;
         }
+        mNewHistogram.clear();
     }
 
     /*
@@ -138,31 +142,5 @@ public class LocationCluster extends BaseCluster {
         totalDuration = (mNewHistogram.containsKey(timeOfDay)) ?
             mNewHistogram.get(timeOfDay) + duration : duration;
         mNewHistogram.put(timeOfDay, totalDuration);
-    }
-
-    private void consolidateHistogram(double weight, long newDuration) {
-        long base = 1000;
-        long newWeight = (long) (weight * base);
-        long currWeight = base - newWeight;
-
-        for (Map.Entry<String, Long> entry : mHistogram.entrySet()) {
-            String timeLabel = entry.getKey();
-            long duration = entry.getValue() * currWeight;
-            if (mNewHistogram.containsKey(timeLabel)) {
-                duration += mNewHistogram.get(timeLabel) * newWeight;
-            }
-            duration /= base;
-            mHistogram.put(timeLabel, duration);
-        }
-
-        for (Map.Entry<String, Long> entry : mNewHistogram.entrySet()) {
-            String timeLabel = entry.getKey();
-            if (!mHistogram.containsKey(timeLabel)) {
-                long duration = newWeight * entry.getValue();
-                duration /= base;
-                mHistogram.put(timeLabel, duration);
-            }
-        }
-        mDuration = (mDuration * currWeight + newDuration * newWeight) / base;
     }
 }

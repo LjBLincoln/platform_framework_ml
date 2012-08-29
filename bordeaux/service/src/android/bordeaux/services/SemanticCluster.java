@@ -21,24 +21,22 @@ import android.util.Log;
 
 import java.lang.Math;
 import java.util.ArrayList;
+import java.util.Map;
 
 public class SemanticCluster extends BaseCluster {
 
     public static String TAG = "SemanticCluster";
 
-    public SemanticCluster(LocationCluster cluster, long avgInterval, long semanticIndex) {
+    public SemanticCluster(LocationCluster cluster, long semanticIndex) {
         mCenter = new double[3];
         for (int i = 0; i < 3; ++i) {
             mCenter[i] = cluster.mCenter[i];
         }
-        mAvgInterval = avgInterval;
         generateSemanticId(semanticIndex);
     }
 
-    public SemanticCluster(String semanticId, double longitude, double latitude,
-                           long avgInterval) {
+    public SemanticCluster(String semanticId, double longitude, double latitude) {
         setSemanticId(semanticId);
-        mAvgInterval = avgInterval;
 
         mCenter = getLocationVector(longitude, latitude);
     }

@@ -40,11 +40,11 @@ public class LocationStatsAggregator extends Aggregator {
     public static final String CURRENT_SPEED = "Current Speed";
     public static final String UNKNOWN_LOCATION = "Unknown Location";
 
-    // TODO: Collect location on every minute
-    private static final long MINIMUM_TIME = 30000; // milliseconds
+    // TODO: Collect location on every minute (60000 milliseconds)
+    private static final long MINIMUM_TIME = 60000;
 
-    // reset best location provider on every 5 minutes
-    private static final int BEST_PROVIDER_DURATION = 300000;
+    // reset best location provider on every 10 minutes (300000 milliseconds)
+    private static final int BEST_PROVIDER_DURATION = 600000;
 
     private static final float MINIMUM_DISTANCE = 0f; // meter
 
@@ -77,13 +77,11 @@ public class LocationStatsAggregator extends Aggregator {
         HashMap<String,String> feature = new HashMap<String,String>();
 
         if (featureName.equals(CURRENT_LOCATION)) {
-
-          // TODO: check last known location first before sending out location request.
-          /*
-            Location location =
-                mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-          */
-
+            // TODO: check last known location first before sending out location request.
+            /*
+              Location location =
+              mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            */
             String location = mClusterManager.getSemanticLocation();
             if (!location.equals(UNKNOWN_LOCATION)) {
                 if (mFakeLocation != null) {

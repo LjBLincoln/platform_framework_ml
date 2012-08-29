@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-
 /**
  * A histogram based predictor which records co-occurrences of applations with a speficic feature,
  * for example, location, * time of day, etc. The histogram is kept in a two level hash table.
@@ -54,7 +53,7 @@ public class HistogramPredictor {
             new HashMap<String, HistogramCounter>();
 
     private static final double FEATURE_INACTIVE_LIKELIHOOD = 0.00000001;
-    private final double logInactive = Math.log(FEATURE_INACTIVE_LIKELIHOOD);
+    private static final double LOG_INACTIVE = Math.log(FEATURE_INACTIVE_LIKELIHOOD);
 
     /*
      * This class keeps the histogram counts for each feature and provide the
@@ -121,6 +120,17 @@ public class HistogramPredictor {
         }
     }
 
+    private double getDefaultLikelihood(Map<String, String> features) {
+        int featureCount = 0;
+
+        for(String featureName : features.keySet()) {
+            if (mPredictor.containsKey(featureName)) {
+                featureCount++;
+            }
+        }
+        return LOG_INACTIVE * featureCount;
+    }
+
     /*
      * Given a map of feature name -value pairs returns the mostly likely apps to
      * be launched with corresponding likelihoods.
@@ -128,7 +138,7 @@ public class HistogramPredictor {
     public List<Map.Entry<String, Double> > findTopClasses(Map<String, String> features, int topK) {
         // Most sophisticated function in this class
         HashMap<String, Double> appScores = new HashMap<String, Double>();
-        double defaultLikelihood = mPredictor.size() * logInactive;
+        double defaultLikelihood = getDefaultLikelihood(features);
 
         // compute all app scores
         for (Map.Entry<String, HistogramCounter> entry : mPredictor.entrySet()) {
@@ -145,7 +155,7 @@ public class HistogramPredictor {
 
                     double score = (appScores.containsKey(appName)) ?
                         appScores.get(appName) : defaultLikelihood;
-                    score += appScore - logInactive;
+                    score += appScore - LOG_INACTIVE;
 
                     appScores.put(appName, score);
                 }
