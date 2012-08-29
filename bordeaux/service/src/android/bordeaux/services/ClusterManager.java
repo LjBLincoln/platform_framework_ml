@@ -38,15 +38,19 @@ public class ClusterManager {
 
     private static String TAG = "ClusterManager";
 
-    private static float LOCATION_CLUSTER_RADIUS = 25; // meter
+    private static float LOCATION_CLUSTER_RADIUS = 50; // meter
 
-    private static float SEMANTIC_CLUSTER_RADIUS = 50; // meter
+    private static float SEMANTIC_CLUSTER_RADIUS = 100; // meter
 
-    private static long CONSOLIDATE_INTERVAL = 21600000; //
+    private static long CONSOLIDATE_INTERVAL = 60000; //
+    // private static long CONSOLIDATE_INTERVAL = 21600000; //
 
-    private static long LOCATION_CLUSTER_THRESHOLD = 180000; // in milliseconds
 
-    private static long SEMANTIC_CLUSTER_THRESHOLD = 1800000; // in milliseconds
+    private static long LOCATION_CLUSTER_THRESHOLD = 10000; // in milliseconds
+    // private static long LOCATION_CLUSTER_THRESHOLD = 180000; // in milliseconds
+
+    private static long SEMANTIC_CLUSTER_THRESHOLD = 30000; // in milliseconds
+    // private static long SEMANTIC_CLUSTER_THRESHOLD = 1800000; // in milliseconds
 
     private static String UNKNOWN_LOCATION = "Unknown Location";
 
@@ -70,12 +74,25 @@ public class ClusterManager {
 
     private static String SEMANTIC_ID = "ID";
 
-    private static String SEMANTIC_LONGITUDE = "Longitude";
+    private static final String SEMANTIC_LONGITUDE = "Longitude";
 
-    private static String SEMANTIC_LATITUDE = "Latitude";
+    private static final String SEMANTIC_LATITUDE = "Latitude";
 
-    private static String[] SEMANTIC_COLUMNS =
-            new String[]{ SEMANTIC_ID, SEMANTIC_LONGITUDE, SEMANTIC_LATITUDE};
+    private static final String[] SEMANTIC_COLUMNS =
+        new String[]{ SEMANTIC_ID,
+                      SEMANTIC_LONGITUDE,
+                      SEMANTIC_LATITUDE,
+                      TimeStatsAggregator.WEEKEND,
+                      TimeStatsAggregator.WEEKDAY,
+                      TimeStatsAggregator.MORNING,
+                      TimeStatsAggregator.NOON,
+                      TimeStatsAggregator.AFTERNOON,
+                      TimeStatsAggregator.EVENING,
+                      TimeStatsAggregator.NIGHT,
+                      TimeStatsAggregator.LATENIGHT };
+
+    private static final int mFeatureValueStart = 3;
+    private static final int mFeatureValueEnd = 10;
 
     public ClusterManager(Context context) {
         mStorage = new AggregatorRecordStorage(context, SEMANTIC_TABLE, SEMANTIC_COLUMNS);
@@ -87,7 +104,7 @@ public class ClusterManager {
         float bestClusterDistance = Float.MAX_VALUE;
         int bestClusterIndex = -1;
         long lastDuration;
-        long currentTime = location.getTime();
+        long currentTime = location.getTime() / 1000; // measure time in seconds
 
         if (mLastLocation != null) {
             // get the duration spent in the last location
@@ -135,16 +152,6 @@ public class ClusterManager {
             consolidateClusters(collectDuration);
             mTimeRef = currentTime;
         }
-
-        /*
-        // TODO: this could be removed
-        Log.i(TAG, "location : " +  location.getLongitude() + ", " + location.getLatitude());
-        if (mLastLocation != null) {
-            Log.i(TAG, "mLastLocation: " +  mLastLocation.getLongitude() + ", " +
-                  mLastLocation.getLatitude());
-        }  // end of deletion
-        */
-
         mLastLocation = location;
     }
 
@@ -182,15 +189,25 @@ public class ClusterManager {
 
     private void loadSemanticClusters() {
         List<Map<String, String> > allData = mStorage.getAllData();
+        HashMap<String, Long> histogram = new HashMap<String, Long>();
 
         mSemanticClusters.clear();
         for (Map<String, String> map : allData) {
             String semanticId = map.get(SEMANTIC_ID);
             double longitude = Double.valueOf(map.get(SEMANTIC_LONGITUDE));
             double latitude = Double.valueOf(map.get(SEMANTIC_LATITUDE));
-
             SemanticCluster cluster = new SemanticCluster(
                     semanticId, longitude, latitude, CONSOLIDATE_INTERVAL);
+
+            histogram.clear();
+            for (int i = mFeatureValueStart; i <= mFeatureValueEnd; i++) {
+                String featureValue = SEMANTIC_COLUMNS[i];
+                if (map.containsKey(featureValue)) {
+                    histogram.put(featureValue, Long.valueOf(map.get(featureValue)));
+                }
+            }
+            cluster.setHistogram(histogram);
+
             mSemanticClusters.add(cluster);
         }
 
@@ -211,12 +228,16 @@ public class ClusterManager {
                             String.valueOf(cluster.getCenterLongitude()));
             rowFeatures.put(SEMANTIC_LATITUDE,
                             String.valueOf(cluster.getCenterLatitude()));
+
+            HashMap<String, Long> histogram = cluster.getHistogram();
+            for (Map.Entry<String, Long> entry : histogram.entrySet()) {
+                rowFeatures.put(entry.getKey(), String.valueOf(entry.getValue()));
+            }
             mStorage.addData(rowFeatures);
         }
     }
 
     private void updateSemanticClusters() {
-
         HashMap<String, ArrayList<BaseCluster> > semanticMap =
                 new HashMap<String, ArrayList<BaseCluster> >();
         for (SemanticCluster cluster : mSemanticClusters) {

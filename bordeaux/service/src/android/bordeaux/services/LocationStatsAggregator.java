@@ -40,7 +40,7 @@ public class LocationStatsAggregator extends Aggregator {
     public static final String UNKNOWN_LOCATION = "Unknown Location";
 
     // TODO: Collect location on every minute
-    private static final long MINIMUM_TIME = 60000; // milliseconds
+    private static final long MINIMUM_TIME = 30000; // milliseconds
 
     // reset best location provider on every 5 minutes
     private static final int BEST_PROVIDER_DURATION = 300000;

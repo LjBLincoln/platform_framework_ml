@@ -58,7 +58,7 @@ public class LocationCluster extends BaseCluster {
         // update cluster center
         for (Location location : mLocations) {
             double[] vector = getLocationVector(location);
-            long duration = location.getTime();
+            long duration = location.getTime(); // in seconds
 
             newDuration += duration;
             for (int i = 0; i < 3; ++i) {
@@ -129,15 +129,15 @@ public class LocationCluster extends BaseCluster {
     private void updateTemporalHistogram(long time, long duration) {
         HashMap<String, String> timeFeatures = TimeStatsAggregator.getAllTimeFeatures(time);
 
+        String timeOfWeek = timeFeatures.get(TimeStatsAggregator.TIME_OF_WEEK);
+        long totalDuration = (mNewHistogram.containsKey(timeOfWeek)) ?
+            mNewHistogram.get(timeOfWeek) + duration : duration;
+        mNewHistogram.put(timeOfWeek, totalDuration);
+
         String timeOfDay = timeFeatures.get(TimeStatsAggregator.TIME_OF_DAY);
-        long totalDuration = (mNewHistogram.containsKey(timeOfDay)) ?
+        totalDuration = (mNewHistogram.containsKey(timeOfDay)) ?
             mNewHistogram.get(timeOfDay) + duration : duration;
         mNewHistogram.put(timeOfDay, totalDuration);
-
-        String periodOfDay = timeFeatures.get(TimeStatsAggregator.PERIOD_OF_DAY);
-        totalDuration = (mNewHistogram.containsKey(periodOfDay)) ?
-            mNewHistogram.get(periodOfDay) + duration : duration;
-        mNewHistogram.put(periodOfDay, totalDuration);
     }
 
     private void consolidateHistogram(double weight, long newDuration) {

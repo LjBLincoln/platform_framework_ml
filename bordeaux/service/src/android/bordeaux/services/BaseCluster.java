@@ -162,4 +162,21 @@ public class BaseCluster {
         // TODO: might want to keep semantic cluster
         return mDuration > durationThreshold;
     }
+
+    public final HashMap<String, Long> getHistogram() {
+        return mHistogram;
+    }
+
+    public void setHistogram(Map<String, Long> histogram) {
+        mHistogram.clear();
+        mHistogram.putAll(histogram);
+
+        mDuration = 0;
+        if (mHistogram.containsKey(TimeStatsAggregator.WEEKEND)) {
+            mDuration += mHistogram.get(TimeStatsAggregator.WEEKEND);
+        }
+        if (mHistogram.containsKey(TimeStatsAggregator.WEEKDAY)) {
+            mDuration += mHistogram.get(TimeStatsAggregator.WEEKDAY);
+        }
+    }
 }

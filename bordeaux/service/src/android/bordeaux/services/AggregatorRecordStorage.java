@@ -100,8 +100,11 @@ class AggregatorRecordStorage extends AggregatorStorage {
         do {
             HashMap<String, String> oneRow = new HashMap<String, String>();
             for (String column : mColumnNames) {
-                String value = cursor.getString(cursor.getColumnIndex(column));
-                oneRow.put(column, value);
+                int columnIndex = cursor.getColumnIndex(column);
+                if (!cursor.isNull(columnIndex)) {
+                    String value = cursor.getString(columnIndex);
+                    oneRow.put(column, value);
+                }
             }
             allData.add(oneRow);
         } while (cursor.moveToNext());
