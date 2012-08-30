@@ -34,6 +34,8 @@ class AggregatorManager extends IAggregatorManager.Stub  {
     private static AggregatorManager mManager = null;
 
     private String mFakeLocation = null;
+    private String mFakeTimeOfDay = null;
+    private String mFakeDayOfWeek = null;
 
     private AggregatorManager() {
         sFeatureMap = new HashMap<String, Aggregator>();
@@ -75,8 +77,21 @@ class AggregatorManager extends IAggregatorManager.Stub  {
         LocationStatsAggregator agg = (LocationStatsAggregator)
                 mAggregators.get(LocationStatsAggregator.class.getName());
         if (agg == null) return new ArrayList<String> ();
-        ArrayList<String> clusters = new ArrayList<String>();
         return agg.getClusterNames();
+    }
+
+    public List<String> getTimeOfDayValues() {
+        TimeStatsAggregator agg = (TimeStatsAggregator)
+                mAggregators.get(TimeStatsAggregator.class.getName());
+        if (agg == null) return new ArrayList<String>();
+        return agg.getTimeOfDayValues();
+    }
+
+    public List<String> getDayOfWeekValues() {
+        TimeStatsAggregator agg = (TimeStatsAggregator)
+                mAggregators.get(TimeStatsAggregator.class.getName());
+        if (agg == null) return new ArrayList<String>();
+        return agg.getDayOfWeekValues();
     }
 
     // Set an empty string "" to disable the fake location
@@ -89,11 +104,35 @@ class AggregatorManager extends IAggregatorManager.Stub  {
         return true;
     }
 
+    // Set an empty string "" to disable the fake time of day
+    public boolean setFakeTimeOfDay(String time_of_day) {
+        TimeStatsAggregator agg = (TimeStatsAggregator)
+                mAggregators.get(TimeStatsAggregator.class.getName());
+        if (agg == null) return false;
+        agg.setFakeTimeOfDay(time_of_day);
+        mFakeTimeOfDay = time_of_day;
+        return true;
+    }
+
+    // Set an empty string "" to disable the fake day of week
+    public boolean setFakeDayOfWeek(String day_of_week) {
+        TimeStatsAggregator agg = (TimeStatsAggregator)
+                mAggregators.get(TimeStatsAggregator.class.getName());
+        if (agg == null) return false;
+        agg.setFakeDayOfWeek(day_of_week);
+        mFakeDayOfWeek = day_of_week;
+        return true;
+    }
+
     // Get the current mode, if fake mode return true
     public boolean getFakeMode() {
         boolean fakeMode = false;
         // checking any features that are in the fake mode
         if (mFakeLocation != null && mFakeLocation.length() != 0)
+            fakeMode = true;
+        if (mFakeTimeOfDay != null && mFakeTimeOfDay.length() != 0)
+            fakeMode = true;
+        if (mFakeDayOfWeek != null && mFakeDayOfWeek.length() != 0)
             fakeMode = true;
         return fakeMode;
     }

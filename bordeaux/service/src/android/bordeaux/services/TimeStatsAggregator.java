@@ -19,7 +19,9 @@ package android.bordeaux.services;
 import android.text.format.Time;
 import android.util.Log;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 // import java.util.Date;
@@ -51,6 +53,17 @@ public class TimeStatsAggregator extends Aggregator {
     static final String LATENIGHT = "LateNight";
     static final String DAYTIME = "Daytime";
     static final String NIGHTTIME = "Nighttime";
+
+    static String mFakeTimeOfDay = null;
+    static String mFakeDayOfWeek = null;
+
+    static final String[] TIME_OF_DAY_VALUES =
+       {MORNING, NOON, AFTERNOON, EVENING, NIGHT, LATENIGHT};
+
+    static final String[] DAY_OF_WEEK_VALUES =
+       {SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY};
+
+    static final String[] DAYTIME_VALUES = {MORNING, NOON, AFTERNOON, EVENING};
 
     public String[] getListOfFeatures(){
         String [] list = new String[4];
@@ -123,17 +136,64 @@ public class TimeStatsAggregator extends Aggregator {
         Time time = new Time();
         time.set(utcTime);
 
-        features.put(DAY_OF_WEEK, getDayOfWeek(time.weekDay));
-        features.put(PERIOD_OF_DAY, getPeriodOfDay(time.hour));
-        features.put(TIME_OF_DAY, getTimeOfDay(time.hour));
+        if (mFakeTimeOfDay != null && mFakeTimeOfDay.length() != 0) {
+            List<String> day_list = Arrays.asList(DAYTIME_VALUES);
 
-        if (time.weekDay == Time.SUNDAY || time.weekDay == Time.SATURDAY ||
-                (time.weekDay == Time.FRIDAY &&
-                features.get(PERIOD_OF_DAY).equals(NIGHTTIME))) {
-            features.put(TIME_OF_WEEK, WEEKEND);
+            if (day_list.contains(mFakeTimeOfDay)) {
+                features.put(PERIOD_OF_DAY, DAYTIME);
+            } else {
+                features.put(PERIOD_OF_DAY, NIGHTTIME);
+            }
+            features.put(TIME_OF_DAY, mFakeTimeOfDay);
         } else {
-            features.put(TIME_OF_WEEK, WEEKDAY);
+            features.put(PERIOD_OF_DAY, getPeriodOfDay(time.hour));
+            features.put(TIME_OF_DAY, getTimeOfDay(time.hour));
         }
+
+        if (mFakeDayOfWeek != null && mFakeDayOfWeek.length() != 0) {
+            features.put(DAY_OF_WEEK, mFakeDayOfWeek);
+            if (mFakeDayOfWeek.equals(SUNDAY) ||
+                mFakeDayOfWeek.equals(SATURDAY) ||
+                mFakeDayOfWeek.equals(FRIDAY) &&
+                    features.get(PERIOD_OF_DAY).equals(NIGHTTIME)) {
+                features.put(TIME_OF_WEEK, WEEKEND);
+            } else {
+                features.put(TIME_OF_WEEK, WEEKDAY);
+            }
+        }
+        else {
+            features.put(DAY_OF_WEEK, getDayOfWeek(time.weekDay));
+            if (time.weekDay == Time.SUNDAY || time.weekDay == Time.SATURDAY ||
+                    (time.weekDay == Time.FRIDAY &&
+                    features.get(PERIOD_OF_DAY).equals(NIGHTTIME))) {
+                features.put(TIME_OF_WEEK, WEEKEND);
+            } else {
+                features.put(TIME_OF_WEEK, WEEKDAY);
+            }
+        }
+
         return features;
+    }
+
+    // get all possible time_of_day values
+    public static List<String> getTimeOfDayValues() {
+        return Arrays.asList(TIME_OF_DAY_VALUES);
+    }
+
+    // get all possible day values
+    public static List<String> getDayOfWeekValues() {
+        return Arrays.asList(DAY_OF_WEEK_VALUES);
+    }
+
+    // set the fake time of day
+    // set to "" to disable the fake time
+    public static void setFakeTimeOfDay(String time_of_day) {
+        mFakeTimeOfDay = time_of_day;
+    }
+
+    // set the fake day of week
+    // set to "" to disable the fake day
+    public static void setFakeDayOfWeek(String day_of_week) {
+        mFakeDayOfWeek = day_of_week;
     }
 }

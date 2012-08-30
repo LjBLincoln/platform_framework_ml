@@ -72,6 +72,28 @@ public class BordeauxAggregatorManager {
         }
     }
 
+    public List<String> getTimeOfDayValues() {
+        if (!retrieveAggregatorManager())
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        try {
+            return mAggregatorManager.getTimeOfDayValues();
+        } catch (RemoteException e) {
+            Log.e(TAG,"Error getting time of day values");
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        }
+    }
+
+    public List<String> getDayOfWeekValues() {
+        if (!retrieveAggregatorManager())
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        try {
+            return mAggregatorManager.getDayOfWeekValues();
+        } catch (RemoteException e) {
+            Log.e(TAG,"Error getting day of week values");
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        }
+    }
+
     public boolean setFakeLocation(final String name) {
         if (!retrieveAggregatorManager())
             throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
@@ -79,6 +101,28 @@ public class BordeauxAggregatorManager {
             return mAggregatorManager.setFakeLocation(name);
         } catch (RemoteException e) {
             Log.e(TAG,"Error setting fake location:" + name);
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        }
+    }
+
+    public boolean setFakeTimeOfDay(final String time_of_day) {
+        if (!retrieveAggregatorManager())
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        try {
+            return mAggregatorManager.setFakeTimeOfDay(time_of_day);
+        } catch (RemoteException e) {
+            Log.e(TAG,"Error setting fake time of day:" + time_of_day);
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        }
+    }
+
+    public boolean setFakeDayOfWeek(final String day_of_week) {
+        if (!retrieveAggregatorManager())
+            throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
+        try {
+            return mAggregatorManager.setFakeDayOfWeek(day_of_week);
+        } catch (RemoteException e) {
+            Log.e(TAG,"Error setting fake day of week:" + day_of_week);
             throw new RuntimeException(AggregatorManager_NOTAVAILABLE);
         }
     }
