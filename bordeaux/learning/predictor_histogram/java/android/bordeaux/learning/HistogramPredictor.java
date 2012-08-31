@@ -52,6 +52,9 @@ public class HistogramPredictor {
     private HashMap<String, HistogramCounter> mPredictor =
             new HashMap<String, HistogramCounter>();
 
+    private HashMap<String, Integer> mClassCounts = new HashMap<String, Integer>();
+    private int mTotalClassCount = 0;
+
     private static final double FEATURE_INACTIVE_LIKELIHOOD = 0.00000001;
     private static final double LOG_INACTIVE = Math.log(FEATURE_INACTIVE_LIKELIHOOD);
 
@@ -91,9 +94,9 @@ public class HistogramPredictor {
             if (!mCounter.containsKey(featureValue)) {
                 classCounts = new HashMap<String, Integer>();
                 mCounter.put(featureValue, classCounts);
+            } else {
+                classCounts = mCounter.get(featureValue);
             }
-            classCounts = mCounter.get(featureValue);
-
             int count = (classCounts.containsKey(className)) ?
                     classCounts.get(className) + 1 : 1;
             classCounts.put(className, count);
@@ -140,6 +143,8 @@ public class HistogramPredictor {
         HashMap<String, Double> appScores = new HashMap<String, Double>();
         double defaultLikelihood = getDefaultLikelihood(features);
 
+        HashMap<String, Integer> appearCounts = new HashMap<String, Integer>();
+
         // compute all app scores
         for (Map.Entry<String, HistogramCounter> entry : mPredictor.entrySet()) {
             String featureName = entry.getKey();
@@ -152,13 +157,34 @@ public class HistogramPredictor {
                 for (Map.Entry<String, Double> item : scoreMap.entrySet()) {
                     String appName = item.getKey();
                     double appScore = item.getValue();
-
                     double score = (appScores.containsKey(appName)) ?
                         appScores.get(appName) : defaultLikelihood;
                     score += appScore - LOG_INACTIVE;
-
                     appScores.put(appName, score);
+
+                    int count = (appearCounts.containsKey(appName)) ?
+                        appearCounts.get(appName) + 1 : 1;
+                    appearCounts.put(appName, count);
                 }
+            }
+        }
+
+        // TODO: this check should be unnecessary
+        if (mClassCounts.size() != 0 && mTotalClassCount != 0) {
+            for (Map.Entry<String, Double> entry : appScores.entrySet()) {
+                String appName = entry.getKey();
+                double appScore = entry.getValue();
+                if (!appearCounts.containsKey(appName)) {
+                    throw new RuntimeException("appearance count error!");
+                }
+                int appearCount = appearCounts.get(appName);
+
+                if (!mClassCounts.containsKey(appName)) {
+                    throw new RuntimeException("class count error!");
+                }
+                double appPrior =
+                    Math.log(mClassCounts.get(appName)) - Math.log(mTotalClassCount);
+                appScores.put(appName, appScore - appPrior * (appearCount - 1));
             }
         }
 
@@ -173,7 +199,7 @@ public class HistogramPredictor {
             }
         });
 
-        Log.e(TAG, "findTopApps appList: " + appList);
+        Log.v(TAG, "findTopApps appList: " + appList);
         return appList;
     }
 
@@ -190,6 +216,10 @@ public class HistogramPredictor {
                 counter.addSample(sampleId, featureValue);
             }
         }
+
+        int sampleCount = (mClassCounts.containsKey(sampleId)) ?
+            mClassCounts.get(sampleId) + 1 : 1;
+        mClassCounts.put(sampleId, sampleCount);
     }
 
     /*
@@ -201,6 +231,9 @@ public class HistogramPredictor {
             counter.resetCounter();
         }
         mPredictor.clear();
+
+        mClassCounts.clear();
+        mTotalClassCount = 0;
     }
 
     /*
@@ -258,6 +291,39 @@ public class HistogramPredictor {
             useFeature(entry.getKey());
             mPredictor.get(entry.getKey()).setCounter(entry.getValue());
         }
+
+        // TODO: this is a temporary fix for now
+        loadClassCounter();
+
         return true;
+    }
+
+    private void loadClassCounter() {
+        String TIME_OF_WEEK = "Time of Week";
+
+        if (!mPredictor.containsKey(TIME_OF_WEEK)) {
+            throw new RuntimeException("Precition model error: missing Time of Week!");
+        }
+
+        HashMap<String, HashMap<String, Integer> > counter =
+            mPredictor.get(TIME_OF_WEEK).getCounter();
+
+        mTotalClassCount = 0;
+        mClassCounts.clear();
+        for (HashMap<String, Integer> map : counter.values()) {
+            for (Map.Entry<String, Integer> entry : map.entrySet()) {
+                int classCount = entry.getValue();
+                String className = entry.getKey();
+                mTotalClassCount += classCount;
+
+                if (mClassCounts.containsKey(className)) {
+                    classCount += mClassCounts.get(className);
+                }
+                mClassCounts.put(className, classCount);
+            }
+        }
+
+        Log.e(TAG, "class counts: " + mClassCounts + ", total count: " +
+              mTotalClassCount);
     }
 }

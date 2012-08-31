@@ -30,6 +30,11 @@ public class BaseCluster {
     public double[] mCenter;
   // protected double[] mCenter;
 
+    protected static final int VECTOR_LENGTH = 3;
+
+    private static final long FORGETTING_ENUMERATOR = 95;
+    private static final long FORGETTING_DENOMINATOR = 100;
+
     // Histogram illustrates the pattern of visit during time of day,
     protected HashMap<String, Long> mHistogram = new HashMap<String, Long>();
 
@@ -41,24 +46,26 @@ public class BaseCluster {
 
     public BaseCluster(Location location) {
         mCenter = getLocationVector(location);
-
         mDuration = 0;
     }
 
-    public BaseCluster() {
-        mCenter = new double[] {0f, 0f, 0f};
+    public BaseCluster(String semanticId, double longitude, double latitude,
+                     long duration) {
+        mSemanticId = semanticId;
+        mCenter = getLocationVector(longitude, latitude);
+        mDuration = duration;
     }
 
     public String getSemanticId() {
         return mSemanticId;
     }
 
-    protected void generateSemanticId(long index) {
+    public void generateSemanticId(long index) {
         mSemanticId = "cluser: " + String.valueOf(index);
     }
 
-    public void setSemanticId(String semanticId) {
-        mSemanticId = semanticId;
+    public long getDuration() {
+        return mDuration;
     }
 
     public boolean hasSemanticId() {
@@ -70,7 +77,7 @@ public class BaseCluster {
     }
 
     protected double[] getLocationVector(double longitude, double latitude) {
-        double vector[] = new double[3];
+        double vector[] = new double[VECTOR_LENGTH];
         double lambda = Math.toRadians(longitude);
         double phi = Math.toRadians(latitude);
 
@@ -96,7 +103,7 @@ public class BaseCluster {
 
     private double computeDistance(double[] vector1, double[] vector2) {
         double product = 0f;
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
             product += vector1[i] * vector2[i];
         }
         double radian = Math.acos(Math.min(product, 1f));
@@ -115,23 +122,12 @@ public class BaseCluster {
     }
 
     public void absorbCluster(BaseCluster cluster) {
-        // the new cluster center is the average of the two clusters.
-        double weight = ((double) mDuration) / (mDuration + cluster.mDuration);
-        double clusterWeight = 1f - weight;
-        double norm = 0;
-        for (int i = 0; i < 3; ++i) {
-            mCenter[i] = weight * mCenter[i] + clusterWeight * cluster.mCenter[i];
-            norm += mCenter[i] * mCenter[i];
-        }
-        // normalize the center to be unit vector
-        for (int i = 0; i < 3; ++i) {
-            mCenter[i] /= norm;
-        }
+        averageCenter(cluster.mCenter, cluster.mDuration);
         absorbHistogram(cluster);
     }
 
     public void setCluster(BaseCluster cluster) {
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
             mCenter[i] = cluster.mCenter[i];
         }
         mHistogram.clear();
@@ -171,6 +167,47 @@ public class BaseCluster {
         }
         if (mHistogram.containsKey(TimeStatsAggregator.WEEKDAY)) {
             mDuration += mHistogram.get(TimeStatsAggregator.WEEKDAY);
+        }
+    }
+
+    public void forgetPastHistory() {
+        mDuration *= FORGETTING_ENUMERATOR;
+        mDuration /= FORGETTING_DENOMINATOR;
+
+        for (Map.Entry<String, Long> entry : mHistogram.entrySet()) {
+            String key = entry.getKey();
+            long value = entry.getValue();
+
+            value *= FORGETTING_ENUMERATOR;
+            value /= FORGETTING_DENOMINATOR;
+
+            mHistogram.put(key, value);
+        }
+    }
+
+    protected void normalizeCenter() {
+        double norm = 0;
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
+            norm += mCenter[i] * mCenter[i];
+        }
+        norm = Math.sqrt(norm);
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
+            mCenter[i] /= norm;
+        }
+    }
+
+    protected void averageCenter(double[] newCenter, long newDuration) {
+        double weight = ((double) mDuration) / (mDuration + newDuration);
+        double newWeight = 1f - weight;
+
+        double norm = 0;
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
+            mCenter[i] = weight * mCenter[i] + newWeight * newCenter[i];
+            norm += mCenter[i] * mCenter[i];
+        }
+        norm = Math.sqrt(norm);
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
+            mCenter[i] /= norm;
         }
     }
 }

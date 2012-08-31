@@ -27,15 +27,26 @@ import java.util.Map;
 public class LocationCluster extends BaseCluster {
     public static String TAG = "LocationCluster";
 
-    private boolean mIsNewCluster;
-
     private ArrayList<Location> mLocations = new ArrayList<Location>();
     private HashMap<String, Long> mNewHistogram = new HashMap<String, Long>();
+
+    private String mSemanticClusterId = null;
+
+    public void setSemanticClusterId(String semanticClusterId) {
+        mSemanticClusterId = semanticClusterId;
+    }
+
+    public String getSemanticClusterId() {
+        return mSemanticClusterId;
+    }
+
+    public boolean hasSemanticClusterId() {
+        return mSemanticClusterId != null;
+    }
 
     // TODO: make it a singleton class
     public LocationCluster(Location location, long duration) {
         super(location);
-        mIsNewCluster = true;
         addSample(location, duration);
     }
 
@@ -48,60 +59,52 @@ public class LocationCluster extends BaseCluster {
         mLocations.add(location);
     }
 
-    public void consolidate(long interval) {
-        // TODO: add check on interval
+    public void consolidate() {
+        // If there is no new location added during this period, do nothing.
+        if (mLocations.size() == 0) {
+            return;
+        }
+
         double[] newCenter = {0f, 0f, 0f};
         long newDuration = 0l;
-
         // update cluster center
         for (Location location : mLocations) {
             double[] vector = getLocationVector(location);
             long duration = location.getTime(); // in seconds
 
+            if (duration == 0) {
+                throw new RuntimeException("location duration is zero");
+            }
+
             newDuration += duration;
-            for (int i = 0; i < 3; ++i) {
+            for (int i = 0; i < VECTOR_LENGTH; ++i) {
                 newCenter[i] += vector[i] * duration;
             }
         }
-        for (int i = 0; i < 3; ++i) {
+        if (newDuration == 0l) {
+            throw new RuntimeException("new duration is zero!");
+        }
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
             newCenter[i] /= newDuration;
         }
         // remove location data
         mLocations.clear();
 
-        if (mIsNewCluster) {
-            for (int i = 0; i < 3; ++i) {
-                mCenter[i] = newCenter[i];
+        // The updated center is the weighted average of the existing and the new
+        // centers. Note that if the cluster is consolidated for the first time,
+        // the weight for the existing cluster would be zero.
+        averageCenter(newCenter, newDuration);
+
+        // update histogram
+        for (Map.Entry<String, Long> entry : mNewHistogram.entrySet()) {
+            String timeLabel = entry.getKey();
+            long duration = entry.getValue();
+            if (mHistogram.containsKey(timeLabel)) {
+                duration += mHistogram.get(timeLabel);
             }
-            mDuration = newDuration;
-            mHistogram.clear();
-            mHistogram.putAll(mNewHistogram);
-            mIsNewCluster = false;
-        } else {
-            // the new center is weight average over latest and existing centers.
-            // fine tune the weight of new center
-            double newWeight = ((double) newDuration) / (newDuration + mDuration);
-            double currWeight = 1f - newWeight;
-            double norm = 0;
-            for (int i = 0; i < 3; ++i) {
-                mCenter[i] = currWeight * mCenter[i] + newWeight * newCenter[i];
-                norm += mCenter[i] * mCenter[i];
-            }
-            // normalize
-            for (int i = 0; i < 3; ++i) {
-                mCenter[i] /= norm;
-            }
-            // update histogram
-            for (Map.Entry<String, Long> entry : mNewHistogram.entrySet()) {
-                String timeLabel = entry.getKey();
-                long duration = entry.getValue();
-                if (mHistogram.containsKey(timeLabel)) {
-                    duration += mHistogram.get(timeLabel);
-                }
-                mHistogram.put(timeLabel, duration);
-            }
-            mDuration += newDuration;
+            mHistogram.put(timeLabel, duration);
         }
+        mDuration += newDuration;
         mNewHistogram.clear();
     }
 
@@ -110,21 +113,21 @@ public class LocationCluster extends BaseCluster {
      * cluster move the center away from that cluster till there is no overlap.
      */
     public void moveAwayCluster(LocationCluster cluster, float distance) {
-        double[] vector = new double[3];
+        double[] vector = new double[VECTOR_LENGTH];
 
         double dot = 0f;
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
             dot += mCenter[i] * cluster.mCenter[i];
         }
         double norm = 0f;
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
             vector[i] = mCenter[i] - dot * cluster.mCenter[i];
             norm += vector[i] * vector[i];
         }
         norm = Math.sqrt(norm);
 
         double radian = distance / EARTH_RADIUS;
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
             mCenter[i] = cluster.mCenter[i] * Math.cos(radian) +
                     (vector[i] / norm) * Math.sin(radian);
         }
