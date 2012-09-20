@@ -39,18 +39,34 @@ public class Predictor extends IPredictor.Stub
     private final String TAG = "Predictor";
     private ModelChangeCallback modelChangeCallback = null;
 
-    private HistogramPredictor mPredictor = new HistogramPredictor();
     private FeatureAssembly mFeatureAssembly = new FeatureAssembly();
 
-    public static final String SET_FEATURE = "Set Feature";
-    public static final String USE_HISTORY = "Use History";
-
-    public static final String PREVIOUS_SAMPLE = "Previous Sample";
+    public static final String SET_FEATURE = "SetFeature";
+    public static final String SET_PAIRED_FEATURES = "SetPairedFeatures";
+    public static final String FEATURE_SEPARATOR = ":";
+    public static final String USE_HISTORY = "UseHistory";
+    public static final String PREVIOUS_SAMPLE = "PreviousSample";
 
     private boolean mUseHistory = false;
     private long mHistorySpan = 0;
     private String mPrevSample;
     private long mPrevSampleTime;
+
+    // TODO: blacklist should be set outside Bordeaux service!
+    private static final String[] APP_BLACKLIST = {
+        "com.android.contacts",
+        "com.android.chrome",
+        "com.android.providers.downloads.ui",
+        "com.android.settings",
+        "com.android.vending",
+        "com.android.mms",
+        "com.google.android.gm",
+        "com.google.android.gallery3d",
+        "com.google.android.apps.googlevoice",
+    };
+
+    private HistogramPredictor mPredictor = new HistogramPredictor(APP_BLACKLIST);
+
 
     /**
      * Reset the Predictor
@@ -70,7 +86,7 @@ public class Predictor extends IPredictor.Stub
      */
     public void pushNewSample(String sampleName) {
         Map<String, String> sampleFeatures = getSampleFeatures();
-        Log.e(TAG, "pushNewSample " + sampleName + ": " + sampleFeatures);
+        Log.i(TAG, "pushNewSample " + sampleName + ": " + sampleFeatures);
 
         // TODO: move to the end of the function?
         mPrevSample = sampleName;
@@ -99,16 +115,11 @@ public class Predictor extends IPredictor.Stub
      * return probabilty of an exmple using the histogram
      */
     public List<StringFloat> getTopCandidates(int topK) {
-        ArrayList<StringFloat> result = new ArrayList<StringFloat>(topK);
         Map<String, String> features = getSampleFeatures();
-
         List<Map.Entry<String, Double> > topApps = mPredictor.findTopClasses(features, topK);
 
         int listSize =  topApps.size();
-        if (topK > 0) {
-            listSize = Math.min(topK, listSize);
-        }
-
+        ArrayList<StringFloat> result = new ArrayList<StringFloat>(listSize);
         for (int i = 0; i < listSize; ++i) {
             Map.Entry<String, Double> entry = topApps.get(i);
             result.add(new StringFloat(entry.getKey(), entry.getValue().floatValue()));
@@ -121,18 +132,22 @@ public class Predictor extends IPredictor.Stub
      * and 2) featureAssembly e.g. time and location.
      */
     public boolean setPredictorParameter(String key, String value) {
+        Log.i(TAG, "setParameter : " + key + ", " + value);
         boolean result = true;
         if (key.equals(SET_FEATURE)) {
             result = mFeatureAssembly.registerFeature(value);
-            if (result) {
-                mPredictor.useFeature(value);
-            } else {
+            if (!result) {
                Log.e(TAG,"Setting on feauture: " + value + " which is not available");
+            }
+        } else if (key.equals(SET_PAIRED_FEATURES)) {
+            String[] features = value.split(FEATURE_SEPARATOR);
+            result = mFeatureAssembly.registerFeaturePair(features);
+            if (!result) {
+                Log.e(TAG,"Setting feauture pair: " + value + " is not valid");
             }
         } else if (key.equals(USE_HISTORY)) {
             mUseHistory = true;
             mHistorySpan = Long.valueOf(value);
-            mPredictor.useFeature(PREVIOUS_SAMPLE);
         } else {
             Log.e(TAG,"Setting parameter " + key + " with " + value + " is not valid");
         }

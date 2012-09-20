@@ -50,8 +50,8 @@ public class ClusterManager {
     // stayed for at least 10 minutes (600 seconds) within a day.
     private static final long SEMANTIC_CLUSTER_THRESHOLD = 600; // seconds
 
-    // Reset location cluters every 12 hours (43200 seconds).
-    private static final long LOCATION_REFRESH_PERIOD = 43200; // seconds
+    // Reset location cluters every 24 hours (86400 seconds).
+    private static final long LOCATION_REFRESH_PERIOD = 86400; // seconds
 
     private static String UNKNOWN_LOCATION = "Unknown Location";
 
@@ -111,6 +111,9 @@ public class ClusterManager {
         long currentTime = location.getTime() / 1000; // measure time in seconds
 
         if (mLastLocation != null) {
+            if (location.getTime() == mLastLocation.getTime()) {
+                return;
+            }
             // get the duration spent in the last location
             long duration = (location.getTime() - mLastLocation.getTime()) / 1000;
             mClusterDuration += duration;
@@ -204,7 +207,8 @@ public class ClusterManager {
                 String bestClusterId = "Unused Id";
                 for (BaseCluster cluster : mSemanticClusters) {
                     float distance = cluster.distanceToCluster(candidate);
-                    Log.v(TAG, distance + "distance to semantic cluster: " + cluster.getSemanticId());
+                    Log.v(TAG, distance + "distance to semantic cluster: " +
+                          cluster.getSemanticId());
 
                     if (distance < bestClusterDistance) {
                         bestClusterDistance = distance;

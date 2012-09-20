@@ -103,6 +103,8 @@ public class BordeauxService extends Service {
         // Unregister all callbacks.
         mCallbacks.kill();
 
+        mLocationStatsAggregator.release();
+
         Log.i(TAG, "Bordeaux service stopped.");
     }
 

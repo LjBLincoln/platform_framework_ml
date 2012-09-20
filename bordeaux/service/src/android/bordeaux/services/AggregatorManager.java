@@ -60,7 +60,7 @@ class AggregatorManager extends IAggregatorManager.Stub  {
     public void registerAggregator(Aggregator agg, AggregatorManager m) {
         if (mAggregators.get(agg.getClass().getName()) != null) {
             // only one instance
-            throw new RuntimeException("Can't register more than one instance");
+            // throw new RuntimeException("Can't register more than one instance");
         }
         mAggregators.put(agg.getClass().getName(), agg);
         agg.setManager(m);
@@ -68,6 +68,7 @@ class AggregatorManager extends IAggregatorManager.Stub  {
         for ( int i  = 0; i< fl.length; i ++)
             sFeatureMap.put(fl[i], agg);
     }
+
     // Start of IAggregatorManager interface
     public ArrayList<StringString> getData(String dataName) {
         return getList(getDataMap(dataName));

@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-
 package android.bordeaux.learning;
 
 import android.util.Log;
-import android.util.Pair;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,17 +33,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
+import java.util.concurrent.ConcurrentHashMap;
 /**
- * A histogram based predictor which records co-occurrences of applations with a speficic feature,
- * for example, location, * time of day, etc. The histogram is kept in a two level hash table.
- * The first level key is the feature value and the second level key is the app id.
+ * A histogram based predictor which records co-occurrences of applations with a speficic
+ * feature, for example, location, * time of day, etc. The histogram is kept in a two level
+ * hash table. The first level key is the feature value and the second level key is the app
+ * id.
  */
 // TODOS:
 // 1. Use forgetting factor to downweight istances propotional to the time
 // 2. Different features could have different weights on prediction scores.
-// 3. Make prediction (on each feature) only when the histogram has collected
-//    sufficient counts.
+// 3. Add function to remove sampleid (i.e. remove apps that are uninstalled).
+
+
 public class HistogramPredictor {
     final static String TAG = "HistogramPredictor";
 
@@ -53,10 +53,33 @@ public class HistogramPredictor {
             new HashMap<String, HistogramCounter>();
 
     private HashMap<String, Integer> mClassCounts = new HashMap<String, Integer>();
-    private int mTotalClassCount = 0;
+    private HashSet<String> mBlacklist = new HashSet<String>();
 
-    private static final double FEATURE_INACTIVE_LIKELIHOOD = 0.00000001;
-    private static final double LOG_INACTIVE = Math.log(FEATURE_INACTIVE_LIKELIHOOD);
+    private static final int MINIMAL_FEATURE_VALUE_COUNTS = 5;
+    private static final int MINIMAL_APP_APPEARANCE_COUNTS = 5;
+
+    // This parameter ranges from 0 to 1 which determines the effect of app prior.
+    // When it is set to 0, app prior means completely neglected. When it is set to 1
+    // the predictor is a standard naive bayes model.
+    private static final int PRIOR_K_VALUE = 1;
+
+    private static final String[] APP_BLACKLIST = {
+        "com.android.contacts",
+        "com.android.chrome",
+        "com.android.providers.downloads.ui",
+        "com.android.settings",
+        "com.android.vending",
+        "com.android.mms",
+        "com.google.android.gm",
+        "com.google.android.gallery3d",
+        "com.google.android.apps.googlevoice",
+    };
+
+    public HistogramPredictor(String[] blackList) {
+        for (String appName : blackList) {
+            mBlacklist.add(appName);
+        }
+    }
 
     /*
      * This class keeps the histogram counts for each feature and provide the
@@ -65,27 +88,18 @@ public class HistogramPredictor {
     private class HistogramCounter {
         private HashMap<String, HashMap<String, Integer> > mCounter =
                 new HashMap<String, HashMap<String, Integer> >();
-        private int mTotalCount;
 
         public HistogramCounter() {
-            resetCounter();
+            mCounter.clear();
         }
 
         public void setCounter(HashMap<String, HashMap<String, Integer> > counter) {
             resetCounter();
             mCounter.putAll(counter);
-
-            // get total count
-            for (Map.Entry<String, HashMap<String, Integer> > entry : counter.entrySet()) {
-                for (Integer value : entry.getValue().values()) {
-                    mTotalCount += value.intValue();
-                }
-            }
         }
 
         public void resetCounter() {
             mCounter.clear();
-            mTotalCount = 0;
         }
 
         public void addSample(String className, String featureValue) {
@@ -100,50 +114,95 @@ public class HistogramPredictor {
             int count = (classCounts.containsKey(className)) ?
                     classCounts.get(className) + 1 : 1;
             classCounts.put(className, count);
-            mTotalCount++;
         }
 
         public HashMap<String, Double> getClassScores(String featureValue) {
             HashMap<String, Double> classScores = new HashMap<String, Double>();
 
-            double logTotalCount = Math.log((double) mTotalCount);
             if (mCounter.containsKey(featureValue)) {
+                int totalCount = 0;
                 for(Map.Entry<String, Integer> entry :
                         mCounter.get(featureValue).entrySet()) {
-                    double score =
-                            Math.log((double) entry.getValue()) - logTotalCount;
-                    classScores.put(entry.getKey(), score);
+                    String app = entry.getKey();
+                    int count = entry.getValue();
+
+                    // For apps with counts less than or equal to one, we treated
+                    // those as having count one. Hence their score, i.e. log(count)
+                    // would be zero. classScroes stores only apps with non-zero scores.
+                    // Note that totalCount also neglect app with single occurrence.
+                    if (count > 1) {
+                        double score = Math.log((double) count);
+                        classScores.put(app, score);
+                        totalCount += count;
+                    }
+                }
+                if (totalCount < MINIMAL_FEATURE_VALUE_COUNTS) {
+                    classScores.clear();
                 }
             }
             return classScores;
         }
 
+        public byte[] getModel() {
+            try {
+                ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+                ObjectOutputStream objStream = new ObjectOutputStream(byteStream);
+                synchronized(mCounter) {
+                    objStream.writeObject(mCounter);
+                }
+                byte[] bytes = byteStream.toByteArray();
+                return bytes;
+            } catch (IOException e) {
+                throw new RuntimeException("Can't get model");
+            }
+        }
+
+        public boolean setModel(final byte[] modelData) {
+            mCounter.clear();
+            HashMap<String, HashMap<String, Integer> > model;
+
+            try {
+                ByteArrayInputStream input = new ByteArrayInputStream(modelData);
+                ObjectInputStream objStream = new ObjectInputStream(input);
+                model = (HashMap<String, HashMap<String, Integer> >) objStream.readObject();
+            } catch (IOException e) {
+                throw new RuntimeException("Can't load model");
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("Learning class not found");
+            }
+
+            synchronized(mCounter) {
+                mCounter.putAll(model);
+            }
+
+            return true;
+        }
+
+
         public HashMap<String, HashMap<String, Integer> > getCounter() {
             return mCounter;
         }
-    }
 
-    private double getDefaultLikelihood(Map<String, String> features) {
-        int featureCount = 0;
-
-        for(String featureName : features.keySet()) {
-            if (mPredictor.containsKey(featureName)) {
-                featureCount++;
+        public String toString() {
+            String result = "";
+            for (Map.Entry<String, HashMap<String, Integer> > entry :
+                     mCounter.entrySet()) {
+                result += "{ " + entry.getKey() + " : " +
+                    entry.getValue().toString() + " }";
             }
+            return result;
         }
-        return LOG_INACTIVE * featureCount;
     }
 
     /*
-     * Given a map of feature name -value pairs returns the mostly likely apps to
-     * be launched with corresponding likelihoods.
+     * Given a map of feature name -value pairs returns topK mostly likely apps to
+     * be launched with corresponding likelihoods. If topK is set zero, it will return
+     * the whole list.
      */
     public List<Map.Entry<String, Double> > findTopClasses(Map<String, String> features, int topK) {
         // Most sophisticated function in this class
         HashMap<String, Double> appScores = new HashMap<String, Double>();
-        double defaultLikelihood = getDefaultLikelihood(features);
-
-        HashMap<String, Integer> appearCounts = new HashMap<String, Integer>();
+        int validFeatureCount = 0;
 
         // compute all app scores
         for (Map.Entry<String, HistogramCounter> entry : mPredictor.entrySet()) {
@@ -154,44 +213,48 @@ public class HistogramPredictor {
                 String featureValue = features.get(featureName);
                 HashMap<String, Double> scoreMap = counter.getClassScores(featureValue);
 
+                if (scoreMap.isEmpty()) {
+                  continue;
+                }
+                validFeatureCount++;
+
                 for (Map.Entry<String, Double> item : scoreMap.entrySet()) {
                     String appName = item.getKey();
                     double appScore = item.getValue();
-                    double score = (appScores.containsKey(appName)) ?
-                        appScores.get(appName) : defaultLikelihood;
-                    score += appScore - LOG_INACTIVE;
-                    appScores.put(appName, score);
-
-                    int count = (appearCounts.containsKey(appName)) ?
-                        appearCounts.get(appName) + 1 : 1;
-                    appearCounts.put(appName, count);
+                    if (appScores.containsKey(appName)) {
+                        appScore += appScores.get(appName);
+                    }
+                    appScores.put(appName, appScore);
                 }
             }
         }
 
-        // TODO: this check should be unnecessary
-        if (mClassCounts.size() != 0 && mTotalClassCount != 0) {
-            for (Map.Entry<String, Double> entry : appScores.entrySet()) {
-                String appName = entry.getKey();
-                double appScore = entry.getValue();
-                if (!appearCounts.containsKey(appName)) {
-                    throw new RuntimeException("appearance count error!");
-                }
-                int appearCount = appearCounts.get(appName);
-
-                if (!mClassCounts.containsKey(appName)) {
-                    throw new RuntimeException("class count error!");
-                }
-                double appPrior =
-                    Math.log(mClassCounts.get(appName)) - Math.log(mTotalClassCount);
-                appScores.put(appName, appScore - appPrior * (appearCount - 1));
+        HashMap<String, Double> appCandidates = new HashMap<String, Double>();
+        for (Map.Entry<String, Double> entry : appScores.entrySet()) {
+            String appName = entry.getKey();
+            if (mBlacklist.contains(appName)) {
+                Log.i(TAG, appName + " is in blacklist");
+                continue;
             }
+            if (!mClassCounts.containsKey(appName)) {
+                throw new RuntimeException("class count error!");
+            }
+            int appCount = mClassCounts.get(appName);
+            if (appCount < MINIMAL_APP_APPEARANCE_COUNTS) {
+                Log.i(TAG, appName + " doesn't have enough counts");
+                continue;
+            }
+
+            double appScore = entry.getValue();
+            double appPrior = Math.log((double) appCount);
+            appCandidates.put(appName,
+                              appScore - appPrior * (validFeatureCount - PRIOR_K_VALUE));
         }
 
         // sort app scores
         List<Map.Entry<String, Double> > appList =
-               new ArrayList<Map.Entry<String, Double> >(appScores.size());
-        appList.addAll(appScores.entrySet());
+               new ArrayList<Map.Entry<String, Double> >(appCandidates.size());
+        appList.addAll(appCandidates.entrySet());
         Collections.sort(appList, new  Comparator<Map.Entry<String, Double> >() {
             public int compare(Map.Entry<String, Double> o1,
                                Map.Entry<String, Double> o2) {
@@ -199,22 +262,23 @@ public class HistogramPredictor {
             }
         });
 
-        Log.v(TAG, "findTopApps appList: " + appList);
-        return appList;
+        if (topK == 0) {
+            topK = appList.size();
+        }
+        return appList.subList(0, Math.min(topK, appList.size()));
     }
 
     /*
      * Add a new observation of given sample id and features to the histograms
      */
     public void addSample(String sampleId, Map<String, String> features) {
-        for (Map.Entry<String, HistogramCounter> entry : mPredictor.entrySet()) {
+        for (Map.Entry<String, String> entry : features.entrySet()) {
             String featureName = entry.getKey();
-            HistogramCounter counter = entry.getValue();
+            String featureValue = entry.getValue();
 
-            if (features.containsKey(featureName)) {
-                String featureValue = features.get(featureName);
-                counter.addSample(sampleId, featureValue);
-            }
+            useFeature(featureName);
+            HistogramCounter counter = mPredictor.get(featureName);
+            counter.addSample(sampleId, featureValue);
         }
 
         int sampleCount = (mClassCounts.containsKey(sampleId)) ?
@@ -231,18 +295,7 @@ public class HistogramPredictor {
             counter.resetCounter();
         }
         mPredictor.clear();
-
         mClassCounts.clear();
-        mTotalClassCount = 0;
-    }
-
-    /*
-     * specify a feature to used for prediction
-     */
-    public void useFeature(String featureName) {
-        if (!mPredictor.containsKey(featureName)) {
-            mPredictor.put(featureName, new HistogramCounter());
-        }
     }
 
     /*
@@ -261,7 +314,6 @@ public class HistogramPredictor {
             ObjectOutputStream objStream = new ObjectOutputStream(byteStream);
             objStream.writeObject(model);
             byte[] bytes = byteStream.toByteArray();
-            //Log.i(TAG, "getModel: " + bytes);
             return bytes;
         } catch (IOException e) {
             throw new RuntimeException("Can't get model");
@@ -308,13 +360,12 @@ public class HistogramPredictor {
         HashMap<String, HashMap<String, Integer> > counter =
             mPredictor.get(TIME_OF_WEEK).getCounter();
 
-        mTotalClassCount = 0;
         mClassCounts.clear();
         for (HashMap<String, Integer> map : counter.values()) {
             for (Map.Entry<String, Integer> entry : map.entrySet()) {
                 int classCount = entry.getValue();
                 String className = entry.getKey();
-                mTotalClassCount += classCount;
+                // mTotalClassCount += classCount;
 
                 if (mClassCounts.containsKey(className)) {
                     classCount += mClassCounts.get(className);
@@ -322,8 +373,12 @@ public class HistogramPredictor {
                 mClassCounts.put(className, classCount);
             }
         }
+        Log.i(TAG, "class counts: " + mClassCounts);
+    }
 
-        Log.e(TAG, "class counts: " + mClassCounts + ", total count: " +
-              mTotalClassCount);
+    private void useFeature(String featureName) {
+        if (!mPredictor.containsKey(featureName)) {
+            mPredictor.put(featureName, new HistogramCounter());
+        }
     }
 }

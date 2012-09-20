@@ -50,7 +50,7 @@ public class BordeauxPredictor {
 
     public boolean reset() {
         if (!retrievePredictor()){
-            Log.e(TAG, PREDICTOR_NOTAVAILABLE);
+            Log.e(TAG, "reset: " + PREDICTOR_NOTAVAILABLE);
             return false;
         }
         try {
@@ -66,7 +66,7 @@ public class BordeauxPredictor {
             mPredictor = BordeauxManagerService.getPredictor(mContext, mName);
         }
         if (mPredictor == null) {
-            Log.e(TAG, PREDICTOR_NOTAVAILABLE);
+            Log.e(TAG, "retrievePredictor: " + PREDICTOR_NOTAVAILABLE);
             return false;
         }
         return true;
