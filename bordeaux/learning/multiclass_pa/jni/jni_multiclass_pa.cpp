@@ -33,7 +33,7 @@ void CreateIndexValuePairs(const int* indices, const float* values,
   }
 }
 
-jint Java_android_bordeaux_learning_MulticlassPA_initNativeClassifier(JNIEnv* env,
+jlong Java_android_bordeaux_learning_MulticlassPA_initNativeClassifier(JNIEnv* env,
                                                        jobject thiz,
                                                        jint num_classes,
                                                        jint num_dims,
@@ -41,13 +41,13 @@ jint Java_android_bordeaux_learning_MulticlassPA_initNativeClassifier(JNIEnv* en
   MulticlassPA* classifier = new MulticlassPA(num_classes,
                                               num_dims,
                                               aggressiveness);
-  return ((jint) classifier);
+  return ((jlong) classifier);
 }
 
 
 jboolean Java_android_bordeaux_learning_MulticlassPA_deleteNativeClassifier(JNIEnv* env,
                                                              jobject thiz,
-                                                             jint paPtr) {
+                                                             jlong paPtr) {
   MulticlassPA* classifier = (MulticlassPA*) paPtr;
   delete classifier;
   return JNI_TRUE;
@@ -58,7 +58,7 @@ jboolean Java_android_bordeaux_learning_MulticlassPA_nativeSparseTrainOneExample
                                                                   jintArray index_array,
                                                                   jfloatArray value_array,
                                                                   jint target,
-                                                                  jint paPtr) {
+                                                                  jlong paPtr) {
   MulticlassPA* classifier = (MulticlassPA*) paPtr;
 
   if (classifier && index_array && value_array) {
@@ -90,7 +90,7 @@ jint Java_android_bordeaux_learning_MulticlassPA_nativeSparseGetClass(JNIEnv* en
                                                        jobject thiz,
                                                        jintArray index_array,
                                                        jfloatArray value_array,
-                                                       jint paPtr) {
+                                                       jlong paPtr) {
 
   MulticlassPA* classifier = (MulticlassPA*) paPtr;
 
