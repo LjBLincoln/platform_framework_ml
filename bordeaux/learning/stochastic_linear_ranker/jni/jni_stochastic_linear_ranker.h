@@ -105,7 +105,7 @@ const char * KERNEL_TYPE_RBF = "RBF";
 const char * LOSS_TYPE_PAIRWISE = "PAIRWISE";
 const char * LOSS_TYPE_RECIPROCAL_RANK = "RECIPROCAL_RANK";
 
-JNIEXPORT jint JNICALL
+JNIEXPORT jlong JNICALL
 Java_android_bordeaux_learning_StochasticLinearRanker_initNativeClassifier(
     JNIEnv* env,
     jobject thiz);
@@ -115,7 +115,7 @@ JNIEXPORT jboolean JNICALL
 Java_android_bordeaux_learning_StochasticLinearRanker_deleteNativeClassifier(
     JNIEnv* env,
     jobject thiz,
-    jint paPtr);
+    jlong paPtr);
 
 JNIEXPORT jboolean JNICALL
 Java_android_bordeaux_learning_StochasticLinearRanker_nativeUpdateClassifier(
@@ -125,7 +125,7 @@ Java_android_bordeaux_learning_StochasticLinearRanker_nativeUpdateClassifier(
     jfloatArray value_array_positive,
     jobjectArray key_array_negative,
     jfloatArray value_array_negative,
-    jint paPtr);
+    jlong paPtr);
 
 JNIEXPORT jfloat JNICALL
 Java_android_bordeaux_learning_StochasticLinearRanker_nativeScoreSample(
@@ -133,7 +133,7 @@ Java_android_bordeaux_learning_StochasticLinearRanker_nativeScoreSample(
     jobject thiz,
     jobjectArray key_array,
     jfloatArray value_array,
-    jint paPtr);
+    jlong paPtr);
 
 JNIEXPORT void JNICALL
 Java_android_bordeaux_learning_StochasticLinearRanker_nativeGetWeightClassifier(
@@ -142,7 +142,7 @@ Java_android_bordeaux_learning_StochasticLinearRanker_nativeGetWeightClassifier(
     jobjectArray key_array_weight,
     jfloatArray value_array_weight,
     jfloat normalizer,
-    jint paPtr);
+    jlong paPtr);
 
 JNIEXPORT void JNICALL
 Java_android_bordeaux_learning_StochasticLinearRanker_nativeGetParameterClassifier(
@@ -150,13 +150,13 @@ Java_android_bordeaux_learning_StochasticLinearRanker_nativeGetParameterClassifi
     jobject thiz,
     jobjectArray key_array_param,
     jobjectArray value_array_param,
-    jint paPtr);
+    jlong paPtr);
 
 JNIEXPORT jint JNICALL
 Java_android_bordeaux_learning_StochasticLinearRanker_nativeGetLengthClassifier(
     JNIEnv* env,
     jobject thiz,
-    jint paPtr);
+    jlong paPtr);
 
 JNIEXPORT jboolean JNICALL
 Java_android_bordeaux_learning_StochasticLinearRanker_nativeSetWeightClassifier(
@@ -165,7 +165,7 @@ Java_android_bordeaux_learning_StochasticLinearRanker_nativeSetWeightClassifier(
     jobjectArray key_array_model,
     jfloatArray value_array_model,
     jfloat normalizer_model,
-    jint paPtr);
+    jlong paPtr);
 
 JNIEXPORT jboolean JNICALL
 Java_android_bordeaux_learning_StochasticLinearRanker_nativeSetParameterClassifier(
@@ -173,7 +173,7 @@ Java_android_bordeaux_learning_StochasticLinearRanker_nativeSetParameterClassifi
     jobject thiz,
     jstring key,
     jstring value,
-    jint paPtr);
+    jlong paPtr);
 
 #ifdef __cplusplus
 }

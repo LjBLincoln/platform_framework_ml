@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-JNIEXPORT jint JNICALL
+JNIEXPORT jlong JNICALL
 Java_android_bordeaux_learning_MulticlassPA_initNativeClassifier(JNIEnv* env,
                                                   jobject thiz,
                                                   jint num_classes,
@@ -34,7 +34,7 @@ Java_android_bordeaux_learning_MulticlassPA_initNativeClassifier(JNIEnv* env,
 JNIEXPORT jboolean JNICALL
 Java_android_bordeaux_learning_MulticlassPA_deleteNativeClassifier(JNIEnv* env,
                                                     jobject thiz,
-                                                    jint paPtr);
+                                                    jlong paPtr);
 
 JNIEXPORT jboolean JNICALL
 Java_android_bordeaux_learning_MulticlassPA_nativeSparseTrainOneExample(JNIEnv* env,
@@ -42,14 +42,14 @@ Java_android_bordeaux_learning_MulticlassPA_nativeSparseTrainOneExample(JNIEnv* 
                                                          jintArray index_array,
                                                          jfloatArray value_array,
                                                          jint target,
-                                                         jint paPtr);
+                                                         jlong paPtr);
 
 JNIEXPORT jint JNICALL
 Java_android_bordeaux_learning_MulticlassPA_nativeSparseGetClass(JNIEnv* env,
                                                   jobject thiz,
                                                   jintArray index_array,
                                                   jfloatArray value_array,
-                                                  jint paPtr);
+                                                  jlong paPtr);
 
 
 #ifdef __cplusplus
