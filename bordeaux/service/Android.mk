@@ -15,7 +15,6 @@ LOCAL_SRC_FILES += \
 
 LOCAL_STATIC_JAVA_LIBRARIES := bordeaux_learners
 LOCAL_JNI_SHARED_LIBRARIES := libbordeaux
-LOCAL_REQUIRED_MODULES := libbordeaux
 
 LOCAL_PACKAGE_NAME := bordeaux
 
