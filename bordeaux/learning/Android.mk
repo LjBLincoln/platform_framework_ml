@@ -23,7 +23,7 @@ LOCAL_MODULE_TAGS := samples tests
 LOCAL_MODULE := libbordeaux
 
 LOCAL_WHOLE_STATIC_LIBRARIES := libmulticlass_pa libstochastic_linear
-LOCAL_SHARED_LIBRARIES := libstlport libcutils liblog
+LOCAL_SHARED_LIBRARIES := libcutils liblog
 
 LOCAL_PRELINK_MODULE := false
 
