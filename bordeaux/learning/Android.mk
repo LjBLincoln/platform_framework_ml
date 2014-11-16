@@ -27,11 +27,7 @@ LOCAL_SHARED_LIBRARIES := libcutils liblog
 
 LOCAL_PRELINK_MODULE := false
 
-LOCAL_CFLAGS := -DANDROID
-
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../native
-
-include external/stlport/libstlport.mk
 
 include $(BUILD_SHARED_LIBRARY)
 
