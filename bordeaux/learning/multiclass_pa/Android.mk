@@ -27,7 +27,6 @@ LOCAL_MODULE := libmulticlass_pa
 LOCAL_SRC_FILES := native/multiclass_pa.cpp \
                    jni/jni_multiclass_pa.cpp
 
-LOCAL_PRELINK_MODULE := false
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../native
 
