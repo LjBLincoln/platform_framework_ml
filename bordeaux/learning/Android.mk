@@ -25,7 +25,6 @@ LOCAL_MODULE := libbordeaux
 LOCAL_WHOLE_STATIC_LIBRARIES := libmulticlass_pa libstochastic_linear
 LOCAL_SHARED_LIBRARIES := libcutils liblog
 
-LOCAL_PRELINK_MODULE := false
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../native
 

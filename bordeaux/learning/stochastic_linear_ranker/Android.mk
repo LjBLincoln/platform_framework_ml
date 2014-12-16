@@ -28,7 +28,6 @@ LOCAL_SRC_FILES := native/stochastic_linear_ranker.cpp \
                    native/sparse_weight_vector.cpp \
                    jni/jni_stochastic_linear_ranker.cpp
 
-LOCAL_PRELINK_MODULE := false
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../native
 
