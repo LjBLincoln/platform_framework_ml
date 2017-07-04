@@ -1,0 +1,41 @@
+/*
+ * Copyright (C) 2017 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//TODO change to: package android.hardware.neuralnetworks@1.0;
+package android.ml.neuralnetworks@1.0;
+
+import types;
+import IRequest;
+
+interface IDevice {
+    struct Capabilities {
+        bool [OperatorTypes:NUM_OPERATOR_TYPES] supportedOperatorTypes;
+        // TODO Do the same for baseline model IDs
+        bool cachesCompilation;
+        float bootupTime;  // in nanoseconds
+        PerformanceInfo float16Performance;
+        PerformanceInfo float32Performance;
+        PerformanceInfo quantized8Performance;
+    };
+
+    initialize() generates(Capabilities capabilities);
+
+    getSupportedSubgraph(memory graph) generates(vec<bool> supported);
+
+    prepareRequest(Model model) generates(IRequest request);
+
+    getStatus() generates(Status status);
+};
