@@ -1,0 +1,74 @@
+/*
+ * Copyright (C) 2017 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//TODO change to: package android.hardware.neuralnetworks@1.0;
+package android.ml.neuralnetworks@1.0;
+
+enum OperatorTypes : uint32_t {
+    AVERAGE_POOL_FLOAT32 = 0,
+    CONCATENATION_FLOAT32 = 1,
+    CONV_FLOAT32 = 2,
+    DEPTHWISE_CONV_FLOAT32 = 3,
+    MAX_POOL_FLOAT32 = 4,
+    L2_POOL_FLOAT32 = 5,
+    DEPTH_TO_SPACE_FLOAT32 = 6,
+    SPACE_TO_DEPTH_FLOAT32 = 7,
+    LOCAL_RESPONSE_NORMALIZATION_FLOAT32 = 8,
+    SOFTMAX_FLOAT32 = 9,
+    RESHAPE_FLOAT32 = 10,
+    SPLIT_FLOAT32 = 11,
+    FAKE_QUANT_FLOAT32 = 12,
+    ADD_FLOAT32 = 13,
+    FULLY_CONNECTED_FLOAT32 = 14,
+    CAST_FLOAT32 = 15,
+    MUL_FLOAT32 = 16,
+    L2_NORMALIZATION_FLOAT32 = 17,
+    LOGISTIC_FLOAT32 = 18,
+    RELU_FLOAT32 = 19,
+    RELU6_FLOAT32 = 20,
+    RELU1_FLOAT32 = 21,
+    TANH_FLOAT32 = 22,
+    DEQUANTIZ2E_FLOAT32 = 23,
+    FLOOR_FLOAT32 = 24,
+    GATHER_FLOAT32 = 25,
+    RESIZE_BILINEAR_FLOAT32 = 26,
+    LSH_PROJECTION_FLOAT32 = 27,
+    LSTM_FLOAT32 = 28,
+    SVDF_FLOAT32 = 29,
+    RNN_FLOAT32 = 30,
+    N_GRAM_FLOAT32 = 31,
+    LOOKUP_FLOAT32 = 32,
+
+    NUM_OPERATOR_TYPES = 33
+};
+
+enum Status : uint32_t {
+    AVAILABLE,
+    BUSY,
+    OFFLINE,
+    UNKNOWN  // Do we need this?
+};
+
+// For the reference workload
+struct PerformanceInfo {
+    float execTime;    // in nanoseconds // or int64?
+    float powerUsage;  // in picoJoules
+};
+
+struct Model {
+    memory graph;
+    // TODO see how we pass the data.  This will depend if we are in-process or binderized.
+};
