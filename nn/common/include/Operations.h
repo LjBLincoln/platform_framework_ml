@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-subdirs = [
-    "common",
-    "driver",
-    "hardware/interfaces/neuralnetworks",
-    "runtime",
-]
+#ifndef ANDROID_ML_NN_COMMON_OPERATIONS_H
+#define ANDROID_ML_NN_COMMON_OPERATIONS_H
 
-cc_defaults {
-    name: "neuralnetworks_defaults",
-    cflags: [
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-    ],
-}
+#include <stddef.h>
+
+namespace android {
+namespace nn {
+
+struct Shape;
+
+bool addTensorsFloat32(const float* in1, const float* in2, float* out, const Shape& shape);
+bool addTensorsFloat32Prepare(const Shape& in1, const Shape& in2, Shape* out1);
+
+}  // namespace nn
+}  // namespace android
+
+#endif  // ANDROID_ML_NN_COMMON_OPERATIONS_H

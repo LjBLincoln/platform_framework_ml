@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-subdirs = [
-    "common",
-    "driver",
-    "hardware/interfaces/neuralnetworks",
-    "runtime",
-]
+cc_library_static {
+    name: "libneuralnetworks_common",
+    defaults: ["neuralnetworks_defaults"],
+    host_supported: true,
+    export_include_dirs: ["include"],
 
-cc_defaults {
-    name: "neuralnetworks_defaults",
-    cflags: [
-        "-Wall",
-        "-Wextra",
-        "-Werror",
+    srcs: [
+        "CpuExecutor.cpp",
+        "Operations.cpp",
+        "OperationsUtils.cpp",
+        "Utils.cpp",
+    ],
+
+    header_libs: [
+        "libneuralnetworks_headers",
     ],
 }
