@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-subdirs = [
-    "common",
-    "driver",
-    "hardware/interfaces/neuralnetworks",
-    "runtime",
-]
+// TODO for now it's a static library. Once we have HIDL working, we'll change
+cc_library_static {
+    name: "libneuralnetworks_sample_driver",
+    defaults: ["neuralnetworks_defaults"],
+    host_supported: true,
+    export_include_dirs: ["."],
 
-cc_defaults {
-    name: "neuralnetworks_defaults",
-    cflags: [
-        "-Wall",
-        "-Wextra",
-        "-Werror",
+    srcs: [
+        "SampleDriver.cpp",
+    ],
+    static_libs: [
+        "libneuralnetworks_common",
+        "libneuralnetworks_driver",
+    ],
+    header_libs: [
+        "libneuralnetworks_headers",
     ],
 }

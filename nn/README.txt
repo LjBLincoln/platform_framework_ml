@@ -21,39 +21,22 @@ https://goto.google.com/android-nnapi-design-doc
 CONTENTS OF THIS DIRECTORY
 
 ./runtime: Implementation of the NN API runtime.
-./runtime/include: Header files that the rest of the framework can use.
-./runtime/src: Source code and internal header files.
+           Includes source code and internal header files.
+./runtime/include: The header files that an external developer would use.
+                   These will be packaged with the NDK.  Includes a
+                   C++ wrapper around the C API to make it easier to use.
 ./runtime/doc: Documentation.
 ./runtime/test: Test files.
 
-./driver: Files useful to build drivers.
-./driver/utils/src: Code useful to build drivers.
-./driver/utils/include: C header files to be included by drivers.
+./driver: Code useful to build drivers.
+./driver/include: Header files to be included by drivers.
 ./driver/doc: Documentation.
-./driver/test/sample: Sample driver that uses the CPU to execute queries.
-                      NOT TO BE SHIPPED.  Only to be used as a testing and
-                      learning tool.
-
-./c_api: Produces the files that will be packaged with the NDK.
-./c_api/include: The header files that an external developer would use.
-                 These should be packaged with the NDK.
-./c_api/src: The source code and internal header files that define the
-             library external developers will use. This directory can be used
-             to produce both regular and support lib variants.
-./c_api/doc: Documentation.
-./c_api/test: Test files.
-
-./cpp_api: C++ wrapper around the C API to make it easier to use.
-./cpp_api/include: The header files that an external developer would use.
-                   These should be packaged with the NDK.
-./cpp_api/src: The source code and internal header files that define the
-               library external developers will use.
-./cpp_api/doc: Documentation.
-./cpp_api/test: Test files.
+./driver/sample: Sample driver that uses the CPU to execute queries.
+                 NOT TO BE SHIPPED.  Only to be used as a testing and learning tool.
 
 ./common: Contains files that can be useful for the multiple components (runtime/driver/api)
-./common/include: The files that can be included by these components.
-./common/src: The source code.
+          Includes source code and internal header files.
+./common/include: The files that can be included by the components.
 ./common/test: Test files.
 
 ./java_api: In future versions, this will include the Java version of the NN API.

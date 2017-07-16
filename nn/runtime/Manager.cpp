@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,31 @@
  * limitations under the License.
  */
 
-subdirs = [
-    "common",
-    "driver",
-    "hardware/interfaces/neuralnetworks",
-    "runtime",
-]
+#define LOG_TAG "Manager"
 
-cc_defaults {
-    name: "neuralnetworks_defaults",
-    cflags: [
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-    ],
+#include "Manager.h"
+#include "Request.h"
+#include "Utils.h"
+
+namespace android {
+namespace nn {
+
+DriverManager DriverManager::manager;
+
+void DriverManager::initialize() {
+    if (mUsageCount++ == 0) {
+        // TODO query drivers for capabilities
+    }
 }
+
+void DriverManager::shutdown() {
+    nnAssert(mUsageCount > 0);
+    if (mUsageCount > 0) {
+        if (--mUsageCount == 0) {
+            mDrivers.clear();
+        }
+    }
+}
+
+}  // namespace nn
+}  // namespace android
