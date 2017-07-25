@@ -52,5 +52,17 @@ uint32_t getNumberOfElements(const Shape& shape) {
     return count;
 }
 
-}  // namespace nn
-}  // namespace android
+uint32_t getNumberOfDimensions(const Shape& shape) {
+    return shape.numberOfDimensions;
+}
+
+uint32_t getSizeOfDimension(const Shape& shape, uint32_t dimensionIdx) {
+    if (dimensionIdx >= shape.numberOfDimensions) {
+        // TODO, log the error
+        return 0;
+    }
+    return shape.dimensions[dimensionIdx];
+}
+
+} // namespace nn
+} // namespace android

@@ -16,27 +16,48 @@
 
 cc_library_headers {
     name: "libneuralnetworks_headers",
-    host_supported: true,
+    host_supported: false,
     export_include_dirs: ["include"],
 }
 
 cc_library_headers {
     name: "libneuralnetworks_private_headers",
-    host_supported: true,
+    host_supported: false,
     export_include_dirs: ["."],
 }
 
 cc_library {
     name: "libneuralnetworks",
     defaults: ["neuralnetworks_defaults"],
-    host_supported: true,
+    host_supported: false,
 
     srcs: [
         "Manager.cpp",
         "ModelBuilder.cpp",
         "NeuralNetworks.cpp",
-        "Request.cpp",
+        "RequestBuilder.cpp",
     ],
+
+    target: {
+        android: {
+            shared_libs: [
+                "libbase",
+                "libhidlbase",
+                "libhidltransport",
+                "libhidlmemory",
+                "liblog",
+                "libnativehelper",
+                "libutils",
+                "android.hardware.neuralnetworks@1.0",
+                "android.hidl.allocator@1.0",
+                "android.hidl.memory@1.0",
+            ],
+        },
+        host: {
+            shared_libs: [
+            ],
+        },
+    },
 
     static_libs: [
         "libneuralnetworks_common",

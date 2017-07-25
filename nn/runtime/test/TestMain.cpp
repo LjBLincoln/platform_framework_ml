@@ -16,7 +16,7 @@
 
 #include "Manager.h"
 #include "NeuralNetworksWrapper.h"
-#include "SampleDriver.h"
+//#include "SampleDriver.h"
 #include "Utils.h"
 
 #include <gtest/gtest.h>
@@ -26,18 +26,13 @@ using namespace android::nn::wrapper;
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
 
-    // Test with the CPU default path
+    // Test with the installed drivers.
     int n1 = RUN_ALL_TESTS();
 
-    // Create our own driver to simulate testing through the HAL.
-    // A real Android program would not do this.
+    // Test with the CPU driver only.
     nnAssert(ANeuralNetworksInitialize() == ANEURALNETWORKS_NO_ERROR);
-    std::shared_ptr<android::nn::SampleDriver> sampleDriver {new android::nn::SampleDriver()};
-    android::nn::DriverManager::get()->registerDriver(sampleDriver);
-
-    // Tests a second time.
+    android::nn::DeviceManager::get()->setUseCpuOnly(true);
     int n2 = RUN_ALL_TESTS();
     ANeuralNetworksShutdown();
-
-    return n1 != 0 || n2 != 0;;
+    return n1 | n2;
 }

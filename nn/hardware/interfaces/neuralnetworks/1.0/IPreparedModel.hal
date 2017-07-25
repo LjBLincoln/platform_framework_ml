@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-//TODO change to: package android.hardware.neuralnetworks@1.0;
-package android.ml.neuralnetworks@1.0;
+package android.hardware.neuralnetworks@1.0;
 
-interface IEvent {
-    wait() generates(int32_t status);
+import types;
+
+interface IPreparedModel {
+    // TODO: The execution is synchronous.  Change that to have a callback on completion.
+    // Multiple threads can call this execute function concurrently.
+    execute(Request request) generates(bool success);
 };

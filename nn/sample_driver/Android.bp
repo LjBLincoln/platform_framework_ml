@@ -18,15 +18,30 @@
 cc_library_static {
     name: "libneuralnetworks_sample_driver",
     defaults: ["neuralnetworks_defaults"],
-    host_supported: true,
+    host_supported: false,
     export_include_dirs: ["."],
 
     srcs: [
         "SampleDriver.cpp",
     ],
+    target: {
+        android: {
+            shared_libs: [
+                "libbase",
+                "libhidlbase",
+                "libhidltransport",
+                "libhidlmemory",
+                "liblog",
+                "libnativehelper",
+                "libutils",
+                "android.hardware.neuralnetworks@1.0",
+                "android.hidl.allocator@1.0",
+                "android.hidl.memory@1.0",
+            ],
+        },
+    },
     static_libs: [
         "libneuralnetworks_common",
-        "libneuralnetworks_driver",
     ],
     header_libs: [
         "libneuralnetworks_headers",
