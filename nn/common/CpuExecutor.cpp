@@ -25,7 +25,9 @@ namespace android {
 namespace nn {
 
 // If we don't have a buffer, allocate it.
-static bool allocateIfNeeded(RunTimeOperandInfo* info) {
+static bool allocateIfNeeded(RunTimeOperandInfo* info, const Shape& shape) {
+    info->type = shape.type;
+    info->dimensions = shape.dimensions;
     if (info->buffer == nullptr) {
         uint32_t length = sizeOfData(info->type, info->dimensions);
         info->buffer = new uint8_t[length];
@@ -34,6 +36,11 @@ static bool allocateIfNeeded(RunTimeOperandInfo* info) {
         }
     }
     return true;
+}
+
+static int32_t getInt32ScalarData(RunTimeOperandInfo& info) {
+    int32_t * data = reinterpret_cast<int32_t*>(info.buffer);
+    return data[0];
 }
 
 // Ignore the .pools entry in model and request.  This will have been taken care of
@@ -165,16 +172,209 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             if (!parameterCountIs(2, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
-            RunTimeOperandInfo& in1 = mOperands[ins[0]];
-            RunTimeOperandInfo& in2 = mOperands[ins[1]];
+            const RunTimeOperandInfo& in1 = mOperands[ins[0]];
+            const RunTimeOperandInfo& in2 = mOperands[ins[1]];
             RunTimeOperandInfo& out = mOperands[outs[0]];
             Shape outShape = out.shape();
 
             success = addTensorsFloat32Prepare(in1.shape(), in2.shape(), &outShape) &&
-                    allocateIfNeeded(&out) &&
+                    allocateIfNeeded(&out, outShape) &&
                     addTensorsFloat32(reinterpret_cast<const float*>(in1.buffer),
                                       reinterpret_cast<const float*>(in2.buffer),
                                       reinterpret_cast<float*>(out.buffer), outShape);
+        } break;
+        case OperationType::DEPTHWISE_CONV_FLOAT32: {
+            if (!parameterCountIs(8, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input  = mOperands[ins[0]];
+            const RunTimeOperandInfo& filter = mOperands[ins[1]];
+            const RunTimeOperandInfo& bias   = mOperands[ins[2]];
+
+            int32_t padding          = getInt32ScalarData(mOperands[ins[3]]);
+            int32_t stride_width     = getInt32ScalarData(mOperands[ins[4]]);
+            int32_t stride_height    = getInt32ScalarData(mOperands[ins[5]]);
+            int32_t depth_multiplier = getInt32ScalarData(mOperands[ins[6]]);
+            int32_t activation       = getInt32ScalarData(mOperands[ins[7]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = depthwiseConvFloat32Prepare(input.shape(), filter.shape(), bias.shape(),
+                                                  padding, stride_width, stride_height,
+                                                  &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      depthwiseConvFloat32(reinterpret_cast<const float*>(input.buffer),
+                                           input.shape(),
+                                           reinterpret_cast<const float*>(filter.buffer),
+                                           filter.shape(),
+                                           reinterpret_cast<const float*>(bias.buffer),
+                                           bias.shape(),
+                                           padding, stride_width, stride_height,
+                                           depth_multiplier, activation,
+                                           reinterpret_cast<float*>(output.buffer),
+                                           outShape);
+
+        } break;
+        case OperationType::CONV_FLOAT32: {
+            if (!parameterCountIs(7, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input  = mOperands[ins[0]];
+            const RunTimeOperandInfo& filter = mOperands[ins[1]];
+            const RunTimeOperandInfo& bias   = mOperands[ins[2]];
+
+            int32_t padding          = getInt32ScalarData(mOperands[ins[3]]);
+            int32_t stride_width     = getInt32ScalarData(mOperands[ins[4]]);
+            int32_t stride_height    = getInt32ScalarData(mOperands[ins[5]]);
+            int32_t activation       = getInt32ScalarData(mOperands[ins[6]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = convFloat32Prepare(input.shape(), filter.shape(), bias.shape(),
+                                         padding, stride_width, stride_height,
+                                         &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      convFloat32(reinterpret_cast<const float*>(input.buffer), input.shape(),
+                                  reinterpret_cast<const float*>(filter.buffer), filter.shape(),
+                                  reinterpret_cast<const float*>(bias.buffer), bias.shape(),
+                                  padding, stride_width, stride_height, activation,
+                                  reinterpret_cast<float*>(output.buffer), outShape);
+
+        } break;
+        case OperationType::AVERAGE_POOL_FLOAT32: {
+            if (!parameterCountIs(7, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input  = mOperands[ins[0]];
+
+            int32_t padding          = getInt32ScalarData(mOperands[ins[1]]);
+            int32_t stride_width     = getInt32ScalarData(mOperands[ins[2]]);
+            int32_t stride_height    = getInt32ScalarData(mOperands[ins[3]]);
+            int32_t filter_width     = getInt32ScalarData(mOperands[ins[4]]);
+            int32_t filter_height    = getInt32ScalarData(mOperands[ins[5]]);
+            int32_t activation       = getInt32ScalarData(mOperands[ins[6]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = genericPoolingFloat32Prepare(input.shape(),
+                                                   padding, stride_width, stride_height,
+                                                   filter_width, filter_height,
+                                                   &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      averagePoolFloat32(reinterpret_cast<const float*>(input.buffer), input.shape(),
+                                         padding, stride_width, stride_height,
+                                         filter_width, filter_height, activation,
+                                         reinterpret_cast<float*>(output.buffer), outShape);
+
+        } break;
+        case OperationType::L2_POOL_FLOAT32: {
+            if (!parameterCountIs(7, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input  = mOperands[ins[0]];
+
+            int32_t padding          = getInt32ScalarData(mOperands[ins[1]]);
+            int32_t stride_width     = getInt32ScalarData(mOperands[ins[2]]);
+            int32_t stride_height    = getInt32ScalarData(mOperands[ins[3]]);
+            int32_t filter_width     = getInt32ScalarData(mOperands[ins[4]]);
+            int32_t filter_height    = getInt32ScalarData(mOperands[ins[5]]);
+            int32_t activation       = getInt32ScalarData(mOperands[ins[6]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = genericPoolingFloat32Prepare(input.shape(),
+                                                   padding, stride_width, stride_height,
+                                                   filter_width, filter_height,
+                                                   &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      l2PoolFloat32(reinterpret_cast<const float*>(input.buffer), input.shape(),
+                                    padding, stride_width, stride_height,
+                                    filter_width, filter_height, activation,
+                                    reinterpret_cast<float*>(output.buffer), outShape);
+
+        } break;
+        case OperationType::MAX_POOL_FLOAT32: {
+            if (!parameterCountIs(7, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input  = mOperands[ins[0]];
+
+            int32_t padding          = getInt32ScalarData(mOperands[ins[1]]);
+            int32_t stride_width     = getInt32ScalarData(mOperands[ins[2]]);
+            int32_t stride_height    = getInt32ScalarData(mOperands[ins[3]]);
+            int32_t filter_width     = getInt32ScalarData(mOperands[ins[4]]);
+            int32_t filter_height    = getInt32ScalarData(mOperands[ins[5]]);
+            int32_t activation       = getInt32ScalarData(mOperands[ins[6]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = genericPoolingFloat32Prepare(input.shape(),
+                                                   padding, stride_width, stride_height,
+                                                   filter_width, filter_height,
+                                                   &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      maxPoolFloat32(reinterpret_cast<const float*>(input.buffer), input.shape(),
+                                     padding, stride_width, stride_height,
+                                     filter_width, filter_height, activation,
+                                     reinterpret_cast<float*>(output.buffer), outShape);
+
+        } break;
+        case OperationType::RELU_FLOAT32: {
+            if (!parameterCountIs(1, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input  = mOperands[ins[0]];
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = genericActivationFloat32Prepare(input.shape(), &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      reluFloat32(reinterpret_cast<const float*>(input.buffer), input.shape(),
+                                  reinterpret_cast<float*>(output.buffer), outShape);
+        } break;
+        case OperationType::RELU6_FLOAT32: {
+            if (!parameterCountIs(1, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input  = mOperands[ins[0]];
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = genericActivationFloat32Prepare(input.shape(), &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      relu6Float32(reinterpret_cast<const float*>(input.buffer), input.shape(),
+                                   reinterpret_cast<float*>(output.buffer), outShape);
+        } break;
+        case OperationType::TANH_FLOAT32: {
+            if (!parameterCountIs(1, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input  = mOperands[ins[0]];
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = genericActivationFloat32Prepare(input.shape(), &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      tanhFloat32(reinterpret_cast<const float*>(input.buffer), input.shape(),
+                                  reinterpret_cast<float*>(output.buffer), outShape);
+        } break;
+        case OperationType::LOGISTIC_FLOAT32: {
+            if (!parameterCountIs(1, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input  = mOperands[ins[0]];
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = genericActivationFloat32Prepare(input.shape(), &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      logisticFloat32(reinterpret_cast<const float*>(input.buffer), input.shape(),
+                                      reinterpret_cast<float*>(output.buffer), outShape);
         } break;
         default:
             nnAssert(false);

@@ -28,9 +28,13 @@ cc_library_static {
 
     srcs: [
         "CpuExecutor.cpp",
-        "Operations.cpp",
         "OperationsUtils.cpp",
         "Utils.cpp",
+        "operations/Activation.cpp",
+        "operations/Conv2D.cpp",
+        "operations/DepthwiseConv2D.cpp",
+        "operations/Pooling.cpp",
+        "operations/SimpleMath.cpp",
     ],
     shared_libs: [
         "libbase",
@@ -46,5 +50,18 @@ cc_library_static {
     ],
     header_libs: [
         "libneuralnetworks_headers",
+        "libgemmlowp",
+        "libfixedpoint",
+        "libeigen",
     ],
+
+
+    cflags: [
+        "-Werror",
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+        "-Wno-unused-variable",
+    ],
+
 }
