@@ -22,8 +22,8 @@
 // TODO Change this to 27 or better __ANDROID_API_O_MR1__
 #if __ANDROID_API__ >= __ANDROID_API_O__
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <sys/cdefs.h>
 
 __BEGIN_DECLS
@@ -52,7 +52,7 @@ enum {
 /**
  * Operation types.
  *
-  * [TODO: Make sure these are compatible with TensorFlow Lite.]
+ * [TODO: Make sure these are compatible with TensorFlow Lite.]
  */
 enum {
     ANEURALNETWORKS_AVERAGE_POOL = 0,
@@ -136,7 +136,7 @@ enum {
     ANEURALNETWORKS_UNEXPECTED_NULL = 3,
     ANEURALNETWORKS_BAD_DATA = 4,
     ANEURALNETWORKS_OP_FAILED = 5,
-    ANEURALNETWORKS_NOT_IMPLEMENTED = 6  // TODO remove
+    ANEURALNETWORKS_NOT_IMPLEMENTED = 6 // TODO remove
 };
 
 // The maximum number of operands and operations that a model may have.
@@ -612,6 +612,6 @@ void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event);
 
 __END_DECLS
 
-#endif  //  __ANDROID_API__ >= 27
+#endif //  __ANDROID_API__ >= 27
 
-#endif  // ANDROID_ML_NN_RUNTIME_NEURAL_NETWORKS_H
+#endif // ANDROID_ML_NN_RUNTIME_NEURAL_NETWORKS_H

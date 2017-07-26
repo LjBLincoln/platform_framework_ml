@@ -28,10 +28,7 @@ CONTENTS OF THIS DIRECTORY
 ./runtime/doc: Documentation.
 ./runtime/test: Test files.
 
-./driver: Code useful to build drivers.
-./driver/include: Header files to be included by drivers.
-./driver/doc: Documentation.
-./driver/sample: Sample driver that uses the CPU to execute queries.
+./sample_driver: Sample driver that uses the CPU to execute queries.
                  NOT TO BE SHIPPED.  Only to be used as a testing and learning tool.
 
 ./common: Contains files that can be useful for the multiple components (runtime/driver/api)

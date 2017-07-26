@@ -39,7 +39,11 @@ bool SetShape(const Shape& in, const Shape* out);
 // together. For a scalar, returns one.
 uint32_t getNumberOfElements(const Shape& shape);
 
-}  // namespace nn
-}  // namespace android
+uint32_t getNumberOfDimensions(const Shape& shape);
 
-#endif  // ANDROID_ML_NN_COMMON_OPERATIONS_UTILS_H
+uint32_t getSizeOfDimension(const Shape& shape, uint32_t dimensionIdx);
+
+} // namespace nn
+} // namespace android
+
+#endif // ANDROID_ML_NN_COMMON_OPERATIONS_UTILS_H

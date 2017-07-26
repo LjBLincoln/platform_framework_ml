@@ -14,28 +14,17 @@
  * limitations under the License.
  */
 
-//TODO change to: package android.hardware.neuralnetworks@1.0;
-package android.ml.neuralnetworks@1.0;
+package android.hardware.neuralnetworks@1.0;
 
 import types;
-import IRequest;
+import IPreparedModel;
 
 interface IDevice {
-    struct Capabilities {
-        bool [OperatorTypes:NUM_OPERATOR_TYPES] supportedOperatorTypes;
-        // TODO Do the same for baseline model IDs
-        bool cachesCompilation;
-        float bootupTime;  // in nanoseconds
-        PerformanceInfo float16Performance;
-        PerformanceInfo float32Performance;
-        PerformanceInfo quantized8Performance;
-    };
-
     initialize() generates(Capabilities capabilities);
 
-    getSupportedSubgraph(memory graph) generates(vec<bool> supported);
+    getSupportedSubgraph(Model model) generates(vec<bool> supported);
 
-    prepareRequest(Model model) generates(IRequest request);
+    prepareModel(Model model) generates(IPreparedModel preparedModel);
 
-    getStatus() generates(Status status);
+    getStatus() generates(DeviceStatus status);
 };

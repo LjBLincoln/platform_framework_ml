@@ -24,10 +24,10 @@ namespace nn {
 
 struct Shape;
 
+bool addTensorsFloat32Prepare(const Shape& in1, const Shape& in2, Shape* out);
 bool addTensorsFloat32(const float* in1, const float* in2, float* out, const Shape& shape);
-bool addTensorsFloat32Prepare(const Shape& in1, const Shape& in2, Shape* out1);
 
-}  // namespace nn
-}  // namespace android
+} // namespace nn
+} // namespace android
 
-#endif  // ANDROID_ML_NN_COMMON_OPERATIONS_H
+#endif // ANDROID_ML_NN_COMMON_OPERATIONS_H

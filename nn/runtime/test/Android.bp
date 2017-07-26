@@ -17,17 +17,23 @@
 cc_defaults {
     name: "NeuralNetworksTest_defaults",
     defaults: ["neuralnetworks_defaults"],
-    host_supported: true,
-
+    host_supported: false,
     srcs: [
         "TestMain.cpp",
         "TestTrivialModel.cpp",
         "TestValidation.cpp",
     ],
-    static_libs: [
-        "libneuralnetworks_sample_driver",
-        "libneuralnetworks_driver",
-        "libneuralnetworks_common",
+    shared_libs: [
+        "libbase",
+        "libhidlbase",
+        "libhidltransport",
+        "libhidlmemory",
+        "liblog",
+        "libnativehelper",
+        "libutils",
+        "android.hardware.neuralnetworks@1.0",
+        "android.hidl.allocator@1.0",
+        "android.hidl.memory@1.0",
     ],
     header_libs: [
         "libneuralnetworks_private_headers",
@@ -40,6 +46,9 @@ cc_test {
     shared_libs: [
         "libneuralnetworks",
     ],
+    static_libs: [
+        "libneuralnetworks_common",
+    ],
 }
 
 cc_test {
@@ -47,5 +56,6 @@ cc_test {
     defaults: ["NeuralNetworksTest_defaults"],
     static_libs: [
         "libneuralnetworks",
+        "libneuralnetworks_common",
     ],
 }
