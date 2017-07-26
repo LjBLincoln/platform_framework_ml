@@ -40,8 +40,9 @@ static bool allocateIfNeeded(RunTimeOperandInfo* info, const Shape& shape) {
     return true;
 }
 
-static int32_t getInt32ScalarData(RunTimeOperandInfo& info) {
-    int32_t * data = reinterpret_cast<int32_t*>(info.buffer);
+template <typename T>
+static T getScalarData(RunTimeOperandInfo& info) {
+    T * data = reinterpret_cast<T*>(info.buffer);
     return data[0];
 }
 
@@ -200,11 +201,11 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             const RunTimeOperandInfo& filter = mOperands[ins[1]];
             const RunTimeOperandInfo& bias   = mOperands[ins[2]];
 
-            int32_t padding          = getInt32ScalarData(mOperands[ins[3]]);
-            int32_t stride_width     = getInt32ScalarData(mOperands[ins[4]]);
-            int32_t stride_height    = getInt32ScalarData(mOperands[ins[5]]);
-            int32_t depth_multiplier = getInt32ScalarData(mOperands[ins[6]]);
-            int32_t activation       = getInt32ScalarData(mOperands[ins[7]]);
+            int32_t padding          = getScalarData<int32_t>(mOperands[ins[3]]);
+            int32_t stride_width     = getScalarData<int32_t>(mOperands[ins[4]]);
+            int32_t stride_height    = getScalarData<int32_t>(mOperands[ins[5]]);
+            int32_t depth_multiplier = getScalarData<int32_t>(mOperands[ins[6]]);
+            int32_t activation       = getScalarData<int32_t>(mOperands[ins[7]]);
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -250,10 +251,10 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             const RunTimeOperandInfo& filter = mOperands[ins[1]];
             const RunTimeOperandInfo& bias   = mOperands[ins[2]];
 
-            int32_t padding          = getInt32ScalarData(mOperands[ins[3]]);
-            int32_t stride_width     = getInt32ScalarData(mOperands[ins[4]]);
-            int32_t stride_height    = getInt32ScalarData(mOperands[ins[5]]);
-            int32_t activation       = getInt32ScalarData(mOperands[ins[6]]);
+            int32_t padding          = getScalarData<int32_t>(mOperands[ins[3]]);
+            int32_t stride_width     = getScalarData<int32_t>(mOperands[ins[4]]);
+            int32_t stride_height    = getScalarData<int32_t>(mOperands[ins[5]]);
+            int32_t activation       = getScalarData<int32_t>(mOperands[ins[6]]);
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -290,12 +291,12 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
 
-            int32_t padding          = getInt32ScalarData(mOperands[ins[1]]);
-            int32_t stride_width     = getInt32ScalarData(mOperands[ins[2]]);
-            int32_t stride_height    = getInt32ScalarData(mOperands[ins[3]]);
-            int32_t filter_width     = getInt32ScalarData(mOperands[ins[4]]);
-            int32_t filter_height    = getInt32ScalarData(mOperands[ins[5]]);
-            int32_t activation       = getInt32ScalarData(mOperands[ins[6]]);
+            int32_t padding          = getScalarData<int32_t>(mOperands[ins[1]]);
+            int32_t stride_width     = getScalarData<int32_t>(mOperands[ins[2]]);
+            int32_t stride_height    = getScalarData<int32_t>(mOperands[ins[3]]);
+            int32_t filter_width     = getScalarData<int32_t>(mOperands[ins[4]]);
+            int32_t filter_height    = getScalarData<int32_t>(mOperands[ins[5]]);
+            int32_t activation       = getScalarData<int32_t>(mOperands[ins[6]]);
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -332,12 +333,12 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
 
-            int32_t padding          = getInt32ScalarData(mOperands[ins[1]]);
-            int32_t stride_width     = getInt32ScalarData(mOperands[ins[2]]);
-            int32_t stride_height    = getInt32ScalarData(mOperands[ins[3]]);
-            int32_t filter_width     = getInt32ScalarData(mOperands[ins[4]]);
-            int32_t filter_height    = getInt32ScalarData(mOperands[ins[5]]);
-            int32_t activation       = getInt32ScalarData(mOperands[ins[6]]);
+            int32_t padding          = getScalarData<int32_t>(mOperands[ins[1]]);
+            int32_t stride_width     = getScalarData<int32_t>(mOperands[ins[2]]);
+            int32_t stride_height    = getScalarData<int32_t>(mOperands[ins[3]]);
+            int32_t filter_width     = getScalarData<int32_t>(mOperands[ins[4]]);
+            int32_t filter_height    = getScalarData<int32_t>(mOperands[ins[5]]);
+            int32_t activation       = getScalarData<int32_t>(mOperands[ins[6]]);
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -362,12 +363,12 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
 
-            int32_t padding          = getInt32ScalarData(mOperands[ins[1]]);
-            int32_t stride_width     = getInt32ScalarData(mOperands[ins[2]]);
-            int32_t stride_height    = getInt32ScalarData(mOperands[ins[3]]);
-            int32_t filter_width     = getInt32ScalarData(mOperands[ins[4]]);
-            int32_t filter_height    = getInt32ScalarData(mOperands[ins[5]]);
-            int32_t activation       = getInt32ScalarData(mOperands[ins[6]]);
+            int32_t padding          = getScalarData<int32_t>(mOperands[ins[1]]);
+            int32_t stride_width     = getScalarData<int32_t>(mOperands[ins[2]]);
+            int32_t stride_height    = getScalarData<int32_t>(mOperands[ins[3]]);
+            int32_t filter_width     = getScalarData<int32_t>(mOperands[ins[4]]);
+            int32_t filter_height    = getScalarData<int32_t>(mOperands[ins[5]]);
+            int32_t activation       = getScalarData<int32_t>(mOperands[ins[6]]);
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -472,6 +473,109 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                          input.shape(),
                                          reinterpret_cast<uint8_t*>(output.buffer),
                                          outShape);
+            }
+        } break;
+        case OperationType::SOFTMAX: {
+            if (!parameterCountIs(2, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            RunTimeOperandInfo& input = mOperands[ins[0]];
+            float beta = getScalarData<float>(mOperands[ins[1]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
+                success = genericActivationPrepare(input.shape(), &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          softmaxFloat32(reinterpret_cast<const float*>(input.buffer),
+                                         input.shape(),
+                                         beta,
+                                         reinterpret_cast<float*>(output.buffer),
+                                         output.shape());
+            }
+        } break;
+        case OperationType::FULLY_CONNECTED: {
+            if (!parameterCountIs(4, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            RunTimeOperandInfo& input   = mOperands[ins[0]];
+            RunTimeOperandInfo& weights = mOperands[ins[1]];
+            RunTimeOperandInfo& bias    = mOperands[ins[2]];
+
+            int32_t activation = getScalarData<int32_t>(mOperands[ins[3]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
+                success = fullyConnectedPrepare(input.shape(), weights.shape(), bias.shape(),
+                                                &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          fullyConnectedFloat32(reinterpret_cast<const float*>(input.buffer),
+                                                input.shape(),
+                                                reinterpret_cast<const float*>(weights.buffer),
+                                                weights.shape(),
+                                                reinterpret_cast<const float*>(bias.buffer),
+                                                bias.shape(),
+                                                activation,
+                                                reinterpret_cast<float*>(output.buffer),
+                                                outShape);
+            } else if (operation.opTuple.operandType == OperandType::TENSOR_QUANT8_ASYMM) {
+                success = fullyConnectedPrepare(input.shape(), weights.shape(), bias.shape(),
+                                                &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          fullyConnectedQuant8(reinterpret_cast<const uint8_t*>(input.buffer),
+                                               input.shape(),
+                                               reinterpret_cast<const uint8_t*>(weights.buffer),
+                                               weights.shape(),
+                                               reinterpret_cast<const int32_t*>(bias.buffer),
+                                               bias.shape(),
+                                               activation,
+                                               reinterpret_cast<uint8_t*>(output.buffer),
+                                               outShape);
+            }
+        } break;
+        case OperationType::CONCATENATION: {
+            if (outs.size() != 1 || ins.size() < 3) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            int numInputTensors = ins.size() - 2;
+            int32_t axis = getScalarData<int32_t>(mOperands[ins[numInputTensors]]);
+            int32_t activation = getScalarData<int32_t>(mOperands[ins[numInputTensors+1]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
+                std::vector<Shape> inputShapes(numInputTensors);
+                std::vector<const float*> inputDataPtrs(numInputTensors);
+
+                for (int i=0; i<numInputTensors; i++) {
+                    RunTimeOperandInfo& input = mOperands[ins[i]];
+                    inputShapes[i] = input.shape();
+                    inputDataPtrs[i] = reinterpret_cast<const float*>(input.buffer);
+                }
+                success = concatenationPrepare(inputShapes, axis, &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          concatenationFloat32(inputDataPtrs, inputShapes,
+                                               axis, activation,
+                                               reinterpret_cast<float*>(output.buffer), outShape);
+            } else if (operation.opTuple.operandType == OperandType::TENSOR_QUANT8_ASYMM) {
+                std::vector<Shape> inputShapes(numInputTensors);
+                std::vector<const uint8_t*> inputDataPtrs(numInputTensors);
+
+                for (int i=0; i<numInputTensors; i++) {
+                    RunTimeOperandInfo& input = mOperands[ins[i]];
+                    inputShapes[i] = input.shape();
+                    inputDataPtrs[i] = reinterpret_cast<const uint8_t*>(input.buffer);
+                }
+                success = concatenationPrepare(inputShapes, axis, &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          concatenationQuant8(inputDataPtrs, inputShapes,
+                                              axis, activation,
+                                              reinterpret_cast<uint8_t*>(output.buffer),
+                                              outShape);
             }
         } break;
         default:

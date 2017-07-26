@@ -90,5 +90,36 @@ bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
     return true;
 }
 
+bool softmaxFloat32(const float* inputData, const Shape& inputShape,
+                    const float beta,
+                    float* outputData, const Shape& outputShape) {
+    int batch_size = (int)getSizeOfDimension(inputShape, 0);
+    int input_size = getNumberOfElements(inputShape) / batch_size;
+
+    // For each batch
+    for (int b=0; b<batch_size; b++) {
+        // Find the max coeff.
+        float max_coeff = inputData[0];
+        for (int i=1; i<input_size; i++) {
+            max_coeff = std::max(inputData[i], max_coeff);
+        }
+        // Compute the normalized sum of exps.
+        float exp_sum = 0.0f;
+        for (int i=0; i<input_size; i++) {
+            outputData[i] = std::exp((inputData[i] - max_coeff) * beta);
+            exp_sum += outputData[i];
+        }
+        // Divide by the sum of exps.
+        float reciprocal_sum_exp = 1.f / exp_sum;
+        for (int i=0; i<input_size; i++) {
+          outputData[i] *= reciprocal_sum_exp;
+        }
+        // Advance in and out pointers for the next batch.
+        inputData += input_size;
+        outputData += input_size;
+    }
+    return true;
+}
+
 }  // namespace nn
 }  // namespace android

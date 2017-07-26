@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <stddef.h>
+#include <vector>
 
 namespace android {
 namespace nn {
@@ -115,6 +116,36 @@ bool logisticFloat32(const float* inputData, const Shape& inputShape,
                      float* outputData, const Shape& outputShape);
 bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
                     uint8_t* outputData, const Shape& outputShape);
+bool softmaxFloat32(const float* inputData, const Shape& inputShape,
+                    const float beta,
+                    float* outputData, const Shape& outputShape);
+
+bool fullyConnectedPrepare(const Shape& input,
+                           const Shape& weights,
+                           const Shape& bias,
+                           Shape* output);
+bool fullyConnectedFloat32(const float* inputData, const Shape& inputShape,
+                           const float* weights, const Shape& weightsShape,
+                           const float* biasData, const Shape& biasShape,
+                           int32_t activation,
+                           float* outputData, const Shape& outputShape);
+bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
+                          const uint8_t* weights, const Shape& weightsShape,
+                          const int32_t* biasData, const Shape& biasShape,
+                          int32_t activation,
+                          uint8_t* outputData, const Shape& outputShape);
+
+bool concatenationPrepare(const std::vector<Shape>& inputShapes,
+                          int32_t axis,
+                          Shape* output);
+bool concatenationFloat32(const std::vector<const float*>& inputDataPtrs,
+                          const std::vector<Shape>& inputShapes,
+                          int32_t axis, int32_t activation,
+                          float* outputData, const Shape& outputShape);
+bool concatenationQuant8(const std::vector<const uint8_t*>& inputDataPtrs,
+                         const std::vector<Shape>& inputShapes,
+                         int32_t axis, int32_t activation,
+                         uint8_t* outputData, const Shape& outputShape);
 } // namespace nn
 } // namespace android
 
