@@ -17,28 +17,74 @@
 #define LOG_TAG "Manager"
 
 #include "Manager.h"
-#include "Request.h"
+#include "HalInterfaces.h"
 #include "Utils.h"
+
+#include <android/hidl/manager/1.0/IServiceManager.h>
+#include <hidl/HidlTransportSupport.h>
+#include <hidl/ServiceManagement.h>
 
 namespace android {
 namespace nn {
 
-DriverManager DriverManager::manager;
+void Device::initialize() {
+    mInterface->initialize([&]([[maybe_unused]] const Capabilities& capabilities) {
+        LOG(DEBUG) << "Capab " << capabilities.float16Performance.execTime;
+        LOG(DEBUG) << "Capab " << capabilities.float32Performance.execTime;
+        /*
+        supportedOperationTypes  = capabilities.supportedOperationTypes;
+        cachesCompilation       = capabilities.cachesCompilation;
+        bootupTime              = capabilities.bootupTime;
+        float16Performance      = capabilities.float16Performance;
+        float32Performance      = capabilities.float32Performance;
+        quantized8Performance   = capabilities.quantized8Performance;
+        */
+    });
+}
 
-void DriverManager::initialize() {
+DeviceManager* DeviceManager::get() {
+    static DeviceManager manager;
+    return &manager;
+}
+
+void DeviceManager::findAvailableDevices() {
+    using ::android::hardware::neuralnetworks::V1_0::IDevice;
+    using ::android::hidl::manager::V1_0::IServiceManager;
+    LOG(DEBUG) << "findAvailableDevices";
+
+    sp<IServiceManager> manager = hardware::defaultServiceManager();
+    if (manager == nullptr) {
+        LOG(ERROR) << "Unable to open defaultServiceManager";
+        return;
+    }
+
+    manager->listByInterface(IDevice::descriptor, [this](const hidl_vec<hidl_string>& names) {
+        for (const auto& name : names) { // int i = 0; i < (int)names.size(); ++i) {
+            LOG(DEBUG) << "Found interface " << name.c_str();
+            sp<IDevice> device = IDevice::getService(name);
+            if (device == nullptr) {
+                LOG(ERROR) << "Got a null IDEVICE for " << name.c_str();
+                continue;
+            }
+            registerDevice(name.c_str(), device);
+        }
+    });
+}
+
+void DeviceManager::initialize() {
     if (mUsageCount++ == 0) {
-        // TODO query drivers for capabilities
+        findAvailableDevices();
     }
 }
 
-void DriverManager::shutdown() {
+void DeviceManager::shutdown() {
     nnAssert(mUsageCount > 0);
     if (mUsageCount > 0) {
         if (--mUsageCount == 0) {
-            mDrivers.clear();
+            mDevices.clear();
         }
     }
 }
 
-}  // namespace nn
-}  // namespace android
+} // namespace nn
+} // namespace android

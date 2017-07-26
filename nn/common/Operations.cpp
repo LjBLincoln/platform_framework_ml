@@ -24,8 +24,8 @@
 namespace android {
 namespace nn {
 
-bool addTensorsFloat32Prepare(const Shape& in1, const Shape& in2, Shape* out1) {
-    return SameShape(in1, in2) && SetShape(in1, out1);
+bool addTensorsFloat32Prepare(const Shape& in1, const Shape& in2, Shape* out) {
+    return SameShape(in1, in2) && SetShape(in1, out);
 }
 
 bool addTensorsFloat32(const float* in1, const float* in2, float* out, const Shape& shape) {
@@ -36,5 +36,5 @@ bool addTensorsFloat32(const float* in1, const float* in2, float* out, const Sha
     return true;
 }
 
-}  // namespace nn
-}  // namespace android
+} // namespace nn
+} // namespace android

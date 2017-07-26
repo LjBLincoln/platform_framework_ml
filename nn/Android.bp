@@ -16,9 +16,9 @@
 
 subdirs = [
     "common",
-    "driver",
     "hardware/interfaces/neuralnetworks",
     "runtime",
+    "sample_driver",
 ]
 
 cc_defaults {

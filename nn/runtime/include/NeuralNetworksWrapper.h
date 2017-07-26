@@ -170,32 +170,32 @@ public:
     ~Request() { ANeuralNetworksRequest_free(mRequest); }
 
     Result setPreference(ExecutePreference preference) {
-        return static_cast<Result>(ANeuralNetworksRequest_setPreference(
-                    mRequest, static_cast<uint32_t>(preference)));
+        return static_cast<Result>(
+                ANeuralNetworksRequest_setPreference(mRequest, static_cast<uint32_t>(preference)));
     }
 
     Result setInput(uint32_t index, const void* buffer, size_t length,
                     const ANeuralNetworksOperandType* type = nullptr) {
         return static_cast<Result>(
-                    ANeuralNetworksRequest_setInput(mRequest, index, type, buffer, length));
+                ANeuralNetworksRequest_setInput(mRequest, index, type, buffer, length));
     }
 
     Result setInputFromHardwareBuffer(uint32_t index, const AHardwareBuffer* buffer,
                                       const ANeuralNetworksOperandType* type) {
-        return static_cast<Result>(ANeuralNetworksRequest_setInputFromHardwareBuffer(
-                    mRequest, index, type, buffer));
+        return static_cast<Result>(
+                ANeuralNetworksRequest_setInputFromHardwareBuffer(mRequest, index, type, buffer));
     }
 
     Result setOutput(uint32_t index, void* buffer, size_t length,
                      const ANeuralNetworksOperandType* type = nullptr) {
         return static_cast<Result>(
-                    ANeuralNetworksRequest_setOutput(mRequest, index, type, buffer, length));
+                ANeuralNetworksRequest_setOutput(mRequest, index, type, buffer, length));
     }
 
     Result setOutputFromHardwareBuffer(uint32_t index, const AHardwareBuffer* buffer,
                                        const ANeuralNetworksOperandType* type = nullptr) {
-        return static_cast<Result>(ANeuralNetworksRequest_setOutputFromHardwareBuffer(
-                    mRequest, index, type, buffer));
+        return static_cast<Result>(
+                ANeuralNetworksRequest_setOutputFromHardwareBuffer(mRequest, index, type, buffer));
     }
 
     Result startCompute(Event* event) {
@@ -220,8 +220,8 @@ private:
     ANeuralNetworksRequest* mRequest = nullptr;
 };
 
-}  // namespace wrapper
-}  // namespace nn
-}  // namespace android
+} // namespace wrapper
+} // namespace nn
+} // namespace android
 
-#endif  //  ANDROID_ML_NN_RUNTIME_NEURAL_NETWORKS_WRAPPER_H
+#endif //  ANDROID_ML_NN_RUNTIME_NEURAL_NETWORKS_WRAPPER_H
