@@ -17,91 +17,75 @@
 #ifndef ANDROID_ML_NN_COMMON_UTILS_H
 #define ANDROID_ML_NN_COMMON_UTILS_H
 
-#include "HalModel.h"
+#include "HalInterfaces.h"
+#include "NeuralNetworks.h"
 
-#include <stdio.h>
+#include <android-base/logging.h>
 #include <vector>
 
 namespace android {
 namespace nn {
 
-// TODO Replace with the real Android logging macros.
-#define ALOGE(format, ...) printf(LOG_TAG ": ERROR " format "\n", ##__VA_ARGS__)
-#define ALOGI(format, ...) printf(LOG_TAG ": " format "\n", ##__VA_ARGS__)
+// TODO Remove all the LOG(DEBUG) statements in all the files.
 
 // Assert macro, as Android does not generally support assert.
-#define nnAssert(v)                                                                       \
-    do {                                                                                  \
-        if (!(v)) {                                                                       \
-            fprintf(stderr, "nnAssert failed at %s:%d - '%s'\n", __FILE__, __LINE__, #v); \
-            abort();                                                                      \
-        }                                                                                 \
+#define nnAssert(v)                                                                            \
+    do {                                                                                       \
+        if (!(v)) {                                                                            \
+            LOG(ERROR) << "nnAssert failed at " << __FILE__ << ":" << __LINE__ << " - '" << #v \
+                       << "'\n";                                                               \
+            abort();                                                                           \
+        }                                                                                      \
     } while (0)
-
-// Represent a list of items.  Handy to iterate over lists and sublists.
-template <typename T>
-class Range {
-public:
-    // The default constructor should only be used when followed by a call
-    // to setFromBuffer.
-    Range() {}
-    // Range over all the elements of the vector.
-    Range(const std::vector<T>& data) {
-        mCount = static_cast<uint32_t>(data.size());
-        mBegin = data.data();
-    }
-    // Range over the sublist of elements of the vector, as specified by info.
-    Range(const std::vector<T>& data, const ArrayInfo& info) {
-        mCount = info.count;
-        mBegin = data.data() + info.offset;
-    }
-    // Range over the sublist of the range, as specified by info.
-    Range(const Range<T>& data, const ArrayInfo& info) {
-        mCount = info.count;
-        mBegin = data.begin() + info.offset;
-    }
-    // Range of the specified number of elements, starting at the specified value.
-    Range(uint32_t count, T* start) {
-        mCount = count;
-        mBegin = start;
-    }
-
-    // Range over consecutive elements starting at buffer + info.offset.
-    void setFromBuffer(const ArrayInfo& info, const uint8_t* buffer) {
-        mCount = info.count;
-        mBegin = reinterpret_cast<const T*>(buffer + info.offset);
-    }
-
-    // These two methods enable the use of for(x:Range(..)).
-    const T* begin() const { return mBegin; }
-    const T* end() const { return mBegin + mCount; }
-
-    // Returns the element at the specifed index.
-    T operator[](uint32_t index) const {
-        nnAssert(index < mCount);
-        return mBegin[index];
-    }
-    // All our ranges are read-only.  If we need to write, use this:
-    // uint32_t& operator[] (uint32_t index) {
-    //    nnAssert(index < mCount);
-    //    return mBegin[index];
-    // }
-
-    uint32_t count() const { return mCount; }
-
-private:
-    const T* mBegin = nullptr;  // The start of the range.
-    uint32_t mCount = 0;        // The number of elements in the range.
-};
 
 // Returns the the amount of space needed to store a tensor of the specified
 // dimensions and type.
-uint32_t sizeOfData(uint32_t type, const Range<uint32_t>& dimensions);
+uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions);
 
 // Returns the name of the operation in ASCII.
-const char* getOperationName(uint32_t opCode);
+const char* getOperationName(OperationType opCode);
 
-}  // namespace nn
-}  // namespace android
+hidl_memory allocateSharedMemory(int64_t size);
 
-#endif  // ANDROID_ML_NN_COMMON_UTILS_H
+// Returns the number of padding bytes needed to align data of the
+// specified length.  It aligns object of length:
+// 2, 3 on a 2 byte boundary,
+// 4+ on a 4 byte boundary.
+// We may want to have different alignments for tensors.
+// TODO: This is arbitrary, more a proof of concept.  We need
+// to determine what this should be.
+uint32_t alignBytesNeeded(uint32_t index, size_t length);
+
+inline void setFromIntList(hidl_vec<uint32_t>* vec, const ANeuralNetworksIntList& list) {
+    vec->resize(list.count);
+    for (uint32_t i = 0; i < list.count; i++) {
+        (*vec)[i] = list.data[i];
+    }
+}
+
+inline void setFromIntList(std::vector<uint32_t>* vec, const ANeuralNetworksIntList& list) {
+    vec->resize(list.count);
+    for (uint32_t i = 0; i < list.count; i++) {
+        (*vec)[i] = list.data[i];
+    }
+}
+
+inline std::string toString(uint32_t obj) {
+    return std::to_string(obj);
+}
+
+template <typename Type>
+std::string toString(const std::vector<Type>& range) {
+    std::string os = "[";
+    for (size_t i = 0; i < range.size(); ++i) {
+        os += (i == 0 ? "" : ", ") + toString(range[i]);
+    }
+    return os += "]";
+}
+
+bool validateModel(const Model& model);
+
+} // namespace nn
+} // namespace android
+
+#endif // ANDROID_ML_NN_COMMON_UTILS_H
