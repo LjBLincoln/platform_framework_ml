@@ -30,6 +30,7 @@ cc_library_static {
     srcs: [
         "CpuExecutor.cpp",
         "LSHProjection.cpp",
+        "LSTM.cpp",
         "OperationsUtils.cpp",
         "RNN.cpp",
         "Utils.cpp",
@@ -48,8 +49,8 @@ cc_library_static {
         "libhidlbase",
         "libhidltransport",
         "libhidlmemory",
-        "liblog",
         "libtextclassifier_hash",
+        "liblog",
         "libutils",
         "android.hardware.neuralnetworks@1.0",
         "android.hidl.allocator@1.0",
@@ -59,8 +60,8 @@ cc_library_static {
         "libneuralnetworks_headers",
         "libgemmlowp",
         "libfixedpoint",
-        "libeigen",
         "libtextclassifier_hash_headers",
+        "libeigen",
     ],
 
 
@@ -78,24 +79,35 @@ cc_library_static {
 cc_test {
     name: "lsh_projection_test",
     srcs: [
-        "LSHProjectionTest.cpp",
+        "LSTMTest.cpp",
+    ],
+    shared_libs: [
+        "libneuralnetworks",
     ],
     static_libs: [
         "libgmock",
         "libneuralnetworks_common",
     ],
-    header_libs: [
-        "libneuralnetworks_headers",
+}
+
+cc_test {
+    name: "lstm_test",
+    srcs: [
+        "LSTMTest.cpp",
     ],
     shared_libs: [
         "libneuralnetworks",
+    ],
+    static_libs: [
+        "libgmock",
+        "libneuralnetworks_common",
     ],
 }
 
 cc_test {
     name: "rnn_test",
     srcs: [
-        "RNNTest.cpp",
+        "LSHProjectionTest.cpp",
     ],
     static_libs: [
         "libgmock",

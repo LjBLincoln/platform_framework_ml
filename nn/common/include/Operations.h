@@ -19,13 +19,12 @@
 
 #include "android/log.h"
 
-#include <cstdint>
 #include <stddef.h>
-#include <vector>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <vector>
 
 namespace android {
 namespace nn {

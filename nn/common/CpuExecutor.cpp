@@ -19,6 +19,7 @@
 #include "CpuExecutor.h"
 
 #include "LSHProjection.h"
+#include "LSTM.h"
 #include "NeuralNetworks.h"
 #include "Operations.h"
 #include "RNN.h"
@@ -829,6 +830,10 @@ int CpuExecutor::executeOperation(const Operation& operation) {
         case OperationType::LSH_PROJECTION: {
             LSHProjection lsh(operation, mOperands);
             success = lsh.Eval();
+        } break;
+        case OperationType::LSTM: {
+            LSTMCell lstm_cell(operation, mOperands);
+            success = lstm_cell.Eval();
         } break;
         case OperationType::RNN: {
             RNN rnn_cell(operation, mOperands);
