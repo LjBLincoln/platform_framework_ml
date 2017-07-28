@@ -17,6 +17,7 @@
 cc_library_headers {
     name: "libneuralnetworks_headers",
     host_supported: false,
+    vendor_available: true,
     export_include_dirs: ["include"],
 }
 

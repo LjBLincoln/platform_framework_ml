@@ -24,6 +24,7 @@ cc_library_static {
     name: "libneuralnetworks_common",
     defaults: ["neuralnetworks_defaults"],
     host_supported: false,
+    vendor_available: true,
     export_include_dirs: ["include"],
 
     srcs: [
@@ -38,7 +39,6 @@ cc_library_static {
         "libhidltransport",
         "libhidlmemory",
         "liblog",
-        "libnativehelper",
         "libutils",
         "android.hardware.neuralnetworks@1.0",
         "android.hidl.allocator@1.0",
