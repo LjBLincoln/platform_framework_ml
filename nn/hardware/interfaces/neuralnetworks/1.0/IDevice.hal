@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
+/* This HAL is a work in progress */
+
 package android.hardware.neuralnetworks@1.0;
 
-import types;
 import IPreparedModel;
 
 interface IDevice {
