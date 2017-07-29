@@ -23,10 +23,10 @@ namespace android {
 namespace nn {
 
 bool SameShape(const Shape& in1, const Shape& in2) {
-    if (in1.type != in2.type || in1.numberOfDimensions != in2.numberOfDimensions) {
+    if (in1.type != in2.type || in1.dimensions.size() != in2.dimensions.size()) {
         return false;
     }
-    for (uint32_t i = 0; i < in1.numberOfDimensions; i++) {
+    for (size_t i = 0; i < in1.dimensions.size(); i++) {
         if (in1.dimensions[i] != in2.dimensions[i]) {
             return false;
         }
@@ -34,30 +34,28 @@ bool SameShape(const Shape& in1, const Shape& in2) {
     return true;
 }
 
-bool SetShape(const Shape& in, const Shape* out) {
-    if (in.type != out->type || in.numberOfDimensions != out->numberOfDimensions) {
+bool SetShape(const Shape& in, Shape* out) {
+    if (in.type != out->type || in.dimensions.size() != out->dimensions.size()) {
         return false;
     }
-    for (uint32_t i = 0; i < in.numberOfDimensions; i++) {
-        out->dimensions[i] = in.dimensions[i];
-    }
+    out->dimensions = in.dimensions;
     return true;
 }
 
 uint32_t getNumberOfElements(const Shape& shape) {
     uint32_t count = 1;
-    for (uint32_t i = 0; i < shape.numberOfDimensions; i++) {
+    for (size_t i = 0; i < shape.dimensions.size(); i++) {
         count *= shape.dimensions[i];
     }
     return count;
 }
 
 uint32_t getNumberOfDimensions(const Shape& shape) {
-    return shape.numberOfDimensions;
+    return shape.dimensions.size();
 }
 
 uint32_t getSizeOfDimension(const Shape& shape, uint32_t dimensionIdx) {
-    if (dimensionIdx >= shape.numberOfDimensions) {
+    if (dimensionIdx >= shape.dimensions.size()) {
         // TODO, log the error
         return 0;
     }

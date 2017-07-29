@@ -48,10 +48,9 @@ struct RunTimeOperandInfo {
     // always 0.
     uint32_t numberOfUsesLeft;
 
-    Shape shape() {
-        return Shape{.type = static_cast<uint32_t>(type),
-                     .numberOfDimensions = static_cast<uint32_t>(dimensions.size()),
-                     .dimensions = dimensions.data()};
+    Shape shape() const {
+        return Shape{.type = type,
+                     .dimensions = dimensions};
     }
 };
 
