@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package android.hardware.neuralnetworks@1.0;
+/* This HAL is a work in progress */
 
-import types;
+package android.hardware.neuralnetworks@1.0;
 
 interface IPreparedModel {
     // TODO: The execution is synchronous.  Change that to have a callback on completion.

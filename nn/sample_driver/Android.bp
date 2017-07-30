@@ -14,36 +14,48 @@
  * limitations under the License.
  */
 
-// TODO for now it's a static library. Once we have HIDL working, we'll change
-cc_library_static {
-    name: "libneuralnetworks_sample_driver",
-    defaults: ["neuralnetworks_defaults"],
-    host_supported: false,
-    export_include_dirs: ["."],
-
+cc_library_shared {
+    name: "android.hardware.neuralnetworks@1.0-impl-sample",
+    defaults: ["hidl_defaults"],
+    relative_install_path: "hw",
+    proprietary: true,
     srcs: [
+        "Device.cpp",
         "SampleDriver.cpp",
     ],
-    target: {
-        android: {
-            shared_libs: [
-                "libbase",
-                "libhidlbase",
-                "libhidltransport",
-                "libhidlmemory",
-                "liblog",
-                "libnativehelper",
-                "libutils",
-                "android.hardware.neuralnetworks@1.0",
-                "android.hidl.allocator@1.0",
-                "android.hidl.memory@1.0",
-            ],
-        },
-    },
     static_libs: [
         "libneuralnetworks_common",
     ],
     header_libs: [
         "libneuralnetworks_headers",
+    ],
+    shared_libs: [
+        "libbase",
+        "libhidlbase",
+        "libhidltransport",
+        "libhidlmemory",
+        "liblog",
+        "libutils",
+        "android.hardware.neuralnetworks@1.0",
+        "android.hidl.allocator@1.0",
+        "android.hidl.memory@1.0",
+    ],
+}
+
+cc_binary {
+    name: "android.hardware.neuralnetworks@1.0-service-sample",
+    relative_install_path: "hw",
+    proprietary: true,
+    init_rc: ["android.hardware.neuralnetworks@1.0-service-sample.rc"],
+    srcs: ["service.cpp"],
+    shared_libs: [
+        "libbase",
+        "libdl",
+        "libhardware",
+        "libhidlbase",
+        "libhidltransport",
+        "liblog",
+        "libutils",
+        "android.hardware.neuralnetworks@1.0",
     ],
 }
