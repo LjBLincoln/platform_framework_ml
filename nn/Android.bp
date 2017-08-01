@@ -16,7 +16,6 @@
 
 subdirs = [
     "common",
-    "hardware/interfaces/neuralnetworks",
     "runtime",
     "sample_driver",
 ]
