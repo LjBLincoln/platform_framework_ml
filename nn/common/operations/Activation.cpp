@@ -18,13 +18,12 @@
 #include "OperationsUtils.h"
 
 #include "internal/optimized/optimized_ops.h"
-#include "internal/reference/reference_ops.h"
 
 namespace android {
 namespace nn {
 
-bool genericActivationFloat32Prepare(const Shape& input,
-                                     Shape* output) {
+bool genericActivationPrepare(const Shape& input,
+                              Shape* output) {
     DCHECK_EQ(getNumberOfDimensions(input), 4);
     return SetShape(input, output);
 }
@@ -62,6 +61,32 @@ bool logisticFloat32(const float* inputData, const Shape& inputShape,
     for (int i=0; i<numElements; i++, inputData++, outputData++) {
         *outputData = 1.f / (1.f + std::exp(-*inputData));
     }
+    return true;
+}
+
+bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
+                    uint8_t* outputData, const Shape& outputShape) {
+    int numElements = getNumberOfElements(inputShape);
+    static constexpr int kInputIntegerBits = 4;
+
+    const double input_real_multiplier =
+            inputShape.scale *
+            static_cast<double>(1 << (31 - kInputIntegerBits));
+
+    int32_t input_multiplier = 0;
+    int32_t input_left_shift = 0;
+    QuantizeMultiplierGreaterThanOne(input_real_multiplier,
+                                     &input_multiplier,
+                                     &input_left_shift);
+    int32_t input_range_radius =
+            CalculateInputRadius(kInputIntegerBits, input_left_shift);
+
+    optimized_ops::Logistic(
+            inputData, convertShapeToDims(inputShape),
+            inputShape.offset, input_range_radius,
+            input_multiplier, input_left_shift,
+            outputData, convertShapeToDims(outputShape));
+
     return true;
 }
 

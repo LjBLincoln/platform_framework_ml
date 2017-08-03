@@ -40,6 +40,9 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
     mOperands.resize(idx + 1);
     auto& entry = mOperands[idx];
     entry.type = static_cast<OperandType>(type.type);
+    entry.scale = type.scale;
+    entry.zeroPoint = type.offset;
+
     // TODO  entry.numberOfConsumers = 0;
     setFromIntList(&entry.dimensions, type.dimensions);
     entry.location = {.poolIndex = static_cast<uint32_t>(LocationValues::LOCATION_AT_RUN_TIME),
@@ -89,7 +92,8 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type,
     }
     mOperations.resize(operationIndex + 1);
     auto& entry = mOperations[operationIndex];
-    entry.type = static_cast<OperationType>(type);
+    entry.opTuple = {static_cast<OperationType>(type),
+                     static_cast<OperandType>(mOperands[inputs->data[0]].type)};
 
     setFromIntList(&entry.inputs, *inputs);
     setFromIntList(&entry.outputs, *outputs);
