@@ -16,13 +16,6 @@
 
 #include "nnCache.h"
 
-// #include "../egl_impl.h"
-
-// #include "egl_display.h"
-
-
-// #include <private/EGL/cache.h>
-
 #include <inttypes.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -38,7 +31,7 @@ static const size_t maxValueSize = 64 * 1024;
 static const size_t maxTotalSize = 2 * 1024 * 1024;
 
 // Cache file header
-static const char* cacheFileMagic = "EGL$";
+static const char* cacheFileMagic = "nn$$";
 static const size_t cacheFileHeaderSize = 8;
 
 // The time in seconds to wait before saving newly inserted cache entries.
@@ -48,94 +41,39 @@ static const unsigned int deferredSaveDelay = 4;
 namespace android {
 // ----------------------------------------------------------------------------
 
-#define BC_EXT_STR "EGL_ANDROID_blob_cache"
-
-// called from android_view_ThreadedRenderer.cpp
-void egl_set_cache_filename(const char* filename) {
-    egl_cache_t::get()->setCacheFilename(filename);
-}
-
 //
-// Callback functions passed to EGL.
+// NNCache definition
 //
-static void setBlob(const void* key, EGLsizeiANDROID keySize,
-        const void* value, EGLsizeiANDROID valueSize) {
-    egl_cache_t::get()->setBlob(key, keySize, value, valueSize);
-}
-
-static EGLsizeiANDROID getBlob(const void* key, EGLsizeiANDROID keySize,
-        void* value, EGLsizeiANDROID valueSize) {
-    return egl_cache_t::get()->getBlob(key, keySize, value, valueSize);
-}
-
-//
-// egl_cache_t definition
-//
-egl_cache_t::egl_cache_t() :
+NNCache::NNCache() :
         mInitialized(false) {
 }
 
-egl_cache_t::~egl_cache_t() {
+NNCache::~NNCache() {
 }
 
-egl_cache_t egl_cache_t::sCache;
+NNCache NNCache::sCache;
 
-egl_cache_t* egl_cache_t::get() {
+NNCache* NNCache::get() {
     return &sCache;
 }
 
-void egl_cache_t::initialize() {
+void NNCache::initialize() {
     std::lock_guard<std::mutex> lock(mMutex);
-
-#if 0
-    egl_connection_t* const cnx = &gEGLImpl;
-    if (cnx->dso && cnx->major >= 0 && cnx->minor >= 0) {
-        const char* exts = display->disp.queryString.extensions;
-        size_t bcExtLen = strlen(BC_EXT_STR);
-        size_t extsLen = strlen(exts);
-        bool equal = !strcmp(BC_EXT_STR, exts);
-        bool atStart = !strncmp(BC_EXT_STR " ", exts, bcExtLen+1);
-        bool atEnd = (bcExtLen+1) < extsLen &&
-                !strcmp(" " BC_EXT_STR, exts + extsLen - (bcExtLen+1));
-        bool inMiddle = strstr(exts, " " BC_EXT_STR " ") != nullptr;
-        if (equal || atStart || atEnd || inMiddle) {
-            PFNEGLSETBLOBCACHEFUNCSANDROIDPROC eglSetBlobCacheFuncsANDROID;
-            eglSetBlobCacheFuncsANDROID =
-                    reinterpret_cast<PFNEGLSETBLOBCACHEFUNCSANDROIDPROC>(
-                            cnx->egl.eglGetProcAddress(
-                                    "eglSetBlobCacheFuncsANDROID"));
-            if (eglSetBlobCacheFuncsANDROID == NULL) {
-                ALOGE("EGL_ANDROID_blob_cache advertised, "
-                        "but unable to get eglSetBlobCacheFuncsANDROID");
-                return;
-            }
-
-            eglSetBlobCacheFuncsANDROID(display->disp.dpy,
-                    android::setBlob, android::getBlob);
-            EGLint err = cnx->egl.eglGetError();
-            if (err != EGL_SUCCESS) {
-                ALOGE("eglSetBlobCacheFuncsANDROID resulted in an error: "
-                        "%#x", err);
-            }
-        }
-    }
-#endif
-
     mInitialized = true;
 }
 
-void egl_cache_t::terminate() {
+void NNCache::terminate() {
     std::lock_guard<std::mutex> lock(mMutex);
     saveBlobCacheLocked();
     mBlobCache = NULL;
 }
 
-void egl_cache_t::setBlob(const void* key, EGLsizeiANDROID keySize,
-        const void* value, EGLsizeiANDROID valueSize) {
+void NNCache::setBlob(const void* key, ssize_t keySize,
+        const void* value, ssize_t valueSize) {
     std::lock_guard<std::mutex> lock(mMutex);
 
     if (keySize < 0 || valueSize < 0) {
-        ALOGW("EGL_ANDROID_blob_cache set: negative sizes are not allowed");
+        ALOGW("nnCache::setBlob: negative sizes are not allowed");
         return;
     }
 
@@ -158,12 +96,12 @@ void egl_cache_t::setBlob(const void* key, EGLsizeiANDROID keySize,
     }
 }
 
-EGLsizeiANDROID egl_cache_t::getBlob(const void* key, EGLsizeiANDROID keySize,
-        void* value, EGLsizeiANDROID valueSize) {
+ssize_t NNCache::getBlob(const void* key, ssize_t keySize,
+        void* value, ssize_t valueSize) {
     std::lock_guard<std::mutex> lock(mMutex);
 
     if (keySize < 0 || valueSize < 0) {
-        ALOGW("EGL_ANDROID_blob_cache set: negative sizes are not allowed");
+        ALOGW("nnCache::getBlob: negative sizes are not allowed");
         return 0;
     }
 
@@ -174,12 +112,12 @@ EGLsizeiANDROID egl_cache_t::getBlob(const void* key, EGLsizeiANDROID keySize,
     return 0;
 }
 
-void egl_cache_t::setCacheFilename(const char* filename) {
+void NNCache::setCacheFilename(const char* filename) {
     std::lock_guard<std::mutex> lock(mMutex);
     mFilename = filename;
 }
 
-BlobCache* egl_cache_t::getBlobCacheLocked() {
+BlobCache* NNCache::getBlobCacheLocked() {
     if (mBlobCache == nullptr) {
         mBlobCache.reset(new BlobCache(maxKeySize, maxValueSize, maxTotalSize));
         loadBlobCacheLocked();
@@ -203,7 +141,7 @@ static uint32_t crc32c(const uint8_t* buf, size_t len) {
     return r;
 }
 
-void egl_cache_t::saveBlobCacheLocked() {
+void NNCache::saveBlobCacheLocked() {
     if (mFilename.length() > 0 && mBlobCache != NULL) {
         size_t cacheSize = mBlobCache->getFlattenedSize();
         size_t headerSize = cacheFileHeaderSize;
@@ -272,7 +210,7 @@ void egl_cache_t::saveBlobCacheLocked() {
     }
 }
 
-void egl_cache_t::loadBlobCacheLocked() {
+void NNCache::loadBlobCacheLocked() {
     if (mFilename.length() > 0) {
         size_t headerSize = cacheFileHeaderSize;
 

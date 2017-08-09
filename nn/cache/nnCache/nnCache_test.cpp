@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "EGL_test"
+#define LOG_TAG "nnCache_test"
 //#define LOG_NDEBUG 0
 
 #include <gtest/gtest.h>
@@ -24,16 +24,15 @@
 #include <android-base/test_utils.h>
 
 #include "nnCache.h"
-// #include "egl_display.h"
 
 #include <memory>
 
 namespace android {
 
-class EGLCacheTest : public ::testing::Test {
+class NNCacheTest : public ::testing::Test {
 protected:
     virtual void SetUp() {
-        mCache = egl_cache_t::get();
+        mCache = NNCache::get();
     }
 
     virtual void TearDown() {
@@ -41,10 +40,10 @@ protected:
         mCache->terminate();
     }
 
-    egl_cache_t* mCache;
+    NNCache* mCache;
 };
 
-TEST_F(EGLCacheTest, UninitializedCacheAlwaysMisses) {
+TEST_F(NNCacheTest, UninitializedCacheAlwaysMisses) {
     uint8_t buf[4] = { 0xee, 0xee, 0xee, 0xee };
     mCache->setBlob("abcd", 4, "efgh", 4);
     ASSERT_EQ(0, mCache->getBlob("abcd", 4, buf, 4));
@@ -54,7 +53,7 @@ TEST_F(EGLCacheTest, UninitializedCacheAlwaysMisses) {
     ASSERT_EQ(0xee, buf[3]);
 }
 
-TEST_F(EGLCacheTest, InitializedCacheAlwaysHits) {
+TEST_F(NNCacheTest, InitializedCacheAlwaysHits) {
     uint8_t buf[4] = { 0xee, 0xee, 0xee, 0xee };
     mCache->initialize();
     mCache->setBlob("abcd", 4, "efgh", 4);
@@ -65,7 +64,7 @@ TEST_F(EGLCacheTest, InitializedCacheAlwaysHits) {
     ASSERT_EQ('h', buf[3]);
 }
 
-TEST_F(EGLCacheTest, TerminatedCacheAlwaysMisses) {
+TEST_F(NNCacheTest, TerminatedCacheAlwaysMisses) {
     uint8_t buf[4] = { 0xee, 0xee, 0xee, 0xee };
     mCache->initialize();
     mCache->setBlob("abcd", 4, "efgh", 4);
@@ -77,24 +76,24 @@ TEST_F(EGLCacheTest, TerminatedCacheAlwaysMisses) {
     ASSERT_EQ(0xee, buf[3]);
 }
 
-class EGLCacheSerializationTest : public EGLCacheTest {
+class NNCacheSerializationTest : public NNCacheTest {
 
 protected:
 
     virtual void SetUp() {
-        EGLCacheTest::SetUp();
+        NNCacheTest::SetUp();
         mTempFile.reset(new TemporaryFile());
     }
 
     virtual void TearDown() {
         mTempFile.reset(nullptr);
-        EGLCacheTest::TearDown();
+        NNCacheTest::TearDown();
     }
 
     std::unique_ptr<TemporaryFile> mTempFile;
 };
 
-TEST_F(EGLCacheSerializationTest, ReinitializedCacheContainsValues) {
+TEST_F(NNCacheSerializationTest, ReinitializedCacheContainsValues) {
     uint8_t buf[4] = { 0xee, 0xee, 0xee, 0xee };
     mCache->setCacheFilename(&mTempFile->path[0]);
     mCache->initialize();

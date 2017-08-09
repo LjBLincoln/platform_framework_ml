@@ -17,9 +17,6 @@
 #ifndef ANDROID_NN_CACHE_H
 #define ANDROID_NN_CACHE_H
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-
 #include "BlobCache.h"
 
 #include <memory>
@@ -30,38 +27,32 @@
 namespace android {
 // ----------------------------------------------------------------------------
 
-class egl_display_t;
-
-class EGLAPI egl_cache_t {
+class NNCache {
 public:
 
-    // get returns a pointer to the singleton egl_cache_t object.  This
+    // get returns a pointer to the singleton NNCache object.  This
     // singleton object will never be destroyed.
-    static egl_cache_t* get();
+    static NNCache* get();
 
-    // initialize puts the egl_cache_t into an initialized state, such that it
-    // is able to insert and retrieve entries from the cache.  This should be
-    // called when EGL is initialized.  When not in the initialized state the
-    // getBlob and setBlob methods will return without performing any cache
-    // operations.
+    // initialize puts the NNCache into an initialized state, such
+    // that it is able to insert and retrieve entries from the cache.
+    // When not in the initialized state the getBlob and setBlob
+    // methods will return without performing any cache operations.
     void initialize();
 
-    // terminate puts the egl_cache_t back into the uninitialized state.  When
+    // terminate puts the NNCache back into the uninitialized state.  When
     // in this state the getBlob and setBlob methods will return without
     // performing any cache operations.
     void terminate();
 
     // setBlob attempts to insert a new key/value blob pair into the cache.
-    // This will be called by the hardware vendor's EGL implementation via the
-    // EGL_ANDROID_blob_cache extension.
-    void setBlob(const void* key, EGLsizeiANDROID keySize, const void* value,
-        EGLsizeiANDROID valueSize);
+    void setBlob(const void* key, ssize_t keySize, const void* value,
+        ssize_t valueSize);
 
     // getBlob attempts to retrieve the value blob associated with a given key
-    // blob from cache.  This will be called by the hardware vendor's EGL
-    // implementation via the EGL_ANDROID_blob_cache extension.
-    EGLsizeiANDROID getBlob(const void* key, EGLsizeiANDROID keySize,
-        void* value, EGLsizeiANDROID valueSize);
+    // blob from cache.
+    ssize_t getBlob(const void* key, ssize_t keySize,
+        void* value, ssize_t valueSize);
 
     // setCacheFilename sets the name of the file that should be used to store
     // cache contents from one program invocation to another.
@@ -69,12 +60,12 @@ public:
 
 private:
     // Creation and (the lack of) destruction is handled internally.
-    egl_cache_t();
-    ~egl_cache_t();
+    NNCache();
+    ~NNCache();
 
     // Copying is disallowed.
-    egl_cache_t(const egl_cache_t&); // not implemented
-    void operator=(const egl_cache_t&); // not implemented
+    NNCache(const NNCache&) = delete;
+    void operator=(const NNCache&) = delete;
 
     // getBlobCacheLocked returns the BlobCache object being used to store the
     // key/value blob pairs.  If the BlobCache object has not yet been created,
@@ -90,7 +81,7 @@ private:
     // mBlobCache.
     void loadBlobCacheLocked();
 
-    // mInitialized indicates whether the egl_cache_t is in the initialized
+    // mInitialized indicates whether the NNCache is in the initialized
     // state.  It is initialized to false at construction time, and gets set to
     // true when initialize is called.  It is set back to false when terminate
     // is called.  When in this state, the cache behaves as normal.  When not,
@@ -121,8 +112,8 @@ private:
     // variables. It must be locked whenever the member variables are accessed.
     mutable std::mutex mMutex;
 
-    // sCache is the singleton egl_cache_t object.
-    static egl_cache_t sCache;
+    // sCache is the singleton NNCache object.
+    static NNCache sCache;
 };
 
 // ----------------------------------------------------------------------------
