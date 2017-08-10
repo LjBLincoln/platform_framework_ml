@@ -176,21 +176,78 @@ int CpuExecutor::executeOperation(const Operation& operation) {
 
     switch (operation.opTuple.operationType) {
         case OperationType::ADD: {
-            if (!parameterCountIs(2, 1)) {
+            if (!parameterCountIs(3, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& in1 = mOperands[ins[0]];
             const RunTimeOperandInfo& in2 = mOperands[ins[1]];
+            int32_t activation = getScalarData<int32_t>(mOperands[ins[2]]);
+
             RunTimeOperandInfo& out = mOperands[outs[0]];
             Shape outShape = out.shape();
 
             if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
-                success = addTensorsPrepare(in1.shape(), in2.shape(), &outShape) &&
+                success = addPrepare(in1.shape(), in2.shape(), &outShape) &&
                           allocateIfNeeded(&out, outShape) &&
-                          addTensorsFloat32(reinterpret_cast<const float*>(in1.buffer),
-                                            reinterpret_cast<const float*>(in2.buffer),
-                                            reinterpret_cast<float*>(out.buffer),
-                                            outShape);
+                          addFloat32(reinterpret_cast<const float*>(in1.buffer),
+                                     reinterpret_cast<const float*>(in2.buffer),
+                                     activation,
+                                     reinterpret_cast<float*>(out.buffer),
+                                     outShape);
+            }
+        } break;
+        case OperationType::MUL: {
+            if (!parameterCountIs(3, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& in1 = mOperands[ins[0]];
+            const RunTimeOperandInfo& in2 = mOperands[ins[1]];
+            int32_t activation = getScalarData<int32_t>(mOperands[ins[2]]);
+
+            RunTimeOperandInfo& out = mOperands[outs[0]];
+            Shape outShape = out.shape();
+
+            if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
+                success = mulPrepare(in1.shape(), in2.shape(), &outShape) &&
+                          allocateIfNeeded(&out, outShape) &&
+                          mulFloat32(reinterpret_cast<const float*>(in1.buffer),
+                                     reinterpret_cast<const float*>(in2.buffer),
+                                     activation,
+                                     reinterpret_cast<float*>(out.buffer),
+                                     outShape);
+            }
+        } break;
+        case OperationType::FLOOR: {
+            if (!parameterCountIs(1, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
+                success = floorPrepare(input.shape(), &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          floorFloat32(reinterpret_cast<const float*>(input.buffer),
+                                       reinterpret_cast<float*>(output.buffer),
+                                       outShape);
+            }
+        } break;
+        case OperationType::DEQUANTIZE: {
+            if (!parameterCountIs(1, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            if (operation.opTuple.operandType == OperandType::TENSOR_QUANT8_ASYMM) {
+                success = dequantizePrepare(input.shape(), &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          dequantizeQuant8ToFloat32(
+                                  reinterpret_cast<const uint8_t*>(input.buffer),
+                                  reinterpret_cast<float*>(output.buffer),
+                                  outShape);
             }
         } break;
         case OperationType::DEPTHWISE_CONV: {

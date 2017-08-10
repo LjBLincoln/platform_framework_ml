@@ -21,18 +21,95 @@
 #include "Operations.h"
 #include "OperationsUtils.h"
 
+#include "internal/optimized/optimized_ops.h"
+
 namespace android {
 namespace nn {
 
-bool addTensorsPrepare(const Shape& in1, const Shape& in2, Shape* out) {
+bool addPrepare(const Shape& in1, const Shape& in2, Shape* out) {
     return SameShape(in1, in2) && SetShape(in1, out);
 }
 
-bool addTensorsFloat32(const float* in1, const float* in2, float* out, const Shape& shape) {
-    uint32_t count = getNumberOfElements(shape);
-    for (size_t i = 0; i < count; i++) {
-        *(out++) = *(in1++) + *(in2++);
+bool addFloat32(const float* in1, const float* in2,
+                int32_t activation,
+                float* out, const Shape& shape) {
+    Dims<4> dim = convertShapeToDims(shape);
+    #define ANDROID_NN_ADD(activation)                               \
+        optimized_ops::Add<FusedActivationFunctionType::activation>( \
+                in1, dim, in2, dim, out, dim)
+
+    if (activation == kActivationNone) {
+        ANDROID_NN_ADD(kNone);
+    } else if (activation == kActivationRelu) {
+        ANDROID_NN_ADD(kRelu);
+    } else if (activation == kActivationRelu1) {
+        ANDROID_NN_ADD(kRelu1);
+    } else if (activation == kActivationRelu6) {
+        ANDROID_NN_ADD(kRelu6);
+    } else {
+        return false;
     }
+
+    #undef ANDROID_NN_ADD
+    return true;
+}
+
+bool mulPrepare(const Shape& in1, const Shape& in2, Shape* out) {
+    return SameShape(in1, in2) && SetShape(in1, out);
+}
+
+bool mulFloat32(const float* in1, const float* in2,
+                int32_t activation,
+                float* out, const Shape& shape) {
+    Dims<4> dim = convertShapeToDims(shape);
+    #define ANDROID_NN_MUL(activation)                               \
+        optimized_ops::Mul<FusedActivationFunctionType::activation>( \
+                in1, dim, in2, dim, out, dim)
+
+    if (activation == kActivationNone) {
+        ANDROID_NN_MUL(kNone);
+    } else if (activation == kActivationRelu) {
+        ANDROID_NN_MUL(kRelu);
+    } else if (activation == kActivationRelu1) {
+        ANDROID_NN_MUL(kRelu1);
+    } else if (activation == kActivationRelu6) {
+        ANDROID_NN_MUL(kRelu6);
+    } else {
+        return false;
+    }
+
+    #undef ANDROID_NN_MUL
+    return true;
+}
+
+bool floorPrepare(const Shape& input, Shape* output) {
+    return SetShape(input, output);
+}
+
+bool floorFloat32(const float* inputData,
+                  float* outputData,
+                  const Shape& shape) {
+    Dims<4> dim = convertShapeToDims(shape);
+    optimized_ops::Floor(inputData, dim, outputData, dim);
+    return true;
+}
+
+bool dequantizePrepare(const Shape& input, Shape* output) {
+    if (input.type != OperandType::TENSOR_QUANT8_ASYMM ||
+            output->type != OperandType::TENSOR_FLOAT32) {
+        LOG(ERROR) << "bad input / output operand type.";
+        return false;
+    }
+    return SetShape(input, output);
+}
+
+bool dequantizeQuant8ToFloat32(const uint8_t* inputData,
+                               float* outputData,
+                               const Shape& shape) {
+    Dims<4> dim = convertShapeToDims(shape);
+    optimized_ops::Dequantize(inputData, dim,
+                              shape.offset, shape.scale,
+                              outputData, dim);
     return true;
 }
 

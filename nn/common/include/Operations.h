@@ -38,8 +38,25 @@ enum ActivationFn {
     kActivationRelu6 = 3,
 };
 
-bool addTensorsPrepare(const Shape& in1, const Shape& in2, Shape* out1);
-bool addTensorsFloat32(const float* in1, const float* in2, float* out, const Shape& shape);
+bool addPrepare(const Shape& in1, const Shape& in2, Shape* out1);
+bool addFloat32(const float* in1, const float* in2,
+                int32_t activation,
+                float* out, const Shape& shape);
+
+bool mulPrepare(const Shape& in1, const Shape& in2, Shape* out1);
+bool mulFloat32(const float* in1, const float* in2,
+                int32_t activation,
+                float* out, const Shape& shape);
+
+bool floorPrepare(const Shape& input, Shape* output);
+bool floorFloat32(const float* inputData,
+                  float* outputData,
+                  const Shape& shape);
+
+bool dequantizePrepare(const Shape& input, Shape* output);
+bool dequantizeQuant8ToFloat32(const uint8_t* inputData,
+                               float* outputData,
+                               const Shape& shape);
 
 bool depthwiseConvPrepare(const Shape& input,
                                  const Shape& filter,
