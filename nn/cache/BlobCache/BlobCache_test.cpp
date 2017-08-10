@@ -137,7 +137,7 @@ TEST_F(BlobCacheTest, DoesntCacheIfKeyIsTooBig) {
 }
 
 TEST_F(BlobCacheTest, DoesntCacheIfValueIsTooBig) {
-    char buf[MAX_VALUE_SIZE+1];
+    unsigned char buf[MAX_VALUE_SIZE+1];
     for (int i = 0; i < MAX_VALUE_SIZE+1; i++) {
         buf[i] = 'b';
     }

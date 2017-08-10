@@ -18,9 +18,29 @@
 
 #include "BlobCache.h"
 
+#include <errno.h>
 #include <inttypes.h>
 
+#if defined(__ANDROID__)
 #include <cutils/properties.h>
+#else
+#include <string.h>
+#include <algorithm>
+static const char property_value[] = "[HOST]";
+#define PROPERTY_VALUE_MAX (sizeof(property_value) - 1)
+static int property_get(const char *key, char *value, const char *default_value) {
+  if (!strcmp(key, "ro.build.id")) {
+    memcpy(value, property_value, PROPERTY_VALUE_MAX);
+    return PROPERTY_VALUE_MAX;
+  }
+  if (default_value) {
+    const size_t len = std::max(strlen(default_value) + 1, size_t(PROPERTY_VALUE_MAX));
+    memcpy(value, default_value, len);
+  }
+  return 0;
+}
+#endif
+
 #include <log/log.h>
 #include <chrono>
 
@@ -254,7 +274,7 @@ int BlobCache::unflatten(void const* buffer, size_t size) {
     for (size_t i = 0; i < numEntries; i++) {
         if (byteOffset + sizeof(EntryHeader) > size) {
             mCacheEntries.clear();
-            ALOGE("unflatten: not enough room for cache entry headers");
+            ALOGE("unflatten: not enough room for cache entry header");
             return -EINVAL;
         }
 
@@ -267,7 +287,7 @@ int BlobCache::unflatten(void const* buffer, size_t size) {
         size_t totalSize = align4(entrySize);
         if (byteOffset + totalSize > size) {
             mCacheEntries.clear();
-            ALOGE("unflatten: not enough room for cache entry headers");
+            ALOGE("unflatten: not enough room for cache entry");
             return -EINVAL;
         }
 

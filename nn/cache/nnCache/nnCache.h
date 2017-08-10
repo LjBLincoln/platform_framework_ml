@@ -14,8 +14,8 @@
  ** limitations under the License.
  */
 
-#ifndef ANDROID_EGL_CACHE_H
-#define ANDROID_EGL_CACHE_H
+#ifndef ANDROID_NN_CACHE_H
+#define ANDROID_NN_CACHE_H
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -44,7 +44,7 @@ public:
     // called when EGL is initialized.  When not in the initialized state the
     // getBlob and setBlob methods will return without performing any cache
     // operations.
-    void initialize(egl_display_t* display);
+    void initialize();
 
     // terminate puts the egl_cache_t back into the uninitialized state.  When
     // in this state the getBlob and setBlob methods will return without
@@ -129,4 +129,4 @@ private:
 }; // namespace android
 // ----------------------------------------------------------------------------
 
-#endif // ANDROID_EGL_CACHE_H
+#endif // ANDROID_NN_CACHE_H

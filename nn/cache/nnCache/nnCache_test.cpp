@@ -23,8 +23,8 @@
 
 #include <android-base/test_utils.h>
 
-#include "egl_cache.h"
-#include "egl_display.h"
+#include "nnCache.h"
+// #include "egl_display.h"
 
 #include <memory>
 
@@ -56,7 +56,7 @@ TEST_F(EGLCacheTest, UninitializedCacheAlwaysMisses) {
 
 TEST_F(EGLCacheTest, InitializedCacheAlwaysHits) {
     uint8_t buf[4] = { 0xee, 0xee, 0xee, 0xee };
-    mCache->initialize(egl_display_t::get(EGL_DEFAULT_DISPLAY));
+    mCache->initialize();
     mCache->setBlob("abcd", 4, "efgh", 4);
     ASSERT_EQ(4, mCache->getBlob("abcd", 4, buf, 4));
     ASSERT_EQ('e', buf[0]);
@@ -67,7 +67,7 @@ TEST_F(EGLCacheTest, InitializedCacheAlwaysHits) {
 
 TEST_F(EGLCacheTest, TerminatedCacheAlwaysMisses) {
     uint8_t buf[4] = { 0xee, 0xee, 0xee, 0xee };
-    mCache->initialize(egl_display_t::get(EGL_DEFAULT_DISPLAY));
+    mCache->initialize();
     mCache->setBlob("abcd", 4, "efgh", 4);
     mCache->terminate();
     ASSERT_EQ(0, mCache->getBlob("abcd", 4, buf, 4));
@@ -97,10 +97,10 @@ protected:
 TEST_F(EGLCacheSerializationTest, ReinitializedCacheContainsValues) {
     uint8_t buf[4] = { 0xee, 0xee, 0xee, 0xee };
     mCache->setCacheFilename(&mTempFile->path[0]);
-    mCache->initialize(egl_display_t::get(EGL_DEFAULT_DISPLAY));
+    mCache->initialize();
     mCache->setBlob("abcd", 4, "efgh", 4);
     mCache->terminate();
-    mCache->initialize(egl_display_t::get(EGL_DEFAULT_DISPLAY));
+    mCache->initialize();
     ASSERT_EQ(4, mCache->getBlob("abcd", 4, buf, 4));
     ASSERT_EQ('e', buf[0]);
     ASSERT_EQ('f', buf[1]);

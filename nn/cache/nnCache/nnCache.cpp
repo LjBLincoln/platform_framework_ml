@@ -14,14 +14,14 @@
  ** limitations under the License.
  */
 
-#include "egl_cache.h"
+#include "nnCache.h"
 
-#include "../egl_impl.h"
+// #include "../egl_impl.h"
 
-#include "egl_display.h"
+// #include "egl_display.h"
 
 
-#include <private/EGL/cache.h>
+// #include <private/EGL/cache.h>
 
 #include <inttypes.h>
 #include <sys/mman.h>
@@ -84,9 +84,10 @@ egl_cache_t* egl_cache_t::get() {
     return &sCache;
 }
 
-void egl_cache_t::initialize(egl_display_t *display) {
+void egl_cache_t::initialize() {
     std::lock_guard<std::mutex> lock(mMutex);
 
+#if 0
     egl_connection_t* const cnx = &gEGLImpl;
     if (cnx->dso && cnx->major >= 0 && cnx->minor >= 0) {
         const char* exts = display->disp.queryString.extensions;
@@ -118,6 +119,7 @@ void egl_cache_t::initialize(egl_display_t *display) {
             }
         }
     }
+#endif
 
     mInitialized = true;
 }
