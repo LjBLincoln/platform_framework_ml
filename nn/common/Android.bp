@@ -38,6 +38,7 @@ cc_library_static {
         "operations/FullyConnected.cpp",
         "operations/Normalization.cpp",
         "operations/Pooling.cpp",
+        "operations/Reshape.cpp",
         "operations/SimpleMath.cpp",
     ],
     shared_libs: [

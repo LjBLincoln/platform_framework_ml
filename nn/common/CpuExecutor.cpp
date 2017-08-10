@@ -682,6 +682,88 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                                    outShape);
             }
         } break;
+        case OperationType::RESHAPE: {
+            if (!parameterCountIs(2, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            const RunTimeOperandInfo& targetShape = mOperands[ins[1]];
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = reshapePrepare(input.shape(),
+                                     reinterpret_cast<const int32_t*>(targetShape.buffer),
+                                     getNumberOfElements(targetShape.shape()),
+                                     &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      reshapeGeneric(reinterpret_cast<const void*>(input.buffer),
+                                     input.shape(),
+                                     reinterpret_cast<void*>(output.buffer),
+                                     outShape);
+        } break;
+        case OperationType::RESIZE_BILINEAR: {
+            if (!parameterCountIs(3, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            int32_t height = getScalarData<int32_t>(mOperands[ins[1]]);
+            int32_t width = getScalarData<int32_t>(mOperands[ins[2]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
+                success = resizeBilinearPrepare(input.shape(),
+                                                height, width,
+                                                &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          resizeBilinearFloat32(reinterpret_cast<const float*>(input.buffer),
+                                                input.shape(),
+                                                reinterpret_cast<float*>(output.buffer),
+                                                outShape);
+            }
+        } break;
+        case OperationType::DEPTH_TO_SPACE: {
+            if (!parameterCountIs(2, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            int32_t blockSize = getScalarData<int32_t>(mOperands[ins[1]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = depthToSpacePrepare(input.shape(),
+                                          blockSize,
+                                          &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      depthToSpaceGeneric(input.buffer,
+                                          input.shape(),
+                                          blockSize,
+                                          output.buffer,
+                                          outShape);
+        } break;
+        case OperationType::SPACE_TO_DEPTH: {
+            if (!parameterCountIs(2, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            int32_t blockSize = getScalarData<int32_t>(mOperands[ins[1]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = spaceToDepthPrepare(input.shape(),
+                                          blockSize,
+                                          &outShape) &&
+                      allocateIfNeeded(&output, outShape) &&
+                      spaceToDepthGeneric(input.buffer,
+                                          input.shape(),
+                                          blockSize,
+                                          output.buffer,
+                                          outShape);
+        } break;
         default:
             nnAssert(false);
             break;

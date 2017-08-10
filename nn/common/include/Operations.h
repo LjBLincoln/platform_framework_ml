@@ -172,6 +172,37 @@ bool l2normQuant8(const uint8_t* inputData, const Shape& inputShape,
 bool localResponseNormFloat32(const float* inputData, const Shape& inputShape,
                               int32_t radius, float bias, float alpha, float beta,
                               float* outputData, const Shape& outputShape);
+
+bool reshapePrepare(const Shape& input,
+                    const int32_t* targetDims,
+                    const int32_t targetDimsSize,
+                    Shape* output);
+bool reshapeGeneric(const void* inputData, const Shape& inputShape,
+                    void* outputData, const Shape& outputShape);
+
+bool resizeBilinearPrepare(const Shape& input,
+                           int32_t height,
+                           int32_t width,
+                           Shape* output);
+bool resizeBilinearFloat32(const float* inputData,
+                           const Shape& inputShape,
+                           float* outputData,
+                           const Shape& outputShape);
+
+bool depthToSpacePrepare(const Shape& input,
+                         int32_t blockSize,
+                         Shape* output);
+bool depthToSpaceGeneric(const uint8_t* inputData, const Shape& inputShape,
+                         int32_t blockSize,
+                         uint8_t* outputData, const Shape& outputShape);
+
+bool spaceToDepthPrepare(const Shape& input,
+                         int32_t blockSize,
+                         Shape* output);
+bool spaceToDepthGeneric(const uint8_t* inputData, const Shape& inputShape,
+                         int32_t blockSize,
+                         uint8_t* outputData, const Shape& outputShape);
+
 } // namespace nn
 } // namespace android
 
