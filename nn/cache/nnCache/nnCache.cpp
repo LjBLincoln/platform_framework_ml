@@ -66,6 +66,7 @@ void NNCache::terminate() {
     std::lock_guard<std::mutex> lock(mMutex);
     saveBlobCacheLocked();
     mBlobCache = NULL;
+    mInitialized = false;
 }
 
 void NNCache::setBlob(const void* key, ssize_t keySize,

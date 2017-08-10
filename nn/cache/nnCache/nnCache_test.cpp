@@ -68,7 +68,17 @@ TEST_F(NNCacheTest, TerminatedCacheAlwaysMisses) {
     uint8_t buf[4] = { 0xee, 0xee, 0xee, 0xee };
     mCache->initialize();
     mCache->setBlob("abcd", 4, "efgh", 4);
+
+    // cache entry lost after terminate
     mCache->terminate();
+    ASSERT_EQ(0, mCache->getBlob("abcd", 4, buf, 4));
+    ASSERT_EQ(0xee, buf[0]);
+    ASSERT_EQ(0xee, buf[1]);
+    ASSERT_EQ(0xee, buf[2]);
+    ASSERT_EQ(0xee, buf[3]);
+
+    // cache insertion ignored after terminate
+    mCache->setBlob("abcd", 4, "efgh", 4);
     ASSERT_EQ(0, mCache->getBlob("abcd", 4, buf, 4));
     ASSERT_EQ(0xee, buf[0]);
     ASSERT_EQ(0xee, buf[1]);
