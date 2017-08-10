@@ -25,11 +25,6 @@
 
 #include <log/log.h>
 
-// Cache size limits.
-static const size_t maxKeySize = 12 * 1024;
-static const size_t maxValueSize = 64 * 1024;
-static const size_t maxTotalSize = 2 * 1024 * 1024;
-
 // Cache file header
 static const char* cacheFileMagic = "nn$$";
 static const size_t cacheFileHeaderSize = 8;
@@ -45,7 +40,9 @@ namespace android {
 // NNCache definition
 //
 NNCache::NNCache() :
-        mInitialized(false) {
+    mInitialized(false),
+    mMaxKeySize(0), mMaxValueSize(0), mMaxTotalSize(0),
+    mSavePending(false) {
 }
 
 NNCache::~NNCache() {
@@ -57,9 +54,12 @@ NNCache* NNCache::get() {
     return &sCache;
 }
 
-void NNCache::initialize() {
+void NNCache::initialize(size_t maxKeySize, size_t maxValueSize, size_t maxTotalSize) {
     std::lock_guard<std::mutex> lock(mMutex);
     mInitialized = true;
+    mMaxKeySize = maxKeySize;
+    mMaxValueSize = maxValueSize;
+    mMaxTotalSize = maxTotalSize;
 }
 
 void NNCache::terminate() {
@@ -120,7 +120,7 @@ void NNCache::setCacheFilename(const char* filename) {
 
 BlobCache* NNCache::getBlobCacheLocked() {
     if (mBlobCache == nullptr) {
-        mBlobCache.reset(new BlobCache(maxKeySize, maxValueSize, maxTotalSize));
+        mBlobCache.reset(new BlobCache(mMaxKeySize, mMaxValueSize, mMaxTotalSize));
         loadBlobCacheLocked();
     }
     return mBlobCache.get();
@@ -233,7 +233,7 @@ void NNCache::loadBlobCacheLocked() {
 
         // Sanity check the size before trying to mmap it.
         size_t fileSize = statBuf.st_size;
-        if (fileSize > maxTotalSize * 2) {
+        if (fileSize > mMaxTotalSize * 2) {
             ALOGE("cache file is too large: %#" PRIx64,
                   static_cast<off64_t>(statBuf.st_size));
             close(fd);

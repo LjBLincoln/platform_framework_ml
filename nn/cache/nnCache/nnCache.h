@@ -38,7 +38,12 @@ public:
     // that it is able to insert and retrieve entries from the cache.
     // When not in the initialized state the getBlob and setBlob
     // methods will return without performing any cache operations.
-    void initialize();
+    //
+    // The NNCache will cache key/value pairs with key and value sizes
+    // less than or equal to maxKeySize and maxValueSize,
+    // respectively. The total combined size of ALL cache entries (key
+    // sizes plus value sizes) will not exceed maxTotalSize.
+    void initialize(size_t maxKeySize, size_t maxValueSize, size_t maxTotalSize);
 
     // terminate puts the NNCache back into the uninitialized state.  When
     // in this state the getBlob and setBlob methods will return without
@@ -88,6 +93,16 @@ private:
     // the getBlob and setBlob methods will return without performing any cache
     // operations.
     bool mInitialized;
+
+    // mMaxKeySize is the maximum key size that will be cached.
+    size_t mMaxKeySize;
+
+    // mMaxValueSize is the maximum value size that will be cached.
+    size_t mMaxValueSize;
+
+    // mMaxTotalSize is the maximum size that all cache entries can occupy. This
+    // includes space for both keys and values.
+    size_t mMaxTotalSize;
 
     // mBlobCache is the cache in which the key/value blob pairs are stored.  It
     // is initially NULL, and will be initialized by getBlobCacheLocked the
