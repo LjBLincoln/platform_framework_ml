@@ -113,6 +113,22 @@ ssize_t NNCache::getBlob(const void* key, ssize_t keySize,
     return 0;
 }
 
+ssize_t NNCache::getBlob(const void* key, ssize_t keySize,
+        void** value, std::function<void*(size_t)> alloc) {
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    if (keySize < 0) {
+        ALOGW("nnCache::getBlob: negative sizes are not allowed");
+        return 0;
+    }
+
+    if (mInitialized) {
+        BlobCache* bc = getBlobCacheLocked();
+        return bc->get(key, keySize, value, alloc);
+    }
+    return 0;
+}
+
 void NNCache::setCacheFilename(const char* filename) {
     std::lock_guard<std::mutex> lock(mMutex);
     mFilename = filename;

@@ -19,6 +19,7 @@
 
 #include <stddef.h>
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -59,22 +60,51 @@ public:
 
     // get retrieves from the cache the binary value associated with a given
     // binary key.  If the key is present in the cache then the length of the
-    // binary value associated with that key is returned.  If the value argument
-    // is non-NULL and the size of the cached value is less than valueSize bytes
-    // then the cached value is copied into the buffer pointed to by the value
-    // argument.  If the key is not present in the cache then 0 is returned and
+    // binary value associated with that key is returned.  If the key
+    // is not present in the cache then 0 is returned.
+    //
+    // There are two variants of get: one takes a buffer (value, valueSize)
+    // and one takes an allocator (value, alloc).
+    //
+    // For the BUFFER variant, if the value argument is non-NULL and
+    // the size of the cached value is less than valueSize bytes then
+    // the cached value is copied into the buffer pointed to by the
+    // value argument.  If the key is not present in the cache then
     // the buffer pointed to by the value argument is not modified.
+    //
+    //   Preconditions:
+    //     key != NULL
+    //     0 < keySize
+    //     0 <= valueSize
+    //
+    // For the ALLOCATOR variant, if it is possible to allocate a
+    // buffer for the cached value via a call to the allocator by
+    //
+    //   size_t cached_value_size = ...;
+    //   void* buf = alloc(cached_value_size);
+    //
+    // then the cached value is copied into the newly-allocated buffer
+    // and *value is set to the address of the newly-allocated buffer.
+    // If the allocator returns NULL, or the key is not present in the
+    // cache, then *value is set to NULL.
+    //
+    //   Preconditions:
+    //     key != NULL
+    //     0 < keySize
+    //     value != NULL
     //
     // Note that when calling get multiple times with the same key, the later
     // calls may fail, returning 0, even if earlier calls succeeded.  The return
     // value must be checked for each call.
-    //
-    // Preconditions:
-    //   key != NULL
-    //   0 < keySize
-    //   0 <= valueSize
     size_t get(const void* key, size_t keySize, void* value, size_t valueSize);
-
+    size_t get(const void* key, size_t keySize, void** value, std::function<void*(size_t)> alloc);
+    template <typename T>
+    size_t get(const void* key, size_t keySize, T** value, std::function<void*(size_t)> alloc) {
+        void *valueVoid;
+        const size_t size = get(key, keySize, &valueVoid, alloc);
+        *value = static_cast<T*>(valueVoid);
+        return size;
+    }
 
     // getFlattenedSize returns the number of bytes needed to store the entire
     // serialized cache.

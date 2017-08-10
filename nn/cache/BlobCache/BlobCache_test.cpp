@@ -16,6 +16,7 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <memory>
 
@@ -74,6 +75,26 @@ TEST_F(BlobCacheTest, CacheTwoValuesSucceeds) {
     ASSERT_EQ('h', buf[1]);
 }
 
+TEST_F(BlobCacheTest, CacheTwoValuesMallocSucceeds) {
+    unsigned char *bufPtr;
+    mBC->set("ab", 2, "cd", 2);
+    mBC->set("ef", 2, "gh", 2);
+
+    bufPtr = nullptr;
+    ASSERT_EQ(size_t(2), mBC->get("ab", 2, &bufPtr, malloc));
+    ASSERT_NE(nullptr, bufPtr);
+    ASSERT_EQ('c', bufPtr[0]);
+    ASSERT_EQ('d', bufPtr[1]);
+    free(bufPtr);
+
+    bufPtr = nullptr;
+    ASSERT_EQ(size_t(2), mBC->get("ef", 2, &bufPtr, malloc));
+    ASSERT_NE(nullptr, bufPtr);
+    ASSERT_EQ('g', bufPtr[0]);
+    ASSERT_EQ('h', bufPtr[1]);
+    free(bufPtr);
+}
+
 TEST_F(BlobCacheTest, GetOnlyWritesInsideBounds) {
     unsigned char buf[6] = { 0xee, 0xee, 0xee, 0xee, 0xee, 0xee };
     mBC->set("abcd", 4, "efgh", 4);
@@ -90,6 +111,21 @@ TEST_F(BlobCacheTest, GetOnlyWritesIfBufferIsLargeEnough) {
     unsigned char buf[3] = { 0xee, 0xee, 0xee };
     mBC->set("abcd", 4, "efgh", 4);
     ASSERT_EQ(size_t(4), mBC->get("abcd", 4, buf, 3));
+    ASSERT_EQ(0xee, buf[0]);
+    ASSERT_EQ(0xee, buf[1]);
+    ASSERT_EQ(0xee, buf[2]);
+}
+
+TEST_F(BlobCacheTest, GetWithFailedAllocator) {
+    unsigned char buf[3] = { 0xee, 0xee, 0xee };
+    mBC->set("abcd", 4, "efgh", 4);
+
+    // If allocator fails, verify that we set the value pointer to
+    // nullptr, and that we do not modify the buffer that the value
+    // pointer originally pointed to.
+    unsigned char *bufPtr = &buf[0];
+    ASSERT_EQ(size_t(4), mBC->get("abcd", 4, &bufPtr, [](size_t) -> void* { return nullptr; }));
+    ASSERT_EQ(nullptr, bufPtr);
     ASSERT_EQ(0xee, buf[0]);
     ASSERT_EQ(0xee, buf[1]);
     ASSERT_EQ(0xee, buf[2]);
@@ -129,7 +165,24 @@ TEST_F(BlobCacheTest, DoesntCacheIfKeyIsTooBig) {
         key[i] = 'a';
     }
     mBC->set(key, MAX_KEY_SIZE+1, "bbbb", 4);
+
     ASSERT_EQ(size_t(0), mBC->get(key, MAX_KEY_SIZE+1, buf, 4));
+    ASSERT_EQ(0xee, buf[0]);
+    ASSERT_EQ(0xee, buf[1]);
+    ASSERT_EQ(0xee, buf[2]);
+    ASSERT_EQ(0xee, buf[3]);
+
+    // If key is too large, verify that we do not call the allocator,
+    // that we set the value pointer to nullptr, and that we do not
+    // modify the buffer that the value pointer originally pointed to.
+    unsigned char *bufPtr = &buf[0];
+    bool calledAlloc = false;
+    ASSERT_EQ(size_t(0), mBC->get(key, MAX_KEY_SIZE+1, &bufPtr,
+                                  [&calledAlloc](size_t) -> void* {
+                                      calledAlloc = true;
+                                      return nullptr; }));
+    ASSERT_EQ(false, calledAlloc);
+    ASSERT_EQ(nullptr, bufPtr);
     ASSERT_EQ(0xee, buf[0]);
     ASSERT_EQ(0xee, buf[1]);
     ASSERT_EQ(0xee, buf[2]);
@@ -265,6 +318,23 @@ TEST_F(BlobCacheTest, ExceedingTotalLimitHalvesCacheSize) {
         }
     }
     ASSERT_EQ(maxEntries/2 + 1, numCached);
+}
+
+TEST_F(BlobCacheTest, FailedGetWithAllocator) {
+    // If get doesn't find anything, verify that we do not call the
+    // allocator, that we set the value pointer to nullptr, and that
+    // we do not modify the buffer that the value pointer originally
+    // pointed to.
+    unsigned char buf[1] = { 0xee };
+    unsigned char *bufPtr = &buf[0];
+    bool calledAlloc = false;
+    ASSERT_EQ(size_t(0), mBC->get("a", 1, &bufPtr,
+                                  [&calledAlloc](size_t) -> void* {
+                                      calledAlloc = true;
+                                      return nullptr; }));
+    ASSERT_EQ(false, calledAlloc);
+    ASSERT_EQ(nullptr, bufPtr);
+    ASSERT_EQ(0xee, buf[0]);
 }
 
 class BlobCacheFlattenTest : public BlobCacheTest {

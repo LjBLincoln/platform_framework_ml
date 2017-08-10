@@ -27,6 +27,7 @@
 
 #include <memory>
 
+#include <stdlib.h>
 #include <string.h>
 
 // Cache size limits.
@@ -148,6 +149,24 @@ TEST_F(NNCacheSerializationTest, ReinitializedCacheContainsValues) {
     mCache->setBlob("abcd", 4, "efgh", 4);
     mCache->terminate();
     mCache->initialize(maxKeySize, maxValueSize, maxTotalSize);
+
+    // For get-with-allocator, verify that:
+    // - we get the expected value size
+    // - we do not modify the buffer that value pointer originally points to
+    // - the value pointer gets set to something other than nullptr
+    // - the newly-allocated buffer is set properly
+    uint8_t *bufPtr = &buf[0];
+    ASSERT_EQ(4, mCache->getBlob("abcd", 4, &bufPtr, malloc));
+    ASSERT_EQ(0xee, buf[0]);
+    ASSERT_EQ(0xee, buf[1]);
+    ASSERT_EQ(0xee, buf[2]);
+    ASSERT_EQ(0xee, buf[3]);
+    ASSERT_NE(nullptr, bufPtr);
+    ASSERT_EQ('e', bufPtr[0]);
+    ASSERT_EQ('f', bufPtr[1]);
+    ASSERT_EQ('g', bufPtr[2]);
+    ASSERT_EQ('h', bufPtr[3]);
+
     ASSERT_EQ(4, mCache->getBlob("abcd", 4, buf, 4));
     ASSERT_EQ('e', buf[0]);
     ASSERT_EQ('f', buf[1]);

@@ -19,6 +19,7 @@
 
 #include "BlobCache.h"
 
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -57,7 +58,17 @@ public:
     // getBlob attempts to retrieve the value blob associated with a given key
     // blob from cache.
     ssize_t getBlob(const void* key, ssize_t keySize,
-        void* value, ssize_t valueSize);
+                    void* value, ssize_t valueSize);
+    ssize_t getBlob(const void* key, ssize_t keySize,
+                    void** value,  std::function<void*(size_t)> alloc);
+    template <typename T>
+    ssize_t getBlob(const void* key, size_t keySize,
+                    T** value, std::function<void*(size_t)> alloc) {
+        void *valueVoid;
+        const ssize_t size = getBlob(key, keySize, &valueVoid, alloc);
+        *value = static_cast<T*>(valueVoid);
+        return size;
+    }
 
     // setCacheFilename sets the name of the file that should be used to store
     // cache contents from one program invocation to another.

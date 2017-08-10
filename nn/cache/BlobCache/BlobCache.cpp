@@ -152,9 +152,19 @@ void BlobCache::set(const void* key, size_t keySize, const void* value,
 
 size_t BlobCache::get(const void* key, size_t keySize, void* value,
         size_t valueSize) {
+    void *dummy;
+    return get(key, keySize, &dummy,
+               [value, valueSize](size_t allocSize) {
+                   return (allocSize <= valueSize ? value : nullptr);
+               });
+}
+
+size_t BlobCache::get(const void* key, size_t keySize, void** value,
+        std::function<void*(size_t)> alloc) {
     if (mMaxKeySize < keySize) {
         ALOGV("get: not searching because the key is too large: %zu (limit %zu)",
                 keySize, mMaxKeySize);
+        *value = nullptr;
         return 0;
     }
     std::shared_ptr<Blob> dummyKey(new Blob(key, keySize, false));
@@ -162,19 +172,21 @@ size_t BlobCache::get(const void* key, size_t keySize, void* value,
     auto index = std::lower_bound(mCacheEntries.begin(), mCacheEntries.end(), dummyEntry);
     if (index == mCacheEntries.end() || dummyEntry < *index) {
         ALOGV("get: no cache entry found for key of size %zu", keySize);
+        *value = nullptr;
         return 0;
     }
 
-    // The key was found. Return the value if the caller's buffer is large
-    // enough.
+    // The key was found. Return the value if we can allocate a buffer.
     std::shared_ptr<Blob> valueBlob(index->getValue());
     size_t valueBlobSize = valueBlob->getSize();
-    if (valueBlobSize <= valueSize) {
+    void *buf = alloc(valueBlobSize);
+    if (buf != nullptr) {
         ALOGV("get: copying %zu bytes to caller's buffer", valueBlobSize);
-        memcpy(value, valueBlob->getData(), valueBlobSize);
+        memcpy(buf, valueBlob->getData(), valueBlobSize);
+        *value = buf;
     } else {
-        ALOGV("get: caller's buffer is too small for value: %zu (needs %zu)",
-                valueSize, valueBlobSize);
+        ALOGV("get: cannot allocate caller's buffer: needs %zu", valueBlobSize);
+        *value = nullptr;
     }
     return valueBlobSize;
 }
