@@ -578,6 +578,53 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                               outShape);
             }
         } break;
+        case OperationType::L2_NORMALIZATION: {
+            if (!parameterCountIs(1, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
+                success = genericNormalizationPrepare(input.shape(), &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          l2normFloat32(reinterpret_cast<const float*>(input.buffer),
+                                        input.shape(),
+                                        reinterpret_cast<float*>(output.buffer),
+                                        outShape);
+            } else if (operation.opTuple.operandType == OperandType::TENSOR_QUANT8_ASYMM) {
+                success = genericNormalizationPrepare(input.shape(), &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          l2normQuant8(reinterpret_cast<const uint8_t*>(input.buffer),
+                                       input.shape(),
+                                       reinterpret_cast<uint8_t*>(output.buffer),
+                                       outShape);
+            }
+        } break;
+        case OperationType::LOCAL_RESPONSE_NORMALIZATION: {
+            if (!parameterCountIs(5, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            int32_t radius = getScalarData<int32_t>(mOperands[ins[1]]);
+            float bias = getScalarData<float>(mOperands[ins[2]]);
+            float alpha = getScalarData<float>(mOperands[ins[3]]);
+            float beta = getScalarData<float>(mOperands[ins[4]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
+                success = genericNormalizationPrepare(input.shape(), &outShape) &&
+                          allocateIfNeeded(&output, outShape) &&
+                          localResponseNormFloat32(reinterpret_cast<const float*>(input.buffer),
+                                                   input.shape(),
+                                                   radius, bias, alpha, beta,
+                                                   reinterpret_cast<float*>(output.buffer),
+                                                   outShape);
+            }
+        } break;
         default:
             nnAssert(false);
             break;

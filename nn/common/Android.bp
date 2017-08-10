@@ -36,6 +36,7 @@ cc_library_static {
         "operations/Conv2D.cpp",
         "operations/DepthwiseConv2D.cpp",
         "operations/FullyConnected.cpp",
+        "operations/Normalization.cpp",
         "operations/Pooling.cpp",
         "operations/SimpleMath.cpp",
     ],
