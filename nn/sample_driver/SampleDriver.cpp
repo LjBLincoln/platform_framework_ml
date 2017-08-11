@@ -62,7 +62,8 @@ Return<void> SampleDriver::initialize(initialize_cb cb) {
             {OperationType::SVDF, OperandType::TENSOR_FLOAT32},
             {OperationType::RNN, OperandType::TENSOR_FLOAT32},
             {OperationType::N_GRAM, OperandType::TENSOR_FLOAT32},
-            {OperationType::LOOKUP, OperandType::TENSOR_FLOAT32},
+            {OperationType::EMBEDDING_LOOKUP, OperandType::TENSOR_FLOAT32},
+            {OperationType::HASHTABLE_LOOKUP, OperandType::TENSOR_FLOAT32},
 
             {OperationType::AVERAGE_POOL, OperandType::TENSOR_QUANT8_ASYMM},
             {OperationType::CONCATENATION, OperandType::TENSOR_QUANT8_ASYMM},
@@ -96,7 +97,8 @@ Return<void> SampleDriver::initialize(initialize_cb cb) {
             {OperationType::SVDF, OperandType::TENSOR_QUANT8_ASYMM},
             {OperationType::RNN, OperandType::TENSOR_QUANT8_ASYMM},
             {OperationType::N_GRAM, OperandType::TENSOR_QUANT8_ASYMM},
-            {OperationType::LOOKUP, OperandType::TENSOR_QUANT8_ASYMM},
+            {OperationType::EMBEDDING_LOOKUP, OperandType::TENSOR_QUANT8_ASYMM},
+            {OperationType::HASHTABLE_LOOKUP, OperandType::TENSOR_QUANT8_ASYMM},
     };
 
     // TODO: These numbers are completely arbitrary.  To be revised.
