@@ -32,6 +32,7 @@ cc_library_static {
         "LSHProjection.cpp",
         "OperationsUtils.cpp",
         "RNN.cpp",
+        "SVDF.cpp",
         "Utils.cpp",
         "operations/Activation.cpp",
         "operations/Concatenation.cpp",
@@ -62,7 +63,6 @@ cc_library_static {
         "libeigen",
         "libtextclassifier_hash_headers",
     ],
-
 
     cflags: [
         "-DNAMESPACE_FOR_HASH_FUNCTIONS=farmhash",
@@ -106,5 +106,19 @@ cc_test {
     ],
     shared_libs: [
         "libneuralnetworks",
+    ],
+}
+
+cc_test {
+    name: "svdf_test",
+    srcs: [
+        "SVDFTest.cpp",
+    ],
+    shared_libs: [
+        "libneuralnetworks",
+    ],
+    static_libs: [
+        "libgmock",
+        "libneuralnetworks_common",
     ],
 }
