@@ -40,8 +40,8 @@ static_assert(ANEURALNETWORKS_TENSOR_FLOAT16 == 8,
               "ANEURALNETWORKS_TENSOR_FLOAT16 may have changed");
 static_assert(ANEURALNETWORKS_TENSOR_FLOAT32 == 9,
               "ANEURALNETWORKS_TENSOR_FLOAT32 may have changed");
-static_assert(ANEURALNETWORKS_TENSOR_SYMMETRICAL_QUANT8 == 10,
-              "ANEURALNETWORKS_TENSOR_SYMMETRICAL_QUANT8 may have changed");
+static_assert(ANEURALNETWORKS_TENSOR_QUANT8_ASYMM == 10,
+              "ANEURALNETWORKS_TENSOR_QUANT8_ASYMM may have changed");
 
 // Ensure that the constants are compatible with the values defined in the hal files.
 static_assert(static_cast<uint32_t>(OperandType::FLOAT16) == ANEURALNETWORKS_FLOAT16,
@@ -64,9 +64,9 @@ static_assert(static_cast<uint32_t>(OperandType::TENSOR_FLOAT16) == ANEURALNETWO
               "TENSOR_FLOAT16 != ANEURALNETWORKS_TENSOR_FLOAT16");
 static_assert(static_cast<uint32_t>(OperandType::TENSOR_FLOAT32) == ANEURALNETWORKS_TENSOR_FLOAT32,
               "TENSOR_FLOAT32 != ANEURALNETWORKS_TENSOR_FLOAT32");
-static_assert(static_cast<uint32_t>(OperandType::TENSOR_SYMMETRICAL_QUANT8) ==
-                      ANEURALNETWORKS_TENSOR_SYMMETRICAL_QUANT8,
-              "TENSOR_SYMMETRICAL_QUANT8 != ANEURALNETWORKS_TENSOR_SYMMETRICAL_QUANT8");
+static_assert(static_cast<uint32_t>(OperandType::TENSOR_QUANT8_ASYMM) ==
+                      ANEURALNETWORKS_TENSOR_QUANT8_ASYMM,
+              "TENSOR_QUANT8_ASYMM != ANEURALNETWORKS_TENSOR_QUANT8_ASYMM");
 
 using namespace android::nn;
 

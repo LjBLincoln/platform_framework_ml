@@ -21,6 +21,7 @@
 
 #include "NeuralNetworks.h"
 
+#include <math.h>
 #include <vector>
 
 namespace android {
@@ -38,7 +39,7 @@ enum class Type {
     UINT32 = ANEURALNETWORKS_UINT32,
     TENSOR_FLOAT16 = ANEURALNETWORKS_TENSOR_FLOAT16,
     TENSOR_FLOAT32 = ANEURALNETWORKS_TENSOR_FLOAT32,
-    TENSOR_SYMMETRICAL_QUANT8 = ANEURALNETWORKS_TENSOR_SYMMETRICAL_QUANT8,
+    TENSOR_QUANT8_ASYMM = ANEURALNETWORKS_TENSOR_QUANT8_ASYMM,
 };
 
 enum class ExecutePreference {
@@ -62,9 +63,34 @@ struct OperandType {
 
     OperandType(Type type, const std::vector<uint32_t>& d) : dimensions(d) {
         operandType.type = static_cast<uint32_t>(type);
+        operandType.scale = 0.0f;
+        operandType.offset = 0;
+
         operandType.dimensions.count = static_cast<uint32_t>(dimensions.size());
         operandType.dimensions.data = dimensions.data();
     }
+
+    OperandType(Type type, float scale,
+                const std::vector<uint32_t>& d) : dimensions(d) {
+        OperandType(type, d);
+        operandType.scale = scale;
+    }
+
+    OperandType(Type type, float f_min, float f_max,
+                const std::vector<uint32_t>& d) : dimensions(d) {
+        OperandType(type, d);
+
+        uint8_t q_min = std::numeric_limits<uint8_t>::min();
+        uint8_t q_max = std::numeric_limits<uint8_t>::max();
+        float range = q_max - q_min;
+        float scale = (f_max - f_min) / range;
+        int32_t offset =
+            fmin(q_max, fmax(q_min, static_cast<uint8_t>(round(q_min - f_min / scale))));
+
+        operandType.scale = scale;
+        operandType.offset = offset;
+    }
+
 };
 
 inline Result Initialize() {

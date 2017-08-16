@@ -44,7 +44,7 @@ enum {
     ANEURALNETWORKS_UINT32 = 7,
     ANEURALNETWORKS_TENSOR_FLOAT16 = 8,
     ANEURALNETWORKS_TENSOR_FLOAT32 = 9,
-    ANEURALNETWORKS_TENSOR_SYMMETRICAL_QUANT8 = 10,
+    ANEURALNETWORKS_TENSOR_QUANT8_ASYMM = 10,
 
     ANEURALNETWORKS_NUMBER_DATA_TYPES = 11
 };
@@ -210,7 +210,7 @@ typedef struct ANeuralNetworksOperandType {
      * TODO: revisit once we have a final representation for quantization.
      */
     float scale;
-    float offset;
+    int32_t offset;
 } ANeuralNetworksOperandType;
 
 /**

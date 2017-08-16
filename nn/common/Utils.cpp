@@ -37,7 +37,7 @@ const char* kTypeNames[ANEURALNETWORKS_NUMBER_DATA_TYPES] = {
         "UINT32",
         "TENSOR_FLOAT16",
         "TENSOR_FLOAT32",
-        "TENSOR_SIMMETRICAL_QUANT8",
+        "TENSOR_QUANT8_ASYMM",
 };
 
 // TODO Check if this useful
@@ -47,39 +47,39 @@ const char* kErrorNames[] = {
 };
 
 const char* kOperationNames[ANEURALNETWORKS_NUMBER_OPERATION_TYPES] = {
-        "AVERAGE_POOL_FLOAT32",
-        "CONCATENATION_FLOAT32",
-        "CONV_FLOAT32",
-        "DEPTHWISE_CONV_FLOAT32",
-        "MAX_POOL_FLOAT32",
-        "L2_POOL_FLOAT32",
-        "DEPTH_TO_SPACE_FLOAT32",
-        "SPACE_TO_DEPTH_FLOAT32",
-        "LOCAL_RESPONSE_NORMALIZATION_FLOAT32",
-        "SOFTMAX_FLOAT32",
-        "RESHAPE_FLOAT32",
-        "SPLIT_FLOAT32",
-        "FAKE_QUANT_FLOAT32",
-        "ADD_FLOAT32",
-        "FULLY_CONNECTED_FLOAT32",
-        "CAST_FLOAT32",
-        "MUL_FLOAT32",
-        "L2_NORMALIZATION_FLOAT32",
-        "LOGISTIC_FLOAT32",
-        "RELU_FLOAT32",
-        "RELU6_FLOAT32",
-        "RELU1_FLOAT32",
-        "TANH_FLOAT32",
-        "DEQUANTIZE_FLOAT32",
-        "FLOOR_FLOAT32",
-        "GATHER_FLOAT32",
-        "RESIZE_BILINEAR_FLOAT32",
-        "LSH_PROJECTION_FLOAT32",
-        "LSTM_FLOAT32",
-        "SVDF_FLOAT32",
-        "RNN_FLOAT32",
-        "N_GRAM_FLOAT32",
-        "LOOKUP_FLOAT32",
+        "AVERAGE_POOL",
+        "CONCATENATION",
+        "CONV",
+        "DEPTHWISE_CONV",
+        "MAX_POOL",
+        "L2_POOL",
+        "DEPTH_TO_SPACE",
+        "SPACE_TO_DEPTH",
+        "LOCAL_RESPONSE_NORMALIZATION",
+        "SOFTMAX",
+        "RESHAPE",
+        "SPLIT",
+        "FAKE_QUANT",
+        "ADD",
+        "FULLY_CONNECTED",
+        "CAST",
+        "MUL",
+        "L2_NORMALIZATION",
+        "LOGISTIC",
+        "RELU",
+        "RELU6",
+        "RELU1",
+        "TANH",
+        "DEQUANTIZE",
+        "FLOOR",
+        "GATHER",
+        "RESIZE_BILINEAR",
+        "LSH_PROJECTION",
+        "LSTM",
+        "SVDF",
+        "RNN",
+        "N_GRAM",
+        "LOOKUP",
 };
 
 const char* getOperationName(OperationType type) {
@@ -191,8 +191,8 @@ static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint
 
 static bool validOperations(const hidl_vec<Operation>& operations, size_t operandCount) {
     for (auto& op : operations) {
-        if (static_cast<uint32_t>(op.type) >= HAL_NUM_OPERATION_TYPES) {
-            LOG(ERROR) << "Invalid operation type " << toString(op.type);
+        if (static_cast<uint32_t>(op.opTuple.operationType) >= HAL_NUM_OPERATION_TYPES) {
+            LOG(ERROR) << "Invalid operation type " << toString(op.opTuple.operationType);
             return false;
         }
         if (!validOperandIndexes(op.inputs, operandCount) ||
