@@ -18,13 +18,12 @@
 #include "OperationsUtils.h"
 
 #include "internal/optimized/optimized_ops.h"
-#include "internal/reference/reference_ops.h"
 
 namespace android {
 namespace nn {
 
-bool genericActivationFloat32Prepare(const Shape& input,
-                                     Shape* output) {
+bool genericActivationPrepare(const Shape& input,
+                              Shape* output) {
     DCHECK_EQ(getNumberOfDimensions(input), 4);
     return SetShape(input, output);
 }
@@ -61,6 +60,63 @@ bool logisticFloat32(const float* inputData, const Shape& inputShape,
     int numElements = getNumberOfElements(inputShape);
     for (int i=0; i<numElements; i++, inputData++, outputData++) {
         *outputData = 1.f / (1.f + std::exp(-*inputData));
+    }
+    return true;
+}
+
+bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
+                    uint8_t* outputData, const Shape& outputShape) {
+    int numElements = getNumberOfElements(inputShape);
+    static constexpr int kInputIntegerBits = 4;
+
+    const double input_real_multiplier =
+            inputShape.scale *
+            static_cast<double>(1 << (31 - kInputIntegerBits));
+
+    int32_t input_multiplier = 0;
+    int32_t input_left_shift = 0;
+    QuantizeMultiplierGreaterThanOne(input_real_multiplier,
+                                     &input_multiplier,
+                                     &input_left_shift);
+    int32_t input_range_radius =
+            CalculateInputRadius(kInputIntegerBits, input_left_shift);
+
+    optimized_ops::Logistic(
+            inputData, convertShapeToDims(inputShape),
+            inputShape.offset, input_range_radius,
+            input_multiplier, input_left_shift,
+            outputData, convertShapeToDims(outputShape));
+
+    return true;
+}
+
+bool softmaxFloat32(const float* inputData, const Shape& inputShape,
+                    const float beta,
+                    float* outputData, const Shape& outputShape) {
+    int batch_size = (int)getSizeOfDimension(inputShape, 0);
+    int input_size = getNumberOfElements(inputShape) / batch_size;
+
+    // For each batch
+    for (int b=0; b<batch_size; b++) {
+        // Find the max coeff.
+        float max_coeff = inputData[0];
+        for (int i=1; i<input_size; i++) {
+            max_coeff = std::max(inputData[i], max_coeff);
+        }
+        // Compute the normalized sum of exps.
+        float exp_sum = 0.0f;
+        for (int i=0; i<input_size; i++) {
+            outputData[i] = std::exp((inputData[i] - max_coeff) * beta);
+            exp_sum += outputData[i];
+        }
+        // Divide by the sum of exps.
+        float reciprocal_sum_exp = 1.f / exp_sum;
+        for (int i=0; i<input_size; i++) {
+          outputData[i] *= reciprocal_sum_exp;
+        }
+        // Advance in and out pointers for the next batch.
+        inputData += input_size;
+        outputData += input_size;
     }
     return true;
 }

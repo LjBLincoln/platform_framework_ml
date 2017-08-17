@@ -42,8 +42,8 @@ inline Dims<4> convertShapeToDims(const Shape& shape) {
     dims.sizes[0] = (int)getSizeOfDimension(shape, 0);
   } else {
     for (int i=0; i<4; i++) {
-      int src = 4-i-1;
-      if (src < (int) shape.dimensions.size()) {
+      int src = (int)shape.dimensions.size()-i-1;
+      if (src >= 0) {
         dims.sizes[i] = (int)getSizeOfDimension(shape, src);
       }
     }
