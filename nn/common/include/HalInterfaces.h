@@ -40,6 +40,7 @@ using ::android::hardware::neuralnetworks::V1_0::Model;
 using ::android::hardware::neuralnetworks::V1_0::Operand;
 using ::android::hardware::neuralnetworks::V1_0::OperandType;
 using ::android::hardware::neuralnetworks::V1_0::Operation;
+using ::android::hardware::neuralnetworks::V1_0::OperationTuple;
 using ::android::hardware::neuralnetworks::V1_0::OperationType;
 using ::android::hardware::neuralnetworks::V1_0::PerformanceInfo;
 using ::android::hardware::neuralnetworks::V1_0::Request;

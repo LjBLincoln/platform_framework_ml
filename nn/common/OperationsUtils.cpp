@@ -17,7 +17,10 @@
 #define LOG_TAG "OperationsUtils"
 
 #include "OperationsUtils.h"
+#include "Operations.h"
 #include "Utils.h"
+
+#include <cmath>
 
 namespace android {
 namespace nn {
@@ -60,6 +63,103 @@ uint32_t getSizeOfDimension(const Shape& shape, uint32_t dimensionIdx) {
         return 0;
     }
     return shape.dimensions[dimensionIdx];
+}
+
+
+void QuantizeMultiplierSmallerThanOne(double double_multiplier,
+                                      int32_t* quantized_multiplier,
+                                      int32_t* right_shift) {
+    CHECK(double_multiplier >= 0.);
+    CHECK(double_multiplier < 1.);
+    if (double_multiplier == 0.) {
+        *quantized_multiplier = 0;
+        *right_shift = 0;
+        return;
+    }
+    CHECK(double_multiplier > 0.);
+    const double q = std::frexp(double_multiplier, right_shift);
+    *right_shift *= -1;
+    int64_t q_fixed = static_cast<int64_t>(std::round(q * (1ll << 31)));
+    CHECK(q_fixed <= (1ll << 31));
+    if (q_fixed == (1ll << 31)) {
+        q_fixed /= 2;
+        --*right_shift;
+    }
+    CHECK_GE(*right_shift, 0);
+    CHECK_LE(q_fixed, std::numeric_limits<int32_t>::max());
+    *quantized_multiplier = static_cast<int32_t>(q_fixed);
+}
+
+void QuantizeMultiplierGreaterThanOne(double double_multiplier,
+                                      int32_t* quantized_multiplier,
+                                      int* left_shift) {
+    CHECK(double_multiplier > 1.);
+    const double q = std::frexp(double_multiplier, left_shift);
+    int64_t q_fixed = static_cast<int64_t>(std::round(q * (1ll << 31)));
+    CHECK(q_fixed <= (1ll << 31));
+    if (q_fixed == (1ll << 31)) {
+        q_fixed /= 2;
+        ++*left_shift;
+    }
+    CHECK_GE(*left_shift, 0);
+    CHECK_LE(q_fixed, std::numeric_limits<int32_t>::max());
+    *quantized_multiplier = static_cast<int32_t>(q_fixed);
+}
+
+void GetQuantizedConvolutionMultipler(const Shape& inputShape,
+                                      const Shape& filterShape,
+                                      const Shape& biasShape,
+                                      const Shape& outputShape,
+                                      float* multiplier) {
+    const float input_product_scale = inputShape.scale * filterShape.scale;
+    const float bias_scale = biasShape.scale;
+    const float output_scale = outputShape.scale;
+
+    // The following conditions must be guaranteed by the training pipeline.
+    CHECK(std::abs(input_product_scale - bias_scale) <=
+              1e-6 * std::min(input_product_scale, bias_scale));
+    CHECK(input_product_scale >= 0);
+    CHECK(input_product_scale < output_scale);
+    *multiplier = input_product_scale / output_scale;
+}
+
+void CalculateActivationRangeUint8(int32_t activation,
+                                   const Shape& outputShape,
+                                   int32_t* act_min,
+                                   int32_t* act_max) {
+    const int32_t qmin = std::numeric_limits<uint8_t>::min();
+    const int32_t qmax = std::numeric_limits<uint8_t>::max();
+
+    const auto scale = outputShape.scale;
+    const auto zero_point = outputShape.offset;
+
+    auto quantize = [scale, zero_point](float f) {
+        return zero_point + static_cast<int32_t>(std::round(f / scale));
+    };
+
+    if (activation == kActivationRelu) {
+        *act_min = std::max(qmin, quantize(0.0));
+        *act_max = qmax;
+    } else if (activation == kActivationRelu6) {
+        *act_min = std::max(qmin, quantize(0.0));
+        *act_max = std::min(qmax, quantize(6.0));
+    } else if (activation == kActivationRelu1) {
+        *act_min = std::max(qmin, quantize(-1.0));
+        *act_max = std::min(qmax, quantize(1.0));
+    } else {
+        *act_min = qmin;
+        *act_max = qmax;
+    }
+}
+
+int32_t CalculateInputRadius(int input_integer_bits, int input_left_shift) {
+    const double max_input_rescaled = 1.0 * ((1 << input_integer_bits) - 1) *
+                                      (1ll << (31 - input_integer_bits)) /
+                                      (1ll << input_left_shift);
+    // Tighten bound using floor.  Suppose that we could use the exact value.
+    // After scaling the difference, the result would be at the maximum.  Thus we
+    // must ensure that our value has lower magnitude.
+    return static_cast<int32_t>(std::floor(max_input_rescaled));
 }
 
 } // namespace nn
