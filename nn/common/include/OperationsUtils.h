@@ -29,6 +29,8 @@ namespace nn {
 struct Shape {
     OperandType type;
     std::vector<uint32_t> dimensions;
+    float scale;
+    int32_t offset;
 };
 
 // Verifies that the two shapes are the same.
@@ -47,8 +49,34 @@ uint32_t getSizeOfDimension(const Shape& shape, uint32_t dimensionIdx);
 
 inline uint32_t ComputePadding(uint32_t stride, uint32_t in_size, uint32_t filter_size,
                                uint32_t out_size) {
-  return ((out_size - 1) * stride + filter_size - in_size) / 2;
+    uint32_t tmp = (out_size - 1) * stride + filter_size;
+    if (tmp > in_size) {
+        return (tmp - in_size) / 2;
+    } else {
+        return 0;
+    }
 }
+
+void QuantizeMultiplierSmallerThanOne(double double_multiplier,
+                                      int32_t* quantized_multiplier,
+                                      int32_t* right_shift);
+
+void QuantizeMultiplierGreaterThanOne(double double_multiplier,
+                                      int32_t* quantized_multiplier,
+                                      int* left_shift);
+
+void GetQuantizedConvolutionMultipler(const Shape& inputShape,
+                                      const Shape& filterShape,
+                                      const Shape& biasShape,
+                                      const Shape& outputShape,
+                                      float* multiplier);
+
+void CalculateActivationRangeUint8(int32_t activation,
+                                   const Shape& outputShape,
+                                   int32_t* act_min,
+                                   int32_t* act_max);
+
+int32_t CalculateInputRadius(int input_integer_bits, int input_left_shift);
 
 } // namespace nn
 } // namespace android
