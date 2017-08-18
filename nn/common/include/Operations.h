@@ -38,8 +38,25 @@ enum ActivationFn {
     kActivationRelu6 = 3,
 };
 
-bool addTensorsPrepare(const Shape& in1, const Shape& in2, Shape* out1);
-bool addTensorsFloat32(const float* in1, const float* in2, float* out, const Shape& shape);
+bool addPrepare(const Shape& in1, const Shape& in2, Shape* out1);
+bool addFloat32(const float* in1, const float* in2,
+                int32_t activation,
+                float* out, const Shape& shape);
+
+bool mulPrepare(const Shape& in1, const Shape& in2, Shape* out1);
+bool mulFloat32(const float* in1, const float* in2,
+                int32_t activation,
+                float* out, const Shape& shape);
+
+bool floorPrepare(const Shape& input, Shape* output);
+bool floorFloat32(const float* inputData,
+                  float* outputData,
+                  const Shape& shape);
+
+bool dequantizePrepare(const Shape& input, Shape* output);
+bool dequantizeQuant8ToFloat32(const uint8_t* inputData,
+                               float* outputData,
+                               const Shape& shape);
 
 bool depthwiseConvPrepare(const Shape& input,
                                  const Shape& filter,
@@ -146,6 +163,46 @@ bool concatenationQuant8(const std::vector<const uint8_t*>& inputDataPtrs,
                          const std::vector<Shape>& inputShapes,
                          int32_t axis, int32_t activation,
                          uint8_t* outputData, const Shape& outputShape);
+
+bool genericNormalizationPrepare(const Shape& input, Shape* output);
+bool l2normFloat32(const float* inputData, const Shape& inputShape,
+                   float* outputData, const Shape& outputShape);
+bool l2normQuant8(const uint8_t* inputData, const Shape& inputShape,
+                  uint8_t* outputData, const Shape& outputShape);
+bool localResponseNormFloat32(const float* inputData, const Shape& inputShape,
+                              int32_t radius, float bias, float alpha, float beta,
+                              float* outputData, const Shape& outputShape);
+
+bool reshapePrepare(const Shape& input,
+                    const int32_t* targetDims,
+                    const int32_t targetDimsSize,
+                    Shape* output);
+bool reshapeGeneric(const void* inputData, const Shape& inputShape,
+                    void* outputData, const Shape& outputShape);
+
+bool resizeBilinearPrepare(const Shape& input,
+                           int32_t height,
+                           int32_t width,
+                           Shape* output);
+bool resizeBilinearFloat32(const float* inputData,
+                           const Shape& inputShape,
+                           float* outputData,
+                           const Shape& outputShape);
+
+bool depthToSpacePrepare(const Shape& input,
+                         int32_t blockSize,
+                         Shape* output);
+bool depthToSpaceGeneric(const uint8_t* inputData, const Shape& inputShape,
+                         int32_t blockSize,
+                         uint8_t* outputData, const Shape& outputShape);
+
+bool spaceToDepthPrepare(const Shape& input,
+                         int32_t blockSize,
+                         Shape* output);
+bool spaceToDepthGeneric(const uint8_t* inputData, const Shape& inputShape,
+                         int32_t blockSize,
+                         uint8_t* outputData, const Shape& outputShape);
+
 } // namespace nn
 } // namespace android
 
