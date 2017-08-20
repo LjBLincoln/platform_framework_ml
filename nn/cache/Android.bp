@@ -15,17 +15,33 @@
  */
 
 subdirs = [
-    "cache",
-    "common",
-    "runtime",
-    "sample_driver",
+    "BlobCache",
+    "nnCache",
 ]
 
+// cc_defaults adapted in part from frameworks/native/opengl/libs/Android.bp
+
 cc_defaults {
-    name: "neuralnetworks_defaults",
+    name: "ml_nn_cache_libs_defaults",
+    vendor_available: true,
     cflags: [
-        "-Wall",
-        "-Wextra",
-        "-Werror",
+        "-DLOG_TAG=\"Cache\"",
+        "-fvisibility=hidden",
     ],
+    shared_libs: [
+        // ***** DO NOT ADD NEW DEPENDENCIES HERE *****
+        // In particular, DO NOT add libutils or anything "above" libcutils
+        "libcutils",
+        "liblog",
+    ],
+}
+
+cc_defaults {
+    name: "ml_nn_cache_libs_defaults_android_host",
+    defaults: ["ml_nn_cache_libs_defaults"],
+    target: {
+        host: {
+            cflags: [ "-O0", "-g" ],
+        },
+    },
 }

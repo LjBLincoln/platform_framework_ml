@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-subdirs = [
-    "cache",
-    "common",
-    "runtime",
-    "sample_driver",
-]
+// Adapted in part from frameworks/native/opengl/libs/Android.bp
 
-cc_defaults {
-    name: "neuralnetworks_defaults",
-    cflags: [
-        "-Wall",
-        "-Wextra",
-        "-Werror",
+cc_test {
+    name: "BlobCache_test",
+    host_supported: true,
+    defaults: ["ml_nn_cache_libs_defaults_android_host"],
+    srcs: [
+        "BlobCache.cpp",
+        "BlobCache_test.cpp",
     ],
+}
+
+cc_library_static {
+    name: "libBlobCache",
+    defaults: ["ml_nn_cache_libs_defaults_android_host"],
+    srcs: ["BlobCache.cpp"],
+    export_include_dirs: ["."],
 }
