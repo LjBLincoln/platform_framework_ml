@@ -17,9 +17,15 @@
 #ifndef ANDROID_ML_NN_COMMON_OPERATIONS_H
 #define ANDROID_ML_NN_COMMON_OPERATIONS_H
 
+#include "android/log.h"
+
 #include <cstdint>
 #include <stddef.h>
 #include <vector>
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
 
 namespace android {
 namespace nn {
@@ -31,11 +37,43 @@ enum PaddingScheme {
     kPaddingSame = 1,
     kPaddingValid = 2,
 };
+
 enum ActivationFn {
     kActivationNone = 0,
-    kActivationRelu = 1,
-    kActivationRelu1 = 2,
-    kActivationRelu6 = 3,
+    kActivationRelu,
+    kActivationRelu1,
+    kActivationRelu6,
+    kActivationTanh,
+    kActivationSignBit,
+    kActivationSigmoid,
+};
+
+class ActivationFunctor {
+ public:
+  explicit ActivationFunctor(ActivationFn act) : act_(act) {}
+
+  float operator()(float a) const {
+    switch (act_) {
+      case kActivationNone:
+        return a;
+      case kActivationRelu:
+        return a < 0.f ? 0.f : a;
+      case kActivationRelu6:
+        return std::max(0.f, std::min(a, 6.f));
+      case kActivationTanh:
+        return std::tanh(a);
+      case kActivationSigmoid:
+        return 1.0f / (1.0f + std::exp(-a));
+      default:
+        __android_log_print(ANDROID_LOG_ERROR, "NN API",
+                            "Invalid enum value for activation function: 0x%0X",
+                            act_);
+        exit(1);
+    }
+  }
+
+ private:
+  ActivationFn act_;
 };
 
 bool addPrepare(const Shape& in1, const Shape& in2, Shape* out1);

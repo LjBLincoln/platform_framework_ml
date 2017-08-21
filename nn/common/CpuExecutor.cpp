@@ -20,6 +20,7 @@
 
 #include "NeuralNetworks.h"
 #include "Operations.h"
+#include "RNN.h"
 
 namespace android {
 namespace nn {
@@ -763,6 +764,10 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                           blockSize,
                                           output.buffer,
                                           outShape);
+        } break;
+        case OperationType::RNN: {
+            RNN rnn_cell(operation, mOperands);
+            success = rnn_cell.Eval();
         } break;
         default:
             nnAssert(false);
