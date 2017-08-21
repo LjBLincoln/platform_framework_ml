@@ -24,6 +24,21 @@
 namespace android {
 namespace nn {
 
+bool RunTimePoolInfo::set(const hidl_memory& hidlMemory) {
+    memory = mapMemory(hidlMemory);
+    if (memory == nullptr) {
+        LOG(ERROR) << "Can't map shared memory.";
+        return false;
+    }
+    memory->update();
+    buffer = reinterpret_cast<uint8_t*>(static_cast<void*>(memory->getPointer()));
+    if (buffer == nullptr) {
+        LOG(ERROR) << "Can't access shared memory.";
+        return false;
+    }
+    return true;
+}
+
 // If we don't have a buffer, allocate it.
 static bool allocateIfNeeded(RunTimeOperandInfo* info, const Shape& shape) {
     info->type = shape.type;
@@ -42,7 +57,7 @@ static bool allocateIfNeeded(RunTimeOperandInfo* info, const Shape& shape) {
 
 template <typename T>
 static T getScalarData(RunTimeOperandInfo& info) {
-    T * data = reinterpret_cast<T*>(info.buffer);
+    T* data = reinterpret_cast<T*>(info.buffer);
     return data[0];
 }
 
@@ -115,10 +130,10 @@ bool CpuExecutor::setRunTimeOperandInfo(uint32_t operandIndex,
     if (dimensions.size() > 0) {
         to.dimensions = dimensions;
     }
-    if (location.poolIndex == static_cast<uint32_t>(LocationValues::LOCATION_AT_RUN_TIME)) {
+    if (location.poolIndex == RUN_TIME) {
         to.buffer = nullptr;
         to.numberOfUsesLeft = useCount;
-    } else if (location.poolIndex == static_cast<uint32_t>(LocationValues::LOCATION_SAME_BLOCK)) {
+    } else if (location.poolIndex == SAME_BLOCK) {
         to.buffer = const_cast<uint8_t*>(&mModel->operandValues[location.offset]);
         to.numberOfUsesLeft = 0;
     } else {
@@ -142,8 +157,7 @@ void CpuExecutor::freeNoLongerUsedOperands(const std::vector<uint32_t>& inputs) 
         if (info.numberOfUsesLeft == 0) {
             continue;
         }
-        nnAssert(mModel->operands[i].location.poolIndex ==
-                 static_cast<uint32_t>(LocationValues::LOCATION_AT_RUN_TIME));
+        nnAssert(mModel->operands[i].location.poolIndex == RUN_TIME);
         info.numberOfUsesLeft--;
         if (info.numberOfUsesLeft == 0) {
             nnAssert(info.buffer != nullptr);
