@@ -1961,7 +1961,8 @@ void AveragePool(const uint8* input_data, const Dims<4>& input_dims, int stride,
             std::min(filter_height, input_height - in_y_origin);
         const int filter_count =
             (filter_x_end - filter_x_start) * (filter_y_end - filter_y_start);
-        static constexpr int kAccBufferMaxSize = 1024;
+        // TODO: Add a dynamic buffer allocation path instead of hardcoded size.
+        static constexpr int kAccBufferMaxSize = 2048;
         DCHECK_LE(depth, kAccBufferMaxSize);
         uint16 acc[kAccBufferMaxSize];
         memset(acc, 0, depth * sizeof(acc[0]));
@@ -2128,7 +2129,8 @@ void MaxPool(const uint8* input_data, const Dims<4>& input_dims, int stride,
         const int filter_y_start = std::max(0, -in_y_origin);
         const int filter_y_end =
             std::min(filter_height, input_height - in_y_origin);
-        static constexpr int kAccBufferMaxSize = 1024;
+        // TODO: Add a dynamic buffer allocation path instead of hardcoded size.
+        static constexpr int kAccBufferMaxSize = 2048;
         DCHECK_LE(depth, kAccBufferMaxSize);
         uint8 acc[kAccBufferMaxSize];
         memset(acc, 0, depth * sizeof(acc[0]));
