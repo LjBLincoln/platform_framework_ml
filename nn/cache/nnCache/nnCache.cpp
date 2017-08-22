@@ -42,6 +42,7 @@ namespace android {
 NNCache::NNCache() :
     mInitialized(false),
     mMaxKeySize(0), mMaxValueSize(0), mMaxTotalSize(0),
+    mPolicy(defaultPolicy()),
     mSavePending(false) {
 }
 
@@ -54,12 +55,14 @@ NNCache* NNCache::get() {
     return &sCache;
 }
 
-void NNCache::initialize(size_t maxKeySize, size_t maxValueSize, size_t maxTotalSize) {
+void NNCache::initialize(size_t maxKeySize, size_t maxValueSize, size_t maxTotalSize,
+                         Policy policy) {
     std::lock_guard<std::mutex> lock(mMutex);
     mInitialized = true;
     mMaxKeySize = maxKeySize;
     mMaxValueSize = maxValueSize;
     mMaxTotalSize = maxTotalSize;
+    mPolicy = policy;
 }
 
 void NNCache::terminate() {
@@ -136,7 +139,7 @@ void NNCache::setCacheFilename(const char* filename) {
 
 BlobCache* NNCache::getBlobCacheLocked() {
     if (mBlobCache == nullptr) {
-        mBlobCache.reset(new BlobCache(mMaxKeySize, mMaxValueSize, mMaxTotalSize));
+        mBlobCache.reset(new BlobCache(mMaxKeySize, mMaxValueSize, mMaxTotalSize, mPolicy));
         loadBlobCacheLocked();
     }
     return mBlobCache.get();
