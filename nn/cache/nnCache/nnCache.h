@@ -31,6 +31,12 @@ namespace android {
 class NNCache {
 public:
 
+    typedef BlobCache::Select Select;
+    typedef BlobCache::Capacity Capacity;
+    typedef BlobCache::Policy Policy;
+
+    static Policy defaultPolicy() { return BlobCache::defaultPolicy(); }
+
     // get returns a pointer to the singleton NNCache object.  This
     // singleton object will never be destroyed.
     static NNCache* get();
@@ -44,7 +50,8 @@ public:
     // less than or equal to maxKeySize and maxValueSize,
     // respectively. The total combined size of ALL cache entries (key
     // sizes plus value sizes) will not exceed maxTotalSize.
-    void initialize(size_t maxKeySize, size_t maxValueSize, size_t maxTotalSize);
+    void initialize(size_t maxKeySize, size_t maxValueSize, size_t maxTotalSize,
+                    Policy policy = defaultPolicy());
 
     // terminate puts the NNCache back into the uninitialized state.  When
     // in this state the getBlob and setBlob methods will return without
@@ -114,6 +121,9 @@ private:
     // mMaxTotalSize is the maximum size that all cache entries can occupy. This
     // includes space for both keys and values.
     size_t mMaxTotalSize;
+
+    // mPolicy is the policy for cleaning the cache.
+    Policy mPolicy;
 
     // mBlobCache is the cache in which the key/value blob pairs are stored.  It
     // is initially NULL, and will be initialized by getBlobCacheLocked the

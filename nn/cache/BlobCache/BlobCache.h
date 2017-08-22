@@ -21,6 +21,7 @@
 
 #include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace android {
@@ -34,11 +35,41 @@ namespace android {
 // that generated it.
 class BlobCache {
 public:
+    enum class Select {
+        RANDOM,  // evict random entries
+        LRU,     // evict least-recently-used entries
+
+        DEFAULT = RANDOM,
+    };
+
+    enum class Capacity {
+        // cut back to no more than half capacity; new/replacement
+        // entry still might not fit
+        HALVE,
+
+        // cut back to whatever is necessary to fit new/replacement
+        // entry
+        FIT,
+
+        // cut back to no more than half capacity and ensure that
+        // there's enough space for new/replacement entry
+        FIT_HALVE,
+
+        DEFAULT = HALVE,
+    };
+
+    // When we're inserting or replacing an entry in the cache, and
+    // there's not enough space, how do we clean the cache?
+    typedef std::pair<Select, Capacity> Policy;
+
+    static Policy defaultPolicy() { return Policy(Select::DEFAULT, Capacity::DEFAULT); }
+
     // Create an empty blob cache. The blob cache will cache key/value pairs
     // with key and value sizes less than or equal to maxKeySize and
     // maxValueSize, respectively. The total combined size of ALL cache entries
     // (key sizes plus value sizes) will not exceed maxTotalSize.
-    BlobCache(size_t maxKeySize, size_t maxValueSize, size_t maxTotalSize);
+    BlobCache(size_t maxKeySize, size_t maxValueSize, size_t maxTotalSize,
+              Policy policy = defaultPolicy());
 
     // set inserts a new binary value into the cache and associates it with the
     // given binary key.  If the key or value are too large for the cache then
@@ -135,13 +166,41 @@ private:
     // A random function helper to get around MinGW not having nrand48()
     long int blob_random();
 
-    // clean evicts a randomly chosen set of entries from the cache such that
-    // the total size of all remaining entries is less than mMaxTotalSize/2.
-    void clean();
+    // Use this in place of a cache entry index to indicate that no
+    // entry is being designated.
+    static const size_t NoEntry = ~size_t(0);
+
+    // Is this Capacity value one of the *FIT* values?
+    static bool isFit(Capacity capacity);
+
+    // clean evicts a selected set of entries from the cache to make
+    // room for a new entry or for replacing an entry with a larger
+    // one.  mSelect determines how to pick entries to evict, and
+    // mCapacity determines when to stop evicting entries.
+    //
+    // newEntrySize is the size of the entry we want to add to the
+    // cache, or the new size of the entry we want to replace in the
+    // cache.
+    //
+    // If we are replacing an entry in the cache, then onBehalfOf is
+    // the index of that entry in the cache; otherwise, it is NoEntry.
+    //
+    // Returns true if at least one entry is evicted.
+    bool clean(size_t newEntrySize, size_t onBehalfOf);
 
     // isCleanable returns true if the cache is full enough for the clean method
     // to have some effect, and false otherwise.
     bool isCleanable() const;
+
+    // findVictim selects an entry to remove from the cache.  The
+    // cache must not be empty.
+    size_t findVictim();
+
+    // findDownTo determines how far to clean the cache -- until it
+    // results in a total size that does not exceed the return value
+    // of findDownTo.  newEntrySize and onBehalfOf have the same
+    // meanings they do for clean.
+    size_t findDownTo(size_t newEntrySize, size_t onBehalfOf);
 
     // A Blob is an immutable sized unstructured data blob.
     class Blob {
@@ -174,7 +233,7 @@ private:
     class CacheEntry {
     public:
         CacheEntry();
-        CacheEntry(const std::shared_ptr<Blob>& key, const std::shared_ptr<Blob>& value);
+        CacheEntry(const std::shared_ptr<Blob>& key, const std::shared_ptr<Blob>& value, uint32_t recency);
         CacheEntry(const CacheEntry& ce);
 
         bool operator<(const CacheEntry& rhs) const;
@@ -185,6 +244,9 @@ private:
 
         void setValue(const std::shared_ptr<Blob>& value);
 
+        uint32_t getRecency() const;
+        void setRecency(uint32_t recency);
+
     private:
 
         // mKey is the key that identifies the cache entry.
@@ -192,6 +254,10 @@ private:
 
         // mValue is the cached data associated with the key.
         std::shared_ptr<Blob> mValue;
+
+        // mRecency is the last "time" (as indicated by
+        // BlobCache::mAccessCount) that this entry was accessed.
+        uint32_t mRecency;
     };
 
     // A Header is the header for the entire BlobCache serialization format. No
@@ -257,9 +323,22 @@ private:
     // will be evicted from the cache to make room for the new entry.
     const size_t mMaxTotalSize;
 
+    // mPolicySelect indicates how we pick entries to evict from the cache.
+    const Select mPolicySelect;
+
+    // mPolicyCapacity indicates how we decide when to stop evicting
+    // entries from the cache.
+    const Capacity mPolicyCapacity;
+
     // mTotalSize is the total combined size of all keys and values currently in
     // the cache.
     size_t mTotalSize;
+
+    // mAccessCount is the number of times an entry has been
+    // added/replaced by set(), or its content (not just its size)
+    // retrieved by get().  It serves as a clock for recognizing how
+    // recently an entry was accessed, for the Select::LRU policy.
+    uint32_t mAccessCount;
 
     // mRandState is the pseudo-random number generator state. It is passed to
     // nrand48 to generate random numbers when needed.
