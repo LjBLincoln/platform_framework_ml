@@ -360,7 +360,8 @@ int ANeuralNetworksRequest_setPreference(ANeuralNetworksRequest* request, uint32
 int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t index,
                                     const ANeuralNetworksOperandType* type, const void* buffer,
                                     size_t length) {
-    if (!request || !buffer) {
+    // TODO: For a non-optional input, also verify that buffer is not null.
+    if (!request) {
         LOG(ERROR) << "ANeuralNetworksRequest_setInput passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }

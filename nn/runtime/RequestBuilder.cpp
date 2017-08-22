@@ -129,12 +129,16 @@ int RequestBuilder::updateDimensionInfo(ModelArgumentInfo* info,
 int RequestBuilder::startCompute(Event** event) {
     // TODO validate that we have full types for all inputs and outputs,
     // that the graph is not cyclic,
+    /*
+       TODO: For non-optional inputs, also verify that buffers are not null.
+
     for (auto& p : mInputs) {
         if (p.state == ModelArgumentInfo::MISSING) {
             LOG(ERROR) << "ANeuralNetworksRequest_startCompute not all inputs specified";
             return ANEURALNETWORKS_BAD_DATA;
         }
     }
+    */
     for (auto& p : mOutputs) {
         if (p.state == ModelArgumentInfo::MISSING) {
             LOG(ERROR) << "ANeuralNetworksRequest_startCompute not all outputs specified";
