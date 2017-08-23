@@ -29,19 +29,21 @@
 static const char property_value[] = "[HOST]";
 #define PROPERTY_VALUE_MAX (sizeof(property_value) - 1)
 static int property_get(const char *key, char *value, const char *default_value) {
-  if (!strcmp(key, "ro.build.id")) {
-    memcpy(value, property_value, PROPERTY_VALUE_MAX);
-    return PROPERTY_VALUE_MAX;
-  }
-  if (default_value) {
-    const size_t len = std::max(strlen(default_value) + 1, size_t(PROPERTY_VALUE_MAX));
-    memcpy(value, default_value, len);
-  }
-  return 0;
+    if (!strcmp(key, "ro.build.id")) {
+        memcpy(value, property_value, PROPERTY_VALUE_MAX);
+        return PROPERTY_VALUE_MAX;
+    }
+    if (default_value) {
+        const size_t len = std::max(strlen(default_value) + 1, size_t(PROPERTY_VALUE_MAX));
+        memcpy(value, default_value, len);
+    }
+    return 0;
 }
 #endif
 
 #include <log/log.h>
+
+#include <algorithm>
 #include <chrono>
 
 namespace android {
@@ -55,11 +57,14 @@ static const uint32_t blobCacheVersion = 3;
 // BlobCache::Header::mDeviceVersion value
 static const uint32_t blobCacheDeviceVersion = 1;
 
-BlobCache::BlobCache(size_t maxKeySize, size_t maxValueSize, size_t maxTotalSize):
+BlobCache::BlobCache(size_t maxKeySize, size_t maxValueSize, size_t maxTotalSize, Policy policy):
         mMaxKeySize(maxKeySize),
         mMaxValueSize(maxValueSize),
         mMaxTotalSize(maxTotalSize),
-        mTotalSize(0) {
+        mPolicySelect(policy.first),
+        mPolicyCapacity(policy.second),
+        mTotalSize(0),
+        mAccessCount(0) {
     int64_t now = std::chrono::steady_clock::now().time_since_epoch().count();
 #ifdef _WIN32
     srand(now);
@@ -98,7 +103,7 @@ void BlobCache::set(const void* key, size_t keySize, const void* value,
     }
 
     std::shared_ptr<Blob> dummyKey(new Blob(key, keySize, false));
-    CacheEntry dummyEntry(dummyKey, NULL);
+    CacheEntry dummyEntry(dummyKey, NULL, 0);
 
     while (true) {
         auto index = std::lower_bound(mCacheEntries.begin(), mCacheEntries.end(), dummyEntry);
@@ -106,11 +111,19 @@ void BlobCache::set(const void* key, size_t keySize, const void* value,
             // Create a new cache entry.
             std::shared_ptr<Blob> keyBlob(new Blob(key, keySize, true));
             std::shared_ptr<Blob> valueBlob(new Blob(value, valueSize, true));
-            size_t newTotalSize = mTotalSize + keySize + valueSize;
+            size_t newEntrySize = keySize + valueSize;
+            size_t newTotalSize = mTotalSize + newEntrySize;
             if (mMaxTotalSize < newTotalSize) {
                 if (isCleanable()) {
                     // Clean the cache and try again.
-                    clean();
+                    if (!clean(newEntrySize, NoEntry)) {
+                        // We have some kind of logic error -- perhaps
+                        // an inconsistency between isCleanable() and
+                        // findDownTo().
+                        ALOGE("set: not caching new key/value pair because "
+                              "cleaning failed");
+                        break;
+                    }
                     continue;
                 } else {
                     ALOGV("set: not caching new key/value pair because the "
@@ -120,7 +133,7 @@ void BlobCache::set(const void* key, size_t keySize, const void* value,
                     break;
                 }
             }
-            mCacheEntries.insert(index, CacheEntry(keyBlob, valueBlob));
+            mCacheEntries.insert(index, CacheEntry(keyBlob, valueBlob, ++mAccessCount));
             mTotalSize = newTotalSize;
             ALOGV("set: created new cache entry with %zu byte key and %zu byte value",
                     keySize, valueSize);
@@ -132,7 +145,15 @@ void BlobCache::set(const void* key, size_t keySize, const void* value,
             if (mMaxTotalSize < newTotalSize) {
                 if (isCleanable()) {
                     // Clean the cache and try again.
-                    clean();
+                    if (!clean(index->getKey()->getSize() + valueSize,
+                               index - mCacheEntries.begin())) {
+                        // We have some kind of logic error -- perhaps
+                        // an inconsistency between isCleanable() and
+                        // findDownTo().
+                        ALOGE("set: not caching new value because "
+                              "cleaning failed");
+                        break;
+                    }
                     continue;
                 } else {
                     ALOGV("set: not caching new value because the total cache "
@@ -142,6 +163,7 @@ void BlobCache::set(const void* key, size_t keySize, const void* value,
                 }
             }
             index->setValue(valueBlob);
+            index->setRecency(++mAccessCount);
             mTotalSize = newTotalSize;
             ALOGV("set: updated existing cache entry with %zu byte key and %zu byte "
                     "value", keySize, valueSize);
@@ -168,7 +190,7 @@ size_t BlobCache::get(const void* key, size_t keySize, void** value,
         return 0;
     }
     std::shared_ptr<Blob> dummyKey(new Blob(key, keySize, false));
-    CacheEntry dummyEntry(dummyKey, NULL);
+    CacheEntry dummyEntry(dummyKey, NULL, 0);
     auto index = std::lower_bound(mCacheEntries.begin(), mCacheEntries.end(), dummyEntry);
     if (index == mCacheEntries.end() || dummyEntry < *index) {
         ALOGV("get: no cache entry found for key of size %zu", keySize);
@@ -184,6 +206,7 @@ size_t BlobCache::get(const void* key, size_t keySize, void** value,
         ALOGV("get: copying %zu bytes to caller's buffer", valueBlobSize);
         memcpy(buf, valueBlob->getData(), valueBlobSize);
         *value = buf;
+        index->setRecency(++mAccessCount);
     } else {
         ALOGV("get: cannot allocate caller's buffer: needs %zu", valueBlobSize);
         *value = nullptr;
@@ -320,19 +343,82 @@ long int BlobCache::blob_random() {
 #endif
 }
 
-void BlobCache::clean() {
-    // Remove a random cache entry until the total cache size gets below half
-    // the maximum total cache size.
-    while (mTotalSize > mMaxTotalSize / 2) {
-        size_t i = size_t(blob_random() % (mCacheEntries.size()));
-        const CacheEntry& entry(mCacheEntries[i]);
-        mTotalSize -= entry.getKey()->getSize() + entry.getValue()->getSize();
-        mCacheEntries.erase(mCacheEntries.begin() + i);
+size_t BlobCache::findVictim() {
+    switch (mPolicySelect) {
+        case Select::RANDOM:
+            return size_t(blob_random() % (mCacheEntries.size()));
+        case Select::LRU:
+            return std::min_element(mCacheEntries.begin(), mCacheEntries.end(),
+                                    [](const CacheEntry &a, const CacheEntry &b) {
+                                        return a.getRecency() < b.getRecency();
+                                    }) - mCacheEntries.begin();
+        default:
+            ALOGE("findVictim: unknown mPolicySelect: %d", mPolicySelect);
+            return 0;
     }
 }
 
+size_t BlobCache::findDownTo(size_t newEntrySize, size_t onBehalfOf) {
+    auto oldEntrySize = [this, onBehalfOf]() -> size_t {
+        if (onBehalfOf == NoEntry)
+            return 0;
+        const auto &entry = mCacheEntries[onBehalfOf];
+        return entry.getKey()->getSize() + entry.getValue()->getSize();
+    };
+    switch (mPolicyCapacity) {
+        case Capacity::HALVE:
+            return mMaxTotalSize / 2;
+        case Capacity::FIT:
+            return mMaxTotalSize - (newEntrySize - oldEntrySize());
+        case Capacity::FIT_HALVE:
+            return std::min(mMaxTotalSize - (newEntrySize - oldEntrySize()), mMaxTotalSize / 2);
+        default:
+            ALOGE("findDownTo: unknown mPolicyCapacity: %d", mPolicyCapacity);
+            return 0;
+    }
+}
+
+bool BlobCache::isFit(Capacity capacity) {
+    switch (capacity) {
+        case Capacity::HALVE:
+            return false;
+        case Capacity::FIT:
+        case Capacity::FIT_HALVE:
+            return true;
+        default:
+            ALOGE("isFit: unknown capacity: %d", capacity);
+            return false;
+    }
+}
+
+bool BlobCache::clean(size_t newEntrySize, size_t onBehalfOf) {
+    // Remove a selected cache entry until the total cache size does
+    // not exceed downTo.
+    const size_t downTo = findDownTo(newEntrySize, onBehalfOf);
+
+    bool cleaned = false;
+    while (mTotalSize > downTo) {
+        const size_t i = findVictim();
+        const CacheEntry& entry(mCacheEntries[i]);
+        const size_t entrySize = entry.getKey()->getSize() + entry.getValue()->getSize();
+        mTotalSize -= entrySize;
+        mCacheEntries.erase(mCacheEntries.begin() + i);
+        cleaned = true;
+    }
+    return cleaned;
+}
+
 bool BlobCache::isCleanable() const {
-    return mTotalSize > mMaxTotalSize / 2;
+    switch (mPolicyCapacity) {
+        case Capacity::HALVE:
+            return mTotalSize > mMaxTotalSize / 2;
+        default:
+            ALOGE("isCleanable: unknown mPolicyCapacity: %d", mPolicyCapacity);
+            // and fall through
+        case Capacity::FIT:
+        case Capacity::FIT_HALVE:
+            return mTotalSize > 0;
+    }
 }
 
 BlobCache::Blob::Blob(const void* data, size_t size, bool copyData) :
@@ -366,18 +452,20 @@ size_t BlobCache::Blob::getSize() const {
     return mSize;
 }
 
-BlobCache::CacheEntry::CacheEntry() {
+BlobCache::CacheEntry::CacheEntry(): mRecency(0) {
 }
 
 BlobCache::CacheEntry::CacheEntry(
-        const std::shared_ptr<Blob>& key, const std::shared_ptr<Blob>& value):
+        const std::shared_ptr<Blob>& key, const std::shared_ptr<Blob>& value, uint32_t recency):
         mKey(key),
-        mValue(value) {
+        mValue(value),
+        mRecency(recency) {
 }
 
 BlobCache::CacheEntry::CacheEntry(const CacheEntry& ce):
         mKey(ce.mKey),
-        mValue(ce.mValue) {
+        mValue(ce.mValue),
+        mRecency(ce.mRecency) {
 }
 
 bool BlobCache::CacheEntry::operator<(const CacheEntry& rhs) const {
@@ -387,6 +475,7 @@ bool BlobCache::CacheEntry::operator<(const CacheEntry& rhs) const {
 const BlobCache::CacheEntry& BlobCache::CacheEntry::operator=(const CacheEntry& rhs) {
     mKey = rhs.mKey;
     mValue = rhs.mValue;
+    mRecency = rhs.mRecency;
     return *this;
 }
 
@@ -400,6 +489,14 @@ std::shared_ptr<BlobCache::Blob> BlobCache::CacheEntry::getValue() const {
 
 void BlobCache::CacheEntry::setValue(const std::shared_ptr<Blob>& value) {
     mValue = value;
+}
+
+uint32_t BlobCache::CacheEntry::getRecency() const {
+    return mRecency;
+}
+
+void BlobCache::CacheEntry::setRecency(uint32_t recency) {
+    mRecency = recency;
 }
 
 } // namespace android
