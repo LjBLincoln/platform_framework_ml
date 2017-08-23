@@ -37,6 +37,15 @@ bool reluFloat32(const float* inputData, const Shape& inputShape,
     return true;
 }
 
+bool relu1Float32(const float* inputData, const Shape& inputShape,
+                  float* outputData, const Shape& outputShape) {
+    int numElements = getNumberOfElements(inputShape);
+    for (int i=0; i<numElements; i++, inputData++, outputData++) {
+        *outputData = std::min(std::max(-1.f, *inputData), 1.f);
+    }
+    return true;
+}
+
 bool relu6Float32(const float* inputData, const Shape& inputShape,
                   float* outputData, const Shape& outputShape) {
     int numElements = getNumberOfElements(inputShape);
@@ -64,6 +73,64 @@ bool logisticFloat32(const float* inputData, const Shape& inputShape,
     return true;
 }
 
+bool softmaxFloat32(const float* inputData, const Shape& inputShape,
+                    const float beta,
+                    float* outputData, const Shape& outputShape) {
+    Dims<4> dim;
+    if (getNumberOfDimensions(inputShape) == 2) {
+        uint32_t batch_size = getSizeOfDimension(inputShape, 0);
+        uint32_t input_size = getNumberOfElements(inputShape) / batch_size;
+
+        Shape shapeIn4D;
+        shapeIn4D.dimensions = {batch_size, 1, 1, input_size};
+        dim = convertShapeToDims(shapeIn4D);
+    } else if (getNumberOfDimensions(inputShape) == 4) {
+        dim = convertShapeToDims(inputShape);
+    } else {
+        LOG(ERROR) << "only 2D and 4D tensors supported";
+        return false;
+    }
+
+    optimized_ops::Softmax(inputData, dim, beta,
+                           outputData, dim);
+    return true;
+}
+
+#define ANDROID_NN_RELUX_QUANT8(activation)                             \
+    int numElements = getNumberOfElements(inputShape);                  \
+    int32_t output_activation_min = 0;                                  \
+    int32_t output_activation_max = 0;                                  \
+                                                                        \
+    CalculateActivationRangeUint8(activation, inputShape,               \
+                                  &output_activation_min,               \
+                                  &output_activation_max);              \
+                                                                        \
+    for (int i=0; i<numElements; i++, inputData++, outputData++) {      \
+        *outputData = std::min((uint8_t)output_activation_max,          \
+                std::max((uint8_t)output_activation_min, *inputData));  \
+    }
+
+
+bool reluQuant8(const uint8_t* inputData, const Shape& inputShape,
+                uint8_t* outputData, const Shape& outputShape) {
+    ANDROID_NN_RELUX_QUANT8(kActivationRelu)
+    return true;
+}
+
+bool relu1Quant8(const uint8_t* inputData, const Shape& inputShape,
+                 uint8_t* outputData, const Shape& outputShape) {
+    ANDROID_NN_RELUX_QUANT8(kActivationRelu1)
+    return true;
+}
+
+bool relu6Quant8(const uint8_t* inputData, const Shape& inputShape,
+                 uint8_t* outputData, const Shape& outputShape) {
+    ANDROID_NN_RELUX_QUANT8(kActivationRelu6)
+    return true;
+}
+
+#undef ANDROID_NN_RELUX_QUANT8
+
 bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
                     uint8_t* outputData, const Shape& outputShape) {
     int numElements = getNumberOfElements(inputShape);
@@ -90,36 +157,47 @@ bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
     return true;
 }
 
-bool softmaxFloat32(const float* inputData, const Shape& inputShape,
-                    const float beta,
-                    float* outputData, const Shape& outputShape) {
-    int batch_size = (int)getSizeOfDimension(inputShape, 0);
-    int input_size = getNumberOfElements(inputShape) / batch_size;
+bool softmaxQuant8(const uint8_t* inputData, const Shape& inputShape,
+                   const float beta,
+                   uint8_t* outputData, const Shape& outputShape) {
+    Dims<4> dim;
+    if (getNumberOfDimensions(inputShape) == 2) {
+        uint32_t batch_size = getSizeOfDimension(inputShape, 0);
+        uint32_t input_size = getNumberOfElements(inputShape) / batch_size;
 
-    // For each batch
-    for (int b=0; b<batch_size; b++) {
-        // Find the max coeff.
-        float max_coeff = inputData[0];
-        for (int i=1; i<input_size; i++) {
-            max_coeff = std::max(inputData[i], max_coeff);
-        }
-        // Compute the normalized sum of exps.
-        float exp_sum = 0.0f;
-        for (int i=0; i<input_size; i++) {
-            outputData[i] = std::exp((inputData[i] - max_coeff) * beta);
-            exp_sum += outputData[i];
-        }
-        // Divide by the sum of exps.
-        float reciprocal_sum_exp = 1.f / exp_sum;
-        for (int i=0; i<input_size; i++) {
-          outputData[i] *= reciprocal_sum_exp;
-        }
-        // Advance in and out pointers for the next batch.
-        inputData += input_size;
-        outputData += input_size;
+        Shape shapeIn4D;
+        shapeIn4D.dimensions = {batch_size, 1, 1, input_size};
+        dim = convertShapeToDims(shapeIn4D);
+    } else if (getNumberOfDimensions(inputShape) == 4) {
+        dim = convertShapeToDims(inputShape);
+    } else {
+        LOG(ERROR) << "only 2D and 4D tensors supported";
+        return false;
     }
+
+    if (outputShape.scale != 1.f / 256) {
+        LOG(ERROR) << "incorrect scale for output";
+        return false;
+    }
+    static const int32_t kScaledDiffIntegerBits = 5;
+    const double input_beta_real_multiplier = std::min(
+            1.0 * beta * inputShape.scale * (1 << (31 - kScaledDiffIntegerBits)),
+            (1ll << 31) - 1.0);
+
+    int32_t input_multiplier = 0;
+    int32_t input_left_shift = 0;
+    QuantizeMultiplierGreaterThanOne(input_beta_real_multiplier,
+                                     &input_multiplier,
+                                     &input_left_shift);
+    float diff_min = -1.0f * CalculateInputRadius(kScaledDiffIntegerBits,
+                                                  input_left_shift);
+
+    optimized_ops::Softmax(inputData, dim, input_multiplier,
+                           input_left_shift, diff_min,
+                           outputData, dim);
     return true;
 }
+
 
 }  // namespace nn
 }  // namespace android

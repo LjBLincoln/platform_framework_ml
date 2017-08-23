@@ -125,17 +125,28 @@ bool maxPoolQuant8(const uint8_t* inputData, const Shape& inputShape,
 bool genericActivationPrepare(const Shape& input, Shape* output);
 bool reluFloat32(const float* inputData, const Shape& inputShape,
                  float* outputData, const Shape& outputShape);
+bool relu1Float32(const float* inputData, const Shape& inputShape,
+                  float* outputData, const Shape& outputShape);
 bool relu6Float32(const float* inputData, const Shape& inputShape,
                   float* outputData, const Shape& outputShape);
 bool tanhFloat32(const float* inputData, const Shape& inputShape,
                  float* outputData, const Shape& outputShape);
 bool logisticFloat32(const float* inputData, const Shape& inputShape,
                      float* outputData, const Shape& outputShape);
-bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
-                    uint8_t* outputData, const Shape& outputShape);
 bool softmaxFloat32(const float* inputData, const Shape& inputShape,
                     const float beta,
                     float* outputData, const Shape& outputShape);
+bool reluQuant8(const uint8_t* inputData, const Shape& inputShape,
+                uint8_t* outputData, const Shape& outputShape);
+bool relu1Quant8(const uint8_t* inputData, const Shape& inputShape,
+                 uint8_t* outputData, const Shape& outputShape);
+bool relu6Quant8(const uint8_t* inputData, const Shape& inputShape,
+                 uint8_t* outputData, const Shape& outputShape);
+bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
+                    uint8_t* outputData, const Shape& outputShape);
+bool softmaxQuant8(const uint8_t* inputData, const Shape& inputShape,
+                   const float beta,
+                   uint8_t* outputData, const Shape& outputShape);
 
 bool fullyConnectedPrepare(const Shape& input,
                            const Shape& weights,
