@@ -50,10 +50,14 @@ protected:
 // Create a model that can add two tensors using a one node graph.
 void CreateAddTwoTensorModel(Model* model) {
     OperandType matrixType(Type::TENSOR_FLOAT32, {3, 4});
+    OperandType scalarType(Type::INT32, {});
+    int32_t activation(0);
     auto a = model->addOperand(&matrixType);
     auto b = model->addOperand(&matrixType);
     auto c = model->addOperand(&matrixType);
-    model->addOperation(ANEURALNETWORKS_ADD, {a, b}, {c});
+    auto d = model->addOperand(&scalarType);
+    model->setOperandValue(d, &activation, sizeof(activation));
+    model->addOperation(ANEURALNETWORKS_ADD, {a, b, d}, {c});
     model->setInputsAndOutputs({a, b}, {c});
     ASSERT_TRUE(model->isValid());
 }
@@ -62,14 +66,18 @@ void CreateAddTwoTensorModel(Model* model) {
 // with one tensor set as part of the model.
 void CreateAddThreeTensorModel(Model* model, const Matrix3x4 bias) {
     OperandType matrixType(Type::TENSOR_FLOAT32, {3, 4});
+    OperandType scalarType(Type::INT32, {});
+    int32_t activation(0);
     auto a = model->addOperand(&matrixType);
     auto b = model->addOperand(&matrixType);
     auto c = model->addOperand(&matrixType);
     auto d = model->addOperand(&matrixType);
     auto e = model->addOperand(&matrixType);
+    auto f = model->addOperand(&scalarType);
     model->setOperandValue(e, bias, sizeof(Matrix3x4));
-    model->addOperation(ANEURALNETWORKS_ADD, {a, c}, {b});
-    model->addOperation(ANEURALNETWORKS_ADD, {b, e}, {d});
+    model->setOperandValue(f, &activation, sizeof(activation));
+    model->addOperation(ANEURALNETWORKS_ADD, {a, c, f}, {b});
+    model->addOperation(ANEURALNETWORKS_ADD, {b, e, f}, {d});
     model->setInputsAndOutputs({c, a}, {d});
     ASSERT_TRUE(model->isValid());
 }
