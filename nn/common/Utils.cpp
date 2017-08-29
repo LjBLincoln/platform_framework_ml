@@ -165,16 +165,14 @@ static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint
             return false;
         }
         */
-        if (operand.location.poolIndex ==
-            static_cast<uint32_t>(LocationValues::LOCATION_SAME_BLOCK)) {
+        if (operand.location.poolIndex == SAME_BLOCK) {
             if (operand.location.offset + operand.location.length > operandValues.size()) {
                 LOG(ERROR) << "OperandValue location out of range.  Starts at "
                            << operand.location.offset << ", length " << operand.location.length
                            << ", max " << operandValues.size();
                 return false;
             }
-        } else if (operand.location.poolIndex ==
-                   static_cast<uint32_t>(LocationValues::LOCATION_AT_RUN_TIME)) {
+        } else if (operand.location.poolIndex == RUN_TIME) {
             if (operand.location.offset != 0 || operand.location.length != 0) {
                 LOG(ERROR) << "Unexpected offset " << operand.location.offset << " or length "
                            << operand.location.length << " for runtime location.";

@@ -20,6 +20,7 @@ cc_defaults {
     host_supported: false,
     srcs: [
         "TestMain.cpp",
+        "TestMemory.cpp",
         "TestTrivialModel.cpp",
         "TestValidation.cpp",
         "TestGenerated.cpp",
