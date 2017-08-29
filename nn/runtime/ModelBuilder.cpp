@@ -117,21 +117,6 @@ int ModelBuilder::setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ModelBuilder::loadBaseLineModel(uint32_t modelId) {
-    if (mCompletedModel) {
-        LOG(ERROR) << "ANeuralNetworksModel_loadBaseLineModel can't modify after request creation";
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-    // TODO implement
-    switch (modelId) {
-        case ANEURALNETWORKS_INCEPTION_SMALL_20_20:
-        case ANEURALNETWORKS_INCEPTION_LARGE_20_20:
-        case ANEURALNETWORKS_MOBILE_NETS_100_100:
-            break;
-    }
-    return ANEURALNETWORKS_NOT_IMPLEMENTED;
-}
-
 RequestBuilder* ModelBuilder::createRequest() {
     finishTheModel();
     return new RequestBuilder(this);

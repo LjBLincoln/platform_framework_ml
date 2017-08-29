@@ -93,17 +93,6 @@ enum {
 };
 
 /**
- * Baseline models.
- */
-enum {
-    ANEURALNETWORKS_INCEPTION_SMALL_20_20 = 0,
-    ANEURALNETWORKS_INCEPTION_LARGE_20_20 = 1,
-    ANEURALNETWORKS_MOBILE_NETS_100_100 = 2,
-
-    ANEURALNETWORKS_NUMBER_BASELINE_MODELS = 3
-};
-
-/**
  * Request execution preferences.
  */
 enum {
@@ -290,8 +279,6 @@ void ANeuralNetworksShutdown();
  */
 int ANeuralNetworksModel_create(ANeuralNetworksModel** model);
 
-int ANeuralNetworksModel_createBaselineModel(ANeuralNetworksModel** model, uint32_t modelId);
-
 /**
  * Destroy a model.
  *
@@ -369,22 +356,6 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
                                       ANeuralNetworksIntList* inputs,
                                       ANeuralNetworksIntList* outputs);
 
-/** Adds a submodel.
- *
- * [TODO] This makes a copy. The submodel is modified afterwards, no change.
- * How about the data?
- *
- * The operands specified by inputs and outputs must have been
- * previously added by calls to {@link ANeuralNetworksModel_addOperand}.
- *
- * A model can't be modified once a request has been created for it by
- * {@link ANeuralNetworksRequest_create}.
- */
-int ANeuralNetworksModel_addSubModel(ANeuralNetworksModel* model,
-                                     const ANeuralNetworksModel* submodel,
-                                     ANeuralNetworksIntList* inputs,
-                                     ANeuralNetworksIntList* outputs);
-
 /**
  * Specfifies which operands will be the model's inputs and outputs.
  *
@@ -403,15 +374,6 @@ int ANeuralNetworksModel_addSubModel(ANeuralNetworksModel* model,
 int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model,
                                              ANeuralNetworksIntList* inputs,
                                              ANeuralNetworksIntList* outputs);
-
-/**
- * If the model is one of the baseline models, set its ID so that it can be
- * easily recognized by the drivers.
- *
- * A model can't be modified once a request has been created for it by
- * {@link ANeuralNetworksRequest_create}.
- */
-int ANeuralNetworksModel_setBaselineId(ANeuralNetworksModel* model, uint32_t baseLineId);
 
 /**
  * Create a {@link ANeuralNetworksRequest} to apply the given model.

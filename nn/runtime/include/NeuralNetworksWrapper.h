@@ -146,15 +146,6 @@ public:
     }
     ANeuralNetworksModel* getHandle() const { return mModel; }
     bool isValid() const { return mValid; }
-    static Model* createBaselineModel(uint32_t modelId) {
-        Model* model = new Model();
-        if (ANeuralNetworksModel_createBaselineModel(&model->mModel, modelId) !=
-            ANEURALNETWORKS_NO_ERROR) {
-            delete model;
-            model = nullptr;
-        }
-        return model;
-    }
 
 private:
     /**
