@@ -136,31 +136,6 @@ int ANeuralNetworksModel_create(ANeuralNetworksModel** model) {
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ANeuralNetworksModel_createBaselineModel(ANeuralNetworksModel** model, uint32_t modelId) {
-    if (!model) {
-        LOG(ERROR) << "ANeuralNetworksModel_create passed a nullptr";
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
-    if (modelId >= ANEURALNETWORKS_NUMBER_BASELINE_MODELS) {
-        LOG(ERROR) << "ANeuralNetworksModel_createBaselineModel invalid modelId " << modelId;
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-
-    ModelBuilder* m = new ModelBuilder();
-    if (m == nullptr) {
-        *model = nullptr;
-        return ANEURALNETWORKS_OUT_OF_MEMORY;
-    }
-    /* TODO uint32_t n = m->loadBaseLineModel(modelId);
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        delete m;
-        return n;
-    }
-     */
-    *model = reinterpret_cast<ANeuralNetworksModel*>(m);
-    return ANEURALNETWORKS_NO_ERROR;
-}
-
 void ANeuralNetworksModel_free(ANeuralNetworksModel* model) {
     // No validation.  Free of nullptr is valid.
     ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
@@ -238,41 +213,6 @@ int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model,
     }
 
     return m->setInputsAndOutputs(inputs, outputs);
-}
-
-int ANeuralNetworksModel_addSubModel(ANeuralNetworksModel* model,
-                                     const ANeuralNetworksModel* submodel,
-                                     ANeuralNetworksIntList* inputs,
-                                     ANeuralNetworksIntList* outputs) {
-    if (!model || !submodel) {
-        LOG(ERROR) << "ANeuralNetworksModel_addSubModel passed a nullptr";
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
-    ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
-    int n = ValidateOperandList(*inputs, m->operandCount(),
-                                "ANeuralNetworksModel_addSubModel inputs");
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-    n = ValidateOperandList(*outputs, m->operandCount(),
-                            "ANeuralNetworksModel_addSubModel outputs");
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-    return ANEURALNETWORKS_NOT_IMPLEMENTED;
-}
-
-int ANeuralNetworksModel_setBaselineId(ANeuralNetworksModel* model, uint32_t baseLineId) {
-    if (!model) {
-        LOG(ERROR) << "ANeuralNetworksModel_setBaselineId passed a nullptr";
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
-    if (baseLineId >= ANEURALNETWORKS_NUMBER_BASELINE_MODELS) {
-        LOG(ERROR) << "ANeuralNetworksModel_setBaselineId invalid baselineId " << baseLineId;
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-    // TODO implement
-    return ANEURALNETWORKS_NOT_IMPLEMENTED;
 }
 
 int ANeuralNetworksRequest_create(ANeuralNetworksModel* model, ANeuralNetworksRequest** request) {

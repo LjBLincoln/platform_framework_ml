@@ -40,7 +40,6 @@ public:
                      const ANeuralNetworksIntList* outputs);
     int setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
                             const ANeuralNetworksIntList* outputs);
-    int loadBaseLineModel(uint32_t modelId);
 
     RequestBuilder* createRequest();
 

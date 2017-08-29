@@ -73,15 +73,6 @@ protected:
 
 TEST_F(ValidationTest, CreateModel) {
     EXPECT_EQ(ANeuralNetworksModel_create(nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
-
-    EXPECT_EQ(ANeuralNetworksModel_createBaselineModel(nullptr,
-                                                       ANEURALNETWORKS_INCEPTION_SMALL_20_20),
-              ANEURALNETWORKS_UNEXPECTED_NULL);
-
-    ANeuralNetworksModel* model = nullptr;
-    EXPECT_EQ(ANeuralNetworksModel_createBaselineModel(&model,
-                                                       ANEURALNETWORKS_NUMBER_BASELINE_MODELS),
-              ANEURALNETWORKS_BAD_DATA);
 }
 
 TEST_F(ValidationTestModel, AddOperand) {
@@ -134,19 +125,6 @@ TEST_F(ValidationTestModel, AddOperation) {
     //          ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestModel, AddSubModel) {
-    ANeuralNetworksIntList inputs;
-    ANeuralNetworksIntList outputs;
-    ANeuralNetworksModel* submodel;
-    EXPECT_EQ(ANeuralNetworksModel_addSubModel(nullptr, submodel, &inputs, &outputs),
-              ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksModel_addSubModel(mModel, nullptr, &inputs, &outputs),
-              ANEURALNETWORKS_UNEXPECTED_NULL);
-    // EXPECT_EQ(ANeuralNetworksModel_addSubModel(mModel, &submodel,
-    //                                           &inputs, &outputs),
-    //          ANEURALNETWORKS_UNEXPECTED_NULL);
-}
-
 TEST_F(ValidationTestModel, SetInputsAndOutputs) {
     ANeuralNetworksIntList inputs;
     ANeuralNetworksIntList outputs;
@@ -156,13 +134,6 @@ TEST_F(ValidationTestModel, SetInputsAndOutputs) {
               ANEURALNETWORKS_UNEXPECTED_NULL);
     EXPECT_EQ(ANeuralNetworksModel_setInputsAndOutputs(mModel, &inputs, nullptr),
               ANEURALNETWORKS_UNEXPECTED_NULL);
-}
-
-TEST_F(ValidationTestModel, SetBaselineId) {
-    EXPECT_EQ(ANeuralNetworksModel_setBaselineId(nullptr, ANEURALNETWORKS_INCEPTION_SMALL_20_20),
-              ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksModel_setBaselineId(mModel, ANEURALNETWORKS_NUMBER_BASELINE_MODELS),
-              ANEURALNETWORKS_BAD_DATA);
 }
 
 TEST_F(ValidationTestModel, CreateRequest) {

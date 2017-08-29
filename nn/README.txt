@@ -44,5 +44,4 @@ THE FOLLOWING SUBDIRECTORIES ARE EXPECTED IN LATER RELEASES:
 
 ./tools: Tools used to develop the API, i.e. not external developer tools
 ./tools/benchmark: To test performance.
-./models: Contains definition and tests for the baseline models.
 /cts/tests/tests/ml/nn: The CTS tests
