@@ -74,7 +74,7 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
                           const int32_t* biasData, const Shape& biasShape,
                           int32_t activation,
                           uint8_t* outputData, const Shape& outputShape) {
-    gemmlowp::GemmContext* gemm_context = new gemmlowp::GemmContext();
+    gemmlowp::GemmContext gemm_context;
 
     int32_t inputOffset = -inputShape.offset;
     int32_t weightsOffset = -weightsShape.offset;
@@ -101,7 +101,7 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
             biasData, convertShapeToDims(biasShape),                            \
             outputOffset, output_multiplier, output_shift,                      \
             output_activation_min, output_activation_max,                       \
-            outputData, convertShapeToDims(outputShape), gemm_context)
+            outputData, convertShapeToDims(outputShape), &gemm_context)
 
     if (activation == kActivationNone) {
         ANDROID_NN_FULLY_CONNECTED(kNone);
