@@ -35,6 +35,7 @@ cc_library_shared {
         "libhidltransport",
         "libhidlmemory",
         "liblog",
+        "libtextclassifier_hash",
         "libutils",
         "android.hardware.neuralnetworks@1.0",
         "android.hidl.allocator@1.0",

@@ -65,6 +65,10 @@ cc_library {
         "libneuralnetworks_common",
     ],
 
+    shared_libs: [
+        "libtextclassifier_hash"
+    ],
+
     header_libs: [
         "libneuralnetworks_headers",
     ],
