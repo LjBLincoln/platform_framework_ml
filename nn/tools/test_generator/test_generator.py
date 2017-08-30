@@ -167,6 +167,8 @@ class Operand(Value):
 
 # A user-declared input operand
 class Input(Operand, Definitions, Traversable):
+  # for enumerating inputs
+  __next_number = 0
   # Holds reference to all Inputs; used by Topoligcal sort as starting nodes.
   __inputs = set()
 
@@ -174,6 +176,8 @@ class Input(Operand, Definitions, Traversable):
     Operand.__init__(self, name, Type(vt, shape))
     Definitions.__init__(self)
     Input.__inputs.add(self)
+    self.number = Input.__next_number
+    Input.__next_number += 1
 
   def is_internal(self):
     return False
@@ -187,12 +191,16 @@ class Input(Operand, Definitions, Traversable):
 
 # A user-declared output operand
 class Output(Operand, Uses, Nontraversable):
+  # for enumerating outputs
+  __next_number = 0
   __outputs = set()
 
   def __init__(self, name, vt, shape):
     Operand.__init__(self, name, Type(vt, shape))
     Uses.__init__(self)
     Output.__outputs.add(self)
+    self.number = Output.__next_number
+    Output.__next_number += 1
 
   def get_outputs():
     return Output.__outputs
@@ -213,19 +221,6 @@ class ModelArgument:
 
   def get_arguments():
     return ModelArgument.__arguments
-
-# A tensor built into the model
-class Bias(Input, ModelArgument):
-  def __init__(self, name, arg_type, arg_name, vt, shape):
-    Input.__init__(self, name, vt, shape)
-    ModelArgument.__init__(self, arg_type, arg_name)
-
-  def is_internal(self):
-    return True
-
-  def Definition(self):
-    args = [ self.get_name(), self.get_arg_name(), "sizeof(" + self.get_arg_type() + ")" ]
-    return "model->setOperandValue(" + ", ".join(args)+ ")"
 
 class Parameter(Input):
   __type_lookup = {
@@ -255,11 +250,11 @@ class Parameter(Input):
                       "model->setOperandValue(" + ", ".join(args)+");"])
     return stmt
 
-class Int32Bias(Parameter):
+class Int32Scalar(Parameter):
   def __init__(self, name, value):
     Parameter.__init__(self, name, "INT32", "{1}", [value])
 
-class Float32Bias(Parameter):
+class Float32Scalar(Parameter):
   def __init__(self, name, value):
     Parameter.__init__(self, name, "FLOAT32", "{1}", [value])
 
@@ -424,7 +419,10 @@ class Example():
     ret = []
     for k, v in d.items():
       init = ", ".join([str(i)+'f' for i in v])
-      ret.append('{' + str(k) + ', {' + init +'}}')
+      key = str(k)
+      if type(k) is not int:
+        key = str(k.number)
+      ret.append('{%s, {%s}}' %(key, init))
     return ", ".join(ret)
 
   def dump(example_file):
