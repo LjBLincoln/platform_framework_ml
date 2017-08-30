@@ -45,9 +45,7 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
 
     // TODO  entry.numberOfConsumers = 0;
     setFromIntList(&entry.dimensions, type.dimensions);
-    entry.location = {.poolIndex = static_cast<uint32_t>(LocationValues::LOCATION_AT_RUN_TIME),
-                      .offset = 0,
-                      .length = 0};
+    entry.location = {.poolIndex = RUN_TIME, .offset = 0, .length = 0};
     entry.numberOfConsumers = 0;
 
     return ANEURALNETWORKS_NO_ERROR;
@@ -71,10 +69,31 @@ int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t len
     uint32_t existingSize = static_cast<uint32_t>(mOperandValues.size());
     uint32_t extraBytes = alignBytesNeeded(existingSize, length);
     mOperandValues.resize(existingSize + extraBytes + length);
-    operand.location = {.poolIndex = static_cast<uint32_t>(LocationValues::LOCATION_SAME_BLOCK),
+    operand.location = {.poolIndex = SAME_BLOCK,
                         .offset = existingSize + extraBytes,
                         .length = neededLength};
     memcpy(&mOperandValues[operand.location.offset], buffer, length);
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int ModelBuilder::setOperandValueFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
+                                            size_t length) {
+    if (index >= operandCount()) {
+        LOG(ERROR) << "ANeuralNetworksModel_setOperandValueFromMemory setting operand " << index
+                   << " of " << operandCount();
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    Operand& operand = mOperands[index];
+    uint32_t neededLength = sizeOfData(operand.type, operand.dimensions);
+    if (neededLength != length) {
+        LOG(ERROR) << "ANeuralNetworksModel_setOperandValueFromMemory setting " << length
+                   << " bytes when needing " << neededLength;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    // TODO validate does not exceed length of memory
+    operand.location = {.poolIndex = mMemories.add(memory),
+                        .offset = offset,
+                        .length = neededLength};
     return ANEURALNETWORKS_NO_ERROR;
 }
 
@@ -117,21 +136,6 @@ int ModelBuilder::setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ModelBuilder::loadBaseLineModel(uint32_t modelId) {
-    if (mCompletedModel) {
-        LOG(ERROR) << "ANeuralNetworksModel_loadBaseLineModel can't modify after request creation";
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-    // TODO implement
-    switch (modelId) {
-        case ANEURALNETWORKS_INCEPTION_SMALL_20_20:
-        case ANEURALNETWORKS_INCEPTION_LARGE_20_20:
-        case ANEURALNETWORKS_MOBILE_NETS_100_100:
-            break;
-    }
-    return ANEURALNETWORKS_NOT_IMPLEMENTED;
-}
-
 RequestBuilder* ModelBuilder::createRequest() {
     finishTheModel();
     return new RequestBuilder(this);
@@ -163,8 +167,7 @@ void ModelBuilder::sortIntoRunOrder() {
         uint32_t& count = unknownInputCount[operationIndex];
         count = 0;
         for (uint32_t operandIndex : mOperations[operationIndex].inputs) {
-            if (mOperands[operandIndex].location.poolIndex ==
-                static_cast<uint32_t>(LocationValues::LOCATION_AT_RUN_TIME)) {
+            if (mOperands[operandIndex].location.poolIndex == RUN_TIME) {
                 count++;
                 operandToOperations.insert(
                         std::pair<uint32_t, uint32_t>(operandIndex, operationIndex));
@@ -178,8 +181,7 @@ void ModelBuilder::sortIntoRunOrder() {
     // TODO test what happens when a model output is also used as input to an
     // op!!!
     for (auto i : mInputIndexes) {
-        mOperands[i].location.poolIndex =
-                static_cast<uint32_t>(LocationValues::LOCATION_AT_RUN_TIME);
+        mOperands[i].location.poolIndex = RUN_TIME;
     }
 
     while (opsReadyToRun.size() > 0) {
@@ -211,7 +213,12 @@ void ModelBuilder::setHidlModel(Model* model) const {
     model->inputIndexes = mInputIndexes;
     model->outputIndexes = mOutputIndexes;
     model->operandValues = mOperandValues;
-    // TODO model->pools
+
+    uint32_t count = mMemories.size();
+    model->pools.resize(count);
+    for (uint32_t i = 0; i < count; i++) {
+        model->pools[i] = mMemories[i]->getHidlMemory();
+    }
 }
 
 } // namespace nn

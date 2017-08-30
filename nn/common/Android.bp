@@ -30,6 +30,7 @@ cc_library_static {
     srcs: [
         "CpuExecutor.cpp",
         "OperationsUtils.cpp",
+        "RNN.cpp",
         "Utils.cpp",
         "operations/Activation.cpp",
         "operations/Concatenation.cpp",
@@ -68,4 +69,18 @@ cc_library_static {
         "-Wno-unused-variable",
     ],
 
+}
+
+cc_test {
+    name: "rnn_test",
+    srcs: [
+        "RNNTest.cpp",
+    ],
+    shared_libs: [
+        "libneuralnetworks",
+    ],
+    static_libs: [
+        "libgmock",
+        "libneuralnetworks_common",
+    ],
 }

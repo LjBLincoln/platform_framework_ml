@@ -30,6 +30,15 @@ typedef std::pair<std::map<int, std::vector<float>>,
 
 using namespace android::nn::wrapper;
 
+namespace add {
+std::vector<Example> examples = {
+// Generated add
+#include "generated/examples/add_tests.example.cc"
+};
+// Generated model constructor
+#include "generated/models/add.model.cpp"
+}  // add
+
 namespace conv_1_h3_w2_SAME {
 std::vector<Example> examples = {
 // Converted examples
@@ -147,6 +156,12 @@ class GeneratedTests : public ::testing::Test {
     virtual void TearDown() { android::nn::wrapper::Shutdown(); }
 };
 }  // namespace
+
+TEST_F(GeneratedTests, add) {
+    ASSERT_EQ(
+        Execute(add::CreateModel, add::examples),
+        0);
+}
 
 TEST_F(GeneratedTests, conv_1_h3_w2_SAME) {
     ASSERT_EQ(

@@ -22,9 +22,11 @@
 
 #include "NeuralNetworks.h"
 #include "Manager.h"
+#include "Memory.h"
 #include "ModelBuilder.h"
 #include "RequestBuilder.h"
 
+#include <memory>
 #include <vector>
 
 // Make sure the constants defined in the header file have not changed values.
@@ -122,6 +124,97 @@ void ANeuralNetworksShutdown() {
     DeviceManager::get()->shutdown();
 }
 
+int ANeuralNetworksMemory_create(size_t size, ANeuralNetworksMemory** memory) {
+    if (!memory) {
+        LOG(ERROR) << "ANeuralNetworksMemory_create passed a nullptr";
+        return ANEURALNETWORKS_UNEXPECTED_NULL;
+    }
+    if (size > 0xFFFFFFFF) {
+        LOG(ERROR) << "ANeuralNetworksMemory_create size exceeds max " << size;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    uint32_t size32 = static_cast<uint32_t>(size);
+    *memory = nullptr;
+    std::unique_ptr<Memory> m = std::make_unique<Memory>(Memory());
+    if (m == nullptr) {
+        return ANEURALNETWORKS_OUT_OF_MEMORY;
+    }
+    int n = m->create(size32);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    *memory = reinterpret_cast<ANeuralNetworksMemory*>(m.release());
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+/* TODO
+int ANeuralNetworksMemory_createFromHidlMemory(hidl_memory hidlMemory,
+                                               ANeuralNetworksMemory** memory) {
+    if (!memory) {
+        LOG(ERROR) << "ANeuralNetworksMemory_create passed a nullptr";
+        return ANEURALNETWORKS_UNEXPECTED_NULL;
+    }
+    *memory = nullptr;
+    std::unique_ptr<Memory> m = std::make_unique<Memory>(Memory());
+    if (m == nullptr) {
+        return ANEURALNETWORKS_OUT_OF_MEMORY;
+    }
+    int n = m->setFromHidlMemory(hidlMemory);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    *memory = reinterpret_cast<ANeuralNetworksMemory*>(m.release());
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int ANeuralNetworksMemory_createFromFd(int fd, ANeuralNetworksMemory** memory) {
+    if (fd < 0) {
+        LOG(ERROR) << "ANeuralNetworksMemory_createFromFd invalid fd " << fd;
+        return ANEURALNETWORKS_UNEXPECTED_NULL;
+    }
+    *memory = nullptr;
+    std::unique_ptr<Memory> m = std::make_unique<Memory>(Memory());
+    if (m == nullptr) {
+        return ANEURALNETWORKS_OUT_OF_MEMORY;
+    }
+    int n = m->setFromFd(fd);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    *memory = reinterpret_cast<ANeuralNetworksMemory*>(m.release());
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int ANeuralNetworksMemory_createFromGrallocBuffer(buffer_handle_t buffer,
+                                                  ANeuralNetworksMemory** memory) {
+    *memory = nullptr;
+    // TODO implement
+    return ANEURALNETWORKS_NOT_IMPLEMENTED;
+}
+
+int ANeuralNetworksMemory_createFromHardwareBuffer(AHardwareBuffer* buffer,
+                                                   ANeuralNetworksMemory** memory) {
+    *memory = nullptr;
+    // TODO implement
+    return ANEURALNETWORKS_NOT_IMPLEMENTED;
+}
+*/
+
+uint8_t* ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory) {
+    if (!memory) {
+        LOG(ERROR) << "ANeuralNetworksMemory_getPoiter passed a nullptr";
+        return nullptr;
+    }
+    Memory* m = reinterpret_cast<Memory*>(memory);
+    return m->getPointer();
+}
+
+void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory) {
+    // No validation.  Free of nullptr is valid.
+    Memory* m = reinterpret_cast<Memory*>(memory);
+    delete m;
+}
+
 int ANeuralNetworksModel_create(ANeuralNetworksModel** model) {
     if (!model) {
         LOG(ERROR) << "ANeuralNetworksModel_create passed a nullptr";
@@ -132,31 +225,6 @@ int ANeuralNetworksModel_create(ANeuralNetworksModel** model) {
         *model = nullptr;
         return ANEURALNETWORKS_OUT_OF_MEMORY;
     }
-    *model = reinterpret_cast<ANeuralNetworksModel*>(m);
-    return ANEURALNETWORKS_NO_ERROR;
-}
-
-int ANeuralNetworksModel_createBaselineModel(ANeuralNetworksModel** model, uint32_t modelId) {
-    if (!model) {
-        LOG(ERROR) << "ANeuralNetworksModel_create passed a nullptr";
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
-    if (modelId >= ANEURALNETWORKS_NUMBER_BASELINE_MODELS) {
-        LOG(ERROR) << "ANeuralNetworksModel_createBaselineModel invalid modelId " << modelId;
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-
-    ModelBuilder* m = new ModelBuilder();
-    if (m == nullptr) {
-        *model = nullptr;
-        return ANEURALNETWORKS_OUT_OF_MEMORY;
-    }
-    /* TODO uint32_t n = m->loadBaseLineModel(modelId);
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        delete m;
-        return n;
-    }
-     */
     *model = reinterpret_cast<ANeuralNetworksModel*>(m);
     return ANEURALNETWORKS_NO_ERROR;
 }
@@ -189,6 +257,18 @@ int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t in
     }
     ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
     return m->setOperandValue(index, buffer, length);
+}
+
+int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, int32_t index,
+                                                   const ANeuralNetworksMemory* memory,
+                                                   uint32_t offset, size_t length) {
+    if (!model || !memory) {
+        LOG(ERROR) << "ANeuralNetworksModel_setOperandValue passed a nullptr";
+        return ANEURALNETWORKS_UNEXPECTED_NULL;
+    }
+    const Memory* mem = reinterpret_cast<const Memory*>(memory);
+    ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
+    return m->setOperandValueFromMemory(index, mem, offset, length);
 }
 
 int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
@@ -238,41 +318,6 @@ int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model,
     }
 
     return m->setInputsAndOutputs(inputs, outputs);
-}
-
-int ANeuralNetworksModel_addSubModel(ANeuralNetworksModel* model,
-                                     const ANeuralNetworksModel* submodel,
-                                     ANeuralNetworksIntList* inputs,
-                                     ANeuralNetworksIntList* outputs) {
-    if (!model || !submodel) {
-        LOG(ERROR) << "ANeuralNetworksModel_addSubModel passed a nullptr";
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
-    ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
-    int n = ValidateOperandList(*inputs, m->operandCount(),
-                                "ANeuralNetworksModel_addSubModel inputs");
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-    n = ValidateOperandList(*outputs, m->operandCount(),
-                            "ANeuralNetworksModel_addSubModel outputs");
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-    return ANEURALNETWORKS_NOT_IMPLEMENTED;
-}
-
-int ANeuralNetworksModel_setBaselineId(ANeuralNetworksModel* model, uint32_t baseLineId) {
-    if (!model) {
-        LOG(ERROR) << "ANeuralNetworksModel_setBaselineId passed a nullptr";
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
-    if (baseLineId >= ANEURALNETWORKS_NUMBER_BASELINE_MODELS) {
-        LOG(ERROR) << "ANeuralNetworksModel_setBaselineId invalid baselineId " << baseLineId;
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-    // TODO implement
-    return ANEURALNETWORKS_NOT_IMPLEMENTED;
 }
 
 int ANeuralNetworksRequest_create(ANeuralNetworksModel* model, ANeuralNetworksRequest** request) {
@@ -327,24 +372,26 @@ int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t ind
     }
     if (length > 0xFFFFFFFF) {
         LOG(ERROR) << "ANeuralNetworksRequest_setInput input exceeds max length " << length;
+        return ANEURALNETWORKS_BAD_DATA;
     }
     uint32_t l = static_cast<uint32_t>(length);
     RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
     return r->setInput(index, type, buffer, l);
 }
 
-int ANeuralNetworksRequest_setInputFromHardwareBuffer(ANeuralNetworksRequest* request,
-                                                      int32_t index,
-                                                      const ANeuralNetworksOperandType* type,
-                                                      const AHardwareBuffer* buffer) {
-    if (!request || !type || !buffer) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setInputFromHardwareBuffer passed a nullptr";
+int ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest* request, int32_t index,
+                                              const ANeuralNetworksOperandType* type,
+                                              const ANeuralNetworksMemory* memory, uint32_t offset,
+                                              uint32_t length) {
+    if (!request || !memory) {
+        LOG(ERROR) << "ANeuralNetworksRequest_setInputFromMemory passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     // TODO validate the rest
 
+    const Memory* m = reinterpret_cast<const Memory*>(memory);
     RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
-    return r->setInputFromHardwareBuffer(index, type, buffer);
+    return r->setInputFromMemory(index, type, m, offset, length);
 }
 
 int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t index,
@@ -362,6 +409,7 @@ int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t in
     }
     if (length > 0xFFFFFFFF) {
         LOG(ERROR) << "ANeuralNetworksRequest_setOutput input exceeds max length " << length;
+        return ANEURALNETWORKS_BAD_DATA;
     }
     uint32_t l = static_cast<uint32_t>(length);
 
@@ -369,18 +417,19 @@ int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t in
     return r->setOutput(index, type, buffer, l);
 }
 
-int ANeuralNetworksRequest_setOutputFromHardwareBuffer(ANeuralNetworksRequest* request,
-                                                       int32_t index,
-                                                       const ANeuralNetworksOperandType* type,
-                                                       const AHardwareBuffer* buffer) {
-    if (!request || !type || !buffer) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setOutputFromHardwareBuffer passed a nullptr";
+int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, int32_t index,
+                                               const ANeuralNetworksOperandType* type,
+                                               const ANeuralNetworksMemory* memory, uint32_t offset,
+                                               uint32_t length) {
+    if (!request || !memory) {
+        LOG(ERROR) << "ANeuralNetworksRequest_setOutputFromMemory passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     // TODO validate the rest
 
     RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
-    return r->setOutputFromHardwareBuffer(index, type, buffer);
+    const Memory* m = reinterpret_cast<const Memory*>(memory);
+    return r->setOutputFromMemory(index, type, m, offset, length);
 }
 
 int ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest* request,
