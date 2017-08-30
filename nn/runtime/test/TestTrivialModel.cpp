@@ -84,7 +84,7 @@ void CreateAddThreeTensorModel(Model* model, const Matrix3x4 bias) {
 
 // Check that the values are the same. This works only if dealing with integer
 // value, otherwise we should accept values that are similar if not exact.
-int CompareMatrices(const Matrix3x4 expected, const Matrix3x4 actual) {
+int CompareMatrices(const Matrix3x4& expected, const Matrix3x4& actual) {
     int errors = 0;
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 4; j++) {
@@ -98,7 +98,6 @@ int CompareMatrices(const Matrix3x4 expected, const Matrix3x4 actual) {
     return errors;
 }
 
-// TODO convert this test to a gtest format
 TEST_F(TrivialTest, AddTwo) {
     Model modelAdd2;
     CreateAddTwoTensorModel(&modelAdd2);
@@ -118,7 +117,7 @@ TEST_F(TrivialTest, AddThree) {
     Model modelAdd3;
     CreateAddThreeTensorModel(&modelAdd3, matrix3);
 
-    // Test the two node model.
+    // Test the three node model.
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
     Request request2(&modelAdd3);
@@ -138,4 +137,4 @@ TEST_F(TrivialTest, AddThree) {
     ASSERT_EQ(CompareMatrices(expected3b, actual), 0);
 }
 
-}  // end namespace
+} // end namespace

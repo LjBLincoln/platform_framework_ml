@@ -26,12 +26,18 @@
 namespace android {
 namespace nn {
 
-RequestBuilder::RequestBuilder(const ModelBuilder* model) : mModel(model) {
+RequestBuilder::RequestBuilder(const ModelBuilder* model)
+      : mModel(model),
+        mInputs(model->inputCount()),
+        mOutputs(model->outputCount()),
+        mMemories(model->getMemories()) {
     LOG(DEBUG) << "RequestBuilder::RequestBuilder";
-    mInputs.resize(model->inputCount());
-    mOutputs.resize(model->outputCount());
-    mInputBuffers.resize(model->inputCount());
-    mOutputBuffers.resize(model->outputCount());
+    for (auto& p : mInputs) {
+        p.state = ModelArgumentInfo::MISSING;
+    }
+    for (auto& p : mOutputs) {
+        p.state = ModelArgumentInfo::MISSING;
+    }
 }
 
 int RequestBuilder::setInput(uint32_t index, const ANeuralNetworksOperandType* type,
@@ -41,15 +47,30 @@ int RequestBuilder::setInput(uint32_t index, const ANeuralNetworksOperandType* t
         LOG(ERROR) << "ANeuralNetworksRequest_setInput bad index " << index << " " << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    mInputBuffers[index] = buffer;
-    updateModelInputOutputInfo(&mInputs[index], type, length, mModel->getInputOperandIndex(index));
+    ModelArgumentInfo& info = mInputs[index];
+    info.state = ModelArgumentInfo::POINTER;
+    info.locationAndDimension.location = {.poolIndex = RUN_TIME, .offset = 0, .length = length};
+    updateDimensionInfo(&info, type, mModel->getInputOperandIndex(index));
+    info.buffer = const_cast<void*>(buffer);
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int RequestBuilder::setInputFromHardwareBuffer(
-        [[maybe_unused]] uint32_t index, [[maybe_unused]] const ANeuralNetworksOperandType* type,
-        [[maybe_unused]] const AHardwareBuffer* buffer) {
-    return ANEURALNETWORKS_NOT_IMPLEMENTED;
+int RequestBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
+                                       const Memory* memory, uint32_t offset, uint32_t length) {
+    uint32_t count = static_cast<uint32_t>(mInputs.size());
+    if (index >= count) {
+        LOG(ERROR) << "ANeuralNetworksRequest_setInputFromMemory bad index " << index << " "
+                   << count;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    ModelArgumentInfo& info = mInputs[index];
+    info.state = ModelArgumentInfo::MEMORY;
+    info.locationAndDimension.location = {.poolIndex = mMemories.add(memory),
+                                          .offset = offset,
+                                          .length = length};
+    updateDimensionInfo(&info, type, mModel->getInputOperandIndex(index));
+    info.buffer = nullptr;
+    return ANEURALNETWORKS_NO_ERROR;
 }
 
 int RequestBuilder::setOutput(uint32_t index, const ANeuralNetworksOperandType* type, void* buffer,
@@ -59,24 +80,37 @@ int RequestBuilder::setOutput(uint32_t index, const ANeuralNetworksOperandType* 
         LOG(ERROR) << "ANeuralNetworksRequest_setOutput bad index " << index << " " << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    mOutputBuffers[index] = buffer;
-    updateModelInputOutputInfo(&mOutputs[index], type, length,
-                               mModel->getOutputOperandIndex(index));
+    ModelArgumentInfo& info = mOutputs[index];
+    info.state = ModelArgumentInfo::POINTER;
+    info.locationAndDimension.location = {.poolIndex = RUN_TIME, .offset = 0, .length = length};
+    updateDimensionInfo(&info, type, mModel->getOutputOperandIndex(index));
+    info.buffer = const_cast<void*>(buffer);
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int RequestBuilder::setOutputFromHardwareBuffer(
-        [[maybe_unused]] uint32_t index, [[maybe_unused]] const ANeuralNetworksOperandType* type,
-        [[maybe_unused]] const AHardwareBuffer* buffer) {
-    return ANEURALNETWORKS_NOT_IMPLEMENTED;
+int RequestBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
+                                        const Memory* memory, uint32_t offset, uint32_t length) {
+    uint32_t count = static_cast<uint32_t>(mOutputs.size());
+    if (index >= count) {
+        LOG(ERROR) << "ANeuralNetworksRequest_setOutputFromMemory bad index " << index << " "
+                   << count;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    ModelArgumentInfo& info = mOutputs[index];
+    info.state = ModelArgumentInfo::MEMORY;
+    info.locationAndDimension.location = {.poolIndex = mMemories.add(memory),
+                                          .offset = offset,
+                                          .length = length};
+    updateDimensionInfo(&info, type, mModel->getOutputOperandIndex(index));
+    info.buffer = nullptr;
+    return ANEURALNETWORKS_NO_ERROR;
 }
 
-int RequestBuilder::updateModelInputOutputInfo(InputOutputInfo* info,
-                                               const ANeuralNetworksOperandType* newType,
-                                               uint32_t length, uint32_t operandIndex) {
-    info->location.length = length;
+int RequestBuilder::updateDimensionInfo(ModelArgumentInfo* info,
+                                        const ANeuralNetworksOperandType* newType,
+                                        uint32_t operandIndex) {
     if (newType == nullptr) {
-        info->dimensions = hidl_vec<uint32_t>();
+        info->locationAndDimension.dimensions = hidl_vec<uint32_t>();
     } else {
         const Operand& operand = mModel->getOperand(operandIndex);
         uint32_t count = newType->dimensions.count;
@@ -86,7 +120,7 @@ int RequestBuilder::updateModelInputOutputInfo(InputOutputInfo* info,
             return ANEURALNETWORKS_BAD_DATA;
         }
         for (uint32_t i = 0; i < count; i++) {
-            info->dimensions[i] = newType->dimensions.data[i];
+            info->locationAndDimension.dimensions[i] = newType->dimensions.data[i];
         }
     }
     return ANEURALNETWORKS_NO_ERROR;
@@ -95,14 +129,14 @@ int RequestBuilder::updateModelInputOutputInfo(InputOutputInfo* info,
 int RequestBuilder::startCompute(Event** event) {
     // TODO validate that we have full types for all inputs and outputs,
     // that the graph is not cyclic,
-    for (auto p : mInputBuffers) {
-        if (p == nullptr) {
+    for (auto& p : mInputs) {
+        if (p.state == ModelArgumentInfo::MISSING) {
             LOG(ERROR) << "ANeuralNetworksRequest_startCompute not all inputs specified";
             return ANEURALNETWORKS_BAD_DATA;
         }
     }
-    for (auto p : mOutputBuffers) {
-        if (p == nullptr) {
+    for (auto& p : mOutputs) {
+        if (p.state == ModelArgumentInfo::MISSING) {
             LOG(ERROR) << "ANeuralNetworksRequest_startCompute not all outputs specified";
             return ANEURALNETWORKS_BAD_DATA;
         }
@@ -118,89 +152,82 @@ int RequestBuilder::startCompute(Event** event) {
 }
 
 // Figures out how to place each of the input or outputs in a buffer. This just does the layout,
-// it does not copy data.  Returns the total size.  Aligns each input a bit.
-template <typename T>
-static int allocateToPool(uint32_t poolId, std::vector<InputOutputInfo>* ioInfos,
-                          hidl_memory* pool) {
+// it does not copy data.  Aligns each input a bit.
+int RequestBuilder::allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args,
+                                                   Memory* memory) {
+    uint32_t nextPoolIndex = mMemories.size();
     int64_t total = 0;
-    for (auto& ioInfo : *ioInfos) {
-        // TODO Good enough alignment?
-        total += alignBytesNeeded(static_cast<uint32_t>(total), ioInfo.location.length);
-        ioInfo.location.poolIndex = poolId;
-        ioInfo.location.offset = static_cast<uint32_t>(total);
-        total += ioInfo.location.length;
-    }
+    for (auto& info : *args) {
+        if (info.state == ModelArgumentInfo::POINTER) {
+            DataLocation& loc = info.locationAndDimension.location;
+            // TODO Good enough alignment?
+            total += alignBytesNeeded(static_cast<uint32_t>(total), loc.length);
+            loc.poolIndex = nextPoolIndex;
+            loc.offset = static_cast<uint32_t>(total);
+            total += loc.length;
+        }
+    };
     if (total > 0xFFFFFFFF) {
         LOG(ERROR) << "ANeuralNetworksRequest_startCompute Size of all inputs or outputs exceeds "
                       "2^32.";
         return ANEURALNETWORKS_BAD_DATA;
     }
-    // Copy the input data to a shared memory buffer.
-    *pool = allocateSharedMemory(total); // TODO check error
+    hidl_memory hidlMemory;
+    if (total > 0) {
+        memory->create(total); // TODO check error
+        mMemories.add(memory);
+    }
     return ANEURALNETWORKS_NO_ERROR;
 }
 
+static void copyLocationAndDimension(const std::vector<ModelArgumentInfo>& argumentInfos,
+                                     hidl_vec<InputOutputInfo>* ioInfos) {
+    size_t count = argumentInfos.size();
+    ioInfos->resize(count);
+    for (size_t i = 0; i < count; i++) {
+        (*ioInfos)[i] = argumentInfos[i].locationAndDimension;
+    }
+}
+
 int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model, Event** event) {
-    LOG(DEBUG) << "RequestBuilder::startComputeOnDevice0";
+    LOG(DEBUG) << "RequestBuilder::startComputeOnDevice1";
     // TODO Dangerous!  In async, the model will outlive it here. Safe for now
     sp<IPreparedModel> preparedModel = driver->prepareModel(model);
     if (preparedModel == nullptr) {
         return ANEURALNETWORKS_OP_FAILED;
     }
 
-    // We have two pools:
-    // 0: input data
-    // 1: output data
-    // TODO: Revise this once we support pools for data
-    const int INPUT = 0;
-    const int OUTPUT = 1;
-    hidl_vec<hidl_memory> pools;
-    pools.resize(2);
-
-    // Layout the input and output data.
-    int n = allocateToPool<const void*>(INPUT, &mInputs, &pools[INPUT]);
+    // Layout the input and output data
+    int n = allocatePointerArgumentsToPool(&mInputs, &mInputPointerArguments);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    n = allocatePointerArgumentsToPool(&mOutputs, &mOutputPointerArguments);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
 
-    n = allocateToPool<void*>(OUTPUT, &mOutputs, &pools[OUTPUT]);
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
+    // Copy the input data that was specified via a pointer.
+    // mInputPointerArguments.update();
+    for (auto& info : mInputs) {
+        if (info.state == ModelArgumentInfo::POINTER) {
+            DataLocation& loc = info.locationAndDimension.location;
+            uint8_t* data = mInputPointerArguments.getPointer();
+            memcpy(data + loc.offset, info.buffer, loc.length);
+        }
     }
-
-    // Copy the input data to the shared memory.
-    sp<IMemory> inputMemory = mapMemory(pools[INPUT]);
-    if (inputMemory == nullptr) {
-        LOG(ERROR) << "ANeuralNetworksRequest_startCompute Can't create shared memory.";
-        return ANEURALNETWORKS_OP_FAILED;
-    }
-
-    inputMemory->update();
-    void* data = static_cast<void*>(inputMemory->getPointer());
-    for (size_t i = 0; i < mInputs.size(); i++) {
-        auto& info = mInputs[i];
-        memcpy(reinterpret_cast<uint8_t*>(data) + info.location.offset, mInputBuffers[i],
-               info.location.length);
-    }
-
-    inputMemory->commit();
-
-    // Map the output shared memory.
-    sp<IMemory> outputMemory = mapMemory(pools[OUTPUT]);
-    if (outputMemory == nullptr) {
-        LOG(ERROR) << "ANeuralNetworksRequest_startCompute Can't create shared memory.";
-        return ANEURALNETWORKS_OP_FAILED;
-    }
+    // TODO: Add mInputPointerArguments.commit() and .update() at all the right places
 
     Request request;
-    request.inputs = mInputs;
-    request.outputs = mOutputs;
-    request.pools = pools;
+    copyLocationAndDimension(mInputs, &request.inputs);
+    copyLocationAndDimension(mOutputs, &request.outputs);
+    uint32_t count = mMemories.size();
+    request.pools.resize(count);
+    for (uint32_t i = 0; i < count; i++) {
+        request.pools[i] = mMemories[i]->getHidlMemory();
+    }
 
-    LOG(DEBUG) << "Before preparedModel->execute()";
-    LOG(DEBUG) << "With inputs " << toString(mInputs);
-    LOG(DEBUG) << "With outputs " << toString(mOutputs);
-    LOG(DEBUG) << "With pools " << toString(pools);
+    LOG(DEBUG) << "Before preparedModel->execute() " << toString(request);
     // Execute the request.
     if (!preparedModel->execute(request)) {
         LOG(DEBUG) << "**Execute failed**";
@@ -208,12 +235,13 @@ int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model,
     }
 
     // Copy the output data from shared memory to the output buffers.
-    outputMemory->update();
-    data = static_cast<void*>(outputMemory->getPointer());
-    for (size_t i = 0; i < mOutputs.size(); i++) {
-        auto& info = mOutputs[i];
-        memcpy(mOutputBuffers[i], reinterpret_cast<uint8_t*>(data) + info.location.offset,
-               info.location.length);
+    // TODO: outputMemory->update();
+    for (auto& info : mOutputs) {
+        if (info.state == ModelArgumentInfo::POINTER) {
+            DataLocation& loc = info.locationAndDimension.location;
+            uint8_t* data = mOutputPointerArguments.getPointer();
+            memcpy(info.buffer, data + loc.offset, loc.length);
+        }
     }
     LOG(DEBUG) << "RequestBuilder::startComputeOnDevice completed";
 
@@ -221,36 +249,36 @@ int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model,
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-template <typename T>
-static void assignOnePerPool(const std::vector<T> buffers, hidl_vec<InputOutputInfo>* ioInfos,
-                             std::vector<RunTimePoolInfo>* runTimePoolInfos, uint32_t* poolIndex) {
-    for (size_t i = 0; i < ioInfos->size(); i++) {
-        (*ioInfos)[i].location = {.poolIndex = *poolIndex, .offset = 0};
-        (*runTimePoolInfos)[*poolIndex].buffer =
-                reinterpret_cast<uint8_t*>(const_cast<void*>(buffers[i]));
-        (*poolIndex)++;
-    }
-}
-
-int RequestBuilder::startComputeOnCpu(Event** event, const Model& model) {
+int RequestBuilder::startComputeOnCpu(Event** event, [[maybe_unused]] const Model& model) {
     // TODO: use a thread pool
     Event* e = new Event();
     *event = e;
 
-    Request request;
-    request.inputs = mInputs;
-    request.outputs = mOutputs;
-    // Create as many pools as there are input / output.
-    // TODO This will need to be revised once we accept pool location
-    // for input values.
-    const size_t totalSize = mInputs.size() + mOutputs.size();
-    request.pools.resize(totalSize);
     std::vector<RunTimePoolInfo> runTimePoolInfos;
-    runTimePoolInfos.resize(totalSize);
+    uint32_t count = mMemories.size();
+    runTimePoolInfos.resize(count);
+    for (uint32_t i = 0; i < count; i++) {
+        const Memory* mem = mMemories[i];
+        runTimePoolInfos[i].set(mem->getHidlMemory());
+    }
+    // Create as many pools as there are input / output.
+    auto fixPointerArguments = [&runTimePoolInfos](std::vector<ModelArgumentInfo>& argumentInfos) {
+        for (ModelArgumentInfo& argumentInfo : argumentInfos) {
+            if (argumentInfo.state == ModelArgumentInfo::POINTER) {
+                RunTimePoolInfo runTimeInfo = {.buffer = static_cast<uint8_t*>(argumentInfo.buffer)};
+                argumentInfo.locationAndDimension.location.poolIndex =
+                        static_cast<uint32_t>(runTimePoolInfos.size());
+                argumentInfo.locationAndDimension.location.offset = 0;
+                runTimePoolInfos.push_back(runTimeInfo);
+            }
+        }
+    };
+    fixPointerArguments(mInputs);
+    fixPointerArguments(mOutputs);
 
-    uint32_t poolIndex = 0;
-    assignOnePerPool<const void*>(mInputBuffers, &request.inputs, &runTimePoolInfos, &poolIndex);
-    assignOnePerPool<void*>(mOutputBuffers, &request.outputs, &runTimePoolInfos, &poolIndex);
+    Request request;
+    copyLocationAndDimension(mInputs, &request.inputs);
+    copyLocationAndDimension(mOutputs, &request.outputs);
 
     CpuExecutor executor;
     return executor.run(model, request, runTimePoolInfos);

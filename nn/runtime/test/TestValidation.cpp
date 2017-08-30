@@ -162,12 +162,12 @@ TEST_F(ValidationTestRequest, SetInput) {
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, SetInputFromHardwareBuffer) {
-    EXPECT_EQ(ANeuralNetworksRequest_setInputFromHardwareBuffer(ANeuralNetworksRequest * request,
-                                                                int32_t index,
-                                                                const ANeuralNetworksOperandType*
-                                                                        type,
-                                                                const AHardwareBuffer* buffer),
+TEST_F(ValidationTestRequest, SetInputFromMemory) {
+    EXPECT_EQ(ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest * request,
+                                                        int32_t index,
+                                                        const ANeuralNetworksOperandType* type,
+                                                        const ANeuralNetworksMemory* buffer,
+                                                        uint32_t offset),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
@@ -178,12 +178,12 @@ TEST_F(ValidationTestRequest, SetOutput) {
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, SetOutputFromHardwareBuffer) {
-    EXPECT_EQ(ANeuralNetworksRequest_setOutputFromHardwareBuffer(ANeuralNetworksRequest * request,
-                                                                 int32_t index,
-                                                                 const ANeuralNetworksOperandType*
-                                                                         type,
-                                                                 const AHardwareBuffer* buffer),
+TEST_F(ValidationTestRequest, SetOutputFromMemory) {
+    EXPECT_EQ(ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest * request,
+                                                         int32_t index,
+                                                         const ANeuralNetworksOperandType* type,
+                                                         const ANeuralNetworksMemory* buffer,
+                                                         uint32_t offset),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
