@@ -1,9 +1,9 @@
 model = Model()
-i4 = Int32Bias("b4", 1)
-i5 = Int32Bias("b5", 1)
-i6 = Int32Bias("b6", 1)
-i7 = Int32Bias("b7", 1)
-i8 = Int32Bias("b8", 0)
+i4 = Int32Scalar("b4", 1)
+i5 = Int32Scalar("b5", 1)
+i6 = Int32Scalar("b6", 1)
+i7 = Int32Scalar("b7", 1)
+i8 = Int32Scalar("b8", 0)
 i2 = Input("op2", "TENSOR_FLOAT32", "{1, 8, 8, 3}") # input 0
 i3 = Output("op3", "TENSOR_FLOAT32", "{1, 8, 8, 3}") # output 0
 i0 = Parameter("op0", "TENSOR_FLOAT32", "{1, 1, 1, 3}", [-0.966213, -0.467474, -0.82203]) # parameters
