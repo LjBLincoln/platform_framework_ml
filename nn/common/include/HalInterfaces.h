@@ -47,7 +47,17 @@ using ::android::hardware::neuralnetworks::V1_0::Request;
 using ::android::hidl::allocator::V1_0::IAllocator;
 using ::android::hidl::memory::V1_0::IMemory;
 
+namespace android {
+namespace nn {
+
 const uint32_t HAL_NUM_OPERAND_TYPES = 11;
 const uint32_t HAL_NUM_OPERATION_TYPES = 33;
+
+// Shortcuts
+const uint32_t SAME_BLOCK = static_cast<uint32_t>(LocationValues::LOCATION_SAME_BLOCK);
+const uint32_t RUN_TIME = static_cast<uint32_t>(LocationValues::LOCATION_AT_RUN_TIME);
+
+} // namespace nn
+} // namespace android
 
 #endif // ANDROID_ML_NN_COMMON_HAL_INTERFACES_H

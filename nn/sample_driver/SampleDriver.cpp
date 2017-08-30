@@ -25,6 +25,7 @@ namespace nn {
 namespace sample_driver {
 
 Return<void> SampleDriver::initialize(initialize_cb cb) {
+    SetMinimumLogSeverity(base::VERBOSE);
     LOG(DEBUG) << "SampleDriver::initialize()";
 
     // Our driver supports every op.
@@ -140,10 +141,10 @@ Return<void> SampleDriver::getSupportedSubgraph([[maybe_unused]] const Model& mo
 }
 
 Return<sp<IPreparedModel>> SampleDriver::prepareModel(const Model& model) {
+    LOG(DEBUG) << "SampleDriver::prepareModel(" << toString(model) << ")"; // TODO errror
     if (!validateModel(model)) {
         return nullptr;
     }
-    LOG(DEBUG) << "SampleDriver::prepareModel(" << toString(model) << ")";
     return new SamplePreparedModel(model);
 }
 
@@ -161,16 +162,7 @@ static bool mapPools(std::vector<RunTimePoolInfo>* poolInfos, const hidl_vec<hid
     poolInfos->resize(pools.size());
     for (size_t i = 0; i < pools.size(); i++) {
         auto& poolInfo = (*poolInfos)[i];
-        poolInfo.memory = mapMemory(pools[i]);
-        if (poolInfo.memory == nullptr) {
-            LOG(ERROR) << "SampleDriver Can't create shared memory.";
-            return false;
-        }
-        poolInfo.memory->update();
-        poolInfo.buffer =
-                reinterpret_cast<uint8_t*>(static_cast<void*>(poolInfo.memory->getPointer()));
-        if (poolInfo.buffer == nullptr) {
-            LOG(ERROR) << "SamplePreparedModel::execute Can't create shared memory.";
+        if (!poolInfo.set(pools[i])) {
             return false;
         }
     }

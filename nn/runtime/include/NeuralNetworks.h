@@ -19,9 +19,13 @@
 
 // TODO Before submitting to NDK, fix all the TODOs in here.
 
-// TODO Change this to 27 or better __ANDROID_API_O_MR1__
-#if __ANDROID_API__ >= __ANDROID_API_O__
+#if __ANDROID_API__ >= __ANDROID_API_O_MR1__
 
+//TODO These may be useful when we broaden the shared memory support
+//     but would be available only for system apps.
+//#include <android/hardware_buffer.h>
+//#include <hardware/gralloc.h>
+//#include <android/hidl/memory/1.0/IMemory.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/cdefs.h>
@@ -34,6 +38,7 @@ __BEGIN_DECLS
  * [TODO: Make sure these are compatible with TensorFlow Lite.]
  */
 enum {
+    // The following entries are used to declare scalars.
     ANEURALNETWORKS_FLOAT16 = 0,
     ANEURALNETWORKS_FLOAT32 = 1,
     ANEURALNETWORKS_INT8 = 2,
@@ -42,6 +47,7 @@ enum {
     ANEURALNETWORKS_UINT16 = 5,
     ANEURALNETWORKS_INT32 = 6,
     ANEURALNETWORKS_UINT32 = 7,
+    // The following entries are used to declare tensors.
     ANEURALNETWORKS_TENSOR_FLOAT16 = 8,
     ANEURALNETWORKS_TENSOR_FLOAT32 = 9,
     ANEURALNETWORKS_TENSOR_QUANT8_ASYMM = 10,
@@ -132,8 +138,24 @@ enum {
 const uint32_t MAX_NUMBER_OF_OPERANDS = 0xFFFFFFFE;
 const uint32_t MAX_NUMBER_OF_OPERATIONS = 0xFFFFFFFE;
 
-// TODO use real declaration
-typedef struct AHardwareBuffer AHardwareBuffer;
+/**
+ * ANeuralNetworksMemory is an opaque type that represents shared memory.
+ *
+ * By using shared memory, a program can efficiently communicate to the
+ * runtime and the drivers the weights and other tensors that define a model.
+ * See {@Link ANeuralNetworksModel_setOperandValueFromMemory}.
+ *
+ * An application should typically create one shared memory object that
+ * contains every weight and tensor needed to define one or more models.
+ *
+ * Shared memory can also be used when specifying the input and output
+ * arguments of a request.  See calling {@Link ANeuralNetworksRequest_setInputFromMemory}
+ * and {@Link ANeuralNetworksRequest_setOutputFromMemory}.
+ *
+ * Shared memory handles are created by calling {@link ANeuralNetworksMemory_create}
+ * and similar functions.
+ */
+typedef struct ANeuralNetworksMemory ANeuralNetworksMemory;
 
 /**
  * ANeuralNetworksRequest is an opaque type that can be used to apply a machine
@@ -143,9 +165,11 @@ typedef struct AHardwareBuffer AHardwareBuffer;
  *    <li>Create a new request instance by calling the
  *        {@link ANeuralNetworksRequest_create} function.</li>
  *    <li>Associate data to the model inputs with
- *        {@link ANeuralNetworksRequest_setInput}.</li>
+ *        {@link ANeuralNetworksRequest_setInput} or
+ *        {@Link ANeuralNetworksRequest_setInputFromMemory}.</li>
  *    <li>Associate output buffers to the model outputs with
- *        {@link ANeuralNetworksRequest_setOutput}.</li>
+ *        {@link ANeuralNetworksRequest_setOutput} or
+ *        {@Link ANeuralNetworksRequest_setOutputFromMemory}.</li>
  *    <li>Apply the model with {@link ANeuralNetworksRequest_startCompute}.</li>
  *    <li>Wait for the request to complete with {@link
  * ANeuralNetworksRequest_wait}.</li> <li>Repeat the previous steps as often as
@@ -258,6 +282,42 @@ int ANeuralNetworksInitialize();
 void ANeuralNetworksShutdown();
 
 /**
+ * Creates a shared memory object.
+ *
+ * Creates a shared memory region of the specified size in bytes.
+ * See {@link ANeuralNetworksMemory} for a description on how to use
+ * this shared memory.
+ */
+int ANeuralNetworksMemory_create(size_t size, ANeuralNetworksMemory** memory);
+
+/* TODO Should we also have from Surface, IONBuffer, ashmem and:
+int ANeuralNetworksMemory_createFromHidlMemory(android::hardware::hidl_memory hidlMemory,
+                                               ANeuralNetworksMemory** memory);
+int ANeuralNetworksMemory_createFromFd(int fd, ANeuralNetworksMemory** memory);
+int ANeuralNetworksMemory_createFromGrallocBuffer(buffer_handle_t buffer,
+                                                  ANeuralNetworksMemory** memory);
+int ANeuralNetworksMemory_createFromHardwareBuffer(AHardwareBuffer* buffer,
+                                                   ANeuralNetworksMemory** memory);
+*/
+
+/**
+ * Returns a pointer to the content of the shared memory.
+ *
+ * Returns a pointer to the shared memory created by {@link ANeuralNetworksMemory_create}.
+ */
+uint8_t* ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory);
+
+
+/**
+ * Delete a shared memory object.
+ *
+ * Destroys the object used by the run time to keep track of the shared memory.
+ * This will free the underlying actual shared memory if no other code has open
+ * handles to this memory.  [TODO verify]
+ */
+void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory);
+
+/**
  * Create an empty {@link ANeuralNetworksModel}.
  *
  * <p>This only creates the object.  Computation is performed once
@@ -296,9 +356,11 @@ void ANeuralNetworksModel_free(ANeuralNetworksModel* model);
  * The order in which the operands are added is important. The first one added
  * to a model will have the index value 0, the second 1, etc.  These indexes are
  * used as operand identifiers in {@link ANeuralNetworksModel_addOperation},
- * {@link ANeuralNetworksRequest_setInput}, {@link
- * ANeuralNetworksRequest_setOutput}, and {@link
- * ANeuralNetworksRequest_setOperandValue}.
+ * {@link ANeuralNetworksRequest_setInput},
+ * {@Link ANeuralNetworksRequest_setInputFromMemory},
+ * {@link ANeuralNetworksRequest_setOutput},
+ * {@Link ANeuralNetworksRequest_setOutputFromMemory} and
+ * {@link ANeuralNetworksRequest_setOperandValue}.
  *
  * To build a model that can accomodate inputs of various sizes, as you may want
  * to do for a CNN, set the size of the dimensions that will vary at run time to
@@ -330,6 +392,18 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
  */
 int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t index,
                                          const void* buffer, size_t length);
+
+/**
+ * Sets an operand to a value stored in shared memory.
+ *
+ * This value can't be changed when a request is executed.
+ *
+ * A model can't be modified once a request has been created for it by
+ * {@link ANeuralNetworksRequest_create}.
+ */
+int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, int32_t index,
+                                                   const ANeuralNetworksMemory* buffer,
+                                                   uint32_t offset, size_t length);
 
 /**
  * Add an operation to a model.
@@ -450,10 +524,10 @@ int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t ind
                                     size_t length);
 
 /**
- * Associate a hardware buffer with an input of the model of the
+ * Associate part of a shared memory with an input of the model of the
  * {@link ANeuralNetworksRequest}.
  *
- * <p>The provided buffer must outlive the request.</p>
+ * <p>The provided shared memory must outlive the request.</p>
  *
  * This function is thread safe.
  *
@@ -464,16 +538,17 @@ int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t ind
  *             have the same value as specified in the model.
  *             [TODO: We know the dimensions may change.  Anything else?  Base
  * type?]
- * @param buffer The buffer containing the data.
- * [TODO Would it be useful to have a rect param?]
+ * @param memory The shared memory containing the data.
+ * @param offset This specifies the location of the data whithin the shared memory.
+ *               The offset is in bytes from the start of shared memory.
  *
  * @return NO_ERROR if successful, BAD_DATA if the name is not recognized
  *         or the buffer is too small for the input.
  */
-int ANeuralNetworksRequest_setInputFromHardwareBuffer(ANeuralNetworksRequest* request,
-                                                      int32_t index,
-                                                      const ANeuralNetworksOperandType* type,
-                                                      const AHardwareBuffer* buffer);
+int ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest* request, int32_t index,
+                                              const ANeuralNetworksOperandType* type,
+                                              const ANeuralNetworksMemory* memory, uint32_t offset,
+                                              uint32_t length);
 
 /**
  * Associate a user buffer with an output of the model of the
@@ -501,10 +576,10 @@ int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t in
                                      size_t length);
 
 /**
- * Associate a hardware buffer with an output of the model of the
+ * Associate part of a shared memory with an output of the model of the
  * {@link ANeuralNetworksRequest}.
  *
- * <p>The provided buffer must outlive the request.</p>
+ * <p>The provided shared memory must outlive the request.</p>
  *
  * @param request The request to be modified.
  * @param index The index of the model operand we're associating the input to.
@@ -513,16 +588,17 @@ int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t in
  *             have the same value as specified in the model.
  *             [TODO: We know the dimensions may change.  Anything else?  Base
  * type?]
- * @param buffer The buffer containing the data.
+ * @param offset This specifies the location of the data whithin the shared memory.
+ *               The offset is in bytes from the start of shared memory.
  * [todo Would it be useful to have a rect param?]
  *
  * @return NO_ERROR if successful, BAD_DATA if the name is not recognized
  *         or the buffer is too small for the output.
  */
-int ANeuralNetworksRequest_setOutputFromHardwareBuffer(ANeuralNetworksRequest* request,
-                                                       int32_t index,
-                                                       const ANeuralNetworksOperandType* type,
-                                                       const AHardwareBuffer* buffer);
+int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, int32_t index,
+                                               const ANeuralNetworksOperandType* type,
+                                               const ANeuralNetworksMemory* memory, uint32_t offset,
+                                               uint32_t length);
 
 /**
  * Queue the request for execution.
