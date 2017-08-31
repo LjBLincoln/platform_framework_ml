@@ -18,6 +18,8 @@
 
 #include "CpuExecutor.h"
 
+#include "EmbeddingLookup.h"
+#include "HashtableLookup.h"
 #include "LSHProjection.h"
 #include "NeuralNetworks.h"
 #include "Operations.h"
@@ -825,6 +827,14 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                           blockSize,
                                           output.buffer,
                                           outShape);
+        } break;
+        case OperationType::EMBEDDING_LOOKUP: {
+            EmbeddingLookup lookup(operation, mOperands);
+            success = lookup.Eval();
+        } break;
+        case OperationType::HASHTABLE_LOOKUP: {
+            HashtableLookup lookup(operation, mOperands);
+            success = lookup.Eval();
         } break;
         case OperationType::LSH_PROJECTION: {
             LSHProjection lsh(operation, mOperands);

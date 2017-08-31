@@ -29,6 +29,8 @@ cc_library_static {
 
     srcs: [
         "CpuExecutor.cpp",
+        "EmbeddingLookup.cpp",
+        "HashtableLookup.cpp",
         "LSHProjection.cpp",
         "OperationsUtils.cpp",
         "RNN.cpp",
@@ -76,6 +78,36 @@ cc_library_static {
 }
 
 cc_test {
+    name: "embedding_lookup_test",
+    srcs: [
+        "EmbeddingLookupTest.cpp",
+    ],
+    shared_libs: [
+        "liblog",
+        "libneuralnetworks",
+    ],
+    static_libs: [
+        "libgmock",
+        "libneuralnetworks_common",
+    ],
+}
+
+cc_test {
+    name: "hashtable_lookup_test",
+    srcs: [
+        "HashtableLookupTest.cpp",
+    ],
+    shared_libs: [
+        "liblog",
+        "libneuralnetworks",
+    ],
+    static_libs: [
+        "libgmock",
+        "libneuralnetworks_common",
+    ],
+}
+
+cc_test {
     name: "lsh_projection_test",
     srcs: [
         "LSHProjectionTest.cpp",
@@ -88,6 +120,7 @@ cc_test {
         "libneuralnetworks_headers",
     ],
     shared_libs: [
+        "liblog",
         "libneuralnetworks",
     ],
 }
