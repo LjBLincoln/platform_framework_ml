@@ -24,6 +24,7 @@
 #include "NeuralNetworks.h"
 #include "Operations.h"
 #include "RNN.h"
+#include "SVDF.h"
 
 namespace android {
 namespace nn {
@@ -843,6 +844,10 @@ int CpuExecutor::executeOperation(const Operation& operation) {
         case OperationType::RNN: {
             RNN rnn_cell(operation, mOperands);
             success = rnn_cell.Eval();
+        } break;
+        case OperationType::SVDF: {
+            SVDF svdf(operation, mOperands);
+            success = svdf.Eval();
         } break;
         default:
             nnAssert(false);
