@@ -195,6 +195,10 @@ int CpuExecutor::executeOperation(const Operation& operation) {
     };
 
     switch (operation.opTuple.operationType) {
+        case OperationType::OEM_OPERATION: {
+            LOG(ERROR) << "OEM operation not supported for CPU execution";
+            success = false;
+        } break;
         case OperationType::ADD: {
             if (!parameterCountIs(3, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;

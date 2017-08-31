@@ -51,7 +51,7 @@ namespace android {
 namespace nn {
 
 const uint32_t HAL_NUM_OPERAND_TYPES = 11;
-const uint32_t HAL_NUM_OPERATION_TYPES = 34;
+const uint32_t HAL_NUM_OPERATION_TYPES = 35;
 
 // Shortcuts
 const uint32_t SAME_BLOCK = static_cast<uint32_t>(LocationValues::LOCATION_SAME_BLOCK);
