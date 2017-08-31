@@ -47,6 +47,7 @@ const char* kErrorNames[] = {
 };
 
 const char* kOperationNames[ANEURALNETWORKS_NUMBER_OPERATION_TYPES] = {
+        "OEM_OPERATION",
         "AVERAGE_POOL",
         "CONCATENATION",
         "CONV",
