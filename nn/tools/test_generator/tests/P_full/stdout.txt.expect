@@ -1,4 +1,4 @@
-// Generated file. Do not edit
+// Generated file (from: addfloat.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type1(Type::INT32, {1});
   OperandType type0(Type::TENSOR_FLOAT32, {2});
@@ -17,7 +17,7 @@ void CreateModel(Model *model) {
     {op3});
   assert(model->isValid());
 }
-// Generated file. Do not edit
+// Generated file (from: addfloat.mod.py). Do not edit
 // Begin of an example
 {
 //Input(s)
