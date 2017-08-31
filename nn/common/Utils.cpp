@@ -79,7 +79,8 @@ const char* kOperationNames[ANEURALNETWORKS_NUMBER_OPERATION_TYPES] = {
         "SVDF",
         "RNN",
         "N_GRAM",
-        "LOOKUP",
+        "EMBEDDING_LOOKUP",
+        "HASHTABLE_LOOKUP",
 };
 
 const char* getOperationName(OperationType type) {
