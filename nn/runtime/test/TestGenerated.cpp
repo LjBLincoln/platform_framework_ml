@@ -84,6 +84,60 @@ std::vector<Example> examples = {
 #include "generated/models/depthwise_conv.model.cpp"
 }  // namespace depthwise_conv
 
+namespace avg_pool_float {
+std::vector<Example> examples = {
+// Generated avg_pool float
+#include "generated/examples/avg_pool_float_tests.example.cc"
+};
+// Generated model constructor
+#include "generated/models/avg_pool_float.model.cpp"
+}  // avg_pool_float
+
+namespace max_pool_float {
+std::vector<Example> examples = {
+// Generated max_pool float
+#include "generated/examples/max_pool_float_tests.example.cc"
+};
+// Generated model constructor
+#include "generated/models/max_pool_float.model.cpp"
+}  // max_pool_float
+
+namespace l2_pool_float {
+std::vector<Example> examples = {
+// Generated l2_pool float
+#include "generated/examples/l2_pool_float_tests.example.cc"
+};
+// Generated model constructor
+#include "generated/models/l2_pool_float.model.cpp"
+}  // l2_pool_float
+
+namespace relu_float {
+std::vector<Example> examples = {
+// Generated relu float
+#include "generated/examples/relu_float_tests.example.cc"
+};
+// Generated model constructor
+#include "generated/models/relu_float.model.cpp"
+}  // relu_float
+
+namespace relu1_float {
+std::vector<Example> examples = {
+// Generated relu1 float
+#include "generated/examples/relu1_float_tests.example.cc"
+};
+// Generated model constructor
+#include "generated/models/relu1_float.model.cpp"
+}  // relu1_float
+
+namespace relu6_float {
+std::vector<Example> examples = {
+// Generated relu6 float
+#include "generated/examples/relu6_float_tests.example.cc"
+};
+// Generated model constructor
+#include "generated/models/relu6_float.model.cpp"
+}  // relu6_float
+
 namespace mobilenet {
 std::vector<Example> examples = {
 // Converted examples
@@ -190,6 +244,42 @@ TEST_F(GeneratedTests, conv_3_h3_w2_VALID) {
 TEST_F(GeneratedTests, depthwise_conv) {
     ASSERT_EQ(Execute(depthwise_conv::CreateModel, depthwise_conv::examples),
               0);
+}
+
+TEST_F(GeneratedTests, avg_pool_float) {
+    ASSERT_EQ(
+        Execute(avg_pool_float::CreateModel, avg_pool_float::examples),
+        0);
+}
+
+TEST_F(GeneratedTests, max_pool_float) {
+    ASSERT_EQ(
+        Execute(max_pool_float::CreateModel, max_pool_float::examples),
+        0);
+}
+
+TEST_F(GeneratedTests, l2_pool_float) {
+    ASSERT_EQ(
+        Execute(l2_pool_float::CreateModel, l2_pool_float::examples),
+        0);
+}
+
+TEST_F(GeneratedTests, relu_float) {
+    ASSERT_EQ(
+        Execute(relu_float::CreateModel, relu_float::examples),
+        0);
+}
+
+TEST_F(GeneratedTests, relu1_float) {
+    ASSERT_EQ(
+        Execute(relu1_float::CreateModel, relu1_float::examples),
+        0);
+}
+
+TEST_F(GeneratedTests, relu6_float) {
+    ASSERT_EQ(
+        Execute(relu6_float::CreateModel, relu6_float::examples),
+        0);
 }
 
 TEST_F(GeneratedTests, mobilenet) {
