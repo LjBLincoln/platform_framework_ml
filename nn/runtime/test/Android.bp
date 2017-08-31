@@ -32,6 +32,7 @@ cc_defaults {
         "libhidlmemory",
         "liblog",
         "libnativehelper",
+        "libtextclassifier_hash",
         "libutils",
         "android.hardware.neuralnetworks@1.0",
         "android.hidl.allocator@1.0",
@@ -47,6 +48,7 @@ cc_test {
     defaults: ["NeuralNetworksTest_defaults"],
     shared_libs: [
         "libneuralnetworks",
+        "libtextclassifier_hash",
     ],
     static_libs: [
         "libneuralnetworks_common",
