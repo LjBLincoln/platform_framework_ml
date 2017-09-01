@@ -216,7 +216,11 @@ int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model,
     for (auto& info : mInputs) {
         if (info.state == ModelArgumentInfo::POINTER) {
             DataLocation& loc = info.locationAndDimension.location;
-            uint8_t* data = mInputPointerArguments.getPointer();
+            uint8_t* data = nullptr;
+            int n = mInputPointerArguments.getPointer(&data);
+            if (n != ANEURALNETWORKS_NO_ERROR) {
+                return n;
+            }
             memcpy(data + loc.offset, info.buffer, loc.length);
         }
     }
@@ -243,7 +247,11 @@ int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model,
     for (auto& info : mOutputs) {
         if (info.state == ModelArgumentInfo::POINTER) {
             DataLocation& loc = info.locationAndDimension.location;
-            uint8_t* data = mOutputPointerArguments.getPointer();
+            uint8_t* data = nullptr;
+            int n = mOutputPointerArguments.getPointer(&data);
+            if (n != ANEURALNETWORKS_NO_ERROR) {
+                return n;
+            }
             memcpy(info.buffer, data + loc.offset, loc.length);
         }
     }
