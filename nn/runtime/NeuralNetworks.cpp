@@ -20,6 +20,7 @@
 
 #define LOG_TAG "NeuralNetworks"
 
+#include "Event.h"
 #include "NeuralNetworks.h"
 #include "Manager.h"
 #include "Memory.h"
@@ -209,6 +210,7 @@ static_assert(static_cast<uint32_t>(OperationType::SVDF) == ANEURALNETWORKS_SVDF
 static_assert(static_cast<uint32_t>(OperationType::TANH) == ANEURALNETWORKS_TANH,
               "OperationType::TANH != ANEURALNETWORKS_TANH");
 
+using android::sp;
 using namespace android::nn;
 
 // Validates the type. The used dimensions can be underspecified.
@@ -581,12 +583,20 @@ int ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest* request,
     // TODO validate the rest
 
     RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
-    Event* e = nullptr;
-    int n = r->startCompute(&e);
+
+    // Dynamically allocate an sp to wrap an event. The sp<Event> object is
+    // returned when the request has been successfully launched, otherwise a
+    // nullptr is returned. The sp is used for ref-counting purposes. Without
+    // it, the HIDL service could attempt to communicate with a dead event
+    // object.
+    std::unique_ptr<sp<Event>> e = std::make_unique<sp<Event>>();
+    *event = nullptr;
+
+    int n = r->startCompute(e.get());
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
-    *event = reinterpret_cast<ANeuralNetworksEvent*>(e);
+    *event = reinterpret_cast<ANeuralNetworksEvent*>(e.release());
     return ANEURALNETWORKS_NO_ERROR;
 }
 
@@ -596,13 +606,13 @@ int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event) {
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
 
-    Event* e = reinterpret_cast<Event*>(event);
-    e->wait();
+    sp<Event>* e = reinterpret_cast<sp<Event>*>(event);
+    (*e)->wait();
     return ANEURALNETWORKS_NO_ERROR;
 }
 
 void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event) {
     // No validation.  Free of nullptr is valid.
-    Event* e = reinterpret_cast<Event*>(event);
+    sp<Event>* e = reinterpret_cast<sp<Event>*>(event);
     delete e;
 }

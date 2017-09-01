@@ -29,20 +29,22 @@ namespace sample_driver {
 // An actual driver would not do that.
 class SampleDriver : public IDevice {
 public:
-    virtual ~SampleDriver() {}
-    virtual Return<void> initialize(initialize_cb _hidl_cb);
-    virtual Return<void> getSupportedSubgraph(const Model& model, getSupportedSubgraph_cb _hidl_cb);
-    virtual Return<sp<IPreparedModel>> prepareModel(const Model& model);
-    virtual Return<DeviceStatus> getStatus();
+    ~SampleDriver() override;
+    Return<void> initialize(initialize_cb _hidl_cb) override;
+    Return<void> getSupportedSubgraph(const Model& model,
+                                      getSupportedSubgraph_cb _hidl_cb) override;
+    Return<sp<IPreparedModel>> prepareModel(const Model& model) override;
+    Return<DeviceStatus> getStatus() override;
 };
 
 class SamplePreparedModel : public IPreparedModel {
 public:
     SamplePreparedModel(const Model& model);
-    virtual ~SamplePreparedModel() {}
-    virtual Return<bool> execute(const Request& request);
+    ~SamplePreparedModel() override;
+    Return<bool> execute(const Request& request, const sp<IEvent>& event) override;
 
 private:
+    void asyncExecute(const Request& request, const sp<IEvent>& event);
     Model mModel;
 };
 
