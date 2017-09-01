@@ -111,7 +111,7 @@ cc_test {
 cc_test {
     name: "lsh_projection_test",
     srcs: [
-        "LSTMTest.cpp",
+        "LSHProjectionTest.cpp",
     ],
     shared_libs: [
         "libneuralnetworks",
@@ -140,7 +140,7 @@ cc_test {
 cc_test {
     name: "rnn_test",
     srcs: [
-        "LSHProjectionTest.cpp",
+        "RNNTest.cpp",
     ],
     static_libs: [
         "libgmock",
