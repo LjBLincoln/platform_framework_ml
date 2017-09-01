@@ -26,59 +26,157 @@
 namespace android {
 namespace nn {
 
-bool addPrepare(const Shape& in1, const Shape& in2, Shape* out) {
-    return SameShape(in1, in2) && SetShape(in1, out);
-}
-
-bool addFloat32(const float* in1, const float* in2,
-                int32_t activation,
-                float* out, const Shape& shape) {
-    Dims<4> dim = convertShapeToDims(shape);
-    #define ANDROID_NN_ADD(activation)                               \
-        optimized_ops::Add<FusedActivationFunctionType::activation>( \
-                in1, dim, in2, dim, out, dim)
-
-    if (activation == kActivationNone) {
-        ANDROID_NN_ADD(kNone);
-    } else if (activation == kActivationRelu) {
-        ANDROID_NN_ADD(kRelu);
-    } else if (activation == kActivationRelu1) {
-        ANDROID_NN_ADD(kRelu1);
-    } else if (activation == kActivationRelu6) {
-        ANDROID_NN_ADD(kRelu6);
-    } else {
+bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out) {
+    if (getNumberOfDimensions(in1) > 4 || getNumberOfDimensions(in2) > 4) {
+        LOG(ERROR) << "Only supports upto 4D tensors.";
         return false;
     }
-
-    #undef ANDROID_NN_ADD
+    if (SameShape(in1, in2)) {
+        return SetShape(in1, out);
+    } else {
+        // BroadcastAdd needed
+        uint32_t numberOfDims1 = getNumberOfDimensions(in1);
+        uint32_t numberOfDims2 = getNumberOfDimensions(in2);
+        uint32_t maxDims = std::max(numberOfDims1, numberOfDims2);
+        out->dimensions = std::vector<uint32_t>(maxDims);
+        for (uint32_t i = 1; i <= maxDims; i++) {
+            uint32_t dim1 = 1;
+            if (i <= numberOfDims1) {
+                dim1 = getSizeOfDimension(in1, numberOfDims1 - i);
+            }
+            uint32_t dim2 = 1;
+            if (i <= numberOfDims2) {
+                dim2 = getSizeOfDimension(in2, numberOfDims2 - i);
+            }
+            if (dim1 != dim2 && dim1 != 1 && dim2 != 1) {
+                LOG(ERROR) << "Dimensions mismatch for BroadcastAdd";
+                return false;
+            }
+            out->dimensions[maxDims - i] = std::max(dim1, dim2);
+        }
+    }
     return true;
 }
 
-bool mulPrepare(const Shape& in1, const Shape& in2, Shape* out) {
-    return SameShape(in1, in2) && SetShape(in1, out);
+bool addFloat32(const float* in1, const Shape& shape1,
+                const float* in2, const Shape& shape2,
+                int32_t activation,
+                float* out, const Shape& shapeOut) {
+    bool needBroadcast = !SameShape(shape1, shape2);
+
+    #define ANDROID_NN_ADD(activation)                               \
+        optimized_ops::Add<FusedActivationFunctionType::activation>( \
+                in1, convertShapeToDims(shape1),                     \
+                in2, convertShapeToDims(shape2),                     \
+                out, convertShapeToDims(shapeOut))
+
+    #define ANDROID_NN_BROADCAST_ADD(activation)                              \
+        optimized_ops::BroadcastAdd<FusedActivationFunctionType::activation>( \
+                in1, convertShapeToDims(shape1),                              \
+                in2, convertShapeToDims(shape2),                              \
+                out, convertShapeToDims(shapeOut))
+
+    if (needBroadcast) {
+        switch (activation) {
+            case kActivationNone:
+                ANDROID_NN_BROADCAST_ADD(kNone);
+                break;
+            case kActivationRelu:
+                ANDROID_NN_BROADCAST_ADD(kRelu);
+                break;
+            case kActivationRelu1:
+                ANDROID_NN_BROADCAST_ADD(kRelu1);
+                break;
+            case kActivationRelu6:
+                ANDROID_NN_BROADCAST_ADD(kRelu6);
+                break;
+            default:
+                LOG(ERROR) << "Unsupported activation type";
+                return false;
+        }
+    } else {
+        switch (activation) {
+            case kActivationNone:
+                ANDROID_NN_ADD(kNone);
+                break;
+            case kActivationRelu:
+                ANDROID_NN_ADD(kRelu);
+                break;
+            case kActivationRelu1:
+                ANDROID_NN_ADD(kRelu1);
+                break;
+            case kActivationRelu6:
+                ANDROID_NN_ADD(kRelu6);
+                break;
+            default:
+                LOG(ERROR) << "Unsupported activation type";
+                return false;
+        }
+    }
+
+    #undef ANDROID_NN_ADD
+    #undef ANDROID_NN_BROADCAST_ADD
+    return true;
 }
 
-bool mulFloat32(const float* in1, const float* in2,
+bool mulFloat32(const float* in1, const Shape& shape1,
+                const float* in2, const Shape& shape2,
                 int32_t activation,
-                float* out, const Shape& shape) {
-    Dims<4> dim = convertShapeToDims(shape);
+                float* out, const Shape& shapeOut) {
+    bool needBroadcast = !SameShape(shape1, shape2);
+
     #define ANDROID_NN_MUL(activation)                               \
         optimized_ops::Mul<FusedActivationFunctionType::activation>( \
-                in1, dim, in2, dim, out, dim)
+                in1, convertShapeToDims(shape1),                     \
+                in2, convertShapeToDims(shape2),                     \
+                out, convertShapeToDims(shapeOut))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_MUL(kNone);
-    } else if (activation == kActivationRelu) {
-        ANDROID_NN_MUL(kRelu);
-    } else if (activation == kActivationRelu1) {
-        ANDROID_NN_MUL(kRelu1);
-    } else if (activation == kActivationRelu6) {
-        ANDROID_NN_MUL(kRelu6);
+    #define ANDROID_NN_BROADCAST_MUL(activation)                              \
+        optimized_ops::BroadcastMul<FusedActivationFunctionType::activation>( \
+                in1, convertShapeToDims(shape1),                              \
+                in2, convertShapeToDims(shape2),                              \
+                out, convertShapeToDims(shapeOut))
+
+    if (needBroadcast) {
+        switch (activation) {
+            case kActivationNone:
+                ANDROID_NN_BROADCAST_MUL(kNone);
+                break;
+            case kActivationRelu:
+                ANDROID_NN_BROADCAST_MUL(kRelu);
+                break;
+            case kActivationRelu1:
+                ANDROID_NN_BROADCAST_MUL(kRelu1);
+                break;
+            case kActivationRelu6:
+                ANDROID_NN_BROADCAST_MUL(kRelu6);
+                break;
+            default:
+                LOG(ERROR) << "Unsupported activation type";
+                return false;
+        }
     } else {
-        return false;
+        switch (activation) {
+            case kActivationNone:
+                ANDROID_NN_MUL(kNone);
+                break;
+            case kActivationRelu:
+                ANDROID_NN_MUL(kRelu);
+                break;
+            case kActivationRelu1:
+                ANDROID_NN_MUL(kRelu1);
+                break;
+            case kActivationRelu6:
+                ANDROID_NN_MUL(kRelu6);
+                break;
+            default:
+                LOG(ERROR) << "Unsupported activation type";
+                return false;
+        }
     }
 
     #undef ANDROID_NN_MUL
+    #undef ANDROID_NN_BROADCAST_MUL
     return true;
 }
 

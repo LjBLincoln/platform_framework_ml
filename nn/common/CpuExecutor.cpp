@@ -211,10 +211,12 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             Shape outShape = out.shape();
 
             if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
-                success = addPrepare(in1.shape(), in2.shape(), &outShape) &&
+                success = addMulPrepare(in1.shape(), in2.shape(), &outShape) &&
                           allocateIfNeeded(&out, outShape) &&
                           addFloat32(reinterpret_cast<const float*>(in1.buffer),
+                                     in1.shape(),
                                      reinterpret_cast<const float*>(in2.buffer),
+                                     in2.shape(),
                                      activation,
                                      reinterpret_cast<float*>(out.buffer),
                                      outShape);
@@ -232,10 +234,12 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             Shape outShape = out.shape();
 
             if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
-                success = mulPrepare(in1.shape(), in2.shape(), &outShape) &&
+                success = addMulPrepare(in1.shape(), in2.shape(), &outShape) &&
                           allocateIfNeeded(&out, outShape) &&
                           mulFloat32(reinterpret_cast<const float*>(in1.buffer),
+                                     in1.shape(),
                                      reinterpret_cast<const float*>(in2.buffer),
+                                     in2.shape(),
                                      activation,
                                      reinterpret_cast<float*>(out.buffer),
                                      outShape);
