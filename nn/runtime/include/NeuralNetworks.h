@@ -21,7 +21,7 @@
 
 #if __ANDROID_API__ >= __ANDROID_API_O_MR1__
 
-//TODO These may be useful when we broaden the shared memory support
+// TODO These may be useful when we broaden the shared memory support
 //     but would be available only for system apps.
 //#include <android/hardware_buffer.h>
 //#include <hardware/gralloc.h>
@@ -35,69 +35,105 @@ __BEGIN_DECLS
 /**
  * Operand types.
  *
- * [TODO: Make sure these are compatible with TensorFlow Lite.]
+ * The type of operands that can be added to a model.
+ *
+ * Although we define many types, most operators accept just a few
+ * types.  Most used are ANEURALNETWORKS_TENSOR_FLOAT32,
+ * ANEURALNETWORKS_TENSOR_QUANT8_ASYMM, and ANEURALNETWORKS_INT32.
  */
 enum {
     // The following entries are used to declare scalars.
-    ANEURALNETWORKS_FLOAT16 = 0,
-    ANEURALNETWORKS_FLOAT32 = 1,
-    ANEURALNETWORKS_INT8 = 2,
-    ANEURALNETWORKS_UINT8 = 3,
-    ANEURALNETWORKS_INT16 = 4,
-    ANEURALNETWORKS_UINT16 = 5,
-    ANEURALNETWORKS_INT32 = 6,
-    ANEURALNETWORKS_UINT32 = 7,
-    // The following entries are used to declare tensors.
-    ANEURALNETWORKS_TENSOR_FLOAT16 = 8,
-    ANEURALNETWORKS_TENSOR_FLOAT32 = 9,
-    ANEURALNETWORKS_TENSOR_QUANT8_ASYMM = 10,
+    ANEURALNETWORKS_FLOAT16 = 0,  // A 16 bit floating point scalar value.
+    ANEURALNETWORKS_FLOAT32 = 1,  // A 32 bit floating point scalar value.
+    ANEURALNETWORKS_INT8 = 2,     // A signed 8 bit integer scalar value.
+    ANEURALNETWORKS_UINT8 = 3,    // An unsigned 8 bit integer scalar value.
+    ANEURALNETWORKS_INT16 = 4,    // A signed 16 bit integer scalar value.
+    ANEURALNETWORKS_UINT16 = 5,   // An unsigned 16 bit integer scalar value.
+    ANEURALNETWORKS_INT32 = 6,    // A signed 32 bit integer scalar value.
+    ANEURALNETWORKS_UINT32 = 7,   // An unsigned 32 bit integer scalar value.
 
-    ANEURALNETWORKS_NUMBER_DATA_TYPES = 11
+    // The following entries are used to declare tensors.
+    ANEURALNETWORKS_TENSOR_FLOAT16 = 8,  // A tensor of 16 bit floating point values.
+    ANEURALNETWORKS_TENSOR_FLOAT32 = 9,  // A tensor of 32 bit floating point values.
+    ANEURALNETWORKS_TENSOR_INT32 = 10,   // A tensor of 32 bit integer values.
+    /* A tensor of 8 bit integers that represent real numbers.
+     *
+     * Attached to this tensor are two numbers that can be used to convert
+     * the 8 bit integer to the real value and vice versa.  These two numbers are:
+     * - scale: a 32 bit floating point value
+     * - zero_value: an 32 bit integer
+     *
+     * The formula is:
+     * real_value = (integer_value - zero_value) * scale.
+     */
+    ANEURALNETWORKS_TENSOR_QUANT8_ASYMM = 11,
 };
 
 /**
  * Operation types.
  *
- * [TODO: Make sure these are compatible with TensorFlow Lite.]
+ * The type of operations that can be added to a model.
  */
 enum {
+    /* OEM specific operation.
+     *
+     * This operation is OEM specific. It should only be used for OEM applications.
+     */
     ANEURALNETWORKS_OEM_OPERATION = 0,
-    ANEURALNETWORKS_AVERAGE_POOL = 1,
-    ANEURALNETWORKS_CONCATENATION = 2,
-    ANEURALNETWORKS_CONV = 3,
-    ANEURALNETWORKS_DEPTHWISE_CONV = 4,
-    ANEURALNETWORKS_MAX_POOL = 5,
-    ANEURALNETWORKS_L2_POOL = 6,
+    /* Adds two tensors.
+     *
+     * Takes two input tensors of identical dimensions. The output is the sum of both input tensors
+     * optionally modified by an activation function.
+     *
+     * TODO: Do we accept any number of dimensions? TENSOR_FLOAT16, TENSOR_FLOAT32, TENSOR_INT32,
+     *       TENSOR_QUANT8_ASYMM?
+     * TODO: Define "broadcast requirements" and have a link for Broadcast.
+     * TODO: Define "fused activation" and have a link for FusedActivation.
+     *
+     * Inputs:
+     * 0: A tensor.
+     * 1: A tensor of the same type as input0.  It should have the same shape too or satisfy
+     *    broadcast requirements.  See Broadcast.
+     * 2: An optional INT32? value.  Specifies the activation to invoke on the result of each
+     *    addition.  See FusedActivation.
+     *
+     * Ouputs:
+     * 0: The sum, a tensor of the same type and shape as input0.
+     */
+    ANEURALNETWORKS_ADD = 1,
+    // TODO Document all the other ops.
+    ANEURALNETWORKS_AVERAGE_POOL = 2,
+    ANEURALNETWORKS_CAST = 3,
+    ANEURALNETWORKS_CONCATENATION = 4,
+    ANEURALNETWORKS_CONV = 5,
+    ANEURALNETWORKS_DEPTHWISE_CONV = 6,
     ANEURALNETWORKS_DEPTH_TO_SPACE = 7,
-    ANEURALNETWORKS_SPACE_TO_DEPTH = 8,
-    ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION = 9,
-    ANEURALNETWORKS_SOFTMAX = 10,
-    ANEURALNETWORKS_RESHAPE = 11,
-    ANEURALNETWORKS_SPLIT = 12,
-    ANEURALNETWORKS_FAKE_QUANT = 13,
-    ANEURALNETWORKS_ADD = 14,
-    ANEURALNETWORKS_FULLY_CONNECTED = 15,
-    ANEURALNETWORKS_CAST = 16,
-    ANEURALNETWORKS_MUL = 17,
-    ANEURALNETWORKS_L2_NORMALIZATION = 18,
-    ANEURALNETWORKS_LOGISTIC = 19,
-    ANEURALNETWORKS_RELU = 20,
-    ANEURALNETWORKS_RELU6 = 21,
-    ANEURALNETWORKS_RELU1 = 22,
-    ANEURALNETWORKS_TANH = 23,
-    ANEURALNETWORKS_DEQUANTIZE = 24,
-    ANEURALNETWORKS_FLOOR = 25,
-    ANEURALNETWORKS_GATHER = 26,
+    ANEURALNETWORKS_DEQUANTIZE = 8,
+    ANEURALNETWORKS_EMBEDDING_LOOKUP = 9,
+    ANEURALNETWORKS_FAKE_QUANT = 10,
+    ANEURALNETWORKS_FLOOR = 11,
+    ANEURALNETWORKS_FULLY_CONNECTED = 12,
+    ANEURALNETWORKS_GATHER = 13,
+    ANEURALNETWORKS_HASHTABLE_LOOKUP = 14,
+    ANEURALNETWORKS_L2_NORMALIZATION = 15,
+    ANEURALNETWORKS_L2_POOL = 16,
+    ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION = 17,
+    ANEURALNETWORKS_LOGISTIC = 18,
+    ANEURALNETWORKS_LSH_PROJECTION = 19,
+    ANEURALNETWORKS_LSTM = 20,
+    ANEURALNETWORKS_MAX_POOL = 21,
+    ANEURALNETWORKS_MUL = 22,
+    ANEURALNETWORKS_RELU = 23,
+    ANEURALNETWORKS_RELU1 = 24,
+    ANEURALNETWORKS_RELU6 = 25,
+    ANEURALNETWORKS_RESHAPE = 26,
     ANEURALNETWORKS_RESIZE_BILINEAR = 27,
-    ANEURALNETWORKS_LSH_PROJECTION = 28,
-    ANEURALNETWORKS_LSTM = 29,
-    ANEURALNETWORKS_SVDF = 30,
-    ANEURALNETWORKS_RNN = 31,
-    ANEURALNETWORKS_N_GRAM = 32,
-    ANEURALNETWORKS_EMBEDDING_LOOKUP = 33,
-    ANEURALNETWORKS_HASHTABLE_LOOKUP = 34,
-
-    ANEURALNETWORKS_NUMBER_OPERATION_TYPES = 35,
+    ANEURALNETWORKS_RNN = 28,
+    ANEURALNETWORKS_SOFTMAX = 29,
+    ANEURALNETWORKS_SPACE_TO_DEPTH = 30,
+    ANEURALNETWORKS_SPLIT = 31,
+    ANEURALNETWORKS_SVDF = 32,
+    ANEURALNETWORKS_TANH = 33,
 };
 
 /**
@@ -119,8 +155,6 @@ enum {
      * processing successive frames coming from the camera.
      */
     ANEURALNETWORKS_PREFER_SUSTAINED_SPEED = 2,
-
-    ANEURALNETWORKS_NUMBER_PREFERENCES = 3
 };
 
 /**
@@ -133,12 +167,7 @@ enum {
     ANEURALNETWORKS_UNEXPECTED_NULL = 3,
     ANEURALNETWORKS_BAD_DATA = 4,
     ANEURALNETWORKS_OP_FAILED = 5,
-    ANEURALNETWORKS_NOT_IMPLEMENTED = 6 // TODO remove
 };
-
-// The maximum number of operands and operations that a model may have.
-const uint32_t MAX_NUMBER_OF_OPERANDS = 0xFFFFFFFE;
-const uint32_t MAX_NUMBER_OF_OPERATIONS = 0xFFFFFFFE;
 
 /**
  * ANeuralNetworksMemory is an opaque type that represents shared memory.
@@ -308,7 +337,6 @@ int ANeuralNetworksMemory_createFromHardwareBuffer(AHardwareBuffer* buffer,
  * Returns a pointer to the shared memory created by {@link ANeuralNetworksMemory_create}.
  */
 uint8_t* ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory);
-
 
 /**
  * Delete a shared memory object.
@@ -652,6 +680,6 @@ void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event);
 
 __END_DECLS
 
-#endif //  __ANDROID_API__ >= 27
+#endif  //  __ANDROID_API__ >= 27
 
-#endif // ANDROID_ML_NN_RUNTIME_NEURAL_NETWORKS_H
+#endif  // ANDROID_ML_NN_RUNTIME_NEURAL_NETWORKS_H
