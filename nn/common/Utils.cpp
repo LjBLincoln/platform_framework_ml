@@ -26,7 +26,9 @@ using ::android::hidl::allocator::V1_0::IAllocator;
 namespace android {
 namespace nn {
 
-const char* kTypeNames[ANEURALNETWORKS_NUMBER_DATA_TYPES] = {
+#define COUNT(X) (sizeof(X)/sizeof(X[0]))
+
+const char* kTypeNames[kNumberOfDataTypes] = {
         "FLOAT16",
         "FLOAT32",
         "INT8",
@@ -37,60 +39,67 @@ const char* kTypeNames[ANEURALNETWORKS_NUMBER_DATA_TYPES] = {
         "UINT32",
         "TENSOR_FLOAT16",
         "TENSOR_FLOAT32",
+        "TENSOR_INT32",
         "TENSOR_QUANT8_ASYMM",
 };
 
+static_assert(COUNT(kTypeNames) == kNumberOfDataTypes, "kTypeNames is incorrect");
+
 // TODO Check if this useful
 const char* kErrorNames[] = {
-        "NO_ERROR",        "OUT_OF_MEMORY", "INCOMPLETE", "NULL", "BAD_DATA",
-        "NOT_IMPLEMENTED", // TODO remove
+        "NO_ERROR",
+        "OUT_OF_MEMORY",
+        "INCOMPLETE",
+        "NULL",
+        "BAD_DATA",
 };
 
-const char* kOperationNames[ANEURALNETWORKS_NUMBER_OPERATION_TYPES] = {
+const char* kOperationNames[kNumberOfOperationTypes] = {
         "OEM_OPERATION",
+        "ADD",
         "AVERAGE_POOL",
+        "CAST",
         "CONCATENATION",
         "CONV",
         "DEPTHWISE_CONV",
-        "MAX_POOL",
-        "L2_POOL",
         "DEPTH_TO_SPACE",
-        "SPACE_TO_DEPTH",
-        "LOCAL_RESPONSE_NORMALIZATION",
-        "SOFTMAX",
-        "RESHAPE",
-        "SPLIT",
-        "FAKE_QUANT",
-        "ADD",
-        "FULLY_CONNECTED",
-        "CAST",
-        "MUL",
-        "L2_NORMALIZATION",
-        "LOGISTIC",
-        "RELU",
-        "RELU6",
-        "RELU1",
-        "TANH",
         "DEQUANTIZE",
+        "EMBEDDING_LOOKUP",
+        "FAKE_QUANT",
         "FLOOR",
+        "FULLY_CONNECTED",
         "GATHER",
-        "RESIZE_BILINEAR",
+        "HASHTABLE_LOOKUP",
+        "L2_NORMALIZATION",
+        "L2_POOL",
+        "LOCAL_RESPONSE_NORMALIZATION",
+        "LOGISTIC",
         "LSH_PROJECTION",
         "LSTM",
-        "SVDF",
+        "MAX_POOL",
+        "MUL",
+        "RELU",
+        "RELU1",
+        "RELU6",
+        "RESHAPE",
+        "RESIZE_BILINEAR",
         "RNN",
-        "N_GRAM",
-        "EMBEDDING_LOOKUP",
-        "HASHTABLE_LOOKUP",
+        "SOFTMAX",
+        "SPACE_TO_DEPTH",
+        "SPLIT",
+        "SVDF",
+        "TANH",
 };
+
+static_assert(COUNT(kOperationNames) == kNumberOfOperationTypes, "kOperationNames is incorrect");
 
 const char* getOperationName(OperationType type) {
     uint32_t n = static_cast<uint32_t>(type);
-    nnAssert(n < ANEURALNETWORKS_NUMBER_OPERATION_TYPES);
+    nnAssert(n < kNumberOfOperationTypes);
     return kOperationNames[n];
 }
 
-const uint32_t kSizeOfDataType[ANEURALNETWORKS_NUMBER_DATA_TYPES]{
+const uint32_t kSizeOfDataType[]{
         2, // ANEURALNETWORKS_FLOAT16
         4, // ANEURALNETWORKS_FLOAT32
         1, // ANEURALNETWORKS_INT8
@@ -101,12 +110,15 @@ const uint32_t kSizeOfDataType[ANEURALNETWORKS_NUMBER_DATA_TYPES]{
         4, // ANEURALNETWORKS_UINT32
         2, // ANEURALNETWORKS_TENSOR_FLOAT16
         4, // ANEURALNETWORKS_TENSOR_FLOAT32
+        4, // ANEURALNETWORKS_TENSOR_INT32
         1  // ANEURALNETWORKS_TENSOR_SIMMETRICAL_QUANT8
 };
 
+static_assert(COUNT(kSizeOfDataType) == kNumberOfDataTypes, "kSizeOfDataType is incorrect");
+
 uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions) {
     int n = static_cast<int>(type);
-    nnAssert(n < ANEURALNETWORKS_NUMBER_DATA_TYPES);
+    nnAssert(n < kNumberOfDataTypes);
 
     uint32_t size = kSizeOfDataType[n];
     for (auto d : dimensions) {

@@ -44,15 +44,15 @@ public:
         return ANEURALNETWORKS_NO_ERROR;
     }
     int setFromFd(int fd) {
-        return ANEURALNETWORKS_NOT_IMPLEMENTED;
+        return ANEURALNETWORKS_NO_ERROR;
     }
     int setFromGrallocBuffer(buffer_handle_t buffer,
                              ANeuralNetworksMemory** memory) {
-        return ANEURALNETWORKS_NOT_IMPLEMENTED;
+        return ANEURALNETWORKS_NO_ERROR;
     }
     int setFromHardwareBuffer(AHardwareBuffer* buffer,
                               ANeuralNetworksMemory** memory) {
-        return ANEURALNETWORKS_NOT_IMPLEMENTED;
+        return ANEURALNETWORKS_NO_ERROR;
     }
     */
 

@@ -149,7 +149,7 @@ TEST_F(ValidationTestRequest, SetPreference) {
     EXPECT_EQ(ANeuralNetworksRequest_setPreference(nullptr, ANEURALNETWORKS_PREFER_LOW_POWER),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 
-    EXPECT_EQ(ANeuralNetworksRequest_setPreference(mRequest, ANEURALNETWORKS_NUMBER_PREFERENCES),
+    EXPECT_EQ(ANeuralNetworksRequest_setPreference(mRequest, 40),
               ANEURALNETWORKS_BAD_DATA);
 }
 
