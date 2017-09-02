@@ -33,6 +33,7 @@ cc_library {
     host_supported: false,
 
     srcs: [
+        "Event.cpp",
         "Manager.cpp",
         "Memory.cpp",
         "ModelBuilder.cpp",

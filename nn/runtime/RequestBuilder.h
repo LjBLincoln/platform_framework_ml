@@ -17,6 +17,7 @@
 #ifndef ANDROID_ML_NN_RUNTIME_REQUEST_BUILDER_H
 #define ANDROID_ML_NN_RUNTIME_REQUEST_BUILDER_H
 
+#include "Event.h"
 #include "HalInterfaces.h"
 #include "Memory.h"
 #include "NeuralNetworks.h"
@@ -24,17 +25,13 @@
 #include <unordered_map>
 #include <vector>
 
+using ::android::hardware::neuralnetworks::V1_0::implementation::Event;
+
 namespace android {
 namespace nn {
 
 class Memory;
 class ModelBuilder;
-
-// TODO
-class Event {
-public:
-    void wait() {}
-};
 
 // TODO move length out of DataLocation
 struct ModelArgumentInfo {
@@ -66,14 +63,14 @@ public:
                   uint32_t length);
     int setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
                             const Memory* memory, uint32_t offset, uint32_t length);
-    int startCompute(Event** event);
+    int startCompute(sp<Event>* event);
 
 private:
     int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
     int updateDimensionInfo(ModelArgumentInfo* info, const ANeuralNetworksOperandType* newType,
                             uint32_t operandIndex);
-    int startComputeOnDevice(sp<IDevice> driver, const Model& model, Event** event);
-    int startComputeOnCpu(Event** event, const Model& model);
+    int startComputeOnDevice(sp<IDevice> driver, const Model& model, sp<Event>* event);
+    int startComputeOnCpu(const Model& model, sp<Event>* event);
 
     const ModelBuilder* mModel;
     // Whether the application prefers to go fast or use low power for this request.

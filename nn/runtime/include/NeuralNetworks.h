@@ -631,17 +631,17 @@ int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, 
                                                uint32_t length);
 
 /**
- * Queue the request for execution.
+ * Schedule the request for execution.
  *
- * <p>Puts the request in a queue for execution. Once the model has been
+ * <p>Schedules the request for execution. Once the model has been
  * applied and the outputs are ready to be consumed, the returned event will be
  * signaled. Use {@link ANeuralNetworksRequest_wait} to wait for that event.
  * </p>
  *
- * Multiple requests can be queued and executed concurrently. The runtime makes
+ * Multiple requests can be scheduled and executed concurrently. The runtime makes
  * no guarantee on the ordering of the completion of the requests.  If it's
- * important to the application, the application should enforces the ordering by
- * using the return events.
+ * important to the application, the application should enforce the ordering by
+ * using the returned events.
  *
  * ANeuralNetworksRequest_wait must be called to recuperate the resources used
  * by the event.
@@ -650,7 +650,8 @@ int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, 
  *
  * @param request The request to be modified.
  * @param event The event that will be signaled on completion.
- *              [TODO define the functions to create/delete events]
+ *              [TODO define the functions to create/delete events?
+ *                    or startCompute creates, and free deletes?]
  *
  * @return NO_ERROR if successful, BAD_DATA if callback is NULL.
  */
