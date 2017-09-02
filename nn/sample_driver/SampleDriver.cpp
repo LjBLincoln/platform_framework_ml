@@ -17,12 +17,17 @@
 #define LOG_TAG "SampleDriver"
 
 #include "SampleDriver.h"
+
 #include "CpuExecutor.h"
 #include "HalInterfaces.h"
+
+#include <thread>
 
 namespace android {
 namespace nn {
 namespace sample_driver {
+
+SampleDriver::~SampleDriver() {}
 
 Return<void> SampleDriver::initialize(initialize_cb cb) {
     SetMinimumLogSeverity(base::VERBOSE);
@@ -158,6 +163,8 @@ SamplePreparedModel::SamplePreparedModel(const Model& model) {
     mModel = model;
 }
 
+SamplePreparedModel::~SamplePreparedModel() {}
+
 static bool mapPools(std::vector<RunTimePoolInfo>* poolInfos, const hidl_vec<hidl_memory>& pools) {
     poolInfos->resize(pools.size());
     for (size_t i = 0; i < pools.size(); i++) {
@@ -169,18 +176,36 @@ static bool mapPools(std::vector<RunTimePoolInfo>* poolInfos, const hidl_vec<hid
     return true;
 }
 
-Return<bool> SamplePreparedModel::execute(const Request& request) {
-    LOG(DEBUG) << "SampleDriver::prepareRequest(" << toString(request) << ")";
+void SamplePreparedModel::asyncExecute(const Request& request, const sp<IEvent>& event) {
+    if (event.get() == nullptr) {
+        LOG(ERROR) << "asyncExecute: invalid event";
+        return;
+    }
 
     std::vector<RunTimePoolInfo> poolInfo;
     if (!mapPools(&poolInfo, request.pools)) {
-        return false;
+        event->notify(Status::ERROR);
+        return;
     }
 
     CpuExecutor executor;
     int n = executor.run(mModel, request, poolInfo);
     LOG(DEBUG) << "executor.run returned " << n;
-    return n == ANEURALNETWORKS_NO_ERROR;
+    Status executionStatus = n == ANEURALNETWORKS_NO_ERROR ? Status::SUCCESS : Status::ERROR;
+    Return<void> returned = event->notify(executionStatus);
+    if (!returned.isOk()) {
+        LOG(ERROR) << "hidl callback failed to return properly: " << returned.description();
+    }
+}
+
+Return<bool> SamplePreparedModel::execute(const Request& request, const sp<IEvent>& event) {
+    LOG(DEBUG) << "SampleDriver::execute(" << toString(request) << ")";
+
+    // This thread is intentionally detached because the sample driver service
+    // is expected to live forever.
+    std::thread([this, request, event]{ asyncExecute(request, event); }).detach();
+
+    return true;
 }
 
 } // namespace sample_driver
