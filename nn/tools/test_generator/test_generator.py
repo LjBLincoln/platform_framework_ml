@@ -120,6 +120,9 @@ class Type(object):
       self.__id = Type.__types[key].__id
     self.__name = "type" + str(self.__id)
 
+  def get_element_type(self):
+    return self.__vt
+
   def get_name(self):
     return self.__name
 
@@ -222,7 +225,7 @@ class ModelArgument:
   def get_arguments():
     return ModelArgument.__arguments
 
-class Parameter(Input):
+class TypeLookup:
   __type_lookup = {
       "INT32": "int32_t",
       "FLOAT32": "float",
@@ -231,10 +234,17 @@ class Parameter(Input):
       "TENSOR_QUANT8_ASYMM": "uint8_t",
     }
 
+  def get_cpptype(nnapi_type):
+    return TypeLookup.__type_lookup[nnapi_type]
+
+  def is_float(nnapi_type):
+    return TypeLookup.get_cpptype(nnapi_type) == "float"
+
+class Parameter(Input):
   def __init__(self, name, vt, shape, initializer):
     Input.__init__(self, name, vt, shape)
     self.initializer = initializer
-    self.cpptype = Parameter.__type_lookup[vt]
+    self.cpptype = TypeLookup.get_cpptype(vt)
   def is_internal(self):
     return True
   def Definition(self):
@@ -410,6 +420,9 @@ class Model(object):
     self.__currentOp = None
     return self
 
+class FileNames:
+  SpecFile = ""
+
 class Example():
   __examples = []
   def __init__(self, list_of_examples):
@@ -418,16 +431,21 @@ class Example():
   def dump_dict(d):
     ret = []
     for k, v in d.items():
-      init = ", ".join([str(i)+'f' for i in v])
       key = str(k)
+      suffix = "f"
       if type(k) is not int:
         key = str(k.number)
+        if not TypeLookup.is_float(k.type.get_element_type()):
+          suffix = ""
+      init = ", ".join([str(i)+suffix for i in v])
       ret.append('{%s, {%s}}' %(key, init))
     return ", ".join(ret)
 
   def dump(example_file):
     if len(Example.__examples) > 0:
-      print ('// Generated file. Do not edit', file = example_file)
+      spec_file = " (from: %s)" % (FileNames.SpecFile)
+      print ('// Generated file%s. Do not edit' % (spec_file),
+             file = example_file)
     for i, o in Example.__examples:
       print ('// Begin of an example', file = example_file)
       print ('{', file = example_file)
@@ -451,6 +469,7 @@ def TopologicalSort(model_file):
       if len(deps[o]) == 0 and o.traversable():
         start.add(o)
 
+
 # Take a model from command line
 def import_source():
   parser = argparse.ArgumentParser()
@@ -460,6 +479,7 @@ def import_source():
   args = parser.parse_args()
 
   if os.path.exists(args.spec):
+    FileNames.SpecFile = os.path.basename(args.spec)
     exec(open(args.spec).read())
 
   return (args.model, args.example)
@@ -475,7 +495,9 @@ if __name__ == '__main__':
   print ("Output example:" + example, file = sys.stderr)
 
   with smart_open(model) as model_file:
-    print ('// Generated file. Do not edit', file = model_file)
+    spec_file = " (from: %s)" % (FileNames.SpecFile)
+
+    print ('// Generated file%s. Do not edit'%(spec_file), file = model_file)
     print ("void CreateModel(Model *model" + args + ") {", file=model_file)
 
     # Phase 0: types

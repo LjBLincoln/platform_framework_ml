@@ -1,4 +1,4 @@
-// Generated file. Do not edit
+// Generated file (from: explicit_add.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type0(Type::TENSOR_FLOAT32, {1, 8, 8, 3});
   // Phase 1, operands

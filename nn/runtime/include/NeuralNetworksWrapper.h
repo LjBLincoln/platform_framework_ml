@@ -70,15 +70,13 @@ struct OperandType {
         operandType.dimensions.data = dimensions.data();
     }
 
-    OperandType(Type type, float scale, const std::vector<uint32_t>& d) : dimensions(d) {
-        OperandType(type, d);
+    OperandType(Type type, float scale, const std::vector<uint32_t>& d)
+            : OperandType(type, d) {
         operandType.scale = scale;
     }
 
     OperandType(Type type, float f_min, float f_max, const std::vector<uint32_t>& d)
-          : dimensions(d) {
-        OperandType(type, d);
-
+            : OperandType(type, d) {
         uint8_t q_min = std::numeric_limits<uint8_t>::min();
         uint8_t q_max = std::numeric_limits<uint8_t>::max();
         float range = q_max - q_min;

@@ -19,13 +19,12 @@
 
 #include "android/log.h"
 
-#include <cstdint>
 #include <stddef.h>
-#include <vector>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <vector>
 
 namespace android {
 namespace nn {
@@ -76,15 +75,15 @@ class ActivationFunctor {
   ActivationFn act_;
 };
 
-bool addPrepare(const Shape& in1, const Shape& in2, Shape* out1);
-bool addFloat32(const float* in1, const float* in2,
+bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out1);
+bool addFloat32(const float* in1, const Shape& shape1,
+                const float* in2, const Shape& shape2,
                 int32_t activation,
-                float* out, const Shape& shape);
-
-bool mulPrepare(const Shape& in1, const Shape& in2, Shape* out1);
-bool mulFloat32(const float* in1, const float* in2,
+                float* out, const Shape& shapeOut);
+bool mulFloat32(const float* in1, const Shape& shape1,
+                const float* in2, const Shape& shape2,
                 int32_t activation,
-                float* out, const Shape& shape);
+                float* out, const Shape& shapeOut);
 
 bool floorPrepare(const Shape& input, Shape* output);
 bool floorFloat32(const float* inputData,

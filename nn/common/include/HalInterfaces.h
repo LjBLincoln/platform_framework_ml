@@ -18,6 +18,7 @@
 #define ANDROID_ML_NN_COMMON_HAL_INTERFACES_H
 
 #include <android/hardware/neuralnetworks/1.0/IDevice.h>
+#include <android/hardware/neuralnetworks/1.0/IEvent.h>
 #include <android/hardware/neuralnetworks/1.0/IPreparedModel.h>
 #include <android/hardware/neuralnetworks/1.0/types.h>
 #include <android/hidl/allocator/1.0/IAllocator.h>
@@ -33,6 +34,7 @@ using ::android::hardware::neuralnetworks::V1_0::Capabilities;
 using ::android::hardware::neuralnetworks::V1_0::DataLocation;
 using ::android::hardware::neuralnetworks::V1_0::DeviceStatus;
 using ::android::hardware::neuralnetworks::V1_0::IDevice;
+using ::android::hardware::neuralnetworks::V1_0::IEvent;
 using ::android::hardware::neuralnetworks::V1_0::IPreparedModel;
 using ::android::hardware::neuralnetworks::V1_0::InputOutputInfo;
 using ::android::hardware::neuralnetworks::V1_0::LocationValues;
@@ -44,6 +46,7 @@ using ::android::hardware::neuralnetworks::V1_0::OperationTuple;
 using ::android::hardware::neuralnetworks::V1_0::OperationType;
 using ::android::hardware::neuralnetworks::V1_0::PerformanceInfo;
 using ::android::hardware::neuralnetworks::V1_0::Request;
+using ::android::hardware::neuralnetworks::V1_0::Status;
 using ::android::hidl::allocator::V1_0::IAllocator;
 using ::android::hidl::memory::V1_0::IMemory;
 
@@ -51,7 +54,7 @@ namespace android {
 namespace nn {
 
 const uint32_t HAL_NUM_OPERAND_TYPES = 11;
-const uint32_t HAL_NUM_OPERATION_TYPES = 33;
+const uint32_t HAL_NUM_OPERATION_TYPES = 35;
 
 // Shortcuts
 const uint32_t SAME_BLOCK = static_cast<uint32_t>(LocationValues::LOCATION_SAME_BLOCK);

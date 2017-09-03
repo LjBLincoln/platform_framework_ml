@@ -18,10 +18,14 @@
 
 #include "CpuExecutor.h"
 
+#include "EmbeddingLookup.h"
+#include "HashtableLookup.h"
 #include "LSHProjection.h"
+#include "LSTM.h"
 #include "NeuralNetworks.h"
 #include "Operations.h"
 #include "RNN.h"
+#include "SVDF.h"
 
 namespace android {
 namespace nn {
@@ -191,6 +195,10 @@ int CpuExecutor::executeOperation(const Operation& operation) {
     };
 
     switch (operation.opTuple.operationType) {
+        case OperationType::OEM_OPERATION: {
+            LOG(ERROR) << "OEM operation not supported for CPU execution";
+            success = false;
+        } break;
         case OperationType::ADD: {
             if (!parameterCountIs(3, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
@@ -203,10 +211,12 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             Shape outShape = out.shape();
 
             if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
-                success = addPrepare(in1.shape(), in2.shape(), &outShape) &&
+                success = addMulPrepare(in1.shape(), in2.shape(), &outShape) &&
                           allocateIfNeeded(&out, outShape) &&
                           addFloat32(reinterpret_cast<const float*>(in1.buffer),
+                                     in1.shape(),
                                      reinterpret_cast<const float*>(in2.buffer),
+                                     in2.shape(),
                                      activation,
                                      reinterpret_cast<float*>(out.buffer),
                                      outShape);
@@ -224,10 +234,12 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             Shape outShape = out.shape();
 
             if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
-                success = mulPrepare(in1.shape(), in2.shape(), &outShape) &&
+                success = addMulPrepare(in1.shape(), in2.shape(), &outShape) &&
                           allocateIfNeeded(&out, outShape) &&
                           mulFloat32(reinterpret_cast<const float*>(in1.buffer),
+                                     in1.shape(),
                                      reinterpret_cast<const float*>(in2.buffer),
+                                     in2.shape(),
                                      activation,
                                      reinterpret_cast<float*>(out.buffer),
                                      outShape);
@@ -826,13 +838,29 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                           output.buffer,
                                           outShape);
         } break;
+        case OperationType::EMBEDDING_LOOKUP: {
+            EmbeddingLookup lookup(operation, mOperands);
+            success = lookup.Eval();
+        } break;
+        case OperationType::HASHTABLE_LOOKUP: {
+            HashtableLookup lookup(operation, mOperands);
+            success = lookup.Eval();
+        } break;
         case OperationType::LSH_PROJECTION: {
             LSHProjection lsh(operation, mOperands);
             success = lsh.Eval();
         } break;
+        case OperationType::LSTM: {
+            LSTMCell lstm_cell(operation, mOperands);
+            success = lstm_cell.Eval();
+        } break;
         case OperationType::RNN: {
             RNN rnn_cell(operation, mOperands);
             success = rnn_cell.Eval();
+        } break;
+        case OperationType::SVDF: {
+            SVDF svdf(operation, mOperands);
+            success = svdf.Eval();
         } break;
         default:
             nnAssert(false);
