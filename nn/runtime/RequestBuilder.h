@@ -44,9 +44,15 @@ struct ModelArgumentInfo {
     // If MEMORY then:
     //   locationAndDimension.location.{poolIndex, offset, length} is valid.
     //   locationAndDimension.dimension is valid.
-    enum { POINTER, MEMORY, MISSING } state;
+    enum { POINTER, MEMORY, UNSPECIFIED } state;
     InputOutputInfo locationAndDimension;
     void* buffer;
+
+    int setFromPointer(const Operand& operand, const ANeuralNetworksOperandType* type, void* buffer,
+                       uint32_t length);
+    int setFromMemory(const Operand& operand, const ANeuralNetworksOperandType* type,
+                      uint32_t poolIndex, uint32_t offset, uint32_t length);
+    int updateDimensionInfo(const Operand& operand, const ANeuralNetworksOperandType* newType);
 };
 
 class RequestBuilder {
@@ -68,7 +74,7 @@ public:
 private:
     int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
     int updateDimensionInfo(ModelArgumentInfo* info, const ANeuralNetworksOperandType* newType,
-                            uint32_t operandIndex);
+                            const Operand& operand);
     int startComputeOnDevice(sp<IDevice> driver, const Model& model, sp<Event>* event);
     int startComputeOnCpu(const Model& model, sp<Event>* event);
 
