@@ -44,8 +44,7 @@ static_assert(ANEURALNETWORKS_TENSOR_FLOAT16 == 8,
               "ANEURALNETWORKS_TENSOR_FLOAT16 may have changed");
 static_assert(ANEURALNETWORKS_TENSOR_FLOAT32 == 9,
               "ANEURALNETWORKS_TENSOR_FLOAT32 may have changed");
-static_assert(ANEURALNETWORKS_TENSOR_INT32 == 10,
-              "ANEURALNETWORKS_TENSOR_INT32 may have changed");
+static_assert(ANEURALNETWORKS_TENSOR_INT32 == 10, "ANEURALNETWORKS_TENSOR_INT32 may have changed");
 static_assert(ANEURALNETWORKS_TENSOR_QUANT8_ASYMM == 11,
               "ANEURALNETWORKS_TENSOR_QUANT8_ASYMM may have changed");
 
@@ -146,9 +145,11 @@ static_assert(static_cast<uint32_t>(OperationType::CONCATENATION) == ANEURALNETW
               "OperationType::CONCATENATION != ANEURALNETWORKS_CONCATENATION");
 static_assert(static_cast<uint32_t>(OperationType::CONV) == ANEURALNETWORKS_CONV,
               "OperationType::CONV != ANEURALNETWORKS_CONV");
-static_assert(static_cast<uint32_t>(OperationType::DEPTHWISE_CONV) == ANEURALNETWORKS_DEPTHWISE_CONV,
+static_assert(static_cast<uint32_t>(OperationType::DEPTHWISE_CONV) ==
+                          ANEURALNETWORKS_DEPTHWISE_CONV,
               "OperationType::DEPTHWISE_CONV != ANEURALNETWORKS_DEPTHWISE_CONV");
-static_assert(static_cast<uint32_t>(OperationType::DEPTH_TO_SPACE) == ANEURALNETWORKS_DEPTH_TO_SPACE,
+static_assert(static_cast<uint32_t>(OperationType::DEPTH_TO_SPACE) ==
+                          ANEURALNETWORKS_DEPTH_TO_SPACE,
               "OperationType::DEPTH_TO_SPACE != ANEURALNETWORKS_DEPTH_TO_SPACE");
 static_assert(static_cast<uint32_t>(OperationType::DEQUANTIZE) == ANEURALNETWORKS_DEQUANTIZE,
               "OperationType::DEQUANTIZE != ANEURALNETWORKS_DEQUANTIZE");
@@ -178,7 +179,8 @@ static_assert(static_cast<uint32_t>(OperationType::LOCAL_RESPONSE_NORMALIZATION)
               "ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION");
 static_assert(static_cast<uint32_t>(OperationType::LOGISTIC) == ANEURALNETWORKS_LOGISTIC,
               "OperationType::LOGISTIC != ANEURALNETWORKS_LOGISTIC");
-static_assert(static_cast<uint32_t>(OperationType::LSH_PROJECTION) == ANEURALNETWORKS_LSH_PROJECTION,
+static_assert(static_cast<uint32_t>(OperationType::LSH_PROJECTION) ==
+                          ANEURALNETWORKS_LSH_PROJECTION,
               "OperationType::LSH_PROJECTION != ANEURALNETWORKS_LSH_PROJECTION");
 static_assert(static_cast<uint32_t>(OperationType::LSTM) == ANEURALNETWORKS_LSTM,
               "OperationType::LSTM != ANEURALNETWORKS_LSTM");
@@ -201,7 +203,8 @@ static_assert(static_cast<uint32_t>(OperationType::RNN) == ANEURALNETWORKS_RNN,
               "OperationType::RNN != ANEURALNETWORKS_RNN");
 static_assert(static_cast<uint32_t>(OperationType::SOFTMAX) == ANEURALNETWORKS_SOFTMAX,
               "OperationType::SOFTMAX != ANEURALNETWORKS_SOFTMAX");
-static_assert(static_cast<uint32_t>(OperationType::SPACE_TO_DEPTH) == ANEURALNETWORKS_SPACE_TO_DEPTH,
+static_assert(static_cast<uint32_t>(OperationType::SPACE_TO_DEPTH) ==
+                          ANEURALNETWORKS_SPACE_TO_DEPTH,
               "OperationType::SPACE_TO_DEPTH != ANEURALNETWORKS_SPACE_TO_DEPTH");
 static_assert(static_cast<uint32_t>(OperationType::SPLIT) == ANEURALNETWORKS_SPLIT,
               "OperationType::SPLIT != ANEURALNETWORKS_SPLIT");
@@ -265,18 +268,18 @@ void ANeuralNetworksShutdown() {
     DeviceManager::get()->shutdown();
 }
 
-int ANeuralNetworksMemory_create(size_t size, ANeuralNetworksMemory** memory) {
+int ANeuralNetworksMemory_createShared(size_t size, ANeuralNetworksMemory** memory) {
     if (!memory) {
-        LOG(ERROR) << "ANeuralNetworksMemory_create passed a nullptr";
+        LOG(ERROR) << "ANeuralNetworksMemory_createShared passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
-    if (size > 0xFFFFFFFF) {
-        LOG(ERROR) << "ANeuralNetworksMemory_create size exceeds max " << size;
+    if (size > std::numeric_limits<uint32_t>::max()) {
+        LOG(ERROR) << "ANeuralNetworksMemory_createShared size exceeds max " << size;
         return ANEURALNETWORKS_BAD_DATA;
     }
     uint32_t size32 = static_cast<uint32_t>(size);
     *memory = nullptr;
-    std::unique_ptr<Memory> m = std::make_unique<Memory>(Memory());
+    std::unique_ptr<Memory> m = std::make_unique<Memory>();
     if (m == nullptr) {
         return ANEURALNETWORKS_OUT_OF_MEMORY;
     }
@@ -292,7 +295,7 @@ int ANeuralNetworksMemory_create(size_t size, ANeuralNetworksMemory** memory) {
 int ANeuralNetworksMemory_createFromHidlMemory(hidl_memory hidlMemory,
                                                ANeuralNetworksMemory** memory) {
     if (!memory) {
-        LOG(ERROR) << "ANeuralNetworksMemory_create passed a nullptr";
+        LOG(ERROR) << "ANeuralNetworksMemory_createFromHidlMemory passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     *memory = nullptr;
@@ -341,13 +344,13 @@ int ANeuralNetworksMemory_createFromHardwareBuffer(AHardwareBuffer* buffer,
 }
 */
 
-uint8_t* ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory) {
-    if (!memory) {
-        LOG(ERROR) << "ANeuralNetworksMemory_getPoiter passed a nullptr";
-        return nullptr;
+int ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory, uint8_t** buffer) {
+    if (!memory || !buffer) {
+        LOG(ERROR) << "ANeuralNetworksMemory_getPointer passed a nullptr";
+        return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     Memory* m = reinterpret_cast<Memory*>(memory);
-    return m->getPointer();
+    return m->getPointer(buffer);
 }
 
 void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory) {
