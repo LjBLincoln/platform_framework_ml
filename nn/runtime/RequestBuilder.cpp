@@ -23,24 +23,67 @@
 #include "Manager.h"
 #include "ModelBuilder.h"
 
-#include <thread>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 namespace android {
 namespace nn {
 
+int ModelArgumentInfo::setFromPointer(const Operand& operand,
+                                      const ANeuralNetworksOperandType* type, void* data,
+                                      uint32_t length) {
+    int n = updateDimensionInfo(operand, type);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    state = ModelArgumentInfo::POINTER;
+    locationAndDimension.location = {.poolIndex = RUN_TIME, .offset = 0, .length = length};
+    buffer = data;
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int ModelArgumentInfo::setFromMemory(const Operand& operand, const ANeuralNetworksOperandType* type,
+                                     uint32_t poolIndex, uint32_t offset, uint32_t length) {
+    int n = updateDimensionInfo(operand, type);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    state = ModelArgumentInfo::MEMORY;
+    locationAndDimension.location = {.poolIndex = poolIndex, .offset = offset, .length = length};
+    buffer = nullptr;
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
+                                           const ANeuralNetworksOperandType* newType) {
+    if (newType == nullptr) {
+        locationAndDimension.dimensions = hidl_vec<uint32_t>();
+    } else {
+        uint32_t count = newType->dimensions.count;
+        if (static_cast<OperandType>(newType->type) != operand.type ||
+            count != operand.dimensions.size()) {
+            LOG(ERROR) << "ANeuralNetworksRequest_setInput/Output incompatible types";
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+        for (uint32_t i = 0; i < count; i++) {
+            locationAndDimension.dimensions[i] = newType->dimensions.data[i];
+        }
+    }
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
 RequestBuilder::RequestBuilder(const ModelBuilder* model)
-      : mModel(model),
-        mInputs(model->inputCount()),
-        mOutputs(model->outputCount()),
-        mMemories(model->getMemories()) {
+    : mModel(model),
+      mInputs(model->inputCount()),
+      mOutputs(model->outputCount()),
+      mMemories(model->getMemories()) {
     LOG(DEBUG) << "RequestBuilder::RequestBuilder";
     for (auto& p : mInputs) {
-        p.state = ModelArgumentInfo::MISSING;
+        p.state = ModelArgumentInfo::UNSPECIFIED;
     }
     for (auto& p : mOutputs) {
-        p.state = ModelArgumentInfo::MISSING;
+        p.state = ModelArgumentInfo::UNSPECIFIED;
     }
 }
 
@@ -51,12 +94,8 @@ int RequestBuilder::setInput(uint32_t index, const ANeuralNetworksOperandType* t
         LOG(ERROR) << "ANeuralNetworksRequest_setInput bad index " << index << " " << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    ModelArgumentInfo& info = mInputs[index];
-    info.state = ModelArgumentInfo::POINTER;
-    info.locationAndDimension.location = {.poolIndex = RUN_TIME, .offset = 0, .length = length};
-    updateDimensionInfo(&info, type, mModel->getInputOperandIndex(index));
-    info.buffer = const_cast<void*>(buffer);
-    return ANEURALNETWORKS_NO_ERROR;
+    return mInputs[index].setFromPointer(mModel->getInputOperand(index), type,
+                                         const_cast<void*>(buffer), length);
 }
 
 int RequestBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
@@ -67,14 +106,9 @@ int RequestBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOper
                    << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    ModelArgumentInfo& info = mInputs[index];
-    info.state = ModelArgumentInfo::MEMORY;
-    info.locationAndDimension.location = {.poolIndex = mMemories.add(memory),
-                                          .offset = offset,
-                                          .length = length};
-    updateDimensionInfo(&info, type, mModel->getInputOperandIndex(index));
-    info.buffer = nullptr;
-    return ANEURALNETWORKS_NO_ERROR;
+    uint32_t poolIndex = mMemories.add(memory);
+    return mInputs[index].setFromMemory(mModel->getInputOperand(index), type, poolIndex, offset,
+                                        length);
 }
 
 int RequestBuilder::setOutput(uint32_t index, const ANeuralNetworksOperandType* type, void* buffer,
@@ -84,12 +118,7 @@ int RequestBuilder::setOutput(uint32_t index, const ANeuralNetworksOperandType* 
         LOG(ERROR) << "ANeuralNetworksRequest_setOutput bad index " << index << " " << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    ModelArgumentInfo& info = mOutputs[index];
-    info.state = ModelArgumentInfo::POINTER;
-    info.locationAndDimension.location = {.poolIndex = RUN_TIME, .offset = 0, .length = length};
-    updateDimensionInfo(&info, type, mModel->getOutputOperandIndex(index));
-    info.buffer = const_cast<void*>(buffer);
-    return ANEURALNETWORKS_NO_ERROR;
+    return mOutputs[index].setFromPointer(mModel->getOutputOperand(index), type, buffer, length);
 }
 
 int RequestBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
@@ -100,34 +129,9 @@ int RequestBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOpe
                    << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    ModelArgumentInfo& info = mOutputs[index];
-    info.state = ModelArgumentInfo::MEMORY;
-    info.locationAndDimension.location = {.poolIndex = mMemories.add(memory),
-                                          .offset = offset,
-                                          .length = length};
-    updateDimensionInfo(&info, type, mModel->getOutputOperandIndex(index));
-    info.buffer = nullptr;
-    return ANEURALNETWORKS_NO_ERROR;
-}
-
-int RequestBuilder::updateDimensionInfo(ModelArgumentInfo* info,
-                                        const ANeuralNetworksOperandType* newType,
-                                        uint32_t operandIndex) {
-    if (newType == nullptr) {
-        info->locationAndDimension.dimensions = hidl_vec<uint32_t>();
-    } else {
-        const Operand& operand = mModel->getOperand(operandIndex);
-        uint32_t count = newType->dimensions.count;
-        if (static_cast<OperandType>(newType->type) != operand.type ||
-            count != operand.dimensions.size()) {
-            LOG(ERROR) << "ANeuralNetworksRequest_setInput/Output incompatible types";
-            return ANEURALNETWORKS_BAD_DATA;
-        }
-        for (uint32_t i = 0; i < count; i++) {
-            info->locationAndDimension.dimensions[i] = newType->dimensions.data[i];
-        }
-    }
-    return ANEURALNETWORKS_NO_ERROR;
+    uint32_t poolIndex = mMemories.add(memory);
+    return mOutputs[index].setFromMemory(mModel->getOutputOperand(index), type, poolIndex, offset,
+                                         length);
 }
 
 int RequestBuilder::startCompute(sp<Event>* event) {
@@ -139,14 +143,14 @@ int RequestBuilder::startCompute(sp<Event>* event) {
        TODO: For non-optional inputs, also verify that buffers are not null.
 
     for (auto& p : mInputs) {
-        if (p.state == ModelArgumentInfo::MISSING) {
+        if (p.state == ModelArgumentInfo::UNSPECIFIED) {
             LOG(ERROR) << "ANeuralNetworksRequest_startCompute not all inputs specified";
             return ANEURALNETWORKS_BAD_DATA;
         }
     }
     */
     for (auto& p : mOutputs) {
-        if (p.state == ModelArgumentInfo::MISSING) {
+        if (p.state == ModelArgumentInfo::UNSPECIFIED) {
             LOG(ERROR) << "ANeuralNetworksRequest_startCompute not all outputs specified";
             return ANEURALNETWORKS_BAD_DATA;
         }
@@ -184,7 +188,7 @@ int RequestBuilder::allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo
     }
     hidl_memory hidlMemory;
     if (total > 0) {
-        memory->create(total); // TODO check error
+        memory->create(total);  // TODO check error
         mMemories.add(memory);
     }
     return ANEURALNETWORKS_NO_ERROR;
@@ -199,8 +203,7 @@ static void copyLocationAndDimension(const std::vector<ModelArgumentInfo>& argum
     }
 }
 
-int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model,
-                                         sp<Event>* event) {
+int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model, sp<Event>* event) {
     *event = nullptr;
 
     LOG(DEBUG) << "RequestBuilder::startComputeOnDevice1";
@@ -317,9 +320,10 @@ int RequestBuilder::startComputeOnCpu([[maybe_unused]] const Model& model, sp<Ev
     auto fixPointerArguments = [&runTimePoolInfos](std::vector<ModelArgumentInfo>& argumentInfos) {
         for (ModelArgumentInfo& argumentInfo : argumentInfos) {
             if (argumentInfo.state == ModelArgumentInfo::POINTER) {
-                RunTimePoolInfo runTimeInfo = {.buffer = static_cast<uint8_t*>(argumentInfo.buffer)};
+                RunTimePoolInfo runTimeInfo = {
+                            .buffer = static_cast<uint8_t*>(argumentInfo.buffer)};
                 argumentInfo.locationAndDimension.location.poolIndex =
-                        static_cast<uint32_t>(runTimePoolInfos.size());
+                            static_cast<uint32_t>(runTimePoolInfos.size());
                 argumentInfo.locationAndDimension.location.offset = 0;
                 runTimePoolInfos.push_back(runTimeInfo);
             }
@@ -341,5 +345,5 @@ int RequestBuilder::startComputeOnCpu([[maybe_unused]] const Model& model, sp<Ev
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-} // namespace nn
-} // namespace android
+}  // namespace nn
+}  // namespace android
