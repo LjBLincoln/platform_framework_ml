@@ -72,7 +72,8 @@ TEST_F(MemoryTest, TestAllocatedMemory) {
 
     Memory weights(memorySize);
     ASSERT_TRUE(weights.isValid());
-    uint8_t* data = weights.getPointer();
+    uint8_t* data = nullptr;
+    ASSERT_EQ(weights.getPointer(&data), Result::NO_ERROR);
     ASSERT_NE(data, nullptr);
     memcpy(data + offsetForMatrix2, matrix2, sizeof(matrix2));
     memcpy(data + offsetForMatrix3, matrix3, sizeof(matrix3));
@@ -100,12 +101,14 @@ TEST_F(MemoryTest, TestAllocatedMemory) {
     constexpr uint32_t offsetForMatrix1 = 20;
     Memory input(offsetForMatrix1 + sizeof(Matrix3x4));
     ASSERT_TRUE(input.isValid());
-    memcpy(input.getPointer() + offsetForMatrix1, matrix1, sizeof(Matrix3x4));
+    ASSERT_EQ(input.getPointer(&data), Result::NO_ERROR);
+    memcpy(data + offsetForMatrix1, matrix1, sizeof(Matrix3x4));
 
     constexpr uint32_t offsetForActual = 32;
     Memory actual(offsetForActual + sizeof(Matrix3x4));
     ASSERT_TRUE(actual.isValid());
-    memset(actual.getPointer(), 0, offsetForActual + sizeof(Matrix3x4));
+    ASSERT_EQ(actual.getPointer(&data), Result::NO_ERROR);
+    memset(data, 0, offsetForActual + sizeof(Matrix3x4));
 
     Request request2(&model);
     ASSERT_EQ(request2.setInputFromMemory(0, &input, offsetForMatrix1, sizeof(Matrix3x4)),
@@ -113,9 +116,9 @@ TEST_F(MemoryTest, TestAllocatedMemory) {
     ASSERT_EQ(request2.setOutputFromMemory(0, &actual, offsetForActual, sizeof(Matrix3x4)),
               Result::NO_ERROR);
     ASSERT_EQ(request2.compute(), Result::NO_ERROR);
-    ASSERT_EQ(CompareMatrices(expected3,
-                              *reinterpret_cast<Matrix3x4*>(actual.getPointer() + offsetForActual)),
-              0);
+    data = nullptr;
+    ASSERT_EQ(actual.getPointer(&data), Result::NO_ERROR);
+    ASSERT_EQ(CompareMatrices(expected3, *reinterpret_cast<Matrix3x4*>(data + offsetForActual)), 0);
 }
 
 /*
@@ -169,4 +172,4 @@ TEST_F(MemoryTest, TestFd) {
 }
 */
 
-} // end namespace
+}  // end namespace

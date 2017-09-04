@@ -39,6 +39,7 @@ enum class Type {
     UINT32 = ANEURALNETWORKS_UINT32,
     TENSOR_FLOAT16 = ANEURALNETWORKS_TENSOR_FLOAT16,
     TENSOR_FLOAT32 = ANEURALNETWORKS_TENSOR_FLOAT32,
+    TENSOR_INT32 = ANEURALNETWORKS_TENSOR_INT32,
     TENSOR_QUANT8_ASYMM = ANEURALNETWORKS_TENSOR_QUANT8_ASYMM,
 };
 
@@ -70,19 +71,18 @@ struct OperandType {
         operandType.dimensions.data = dimensions.data();
     }
 
-    OperandType(Type type, float scale, const std::vector<uint32_t>& d)
-            : OperandType(type, d) {
+    OperandType(Type type, float scale, const std::vector<uint32_t>& d) : OperandType(type, d) {
         operandType.scale = scale;
     }
 
     OperandType(Type type, float f_min, float f_max, const std::vector<uint32_t>& d)
-            : OperandType(type, d) {
+        : OperandType(type, d) {
         uint8_t q_min = std::numeric_limits<uint8_t>::min();
         uint8_t q_max = std::numeric_limits<uint8_t>::max();
         float range = q_max - q_min;
         float scale = (f_max - f_min) / range;
         int32_t offset =
-                fmin(q_max, fmax(q_min, static_cast<uint8_t>(round(q_min - f_min / scale))));
+                    fmin(q_max, fmax(q_min, static_cast<uint8_t>(round(q_min - f_min / scale))));
 
         operandType.scale = scale;
         operandType.offset = offset;
@@ -101,12 +101,13 @@ class Memory {
 public:
     // TODO Also have constructors for file descriptor, gralloc buffers, etc.
     Memory(size_t size) {
-        mValid = ANeuralNetworksMemory_create(size, &mMemory) == ANEURALNETWORKS_NO_ERROR;
+        mValid = ANeuralNetworksMemory_createShared(size, &mMemory) == ANEURALNETWORKS_NO_ERROR;
     }
     ~Memory() { ANeuralNetworksMemory_free(mMemory); }
-    uint8_t* getPointer() {
-        return ANeuralNetworksMemory_getPointer(mMemory);
+    Result getPointer(uint8_t** buffer) {
+        return static_cast<Result>(ANeuralNetworksMemory_getPointer(mMemory, buffer));
     }
+
     ANeuralNetworksMemory* get() const { return mMemory; }
     bool isValid() const { return mValid; }
 
@@ -209,34 +210,32 @@ public:
     ~Request() { ANeuralNetworksRequest_free(mRequest); }
 
     Result setPreference(ExecutePreference preference) {
-        return static_cast<Result>(
-                ANeuralNetworksRequest_setPreference(mRequest, static_cast<uint32_t>(preference)));
+        return static_cast<Result>(ANeuralNetworksRequest_setPreference(
+                    mRequest, static_cast<uint32_t>(preference)));
     }
 
     Result setInput(uint32_t index, const void* buffer, size_t length,
                     const ANeuralNetworksOperandType* type = nullptr) {
         return static_cast<Result>(
-                ANeuralNetworksRequest_setInput(mRequest, index, type, buffer, length));
+                    ANeuralNetworksRequest_setInput(mRequest, index, type, buffer, length));
     }
 
     Result setInputFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
                               uint32_t length, const ANeuralNetworksOperandType* type = nullptr) {
-        return static_cast<Result>(ANeuralNetworksRequest_setInputFromMemory(mRequest, index, type,
-                                                                             memory->get(), offset,
-                                                                             length));
+        return static_cast<Result>(ANeuralNetworksRequest_setInputFromMemory(
+                    mRequest, index, type, memory->get(), offset, length));
     }
 
     Result setOutput(uint32_t index, void* buffer, size_t length,
                      const ANeuralNetworksOperandType* type = nullptr) {
         return static_cast<Result>(
-                ANeuralNetworksRequest_setOutput(mRequest, index, type, buffer, length));
+                    ANeuralNetworksRequest_setOutput(mRequest, index, type, buffer, length));
     }
 
     Result setOutputFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
                                uint32_t length, const ANeuralNetworksOperandType* type = nullptr) {
-        return static_cast<Result>(ANeuralNetworksRequest_setOutputFromMemory(mRequest, index, type,
-                                                                              memory->get(), offset,
-                                                                              length));
+        return static_cast<Result>(ANeuralNetworksRequest_setOutputFromMemory(
+                    mRequest, index, type, memory->get(), offset, length));
     }
 
     Result startCompute(Event* event) {
@@ -261,8 +260,8 @@ private:
     ANeuralNetworksRequest* mRequest = nullptr;
 };
 
-} // namespace wrapper
-} // namespace nn
-} // namespace android
+}  // namespace wrapper
+}  // namespace nn
+}  // namespace android
 
-#endif //  ANDROID_ML_NN_RUNTIME_NEURAL_NETWORKS_WRAPPER_H
+#endif  //  ANDROID_ML_NN_RUNTIME_NEURAL_NETWORKS_WRAPPER_H
