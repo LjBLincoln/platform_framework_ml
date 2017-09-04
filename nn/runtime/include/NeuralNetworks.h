@@ -82,8 +82,8 @@ enum {
     ANEURALNETWORKS_OEM_OPERATION = 0,
     /* Adds two tensors.
      *
-     * Takes two input tensors of identical dimensions. The output is the sum of both input tensors
-     * optionally modified by an activation function.
+     * Takes two input tensors of identical type and compatible dimensions.  The output
+     * is the sum of both input tensors, optionally modified by an activation function.
      *
      * TODO: Do we accept any number of dimensions? TENSOR_FLOAT16, TENSOR_FLOAT32, TENSOR_INT32,
      *       TENSOR_QUANT8_ASYMM?
@@ -167,24 +167,27 @@ enum {
     ANEURALNETWORKS_UNEXPECTED_NULL = 3,
     ANEURALNETWORKS_BAD_DATA = 4,
     ANEURALNETWORKS_OP_FAILED = 5,
+    ANEURALNETWORKS_UNMAPPABLE = 5,
 };
 
 /**
- * ANeuralNetworksMemory is an opaque type that represents shared memory.
+ * ANeuralNetworksMemory is an opaque type that represents memory.
+ *
+ * This type is used to represent shared memory, AHardwareBuffer, and similar
+ * memories.
  *
  * By using shared memory, a program can efficiently communicate to the
- * runtime and the drivers the weights and other tensors that define a model.
- * See {@Link ANeuralNetworksModel_setOperandValueFromMemory}.
+ * runtime and drivers the tensors that define a model.  See
+ * {@Link ANeuralNetworksModel_setOperandValueFromMemory}.  An application
+ * should typically create one shared memory object that contains every tensor
+ * needed to define a model.  {@Link ANeuralNetworksMemory_createFromFd} can be
+ * used to create shared memory from a file handle.  {@link ANeuralNetworksMemory_createShared}
+ * can be used to directly created shared memory.
  *
- * An application should typically create one shared memory object that
- * contains every weight and tensor needed to define one or more models.
- *
- * Shared memory can also be used when specifying the input and output
- * arguments of a request.  See calling {@Link ANeuralNetworksRequest_setInputFromMemory}
- * and {@Link ANeuralNetworksRequest_setOutputFromMemory}.
- *
- * Shared memory handles are created by calling {@link ANeuralNetworksMemory_create}
- * and similar functions.
+ * Memory objects can also be used to specify the input and output arguments of
+ * a request.  See {@Link ANeuralNetworksRequest_setInputFromMemory}
+ * and {@Link ANeuralNetworksRequest_setOutputFromMemory}.  This is a typical
+ * usage for hardware buffers.  See {@Link ANeuralNetworksMemory_createFromHardwareBuffer}.
  */
 typedef struct ANeuralNetworksMemory ANeuralNetworksMemory;
 
@@ -287,7 +290,7 @@ typedef uint32_t ANeuralNetworksOperationType;
  *
  * This function is thread safe.
  *
- * @return NO_ERROR if successful, else [?]
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
 int ANeuralNetworksInitialize();
 
@@ -318,8 +321,14 @@ void ANeuralNetworksShutdown();
  * Creates a shared memory region of the specified size in bytes.
  * See {@link ANeuralNetworksMemory} for a description on how to use
  * this shared memory.
+ *
+ * @param size The requested size in bytes.
+ * @param memory The memory object to be created.
+ *               Set to NULL if unsuccessful.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if the request completed normally.
  */
-int ANeuralNetworksMemory_create(size_t size, ANeuralNetworksMemory** memory);
+int ANeuralNetworksMemory_createShared(size_t size, ANeuralNetworksMemory** memory);
 
 /* TODO Should we also have from Surface, IONBuffer, ashmem and:
 int ANeuralNetworksMemory_createFromHidlMemory(android::hardware::hidl_memory hidlMemory,
@@ -332,11 +341,21 @@ int ANeuralNetworksMemory_createFromHardwareBuffer(AHardwareBuffer* buffer,
 */
 
 /**
- * Returns a pointer to the content of the shared memory.
+ * Returns pointer to the memory.
  *
- * Returns a pointer to the shared memory created by {@link ANeuralNetworksMemory_create}.
+ * Returns a pointer to the underlying memory.  Not all memories represented by
+ * {@Link ANeuralNetworksMemory} can return a CPU addressable pointer, so be sure to
+ * check the return value.
+ *
+ * @param memory The memory object we are inquiring about.
+ * @param buffer A pointer to where the buffer pointer is returned.  *buffer is set
+ *               to NULL in case of error.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if the request completed normally.
+ *         ANEURALNETWORKS_UNMAPPABLE is returned if the memory can't be accessed
+ *         directly by the CPU.  Other error codes are possible.
  */
-uint8_t* ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory);
+int ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory, uint8_t** buffer);
 
 /**
  * Delete a shared memory object.
@@ -344,6 +363,8 @@ uint8_t* ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory);
  * Destroys the object used by the run time to keep track of the shared memory.
  * This will free the underlying actual shared memory if no other code has open
  * handles to this memory.  [TODO verify]
+ *
+ * @param memory The memory object to be freed.
  */
 void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory);
 
@@ -365,7 +386,7 @@ void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory);
  * @param model The {@link ANeuralNetworksModel} to be created.
  *              Set to NULL if unsuccessful.
  *
- * @return NO_ERROR if successful, [?] otherwise.
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
 int ANeuralNetworksModel_create(ANeuralNetworksModel** model);
 
@@ -407,7 +428,7 @@ void ANeuralNetworksModel_free(ANeuralNetworksModel* model);
  * @param type The {@link ANeuralNetworksOperandType} that describes the shape
  * of the operand.
  *
- * @return NO_ERROR if successful, [?] otherwise.
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
 int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
                                     const ANeuralNetworksOperandType* type);
@@ -415,24 +436,51 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
 /**
  * Sets an operand to a constant value.
  *
- * This value can't be changed when a request is executed.
+ * For scalar values, the content of buffer is copied into the model.
+ *
+ * For tensor values, a pointer to the buffer is stored within the model.
+ * The application is responsible for not changing the content of this region
+ * until all requests using this model have completed.  As the data may
+ * be copied during processing, modifying the data after this call yields
+ * undefined results.
  *
  * A model can't be modified once a request has been created for it by
  * {@link ANeuralNetworksRequest_create}.
+ *
+ * @param model The model to be modified.
+ * @param index The index of the model operand we're setting.
+ * @param buffer A pointer to the data to use.
+ * @param length The size in bytes of the data value.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
 int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t index,
                                          const void* buffer, size_t length);
 
 /**
- * Sets an operand to a value stored in shared memory.
+ * Sets an operand to a value stored in a memory object.
  *
- * This value can't be changed when a request is executed.
+ * The content of the memory is not copied.  A reference to that memory is stored
+ * inside the model.  The application is responsible for not changing the content
+ * of the memory region until all requests using this model have completed.
+ * As the data may be copied during processing, modifying the data after this call
+ * yields undefined results.
  *
  * A model can't be modified once a request has been created for it by
  * {@link ANeuralNetworksRequest_create}.
+ *
+ * @param model The model to be modified.
+ * @param index The index of the model operand we're setting.
+ * @param buffer A pointer to the data to use.
+ * @param memory The memory containing the data.
+ * @param offset This specifies the location of the data whithin the memory.
+ *               The offset is in bytes from the start of memory.
+ * @param length The size in bytes of the data value.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
 int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, int32_t index,
-                                                   const ANeuralNetworksMemory* buffer,
+                                                   const ANeuralNetworksMemory* memory,
                                                    uint32_t offset, size_t length);
 
 /**
@@ -453,7 +501,7 @@ int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, 
  * A model can't be modified once a request has been created for it by
  * {@link ANeuralNetworksRequest_create}.
  *
- * @return NO_ERROR if successful, [?] otherwise.
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
 int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
                                       ANeuralNetworksOperationType type,
@@ -491,7 +539,8 @@ int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model,
  * @param model The {@link ANeuralNetworksModel} to be evaluated.
  * @param request The newly created object or NULL if unsuccessful.
  *
- * @return NO_ERROR if successful, BAD_DATA if the model is invalid.
+ * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA
+ *         if the model is invalid.
  */
 int ANeuralNetworksRequest_create(ANeuralNetworksModel* model, ANeuralNetworksRequest** request);
 
@@ -524,7 +573,7 @@ void ANeuralNetworksRequest_free(ANeuralNetworksRequest* request);
  *                  {@link PREFER_SINGLE_FAST_ANSWER}, or
  *                  {@link PREFER_SUSTAINED_SPEED}.
  *
- * @return NO_ERROR if successful.
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
 int ANeuralNetworksRequest_setPreference(ANeuralNetworksRequest* request, uint32_t preference);
 
@@ -546,15 +595,15 @@ int ANeuralNetworksRequest_setPreference(ANeuralNetworksRequest* request, uint32
  * @param buffer The buffer containing the data.
  * @param length The length in bytes of the buffer.
  *
- * @return NO_ERROR if successful, BAD_DATA if the name is not recognized
- *         or the buffer is too small for the input.
+ * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA if the
+ *         name is not recognized or the buffer is too small for the input.
  */
 int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t index,
                                     const ANeuralNetworksOperandType* type, const void* buffer,
                                     size_t length);
 
 /**
- * Associate part of a shared memory with an input of the model of the
+ * Associate part of a memory object with an input of the model of the
  * {@link ANeuralNetworksRequest}.
  *
  * <p>The provided shared memory must outlive the request.</p>
@@ -568,12 +617,13 @@ int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t ind
  *             have the same value as specified in the model.
  *             [TODO: We know the dimensions may change.  Anything else?  Base
  * type?]
- * @param memory The shared memory containing the data.
- * @param offset This specifies the location of the data whithin the shared memory.
- *               The offset is in bytes from the start of shared memory.
+ * @param memory The memory containing the data.
+ * @param offset This specifies the location of the data whithin the memory.
+ *               The offset is in bytes from the start of memory.
+ * @param length The size in bytes of the data value.
  *
- * @return NO_ERROR if successful, BAD_DATA if the name is not recognized
- *         or the buffer is too small for the input.
+ * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA if the
+ *         name is not recognized or the buffer is too small for the input.
  */
 int ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest* request, int32_t index,
                                               const ANeuralNetworksOperandType* type,
@@ -595,18 +645,18 @@ int ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest* request, i
  *             have the same value as specified in the model.
  *             [TODO: We know the dimensions may change.  Anything else?  Base
  * type?]
- * @param buffer The buffer where the data will be written.
+ * @param buffer The buffer where the data is to be written.
  * @param length The length in bytes of the buffer.
  *
- * @return NO_ERROR if successful, BAD_DATA if the name is not recognized
- *         or the buffer is too small for the output.
+ * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA if the
+ *         name is not recognized or the buffer is too small for the output.
  */
 int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t index,
                                      const ANeuralNetworksOperandType* type, void* buffer,
                                      size_t length);
 
 /**
- * Associate part of a shared memory with an output of the model of the
+ * Associate part of a memory object with an output of the model of the
  * {@link ANeuralNetworksRequest}.
  *
  * <p>The provided shared memory must outlive the request.</p>
@@ -618,12 +668,13 @@ int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t in
  *             have the same value as specified in the model.
  *             [TODO: We know the dimensions may change.  Anything else?  Base
  * type?]
- * @param offset This specifies the location of the data whithin the shared memory.
- *               The offset is in bytes from the start of shared memory.
- * [todo Would it be useful to have a rect param?]
+ * @param memory The memory where the data is to be stored.
+ * @param offset This specifies the location of the data whithin the memory.
+ *               The offset is in bytes from the start of memory.
+ * @param length The length in bytes of the data value.
  *
- * @return NO_ERROR if successful, BAD_DATA if the name is not recognized
- *         or the buffer is too small for the output.
+ * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA if the
+ *         name is not recognized or the buffer is too small for the output.
  */
 int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, int32_t index,
                                                const ANeuralNetworksOperandType* type,
@@ -653,7 +704,7 @@ int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, 
  *              [TODO define the functions to create/delete events?
  *                    or startCompute creates, and free deletes?]
  *
- * @return NO_ERROR if successful, BAD_DATA if callback is NULL.
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
 int ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest* request,
                                         ANeuralNetworksEvent** event);
@@ -667,7 +718,7 @@ int ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest* request,
  *
  * This function is thread safe.
  *
- * @return NO_ERROR if the request completed normally.
+ * @return ANEURALNETWORKS_NO_ERROR if the request completed normally.
  */
 int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event);
 

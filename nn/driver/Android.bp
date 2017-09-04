@@ -15,16 +15,6 @@
  */
 
 subdirs = [
-    "common",
-    "driver",
-    "runtime",
+    "cache",
+    "sample",
 ]
-
-cc_defaults {
-    name: "neuralnetworks_defaults",
-    cflags: [
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-    ],
-}

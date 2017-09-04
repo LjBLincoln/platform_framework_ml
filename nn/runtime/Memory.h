@@ -27,7 +27,7 @@ namespace nn {
 
 class ModelBuilder;
 
-// Represents a shared memory region.
+// Represents a memory region.
 class Memory {
 public:
     // Creates a shared memory object of the size specified in bytes.
@@ -58,9 +58,10 @@ public:
 
     hardware::hidl_memory getHidlMemory() const { return mHidlMemory; }
 
-	// Returns a pointer to the underlying memory of this shared memory.
-    uint8_t* getPointer() const {
-        return static_cast<uint8_t*>(static_cast<void*>(mMemory->getPointer()));
+    // Returns a pointer to the underlying memory of this memory object.
+    int getPointer(uint8_t** buffer) const {
+        *buffer = static_cast<uint8_t*>(static_cast<void*>(mMemory->getPointer()));
+        return ANEURALNETWORKS_NO_ERROR;
     }
 
 private:
@@ -72,6 +73,9 @@ private:
 
 // A utility class to accumulate mulitple Memory objects and assign each
 // a distinct index number, starting with 0.
+//
+// The user of this class is responsible for avoiding concurrent calls
+// to this class from multiple threads.
 class MemoryTracker {
 public:
     // Adds the memory, if it does not already exists.  Returns its index.
@@ -89,7 +93,7 @@ private:
     std::unordered_map<const Memory*, uint32_t> mKnown;
 };
 
-} // namespace nn
-} // namespace android
+}  // namespace nn
+}  // namespace android
 
-#endif // ANDROID_ML_NN_RUNTIME_MEMORY_H
+#endif  // ANDROID_ML_NN_RUNTIME_MEMORY_H
