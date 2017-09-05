@@ -330,15 +330,24 @@ void ANeuralNetworksShutdown();
  */
 int ANeuralNetworksMemory_createShared(size_t size, ANeuralNetworksMemory** memory);
 
-/* TODO Should we also have from Surface, IONBuffer, ashmem and:
-int ANeuralNetworksMemory_createFromHidlMemory(android::hardware::hidl_memory hidlMemory,
-                                               ANeuralNetworksMemory** memory);
-int ANeuralNetworksMemory_createFromFd(int fd, ANeuralNetworksMemory** memory);
-int ANeuralNetworksMemory_createFromGrallocBuffer(buffer_handle_t buffer,
-                                                  ANeuralNetworksMemory** memory);
-int ANeuralNetworksMemory_createFromHardwareBuffer(AHardwareBuffer* buffer,
-                                                   ANeuralNetworksMemory** memory);
-*/
+/**
+ * Creates a shared memory object from a file descriptor.
+ *
+ * The shared memory is backed by a file descriptor via mmap.
+ * See {@link ANeuralNetworksMemory} for a description on how to use
+ * this shared memory.
+ *
+ * @param size The requested size in bytes.
+ *             Must not be larger than the file size.
+ * @param prot The desired memory protection for mmap.
+ * @param fd The requested file descriptor.
+ * @param memory The memory object to be created.
+ *               Set to NULL if unsuccessful.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if the request completed normally.
+ */
+int ANeuralNetworksMemory_createFromFd(size_t size, int protect, int fd,
+                                       ANeuralNetworksMemory** memory);
 
 /**
  * Returns pointer to the memory.
