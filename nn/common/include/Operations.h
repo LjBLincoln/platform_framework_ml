@@ -17,12 +17,15 @@
 #ifndef ANDROID_ML_NN_COMMON_OPERATIONS_H
 #define ANDROID_ML_NN_COMMON_OPERATIONS_H
 
-#include "android/log.h"
+#include "operations/EmbeddingLookup.h"
+#include "operations/HashtableLookup.h"
+#include "operations/LSHProjection.h"
+#include "operations/LSTM.h"
+#include "operations/RNN.h"
+#include "operations/SVDF.h"
 
 #include <stddef.h>
 
-#include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <vector>
 
@@ -35,44 +38,6 @@ enum PaddingScheme {
     kPaddingUnknown = 0,
     kPaddingSame = 1,
     kPaddingValid = 2,
-};
-
-enum ActivationFn {
-    kActivationNone = 0,
-    kActivationRelu,
-    kActivationRelu1,
-    kActivationRelu6,
-    kActivationTanh,
-    kActivationSignBit,
-    kActivationSigmoid,
-};
-
-class ActivationFunctor {
- public:
-  explicit ActivationFunctor(ActivationFn act) : act_(act) {}
-
-  float operator()(float a) const {
-    switch (act_) {
-      case kActivationNone:
-        return a;
-      case kActivationRelu:
-        return a < 0.f ? 0.f : a;
-      case kActivationRelu6:
-        return std::max(0.f, std::min(a, 6.f));
-      case kActivationTanh:
-        return std::tanh(a);
-      case kActivationSigmoid:
-        return 1.0f / (1.0f + std::exp(-a));
-      default:
-        __android_log_print(ANDROID_LOG_ERROR, "NN API",
-                            "Invalid enum value for activation function: 0x%0X",
-                            act_);
-        exit(1);
-    }
-  }
-
- private:
-  ActivationFn act_;
 };
 
 bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out1);
