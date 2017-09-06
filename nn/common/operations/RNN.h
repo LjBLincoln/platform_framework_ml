@@ -17,7 +17,7 @@
 #ifndef FRAMEWORKS_ML_NN_RNN_H
 #define FRAMEWORKS_ML_NN_RNN_H
 
-#include "Operations.h"
+#include "ActivationFunctor.h"
 
 namespace android {
 namespace hardware {

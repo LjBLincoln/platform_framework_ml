@@ -18,14 +18,8 @@
 
 #include "CpuExecutor.h"
 
-#include "EmbeddingLookup.h"
-#include "HashtableLookup.h"
-#include "LSHProjection.h"
-#include "LSTM.h"
 #include "NeuralNetworks.h"
 #include "Operations.h"
-#include "RNN.h"
-#include "SVDF.h"
 
 namespace android {
 namespace nn {
