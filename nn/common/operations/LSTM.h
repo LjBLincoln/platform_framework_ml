@@ -17,7 +17,7 @@
 #ifndef FRAMEWORKS_ML_NN_LSTMCELL_H
 #define FRAMEWORKS_ML_NN_LSTMCELL_H
 
-#include "Operations.h"
+#include "ActivationFunctor.h"
 
 #include <algorithm>
 #include <cmath>
