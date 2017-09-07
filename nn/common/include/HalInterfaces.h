@@ -53,7 +53,7 @@ using ::android::hidl::memory::V1_0::IMemory;
 namespace android {
 namespace nn {
 
-const uint32_t HAL_NUM_OPERAND_TYPES = 11;
+const uint32_t HAL_NUM_OPERAND_TYPES = 12;
 const uint32_t HAL_NUM_OPERATION_TYPES = 35;
 
 // Shortcuts
