@@ -358,10 +358,10 @@ int ANeuralNetworksMemory_createFromHardwareBuffer(AHardwareBuffer* buffer,
 int ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory, uint8_t** buffer);
 
 /**
- * Delete a shared memory object.
+ * Delete a memory object.
  *
- * Destroys the object used by the run time to keep track of the shared memory.
- * This will free the underlying actual shared memory if no other code has open
+ * Destroys the object used by the run time to keep track of the memory.
+ * This will free the underlying actual memory if no other code has open
  * handles to this memory.  [TODO verify]
  *
  * @param memory The memory object to be freed.
@@ -606,7 +606,7 @@ int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t ind
  * Associate part of a memory object with an input of the model of the
  * {@link ANeuralNetworksRequest}.
  *
- * <p>The provided shared memory must outlive the request.</p>
+ * <p>The provided memory must outlive the request.</p>
  *
  * This function is thread safe.
  *
@@ -659,7 +659,7 @@ int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t in
  * Associate part of a memory object with an output of the model of the
  * {@link ANeuralNetworksRequest}.
  *
- * <p>The provided shared memory must outlive the request.</p>
+ * <p>The provided memory must outlive the request.</p>
  *
  * @param request The request to be modified.
  * @param index The index of the model operand we're associating the input to.
