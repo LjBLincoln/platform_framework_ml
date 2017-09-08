@@ -1,4 +1,4 @@
-// Generated file. Do not edit
+// Generated file (from: relu_float.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type0(Type::TENSOR_FLOAT32, {1, 2, 2, 1});
   // Phase 1, operands
