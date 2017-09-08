@@ -1,6 +1,6 @@
 // Generated file (from: conv_1_h3_w2_SAME.mod.py). Do not edit
 void CreateModel(Model *model) {
-  OperandType type0(Type::INT32, {1});
+  OperandType type0(Type::INT32, {});
   OperandType type3(Type::TENSOR_FLOAT32, {1, 3, 2, 3});
   OperandType type2(Type::TENSOR_FLOAT32, {1, 8, 8, 1});
   OperandType type1(Type::TENSOR_FLOAT32, {1, 8, 8, 3});
