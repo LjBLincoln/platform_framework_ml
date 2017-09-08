@@ -12,7 +12,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(cons1, cons1_init, sizeof(int32_t) * 1);
   static int32_t act_init[] = {0};
   model->setOperandValue(act, act_init, sizeof(int32_t) * 1);
-  model->addOperation(ANEURALNETWORKS_MAX_POOL, {op1, cons1, cons1, cons1, cons1, cons1, act}, {op3});
+  model->addOperation(ANEURALNETWORKS_MAX_POOL_2D, {op1, cons1, cons1, cons1, cons1, cons1, act}, {op3});
   // Phase 3, inputs and outputs
   model->setInputsAndOutputs(
     {op1},

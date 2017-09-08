@@ -78,16 +78,7 @@ bool averagePoolFloat32(const float* inputData, const Shape& inputShape,
             filter_width, filter_height,                                       \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_AVERAGE_POOL(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_AVERAGE_POOL(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_AVERAGE_POOL(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_AVERAGE_POOL)
     #undef ANDROID_NN_AVERAGE_POOL
 
     return true;
@@ -115,16 +106,7 @@ bool averagePoolQuant8(const uint8_t* inputData, const Shape& inputShape,
             output_activation_min, output_activation_max,                      \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_AVERAGE_POOL(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_AVERAGE_POOL(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_AVERAGE_POOL(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_AVERAGE_POOL)
     #undef ANDROID_NN_AVERAGE_POOL
 
     return true;
@@ -144,16 +126,7 @@ bool l2PoolFloat32(const float* inputData, const Shape& inputShape,
             filter_width, filter_height,                                       \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_L2_POOL(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_L2_POOL(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_L2_POOL(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_L2_POOL)
     #undef ANDROID_NN_L2_POOL
 
     return true;
@@ -173,16 +146,7 @@ bool maxPoolFloat32(const float* inputData, const Shape& inputShape,
             filter_width, filter_height,                                       \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_MAX_POOL(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_MAX_POOL(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_MAX_POOL(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_MAX_POOL)
     #undef ANDROID_NN_MAX_POOL
 
     return true;
@@ -210,16 +174,7 @@ bool maxPoolQuant8(const uint8_t* inputData, const Shape& inputShape,
             output_activation_min, output_activation_max,                      \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_MAX_POOL(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_MAX_POOL(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_MAX_POOL(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_MAX_POOL)
     #undef ANDROID_NN_MAX_POOL
 
     return true;
