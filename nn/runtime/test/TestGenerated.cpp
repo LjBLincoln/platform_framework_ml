@@ -104,7 +104,6 @@ class Example {
         int example_no = 1;
         for (auto& example : examples) {
             SCOPED_TRACE(example_no++);
-
             MixedTyped& inputs = example.first;
             MixedTyped& golden = example.second;
 
@@ -147,7 +146,7 @@ class Example {
                 auto& test_float = test_float_operands[index];
                 for (unsigned int i = 0; i < m.size(); i++) {
                     SCOPED_TRACE(i);
-                    EXPECT_FLOAT_EQ(m[i], test_float[i]);
+                    EXPECT_NEAR(m[i], test_float[i], 1.e-5);
                 }
             });
 #else  // Use EXPECT_EQ instead; nicer error reporting

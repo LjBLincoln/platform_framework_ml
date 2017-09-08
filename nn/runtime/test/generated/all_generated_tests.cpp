@@ -449,6 +449,20 @@ TEST_F(GeneratedTests, resize_bilinear) {
             resize_bilinear::examples);
 }
 
+namespace rnn {
+std::vector<MixedTypedExample> examples = {
+// Generated rnn test
+#include "generated/examples/rnn.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/rnn.model.cpp"
+} // namespace rnn
+TEST_F(GeneratedTests, rnn) {
+    Execute(rnn::CreateModel,
+            rnn::is_ignored,
+            rnn::examples);
+}
+
 namespace svdf {
 std::vector<MixedTypedExample> examples = {
 // Generated svdf test
