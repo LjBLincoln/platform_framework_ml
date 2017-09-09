@@ -378,7 +378,7 @@ class Model(object):
     ins = [input, padding, stride_width,
            stride_height, filter_width, filter_height, activation]
     outs = []
-    op = Operation("AVERAGE_POOL", ins, outs)
+    op = Operation("AVERAGE_POOL_2D", ins, outs)
     self.__currentOp = op
     return self
 
@@ -393,7 +393,7 @@ class Model(object):
     ins = [filter, bias, input, padding, stride_width,
            stride_height, activation]
     outs = []
-    op = Operation("CONV", ins, outs)
+    op = Operation("CONV_2D", ins, outs)
     self.__currentOp = op
     return self
 
@@ -401,7 +401,7 @@ class Model(object):
     ins = [filter, bias, input, padding, stride_width,
            stride_height, depth_multiplier, activation]
     outs = []
-    op = Operation("DEPTHWISE_CONV", ins, outs)
+    op = Operation("DEPTHWISE_CONV_2D", ins, outs)
     self.__currentOp = op
     return self
 
@@ -423,7 +423,7 @@ class Model(object):
     ins = [input, padding, stride_width,
            stride_height, filter_width, filter_height, activation]
     outs = []
-    op = Operation("L2_POOL", ins, outs)
+    op = Operation("L2_POOL_2D", ins, outs)
     self.__currentOp = op
     return self
 
@@ -431,7 +431,7 @@ class Model(object):
     ins = [input, padding, stride_width,
            stride_height, filter_width, filter_height, activation]
     outs = []
-    op = Operation("MAX_POOL", ins, outs)
+    op = Operation("MAX_POOL_2D", ins, outs)
     self.__currentOp = op
     return self
 

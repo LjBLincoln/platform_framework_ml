@@ -58,7 +58,6 @@ const char* kOperationNames[kNumberOfOperationTypes] = {
         "OEM_OPERATION",
         "ADD",
         "AVERAGE_POOL",
-        "CAST",
         "CONCATENATION",
         "CONV",
         "DEPTHWISE_CONV",
@@ -68,7 +67,6 @@ const char* kOperationNames[kNumberOfOperationTypes] = {
         "FAKE_QUANT",
         "FLOOR",
         "FULLY_CONNECTED",
-        "GATHER",
         "HASHTABLE_LOOKUP",
         "L2_NORMALIZATION",
         "L2_POOL",
@@ -86,7 +84,6 @@ const char* kOperationNames[kNumberOfOperationTypes] = {
         "RNN",
         "SOFTMAX",
         "SPACE_TO_DEPTH",
-        "SPLIT",
         "SVDF",
         "TANH",
 };
@@ -170,7 +167,7 @@ static bool validOperandIndexes(const hidl_vec<uint32_t> indexes, size_t operand
 static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint8_t>& operandValues,
                           size_t poolCount) {
     for (auto& operand : operands) {
-        if (static_cast<uint32_t>(operand.type) >= HAL_NUM_OPERAND_TYPES) {
+        if (static_cast<uint32_t>(operand.type) >= kNumberOfDataTypes) {
             LOG(ERROR) << "Invalid operand type " << toString(operand.type);
             return false;
         }
@@ -203,7 +200,7 @@ static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint
 
 static bool validOperations(const hidl_vec<Operation>& operations, size_t operandCount) {
     for (auto& op : operations) {
-        if (static_cast<uint32_t>(op.opTuple.operationType) >= HAL_NUM_OPERATION_TYPES) {
+        if (static_cast<uint32_t>(op.opTuple.operationType) >= kNumberOfOperationTypes) {
             LOG(ERROR) << "Invalid operation type " << toString(op.opTuple.operationType);
             return false;
         }
