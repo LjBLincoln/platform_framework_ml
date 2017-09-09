@@ -101,7 +101,6 @@ bool convPrepare(const Shape& input,
         im2colData = new (std::nothrow) Type[im2colByteSize / sizeof(Type)];    \
     }
 
-
 bool convFloat32(const float* inputData, const Shape& inputShape,
                  const float* filterData, const Shape& filterShape,
                  const float* biasData, const Shape& biasShape,
@@ -119,16 +118,7 @@ bool convFloat32(const float* inputData, const Shape& inputShape,
             outputData, convertShapeToDims(outputShape),                       \
             im2colData, im2colDim)
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_CONV(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_CONV(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_CONV(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_CONV)
     #undef ANDROID_NN_CONV
 
     if (im2colByteSize > kStaticBufferSize) {
@@ -175,16 +165,7 @@ bool convQuant8(const uint8_t* inputData, const Shape& inputShape,
             outputData, convertShapeToDims(outputShape),                       \
             im2colData, im2colDim, &gemm_context)
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_CONV(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_CONV(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_CONV(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_CONV)
     #undef ANDROID_NN_CONV
 
     if (im2colByteSize > kStaticBufferSize) {

@@ -55,16 +55,7 @@ bool fullyConnectedFloat32(const float* inputData, const Shape& inputShape,
             biasData, convertShapeToDims(biasShape),                            \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_FULLY_CONNECTED(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_FULLY_CONNECTED(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_FULLY_CONNECTED(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_FULLY_CONNECTED)
     #undef ANDROID_NN_FULLY_CONNECTED
     return true;
 }
@@ -103,19 +94,9 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
             output_activation_min, output_activation_max,                       \
             outputData, convertShapeToDims(outputShape), &gemm_context)
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_FULLY_CONNECTED(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_FULLY_CONNECTED(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_FULLY_CONNECTED(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_FULLY_CONNECTED)
     #undef ANDROID_NN_FULLY_CONNECTED
     return true;
 }
-
 }  // namespace nn
 }  // namespace android

@@ -33,6 +33,7 @@ using ::android::hardware::hidl_vec;
 using ::android::hardware::neuralnetworks::V1_0::Capabilities;
 using ::android::hardware::neuralnetworks::V1_0::DataLocation;
 using ::android::hardware::neuralnetworks::V1_0::DeviceStatus;
+using ::android::hardware::neuralnetworks::V1_0::FusedActivationFunc;
 using ::android::hardware::neuralnetworks::V1_0::IDevice;
 using ::android::hardware::neuralnetworks::V1_0::IEvent;
 using ::android::hardware::neuralnetworks::V1_0::IPreparedModel;
@@ -52,9 +53,6 @@ using ::android::hidl::memory::V1_0::IMemory;
 
 namespace android {
 namespace nn {
-
-const uint32_t HAL_NUM_OPERAND_TYPES = 12;
-const uint32_t HAL_NUM_OPERATION_TYPES = 35;
 
 // Shortcuts
 const uint32_t SAME_BLOCK = static_cast<uint32_t>(LocationValues::LOCATION_SAME_BLOCK);

@@ -110,17 +110,17 @@ TEST_F(ValidationTestModel, SetOperandValue) {
 TEST_F(ValidationTestModel, AddOperation) {
     ANeuralNetworksIntList inputs{};
     ANeuralNetworksIntList outputs{};
-    EXPECT_EQ(ANeuralNetworksModel_addOperation(nullptr, ANEURALNETWORKS_AVERAGE_POOL, &inputs,
+    EXPECT_EQ(ANeuralNetworksModel_addOperation(nullptr, ANEURALNETWORKS_AVERAGE_POOL_2D, &inputs,
                                                 &outputs),
               ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_AVERAGE_POOL, nullptr,
+    EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_AVERAGE_POOL_2D, nullptr,
                                                 &outputs),
               ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_AVERAGE_POOL, &inputs,
+    EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_AVERAGE_POOL_2D, &inputs,
                                                 nullptr),
               ANEURALNETWORKS_UNEXPECTED_NULL);
     // EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel,
-    // ANEURALNETWORKS_AVERAGE_POOL, &inputs,
+    // ANEURALNETWORKS_AVERAGE_POOL_2D, &inputs,
     //                                            &outputs),
     //          ANEURALNETWORKS_UNEXPECTED_NULL);
 }
