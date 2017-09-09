@@ -106,6 +106,9 @@ int RequestBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOper
                    << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
+    if (!memory->validateSize(offset, length)) {
+        return ANEURALNETWORKS_BAD_DATA;
+    }
     uint32_t poolIndex = mMemories.add(memory);
     return mInputs[index].setFromMemory(mModel->getInputOperand(index), type, poolIndex, offset,
                                         length);
@@ -127,6 +130,9 @@ int RequestBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOpe
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksRequest_setOutputFromMemory bad index " << index << " "
                    << count;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    if (!memory->validateSize(offset, length)) {
         return ANEURALNETWORKS_BAD_DATA;
     }
     uint32_t poolIndex = mMemories.add(memory);

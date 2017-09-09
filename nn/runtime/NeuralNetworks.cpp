@@ -291,58 +291,24 @@ int ANeuralNetworksMemory_createShared(size_t size, ANeuralNetworksMemory** memo
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-/* TODO
-int ANeuralNetworksMemory_createFromHidlMemory(hidl_memory hidlMemory,
-                                               ANeuralNetworksMemory** memory) {
-    if (!memory) {
-        LOG(ERROR) << "ANeuralNetworksMemory_createFromHidlMemory passed a nullptr";
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
-    *memory = nullptr;
-    std::unique_ptr<Memory> m = std::make_unique<Memory>(Memory());
-    if (m == nullptr) {
-        return ANEURALNETWORKS_OUT_OF_MEMORY;
-    }
-    int n = m->setFromHidlMemory(hidlMemory);
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-    *memory = reinterpret_cast<ANeuralNetworksMemory*>(m.release());
-    return ANEURALNETWORKS_NO_ERROR;
-}
-
-int ANeuralNetworksMemory_createFromFd(int fd, ANeuralNetworksMemory** memory) {
+int ANeuralNetworksMemory_createFromFd(size_t size, int prot, int fd,
+                                       ANeuralNetworksMemory** memory) {
     if (fd < 0) {
         LOG(ERROR) << "ANeuralNetworksMemory_createFromFd invalid fd " << fd;
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     *memory = nullptr;
-    std::unique_ptr<Memory> m = std::make_unique<Memory>(Memory());
+    std::unique_ptr<MemoryFd> m = std::make_unique<MemoryFd>();
     if (m == nullptr) {
         return ANEURALNETWORKS_OUT_OF_MEMORY;
     }
-    int n = m->setFromFd(fd);
+    int n = m->set(size, prot, fd);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
     *memory = reinterpret_cast<ANeuralNetworksMemory*>(m.release());
     return ANEURALNETWORKS_NO_ERROR;
 }
-
-int ANeuralNetworksMemory_createFromGrallocBuffer(buffer_handle_t buffer,
-                                                  ANeuralNetworksMemory** memory) {
-    *memory = nullptr;
-    // TODO implement
-    return ANEURALNETWORKS_NO_ERROR;
-}
-
-int ANeuralNetworksMemory_createFromHardwareBuffer(AHardwareBuffer* buffer,
-                                                   ANeuralNetworksMemory** memory) {
-    *memory = nullptr;
-    // TODO implement
-    return ANEURALNETWORKS_NO_ERROR;
-}
-*/
 
 int ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory, uint8_t** buffer) {
     if (!memory || !buffer) {

@@ -20,6 +20,8 @@
 #include "NeuralNetworks.h"
 #include "Utils.h"
 
+#include <cutils/native_handle.h>
+#include <sys/mman.h>
 #include <unordered_map>
 
 namespace android {
@@ -30,45 +32,100 @@ class ModelBuilder;
 // Represents a memory region.
 class Memory {
 public:
+    Memory() {}
+    virtual ~Memory() {}
+
+    // Disallow copy semantics to ensure the runtime object can only be freed
+    // once. Copy semantics could be enabled if some sort of reference counting
+    // or deep-copy system for runtime objects is added later.
+    Memory(const Memory&) = delete;
+    Memory& operator=(const Memory&) = delete;
+
     // Creates a shared memory object of the size specified in bytes.
     int create(uint32_t size);
-
-    /* TODO implement
-    int setFromHidlMemory(hardware::hidl_memory hidlMemory) {
-        mHidlMemory = hidlMemory;
-        mMemory = mapMemory(hidlMemory);
-        if (mMemory == nullptr) {
-            LOG(ERROR) << "setFromHidlMemory failed";
-            return ANEURALNETWORKS_OP_FAILED;
-        }
-        return ANEURALNETWORKS_NO_ERROR;
-    }
-    int setFromFd(int fd) {
-        return ANEURALNETWORKS_NO_ERROR;
-    }
-    int setFromGrallocBuffer(buffer_handle_t buffer,
-                             ANeuralNetworksMemory** memory) {
-        return ANEURALNETWORKS_NO_ERROR;
-    }
-    int setFromHardwareBuffer(AHardwareBuffer* buffer,
-                              ANeuralNetworksMemory** memory) {
-        return ANEURALNETWORKS_NO_ERROR;
-    }
-    */
 
     hardware::hidl_memory getHidlMemory() const { return mHidlMemory; }
 
     // Returns a pointer to the underlying memory of this memory object.
-    int getPointer(uint8_t** buffer) const {
+    virtual int getPointer(uint8_t** buffer) const {
         *buffer = static_cast<uint8_t*>(static_cast<void*>(mMemory->getPointer()));
         return ANEURALNETWORKS_NO_ERROR;
     }
 
-private:
+    virtual bool validateSize(uint32_t offset, uint32_t length) const {
+        if (offset + length > mHidlMemory.size()) {
+            LOG(ERROR) << "Request size larger than the memory size.";
+            return false;
+        } else {
+            return true;
+        }
+    }
+protected:
     // The hidl_memory handle for this shared memory.  We will pass this value when
     // communicating with the drivers.
     hardware::hidl_memory mHidlMemory;
     sp<IMemory> mMemory;
+};
+
+class MemoryFd : public Memory {
+public:
+    MemoryFd() {}
+    ~MemoryFd() {
+        // Delete the native_handle.
+        if (mHandle) {
+            native_handle_delete(mHandle);
+        }
+    }
+
+    // Disallow copy semantics to ensure the runtime object can only be freed
+    // once. Copy semantics could be enabled if some sort of reference counting
+    // or deep-copy system for runtime objects is added later.
+    MemoryFd(const MemoryFd&) = delete;
+    MemoryFd& operator=(const MemoryFd&) = delete;
+
+    // Create the native_handle based on input size, prot, and fd.
+    // Existing native_handle will be deleted, and mHidlMemory will wrap
+    // the newly created native_handle.
+    int set(size_t size, int prot, int fd) {
+        if (size == 0 || fd < 0) {
+            LOG(ERROR) << "Invalid size or fd";
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+
+        if (mHandle) {
+            native_handle_delete(mHandle);
+        }
+        mHandle = native_handle_create(1, 1);
+        if (mHandle == nullptr) {
+            LOG(ERROR) << "Failed to create native_handle";
+            return ANEURALNETWORKS_UNEXPECTED_NULL;
+        }
+        mHandle->data[0] = fd;
+        mHandle->data[1] = prot;
+        mHidlMemory = hidl_memory("mmap_fd", mHandle, size);
+        return ANEURALNETWORKS_NO_ERROR;
+    }
+
+    int getPointer(uint8_t** buffer) const override {
+        if (mHandle == nullptr) {
+            LOG(ERROR) << "Memory not initialized";
+            return ANEURALNETWORKS_UNEXPECTED_NULL;
+        }
+
+        int fd = mHandle->data[0];
+        int prot = mHandle->data[1];
+        void* data = mmap(nullptr, mHidlMemory.size(), prot, MAP_SHARED, fd, 0);
+        if (data == MAP_FAILED) {
+            LOG(ERROR) << "Can't mmap the file descriptor.";
+            return ANEURALNETWORKS_UNMAPPABLE;
+        } else {
+            *buffer = static_cast<uint8_t*>(data);
+            return ANEURALNETWORKS_NO_ERROR;
+        }
+    }
+
+private:
+    native_handle_t* mHandle = nullptr;
 };
 
 // A utility class to accumulate mulitple Memory objects and assign each
