@@ -112,6 +112,28 @@ public:
         return static_cast<Result>(ANeuralNetworksMemory_getPointer(mMemory, buffer));
     }
 
+    // Disallow copy semantics to ensure the runtime object can only be freed
+    // once. Copy semantics could be enabled if some sort of reference counting
+    // or deep-copy system for runtime objects is added later.
+    Memory(const Memory&) = delete;
+    Memory& operator=(const Memory&) = delete;
+
+    // Move semantics to remove access to the runtime object from the wrapper
+    // object that is being moved. This ensures the runtime object will be
+    // freed only once.
+    Memory(Memory&& other) {
+        *this = std::move(other);
+    }
+    Memory& operator=(Memory&& other) {
+        if (this != &other) {
+            mMemory = other.mMemory;
+            mValid = other.mValid;
+            other.mMemory = nullptr;
+            other.mValid = false;
+        }
+        return *this;
+    }
+
     ANeuralNetworksMemory* get() const { return mMemory; }
     bool isValid() const { return mValid; }
 
@@ -127,6 +149,30 @@ public:
         ANeuralNetworksModel_create(&mModel);
     }
     ~Model() { ANeuralNetworksModel_free(mModel); }
+
+    // Disallow copy semantics to ensure the runtime object can only be freed
+    // once. Copy semantics could be enabled if some sort of reference counting
+    // or deep-copy system for runtime objects is added later.
+    Model(const Model&) = delete;
+    Model& operator=(const Model&) = delete;
+
+    // Move semantics to remove access to the runtime object from the wrapper
+    // object that is being moved. This ensures the runtime object will be
+    // freed only once.
+    Model(Model&& other) {
+        *this = std::move(other);
+    }
+    Model& operator=(Model&& other) {
+        if (this != &other) {
+            mModel = other.mModel;
+            mNextOperandId = other.mNextOperandId;
+            mValid = other.mValid;
+            other.mModel = nullptr;
+            other.mNextOperandId = 0;
+            other.mValid = false;
+        }
+        return *this;
+    }
 
     uint32_t addOperand(const OperandType* type) {
         if (ANeuralNetworksModel_addOperand(mModel, &(type->operandType)) !=
@@ -192,6 +238,27 @@ private:
 class Event {
 public:
     ~Event() { ANeuralNetworksEvent_free(mEvent); }
+
+    // Disallow copy semantics to ensure the runtime object can only be freed
+    // once. Copy semantics could be enabled if some sort of reference counting
+    // or deep-copy system for runtime objects is added later.
+    Event(const Event&) = delete;
+    Event& operator=(const Event&) = delete;
+
+    // Move semantics to remove access to the runtime object from the wrapper
+    // object that is being moved. This ensures the runtime object will be
+    // freed only once.
+    Event(Event&& other) {
+        *this = std::move(other);
+    }
+    Event& operator=(Event&& other) {
+        if (this != &other) {
+            mEvent = other.mEvent;
+            other.mEvent = nullptr;
+        }
+        return *this;
+    }
+
     Result wait() { return static_cast<Result>(ANeuralNetworksEvent_wait(mEvent)); }
     void set(ANeuralNetworksEvent* newEvent) {
         ANeuralNetworksEvent_free(mEvent);
@@ -212,6 +279,26 @@ public:
     }
 
     ~Request() { ANeuralNetworksRequest_free(mRequest); }
+
+    // Disallow copy semantics to ensure the runtime object can only be freed
+    // once. Copy semantics could be enabled if some sort of reference counting
+    // or deep-copy system for runtime objects is added later.
+    Request(const Request&) = delete;
+    Request& operator=(const Request&) = delete;
+
+    // Move semantics to remove access to the runtime object from the wrapper
+    // object that is being moved. This ensures the runtime object will be
+    // freed only once.
+    Request(Request&& other) {
+        *this = std::move(other);
+    }
+    Request& operator=(Request&& other) {
+        if (this != &other) {
+            mRequest = other.mRequest;
+            other.mRequest = nullptr;
+        }
+        return *this;
+    }
 
     Result setPreference(ExecutePreference preference) {
         return static_cast<Result>(ANeuralNetworksRequest_setPreference(
