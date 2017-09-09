@@ -62,4 +62,8 @@ cc_test {
         "libneuralnetworks",
         "libneuralnetworks_common",
     ],
+
+    shared_libs: [
+        "libcutils",
+    ]
 }
