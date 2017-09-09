@@ -99,10 +99,14 @@ inline void Shutdown() {
 
 class Memory {
 public:
-    // TODO Also have constructors for file descriptor, gralloc buffers, etc.
     Memory(size_t size) {
         mValid = ANeuralNetworksMemory_createShared(size, &mMemory) == ANEURALNETWORKS_NO_ERROR;
     }
+    Memory(size_t size, int protect, int fd) {
+        mValid = ANeuralNetworksMemory_createFromFd(size, protect, fd, &mMemory) ==
+                         ANEURALNETWORKS_NO_ERROR;
+    }
+
     ~Memory() { ANeuralNetworksMemory_free(mMemory); }
     Result getPointer(uint8_t** buffer) {
         return static_cast<Result>(ANeuralNetworksMemory_getPointer(mMemory, buffer));
