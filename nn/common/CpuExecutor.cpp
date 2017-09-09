@@ -313,7 +313,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                   outShape);
             }
         } break;
-        case OperationType::DEPTHWISE_CONV: {
+        case OperationType::DEPTHWISE_CONV_2D: {
             if (!parameterCountIs(8, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
@@ -363,7 +363,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
 
         } break;
-        case OperationType::CONV: {
+        case OperationType::CONV_2D: {
             if (!parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
@@ -405,7 +405,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                      outShape);
             }
         } break;
-        case OperationType::AVERAGE_POOL: {
+        case OperationType::AVERAGE_POOL_2D: {
             if (!parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
@@ -447,7 +447,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                             outShape);
             }
         } break;
-        case OperationType::L2_POOL: {
+        case OperationType::L2_POOL_2D: {
             if (!parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
@@ -477,7 +477,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                         outShape);
             }
         } break;
-        case OperationType::MAX_POOL: {
+        case OperationType::MAX_POOL_2D: {
             if (!parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }

@@ -92,16 +92,7 @@ bool depthwiseConvFloat32(const float* inputData, const Shape& inputShape,
             stride_width, paddingWidth, paddingHeight, depth_multiplier,       \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_DEPTHWISE_CONV(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_DEPTHWISE_CONV(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_DEPTHWISE_CONV(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_DEPTHWISE_CONV)
     #undef ANDROID_NN_DEPTHWISE_CONV
 
     return true;
@@ -144,16 +135,7 @@ bool depthwiseConvQuant8(const uint8_t* inputData, const Shape& inputShape,
             output_activation_min, output_activation_max,                      \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_DEPTHWISE_CONV(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_DEPTHWISE_CONV(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_DEPTHWISE_CONV(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_DEPTHWISE_CONV)
     #undef ANDROID_NN_DEPTHWISE_CONV
 
     return true;

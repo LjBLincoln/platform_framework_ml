@@ -81,16 +81,7 @@ bool concatenationFloat32(const std::vector<const float*>& inputDataPtrs,
             inputDataPtrs.data(), inputDimsPtr.data(), num_inputs,                    \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_CONCATENATION(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_CONCATENATION(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_CONCATENATION(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_CONCATENATION)
     #undef ANDROID_NN_CONCATENATION
 
     return true;
@@ -114,19 +105,10 @@ bool concatenationQuant8(const std::vector<const uint8_t*>& inputDataPtrs,
             inputDataPtrs.data(), inputDimsPtr.data(), num_inputs,                      \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_CONCATENATION(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_CONCATENATION(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_CONCATENATION(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_CONCATENATION)
     #undef ANDROID_NN_CONCATENATION
+
     return true;
 }
-
 }  // namespace nn
 }  // namespace android
