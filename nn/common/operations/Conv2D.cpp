@@ -29,7 +29,8 @@ static char static_scratch_buffer[kStaticBufferSize];
 bool convPrepare(const Shape& input,
                  const Shape& filter,
                  const Shape& bias,
-                 int32_t padding,
+                 int32_t padding_left, int32_t padding_right,
+                 int32_t padding_top, int32_t padding_bottom,
                  int32_t stride_width, int32_t stride_height,
                  Shape* output) {
     DCHECK_EQ(getNumberOfDimensions(input), 4);
@@ -46,19 +47,10 @@ bool convPrepare(const Shape& input,
     uint32_t filterHeight = getSizeOfDimension(filter, 1);
     uint32_t batches      = getSizeOfDimension(input, 0);
 
-    // Matching GetWindowedOutputSize in TensorFlow.
-    // TODO: changing this to explicit padding.
-    auto computeOutSize = [padding](uint32_t imageSize, uint32_t filterSize,
-                                    uint32_t stride) -> int {
-        return padding == kPaddingSame
-                   ? (imageSize + stride - 1) / stride
-                   : padding == kPaddingValid
-                         ? (imageSize - filterSize + stride) / stride
-                         : 0;
-    };
-
-    uint32_t outWidth = computeOutSize(width, filterWidth, stride_width);
-    uint32_t outHeight = computeOutSize(height, filterHeight, stride_height);
+    uint32_t outWidth = computeOutSize(width, filterWidth, stride_width,
+                                       padding_left, padding_right);
+    uint32_t outHeight = computeOutSize(height, filterHeight, stride_height,
+                                        padding_top, padding_bottom);
 
     output->type = input.type;
     output->dimensions = {batches, outHeight, outWidth, channels_out};
@@ -74,10 +66,8 @@ bool convPrepare(const Shape& input,
     uint32_t outWidth     = getSizeOfDimension(outputShape, 2);                 \
     uint32_t inDepth      = getSizeOfDimension(inputShape, 3);                  \
                                                                                 \
-    uint32_t paddingHeight =                                                    \
-            ComputePadding(stride_height, height, filterHeight, outHeight);     \
-    uint32_t paddingWidth =                                                     \
-            ComputePadding(stride_width, width, filterWidth, outWidth);         \
+    uint32_t paddingHeight = (uint32_t)padding_top;                             \
+    uint32_t paddingWidth = (uint32_t)padding_left;                             \
                                                                                 \
     Dims<4> im2colDim;                                                          \
     im2colDim.sizes[3] = (int)getSizeOfDimension(outputShape, 0);               \
@@ -104,7 +94,10 @@ bool convPrepare(const Shape& input,
 bool convFloat32(const float* inputData, const Shape& inputShape,
                  const float* filterData, const Shape& filterShape,
                  const float* biasData, const Shape& biasShape,
-                 int32_t padding, int32_t stride_width, int32_t stride_height, int32_t activation,
+                 int32_t padding_left, int32_t padding_right,
+                 int32_t padding_top, int32_t padding_bottom,
+                 int32_t stride_width, int32_t stride_height,
+                 int32_t activation,
                  float* outputData, const Shape& outputShape) {
 
     ANDROID_NN_CONV_PARAMETERS(float)
@@ -130,7 +123,10 @@ bool convFloat32(const float* inputData, const Shape& inputShape,
 bool convQuant8(const uint8_t* inputData, const Shape& inputShape,
                 const uint8_t* filterData, const Shape& filterShape,
                 const int32_t* biasData, const Shape& biasShape,
-                int32_t padding, int32_t stride_width, int32_t stride_height, int32_t activation,
+                int32_t padding_left, int32_t padding_right,
+                int32_t padding_top, int32_t padding_bottom,
+                int32_t stride_width, int32_t stride_height,
+                int32_t activation,
                 uint8_t* outputData, const Shape& outputShape) {
 
     ANDROID_NN_CONV_PARAMETERS(uint8_t)
