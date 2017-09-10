@@ -46,10 +46,12 @@ class Phase(object):
   def __init__(self):
     self.__objects = []
     self.__contents = []
+    self.__dict_of_objects = {}
 
   def append(self, obj, x):
     self.__objects.append(obj)
     self.__contents.append(x)
+    self.__dict_of_objects[obj.ID()] = obj
 
   def dump(self, filename):
     for x in self.__contents:
@@ -57,6 +59,9 @@ class Phase(object):
 
   def objects(self):
     return self.__objects
+
+  def search(self, i):
+    return self.__dict_of_objects[i]
 
 # Tracking objects inside a model with a not necessarily unique name and
 # an unique number
@@ -442,9 +447,14 @@ class Model(object):
     self.__currentOp = op
     return self
 
-  def Out(self, o: Value) -> Operation:
-    self.__currentOp.outs.add(o)
-    o.ins.append(self.__currentOp)
+  def Out(self, o):
+    if (type(o) is list or type(o) is tuple):
+      for i in o:
+        self.__currentOp.outs.add(i)
+        i.ins.append(self.__currentOp)
+    else:
+      self.__currentOp.outs.add(o)
+      o.ins.append(self.__currentOp)
     return self
 
   def To(self, o:Value):
@@ -469,9 +479,47 @@ class Example():
         key = str(k.number)
         if not TypeLookup.is_float(k.type.get_element_type()):
           suffix = ""
-      init = ", ".join([str(i)+suffix for i in v])
-      ret.append('{%s, {%s}}' %(key, init))
+      init = ", ".join(
+          [str(i) + (suffix if str(i).find(".") != -1 else "") for i in v])
+      ret.append("{%s, {%s}}" % (key, init))
     return ", ".join(ret)
+
+  def dump_mixed_types(d):
+    ret = []
+
+    float32_dict = {}
+    int32_dict = {}
+    uint8_dict = {}
+
+    for k, v in d.items():
+      ty = Operand.operands.search(k.ID()).type.get_element_type()
+      # find out type of the operand addressed by the key
+      if (ty == "TENSOR_FLOAT32"):
+        float32_dict[k] = v
+      elif (ty == "TENSOR_INT32"):
+        int32_dict[k] = v
+      elif (ty == "TENSOR_QUANT8_ASYMM"):
+        uint8_dict[k] = v
+      else:
+        print ("Unhandled type %s"%ty,  file = sys.stderr)
+        assert 0 and "unsupported example type"
+
+    tuple_init = """\
+{{ // See tools/test_generator/include/TestHarness.h:MixedTyped
+  // int -> FLOAT32 map
+  {{{float32_dict}}},
+  // int -> INT32 map
+  {{{int32_dict}}},
+  // int -> QUANT8_ASYMM map
+  {{{uint8_dict}}}
+}}"""
+    tuple_contents = {
+        'float32_dict': Example.dump_dict(float32_dict),
+        'int32_dict': Example.dump_dict(int32_dict),
+        'uint8_dict': Example.dump_dict(uint8_dict)
+    }
+    return tuple_init.format(**tuple_contents)
+
 
   def dump(example_file):
     if len(Example.__examples) > 0:
@@ -481,10 +529,10 @@ class Example():
     for i, o in Example.__examples:
       print ('// Begin of an example', file = example_file)
       print ('{', file = example_file)
-      inputs = Example.dump_dict(i)
-      outputs = Example.dump_dict(o)
-      print ('//Input(s)\n{' + inputs + '},', file = example_file)
-      print ('//Output(s)\n{' + outputs + '}', file = example_file)
+      inputs = Example.dump_mixed_types(i)
+      outputs = Example.dump_mixed_types(o)
+      print ('//Input(s)\n%s,' % inputs , file = example_file)
+      print ('//Output(s)\n%s' % outputs, file = example_file)
       print ('}, // End of an example', file = example_file)
 
 def TopologicalSort(format_op):
