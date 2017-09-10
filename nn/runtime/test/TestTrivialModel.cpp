@@ -114,7 +114,9 @@ TEST_F(TrivialTest, AddTwo) {
     // Test the one node model.
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
-    Request request(&modelAdd2);
+    Compilation compilation(&modelAdd2);
+    compilation.compile();
+    Request request(&compilation);
     ASSERT_EQ(request.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(request.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(request.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
@@ -129,7 +131,9 @@ TEST_F(TrivialTest, AddThree) {
     // Test the three node model.
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
-    Request request2(&modelAdd3);
+    Compilation compilation2(&modelAdd3);
+    compilation2.compile();
+    Request request2(&compilation2);
     ASSERT_EQ(request2.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(request2.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(request2.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
@@ -138,7 +142,9 @@ TEST_F(TrivialTest, AddThree) {
 
     // Test it a second time to make sure the model is reusable.
     memset(&actual, 0, sizeof(actual));
-    Request request3(&modelAdd3);
+    Compilation compilation3(&modelAdd3);
+    compilation3.compile();
+    Request request3(&compilation3);
     ASSERT_EQ(request3.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(request3.setInput(1, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(request3.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
@@ -167,7 +173,9 @@ TEST_F(TrivialTest, BroadcastAddTwo) {
     // Test the one node model.
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
-    Request request(&modelBroadcastAdd2);
+    Compilation compilation(&modelBroadcastAdd2);
+    compilation.compile();
+    Request request(&compilation);
     ASSERT_EQ(request.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(request.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
     ASSERT_EQ(request.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
@@ -196,7 +204,9 @@ TEST_F(TrivialTest, BroadcastMulTwo) {
     // Test the one node model.
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
-    Request request(&modelBroadcastMul2);
+    Compilation compilation(&modelBroadcastMul2);
+    compilation.compile();
+    Request request(&compilation);
     ASSERT_EQ(request.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(request.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
     ASSERT_EQ(request.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);

@@ -18,6 +18,7 @@
 
 #include "RequestBuilder.h"
 
+#include "CompilationBuilder.h"
 #include "CpuExecutor.h"
 #include "HalInterfaces.h"
 #include "Manager.h"
@@ -73,11 +74,11 @@ int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-RequestBuilder::RequestBuilder(const ModelBuilder* model)
-    : mModel(model),
-      mInputs(model->inputCount()),
-      mOutputs(model->outputCount()),
-      mMemories(model->getMemories()) {
+RequestBuilder::RequestBuilder(const CompilationBuilder* compilation) :
+        mModel(compilation->mModel),
+        mInputs(mModel->inputCount()),
+        mOutputs(mModel->outputCount()),
+        mMemories(mModel->getMemories()) {
     LOG(DEBUG) << "RequestBuilder::RequestBuilder";
     for (auto& p : mInputs) {
         p.state = ModelArgumentInfo::UNSPECIFIED;

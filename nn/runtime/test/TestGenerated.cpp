@@ -46,7 +46,9 @@ class Example {
         int example_no = 1;
         bool error = false;
         for (auto& example : examples) {
-            Request request(&model);
+            Compilation compilation(&model);
+            compilation.compile();
+            Request request(&compilation);
 
             // Go through all inputs
             for (auto& i : example.first) {
@@ -104,7 +106,9 @@ class Example {
             MixedTyped& inputs = example.first;
             MixedTyped& golden = example.second;
 
-            Request request(&model);
+            Compilation compilation(&model);
+            compilation.compile();
+            Request request(&compilation);
 
             // Go through all ty-typed inputs
 #define SET_TYPED_TENSOR_INPUT(ty)                                     \

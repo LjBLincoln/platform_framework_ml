@@ -41,12 +41,11 @@ protected:
     ANeuralNetworksModel* mModel = nullptr;
 };
 
-class ValidationTestRequest : public ::testing::Test {
+class ValidationTestCompilation : public ValidationTestModel {
 protected:
     virtual void SetUp() {
-        ASSERT_EQ(ANeuralNetworksInitialize(), ANEURALNETWORKS_NO_ERROR);
+        ValidationTestModel::SetUp();
 
-        ASSERT_EQ(ANeuralNetworksModel_create(&mModel), ANEURALNETWORKS_NO_ERROR);
         uint32_t dimensions[]{1};
         ANeuralNetworksOperandType tensorType{.type = ANEURALNETWORKS_TENSOR_FLOAT32,
                                               .dimensions = {.count = 1, .data = dimensions}};
@@ -60,14 +59,29 @@ protected:
         ASSERT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_ADD, &inputs, &outputs),
                   ANEURALNETWORKS_NO_ERROR);
 
-        ASSERT_EQ(ANeuralNetworksRequest_create(mModel, &mRequest), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksCompilation_create(mModel, &mCompilation), ANEURALNETWORKS_NO_ERROR);
+    }
+    virtual void TearDown() {
+        ANeuralNetworksCompilation_free(mCompilation);
+        ValidationTestModel::TearDown();
+    }
+    ANeuralNetworksCompilation* mCompilation = nullptr;
+};
+
+class ValidationTestRequest : public ValidationTestCompilation {
+protected:
+    virtual void SetUp() {
+        ValidationTestCompilation::SetUp();
+
+        ASSERT_EQ(ANeuralNetworksCompilation_start(mCompilation), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksCompilation_wait(mCompilation), ANEURALNETWORKS_NO_ERROR);
+
+        ASSERT_EQ(ANeuralNetworksRequest_create(mCompilation, &mRequest), ANEURALNETWORKS_NO_ERROR);
     }
     virtual void TearDown() {
         ANeuralNetworksRequest_free(mRequest);
-        ANeuralNetworksModel_free(mModel);
-        ANeuralNetworksShutdown();
+        ValidationTestCompilation::TearDown();
     }
-    ANeuralNetworksModel* mModel = nullptr;
     ANeuralNetworksRequest* mRequest = nullptr;
 };
 
@@ -136,21 +150,30 @@ TEST_F(ValidationTestModel, SetInputsAndOutputs) {
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestModel, CreateRequest) {
-    ANeuralNetworksRequest* request = nullptr;
-    EXPECT_EQ(ANeuralNetworksRequest_create(nullptr, &request), ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksRequest_create(mModel, nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
-    // EXPECT_EQ(ANeuralNetworksRequest_create(mModel, ANeuralNetworksRequest *
-    // *request),
+TEST_F(ValidationTestModel, CreateCompilation) {
+    ANeuralNetworksCompilation* compilation = nullptr;
+    EXPECT_EQ(ANeuralNetworksCompilation_create(nullptr, &compilation), ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksCompilation_create(mModel, nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
+    // EXPECT_EQ(ANeuralNetworksCompilation_create(mModel, ANeuralNetworksCompilation *
+    // *compilation),
     //          ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, SetPreference) {
-    EXPECT_EQ(ANeuralNetworksRequest_setPreference(nullptr, ANEURALNETWORKS_PREFER_LOW_POWER),
+TEST_F(ValidationTestCompilation, SetPreference) {
+    EXPECT_EQ(ANeuralNetworksCompilation_setPreference(nullptr, ANEURALNETWORKS_PREFER_LOW_POWER),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 
-    EXPECT_EQ(ANeuralNetworksRequest_setPreference(mRequest, 40),
+    EXPECT_EQ(ANeuralNetworksCompilation_setPreference(mCompilation, 40),
               ANEURALNETWORKS_BAD_DATA);
+}
+
+TEST_F(ValidationTestCompilation, CreateRequest) {
+    ANeuralNetworksRequest* request = nullptr;
+    EXPECT_EQ(ANeuralNetworksRequest_create(nullptr, &request), ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksRequest_create(mCompilation, nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
+    // EXPECT_EQ(ANeuralNetworksRequest_create(mCompilation, ANeuralNetworksRequest *
+    // *request),
+    //          ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
 #if 0
