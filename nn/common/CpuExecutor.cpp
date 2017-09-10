@@ -21,21 +21,59 @@
 #include "NeuralNetworks.h"
 #include "Operations.h"
 
+#include <sys/mman.h>
+
 namespace android {
 namespace nn {
 
+// TODO: short term, make share memory mapping and updating a utility function.
+// TODO: long term, implement mmap_fd as a hidl IMemory service.
 bool RunTimePoolInfo::set(const hidl_memory& hidlMemory) {
-    memory = mapMemory(hidlMemory);
-    if (memory == nullptr) {
-        LOG(ERROR) << "Can't map shared memory.";
+    this->hidlMemory = hidlMemory;
+    auto memType = hidlMemory.name();
+    if (memType == "ashmem") {
+        memory = mapMemory(hidlMemory);
+        if (memory == nullptr) {
+            LOG(ERROR) << "Can't map shared memory.";
+            return false;
+        }
+        memory->update();
+        buffer = reinterpret_cast<uint8_t*>(static_cast<void*>(memory->getPointer()));
+        if (buffer == nullptr) {
+            LOG(ERROR) << "Can't access shared memory.";
+            return false;
+        }
+        return true;
+    } else if (memType == "mmap_fd") {
+        size_t size = hidlMemory.size();
+        int fd = hidlMemory.handle()->data[0];
+        int prot = hidlMemory.handle()->data[1];
+        buffer = static_cast<uint8_t*>(mmap(nullptr, size, prot, MAP_SHARED, fd, 0));
+        if (buffer == MAP_FAILED) {
+            LOG(ERROR) << "Can't mmap the file descriptor.";
+            return false;
+        }
+        return true;
+    } else {
+        LOG(ERROR) << "unsupported hidl_memory type";
         return false;
     }
-    memory->update();
-    buffer = reinterpret_cast<uint8_t*>(static_cast<void*>(memory->getPointer()));
-    if (buffer == nullptr) {
-        LOG(ERROR) << "Can't access shared memory.";
-        return false;
+}
+
+// Making sure the output data are correctly updated after execution.
+bool RunTimePoolInfo::update() {
+    auto memType = hidlMemory.name();
+    if (memType == "ashmem") {
+        memory->commit();
+        return true;
+    } else if (memType == "mmap_fd") {
+        int prot = hidlMemory.handle()->data[1];
+        if (prot & PROT_WRITE) {
+            size_t size = hidlMemory.size();
+            return msync(buffer, size, MS_SYNC) == 0;
+        }
     }
+    // No-op for other types of memory.
     return true;
 }
 
@@ -78,6 +116,9 @@ int CpuExecutor::run(const Model& model, const Request& request,
         if (n != ANEURALNETWORKS_NO_ERROR) {
             return n;
         }
+    }
+    for (auto runtimeInfo : runTimePoolInfos) {
+        runtimeInfo.update();
     }
     mModel = nullptr;
     mRequest = nullptr;
@@ -272,7 +313,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                   outShape);
             }
         } break;
-        case OperationType::DEPTHWISE_CONV: {
+        case OperationType::DEPTHWISE_CONV_2D: {
             if (!parameterCountIs(8, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
@@ -322,7 +363,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
 
         } break;
-        case OperationType::CONV: {
+        case OperationType::CONV_2D: {
             if (!parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
@@ -364,7 +405,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                      outShape);
             }
         } break;
-        case OperationType::AVERAGE_POOL: {
+        case OperationType::AVERAGE_POOL_2D: {
             if (!parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
@@ -406,7 +447,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                             outShape);
             }
         } break;
-        case OperationType::L2_POOL: {
+        case OperationType::L2_POOL_2D: {
             if (!parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
@@ -436,7 +477,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                         outShape);
             }
         } break;
-        case OperationType::MAX_POOL: {
+        case OperationType::MAX_POOL_2D: {
             if (!parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }

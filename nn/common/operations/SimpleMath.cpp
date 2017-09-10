@@ -64,7 +64,7 @@ bool addFloat32(const float* in1, const Shape& shape1,
                 float* out, const Shape& shapeOut) {
     bool needBroadcast = !SameShape(shape1, shape2);
 
-    #define ANDROID_NN_ADD(activation)                               \
+    #define ANDROID_NN_NORMAL_ADD(activation)                        \
         optimized_ops::Add<FusedActivationFunctionType::activation>( \
                 in1, convertShapeToDims(shape1),                     \
                 in2, convertShapeToDims(shape2),                     \
@@ -76,42 +76,12 @@ bool addFloat32(const float* in1, const Shape& shape1,
                 in2, convertShapeToDims(shape2),                              \
                 out, convertShapeToDims(shapeOut))
 
+    #define ANDROID_NN_ADD_DISPATCH
+
     if (needBroadcast) {
-        switch (activation) {
-            case kActivationNone:
-                ANDROID_NN_BROADCAST_ADD(kNone);
-                break;
-            case kActivationRelu:
-                ANDROID_NN_BROADCAST_ADD(kRelu);
-                break;
-            case kActivationRelu1:
-                ANDROID_NN_BROADCAST_ADD(kRelu1);
-                break;
-            case kActivationRelu6:
-                ANDROID_NN_BROADCAST_ADD(kRelu6);
-                break;
-            default:
-                LOG(ERROR) << "Unsupported activation type";
-                return false;
-        }
+        ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_BROADCAST_ADD)
     } else {
-        switch (activation) {
-            case kActivationNone:
-                ANDROID_NN_ADD(kNone);
-                break;
-            case kActivationRelu:
-                ANDROID_NN_ADD(kRelu);
-                break;
-            case kActivationRelu1:
-                ANDROID_NN_ADD(kRelu1);
-                break;
-            case kActivationRelu6:
-                ANDROID_NN_ADD(kRelu6);
-                break;
-            default:
-                LOG(ERROR) << "Unsupported activation type";
-                return false;
-        }
+        ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_NORMAL_ADD)
     }
 
     #undef ANDROID_NN_ADD
@@ -125,7 +95,7 @@ bool mulFloat32(const float* in1, const Shape& shape1,
                 float* out, const Shape& shapeOut) {
     bool needBroadcast = !SameShape(shape1, shape2);
 
-    #define ANDROID_NN_MUL(activation)                               \
+    #define ANDROID_NN_NORMAL_MUL(activation)                        \
         optimized_ops::Mul<FusedActivationFunctionType::activation>( \
                 in1, convertShapeToDims(shape1),                     \
                 in2, convertShapeToDims(shape2),                     \
@@ -138,41 +108,9 @@ bool mulFloat32(const float* in1, const Shape& shape1,
                 out, convertShapeToDims(shapeOut))
 
     if (needBroadcast) {
-        switch (activation) {
-            case kActivationNone:
-                ANDROID_NN_BROADCAST_MUL(kNone);
-                break;
-            case kActivationRelu:
-                ANDROID_NN_BROADCAST_MUL(kRelu);
-                break;
-            case kActivationRelu1:
-                ANDROID_NN_BROADCAST_MUL(kRelu1);
-                break;
-            case kActivationRelu6:
-                ANDROID_NN_BROADCAST_MUL(kRelu6);
-                break;
-            default:
-                LOG(ERROR) << "Unsupported activation type";
-                return false;
-        }
+        ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_BROADCAST_MUL)
     } else {
-        switch (activation) {
-            case kActivationNone:
-                ANDROID_NN_MUL(kNone);
-                break;
-            case kActivationRelu:
-                ANDROID_NN_MUL(kRelu);
-                break;
-            case kActivationRelu1:
-                ANDROID_NN_MUL(kRelu1);
-                break;
-            case kActivationRelu6:
-                ANDROID_NN_MUL(kRelu6);
-                break;
-            default:
-                LOG(ERROR) << "Unsupported activation type";
-                return false;
-        }
+        ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_NORMAL_MUL)
     }
 
     #undef ANDROID_NN_MUL

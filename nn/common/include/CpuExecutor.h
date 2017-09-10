@@ -62,9 +62,11 @@ struct RunTimeOperandInfo {
 // Used to keep a pointer to each of the memory pools.
 struct RunTimePoolInfo {
     sp<IMemory> memory;
+    hidl_memory hidlMemory;
     uint8_t* buffer;
 
     bool set(const hidl_memory& hidlMemory);
+    bool update();
 };
 
 // This class is used to execute a model on the CPU.

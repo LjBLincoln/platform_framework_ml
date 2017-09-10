@@ -6,10 +6,10 @@ void CreateModel(Model *model) {
   auto operand2 = model->addOperand(&type0);
   auto operand3 = model->addOperand(&type0);
   auto operand4 = model->addOperand(&type0);
-  auto tmp5 = model->addOperand(&type0);
+  auto tmp4 = model->addOperand(&type0);
   // Phase 2, operations
-  model->addOperation(ANEURALNETWORKS_ADD, {operand1, operand2}, {tmp5});
-  model->addOperation(ANEURALNETWORKS_ADD, {operand3, tmp5}, {operand4});
+  model->addOperation(ANEURALNETWORKS_ADD, {operand1, operand2}, {tmp4});
+  model->addOperation(ANEURALNETWORKS_ADD, {operand3, tmp4}, {operand4});
   // Phase 3, inputs and outputs
   model->setInputsAndOutputs(
     {operand1, operand2, operand3},
