@@ -387,7 +387,9 @@ public:
         }
         // TODO how to manage the lifetime of events when multiple waiters is not
         // clear.
-        return static_cast<Result>(ANeuralNetworksEvent_wait(event));
+        result = static_cast<Result>(ANeuralNetworksEvent_wait(event));
+        ANeuralNetworksEvent_free(event);
+        return result;
     }
 
 private:
