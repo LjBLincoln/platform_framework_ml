@@ -18,7 +18,7 @@
 
 #include "ModelBuilder.h"
 
-#include "RequestBuilder.h"
+#include "CompilationBuilder.h"
 #include "Utils.h"
 
 #include <map>
@@ -170,9 +170,9 @@ int ModelBuilder::setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-RequestBuilder* ModelBuilder::createRequest() {
+CompilationBuilder* ModelBuilder::createCompilation() {
     finishTheModel();
-    return new RequestBuilder(this);
+    return new CompilationBuilder(this);
 }
 
 void ModelBuilder::finishTheModel() {

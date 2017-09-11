@@ -111,7 +111,10 @@ TEST_F(MemoryTest, TestAllocatedMemory) {
     ASSERT_EQ(actual.getPointer(&data), Result::NO_ERROR);
     memset(data, 0, offsetForActual + sizeof(Matrix3x4));
 
-    Request request2(&model);
+    Compilation compilation2(&model);
+    ASSERT_EQ(compilation2.compile(), Result::NO_ERROR);
+
+    Request request2(&compilation2);
     ASSERT_EQ(request2.setInputFromMemory(0, &input, offsetForMatrix1, sizeof(Matrix3x4)),
               Result::NO_ERROR);
     ASSERT_EQ(request2.setOutputFromMemory(0, &actual, offsetForActual, sizeof(Matrix3x4)),
@@ -160,7 +163,9 @@ TEST_F(MemoryTest, TestFd) {
     // Test the three node model.
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
-    Request request2(&model);
+    Compilation compilation2(&model);
+    ASSERT_EQ(compilation2.compile(), Result::NO_ERROR);
+    Request request2(&compilation2);
     ASSERT_EQ(request2.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(request2.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(request2.compute(), Result::NO_ERROR);

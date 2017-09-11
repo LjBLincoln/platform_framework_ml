@@ -95,7 +95,9 @@ class LSHProjectionOpModel {
   void Invoke() {
     ASSERT_TRUE(model_.isValid());
 
-    Request request(&model_);
+    Compilation compilation(&model_);
+    compilation.compile();
+    Request request(&compilation);
 
 #define SetInputOrWeight(X, T)                                           \
     ASSERT_EQ(request.setInput(LSHProjection::k##X##Tensor, X##_.data(), \

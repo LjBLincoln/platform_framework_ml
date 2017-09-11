@@ -30,6 +30,7 @@ using ::android::hardware::neuralnetworks::V1_0::implementation::Event;
 namespace android {
 namespace nn {
 
+class CompilationBuilder;
 class Memory;
 class ModelBuilder;
 
@@ -57,9 +58,7 @@ struct ModelArgumentInfo {
 
 class RequestBuilder {
 public:
-    RequestBuilder(const ModelBuilder* model);
-
-    void setPreference(uint32_t preference) { mPreference = preference; }
+    RequestBuilder(const CompilationBuilder* compilation);
 
     int setInput(uint32_t index, const ANeuralNetworksOperandType* type, const void* buffer,
                  uint32_t length);
@@ -79,8 +78,6 @@ private:
     int startComputeOnCpu(const Model& model, sp<Event>* event);
 
     const ModelBuilder* mModel;
-    // Whether the application prefers to go fast or use low power for this request.
-    uint32_t mPreference = ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER;
 
     // The information we'll send to the driver about the inputs and outputs.
     // Note that we build this in two steps:
