@@ -130,64 +130,70 @@ bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runT
     LOG(DEBUG) << "CpuExecutor::initializeRunTimeInfo";
     const size_t count = mModel->operands.size();
     mOperands.resize(count);
+
+    // Start by setting the runtime info to what's in the model.
     for (size_t i = 0; i < count; i++) {
         const Operand& from = mModel->operands[i];
-        if (!setRunTimeOperandInfo(i, from.dimensions, from.location, from.numberOfConsumers,
-                                   runTimePoolInfos)) {
-            return false;
+        RunTimeOperandInfo& to = mOperands[i];
+        to.type = from.type;
+        to.dimensions = from.dimensions;
+        to.scale = from.scale;
+        to.offset = from.location.offset;
+        to.length = from.location.length;
+        switch (from.lifetime) {
+            case OperandLifeTime::TEMPORARY_VARIABLE:
+                to.buffer = nullptr;
+                to.numberOfUsesLeft = from.numberOfConsumers;
+                break;
+            case OperandLifeTime::CONSTANT_COPY:
+                to.buffer = const_cast<uint8_t*>(&mModel->operandValues[from.location.offset]);
+                to.numberOfUsesLeft = 0;
+                break;
+            case OperandLifeTime::CONSTANT_REFERENCE: {
+                auto poolIndex = from.location.poolIndex;
+                nnAssert(poolIndex < runTimePoolInfos.size());
+                auto& r = runTimePoolInfos[poolIndex];
+                to.buffer = r.buffer + from.location.offset;
+                to.numberOfUsesLeft = 0;
+                break;
+            }
+            case OperandLifeTime::MODEL_INPUT:
+            case OperandLifeTime::MODEL_OUTPUT:
+                to.buffer = nullptr;
+                to.numberOfUsesLeft = 0;
+                break;
+            default:
+                nnAssert(false);
+                break;
         }
-        mOperands[i].type = from.type;
-        mOperands[i].scale = from.scale;
-        mOperands[i].offset = from.zeroPoint;
     }
 
-    nnAssert(mModel->inputIndexes.size() == mRequest->inputs.size());
-    for (size_t i = 0; i < mModel->inputIndexes.size(); i++) {
-        const InputOutputInfo& from = mRequest->inputs[i];
-        if (!setRunTimeOperandInfo(mModel->inputIndexes[i], from.dimensions, from.location, 0,
-                                   runTimePoolInfos)) {
-            return false;
+    // Adjust the runtime info for the arguments passed to the model,
+    // modifying the buffer location, and possibly the dimensions.
+    auto updateForArguments = [&](const std::vector<uint32_t>& indexes,
+                                  const hidl_vec<RequestArgument>& arguments) {
+        nnAssert(indexes.size() == arguments.size());
+        for (size_t i = 0; i < indexes.size(); i++) {
+            uint32_t operandIndex = indexes[i];
+            const RequestArgument& from = arguments[i];
+            RunTimeOperandInfo& to = mOperands[operandIndex];
+            if (from.dimensions.size() > 0) {
+                // It's the responsibility of the caller to validate that
+                // from.dimensions only modifies the dimensions that were
+                // unspecified in the model.  That's the case in SampleDriver.cpp
+                // with the call to validateRequest().
+                // TODO make sure that's the case for the default CPU path.
+                to.dimensions = from.dimensions;
+            }
+            auto poolIndex = from.location.poolIndex;
+            nnAssert(poolIndex < runTimePoolInfos.size());
+            auto& r = runTimePoolInfos[poolIndex];
+            to.buffer = r.buffer + from.location.offset;
         }
-    }
-    nnAssert(mModel->outputIndexes.size() == mRequest->outputs.size());
-    for (size_t i = 0; i < mModel->outputIndexes.size(); i++) {
-        const InputOutputInfo& from = mRequest->outputs[i];
-        if (!setRunTimeOperandInfo(mModel->outputIndexes[i], from.dimensions, from.location, 0,
-                                   runTimePoolInfos)) {
-            return false;
-        }
-    }
-    return true;
-}
+    };
+    updateForArguments(mModel->inputIndexes, mRequest->inputs);
+    updateForArguments(mModel->outputIndexes, mRequest->outputs);
 
-bool CpuExecutor::setRunTimeOperandInfo(uint32_t operandIndex,
-                                        const std::vector<uint32_t>& dimensions,
-                                        const DataLocation& location, uint32_t useCount,
-                                        const std::vector<RunTimePoolInfo>& runTimePoolInfos) {
-    LOG(DEBUG) << "CpuExecutor::setRunTimeOperand(" << operandIndex << ", " << toString(dimensions)
-               << ", " << toString(location) << ")";
-
-    RunTimeOperandInfo& to = mOperands[operandIndex];
-    if (dimensions.size() > 0) {
-        to.dimensions = dimensions;
-    }
-    if (location.poolIndex == RUN_TIME) {
-        to.buffer = nullptr;
-        to.numberOfUsesLeft = useCount;
-    } else if (location.poolIndex == SAME_BLOCK) {
-        to.buffer = const_cast<uint8_t*>(&mModel->operandValues[location.offset]);
-        to.numberOfUsesLeft = 0;
-    } else {
-        if (location.poolIndex >= runTimePoolInfos.size()) {
-            LOG(ERROR) << "For operand " << operandIndex << ", got a poolIndex id "
-                       << location.poolIndex << " which is >= " << runTimePoolInfos.size();
-            return false;
-        }
-        auto& r = runTimePoolInfos[location.poolIndex];
-        to.buffer = r.buffer + location.offset;
-        to.numberOfUsesLeft = 0;
-    }
-    to.length = location.length;
     return true;
 }
 
@@ -198,7 +204,6 @@ void CpuExecutor::freeNoLongerUsedOperands(const std::vector<uint32_t>& inputs) 
         if (info.numberOfUsesLeft == 0) {
             continue;
         }
-        nnAssert(mModel->operands[i].location.poolIndex == RUN_TIME);
         info.numberOfUsesLeft--;
         if (info.numberOfUsesLeft == 0) {
             nnAssert(info.buffer != nullptr);

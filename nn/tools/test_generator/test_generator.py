@@ -231,6 +231,9 @@ class Input(Operand, Definitions, Traversable):
     self.number = Input.__next_number
     Input.__next_number += 1
 
+  def lifetime(self):
+    return "MODEL_INPUT"
+
   def is_internal(self):
     return False
 
@@ -254,6 +257,9 @@ class Output(Operand, Uses, Nontraversable):
     self.number = Output.__next_number
     Output.__next_number += 1
 
+  def lifetime(self):
+    return "MODEL_OUTPUT"
+
   def get_outputs():
     return Output.__outputs
 
@@ -274,8 +280,11 @@ class ModelArgument:
   def get_arguments():
     return ModelArgument.__arguments
 
+  def lifetime(self):
+    return "CONSTANT_COPY"
 
 class Parameter(Input):
+  # TODO seems wrong that's an Input.
   def __init__(self, name, vt, shape, initializer):
     Input.__init__(self, name, vt, shape)
     self.initializer = initializer
@@ -296,6 +305,8 @@ class Parameter(Input):
     return stmt
   def is_weight(self):
     return True
+  def lifetime(self):
+    return "CONSTANT_COPY"
 
 class Int32Scalar(Parameter):
   def __init__(self, name, value):
@@ -313,12 +324,18 @@ class IntermediateResult(Operand, Definitions, Uses, Traversable):
     Definitions.__init__(self)
     Uses.__init__(self, [src])
 
+  def lifetime(self):
+    return "TEMPORARY_VARIABLE"
+
 # An explicitly declared intermediate result
 class Internal(Operand, Definitions, Uses, Traversable):
   def __init__(self, name, vt, shape):
     Operand.__init__(self, name, Type(vt, shape))
     Definitions.__init__(self)
     Uses.__init__(self)
+
+  def lifetime(self):
+    return "TEMPORARY_VARIABLE"
 
 # An operation in a model
 class Operation(Definitions, Uses, Traversable):
@@ -584,8 +601,8 @@ def generate_vts_operands():
             .numberOfConsumers = {no_consumers},
             .scale = {scale},
             .zeroPoint = {zero_point},
-            .location = {{.poolIndex = static_cast<uint32_t>(
-                              LocationValues::LOCATION_{location}),
+            .lifetime = OperandLifeTime::{lifetime},
+            .location = {{.poolIndex = 0,
                          .offset = {offset},
                          .length = {length}}},
         }}"""
@@ -594,7 +611,7 @@ def generate_vts_operands():
   for o in Operand.operands.objects():
     ty = o.type
     no_consumers = len(o.outs) if o.traversable() else 0
-    location = "SAME_BLOCK" if o.is_weight() else "AT_RUN_TIME"
+    lifetime = o.lifetime()
     length = ty.get_size() if o.is_weight() else 0
 
     op = {
@@ -603,7 +620,7 @@ def generate_vts_operands():
         "no_consumers": no_consumers,
         "scale": "0.0f",  #TODO
         "zero_point": "0",  #TODO
-        "location": location,
+        "lifetime": lifetime,
         "offset": offset if o.is_weight() else 0,
         "length": length
     }
