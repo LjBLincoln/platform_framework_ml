@@ -26,32 +26,19 @@ using ::android::hidl::allocator::V1_0::IAllocator;
 namespace android {
 namespace nn {
 
-#define COUNT(X) (sizeof(X)/sizeof(X[0]))
+#define COUNT(X) (sizeof(X) / sizeof(X[0]))
 
 const char* kTypeNames[kNumberOfDataTypes] = {
-        "FLOAT16",
-        "FLOAT32",
-        "INT8",
-        "UINT8",
-        "INT16",
-        "UINT16",
-        "INT32",
-        "UINT32",
-        "TENSOR_FLOAT16",
-        "TENSOR_FLOAT32",
-        "TENSOR_INT32",
-        "TENSOR_QUANT8_ASYMM",
+        "FLOAT16",        "FLOAT32",        "INT8",         "UINT8",
+        "INT16",          "UINT16",         "INT32",        "UINT32",
+        "TENSOR_FLOAT16", "TENSOR_FLOAT32", "TENSOR_INT32", "TENSOR_QUANT8_ASYMM",
 };
 
 static_assert(COUNT(kTypeNames) == kNumberOfDataTypes, "kTypeNames is incorrect");
 
 // TODO Check if this useful
 const char* kErrorNames[] = {
-        "NO_ERROR",
-        "OUT_OF_MEMORY",
-        "INCOMPLETE",
-        "NULL",
-        "BAD_DATA",
+        "NO_ERROR", "OUT_OF_MEMORY", "INCOMPLETE", "NULL", "BAD_DATA",
 };
 
 const char* kOperationNames[kNumberOfOperationTypes] = {
@@ -176,22 +163,30 @@ static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint
             return false;
         }
         */
-        if (operand.location.poolIndex == SAME_BLOCK) {
+        if (operand.lifetime == OperandLifeTime::CONSTANT_COPY) {
             if (operand.location.offset + operand.location.length > operandValues.size()) {
                 LOG(ERROR) << "OperandValue location out of range.  Starts at "
                            << operand.location.offset << ", length " << operand.location.length
                            << ", max " << operandValues.size();
                 return false;
             }
-        } else if (operand.location.poolIndex == RUN_TIME) {
+        } else if (operand.lifetime == OperandLifeTime::TEMPORARY_VARIABLE ||
+                   operand.lifetime == OperandLifeTime::MODEL_INPUT ||
+                   operand.lifetime == OperandLifeTime::MODEL_OUTPUT) {
             if (operand.location.offset != 0 || operand.location.length != 0) {
                 LOG(ERROR) << "Unexpected offset " << operand.location.offset << " or length "
                            << operand.location.length << " for runtime location.";
                 return false;
             }
-        } else if (operand.location.poolIndex >= poolCount) {
-            // TODO: Revisit when we add support for multiple pools.
-            LOG(ERROR) << "Invalid poolIndex " << operand.location.poolIndex << "/" << poolCount;
+        } else if (operand.lifetime == OperandLifeTime::CONSTANT_REFERENCE) {
+            if (operand.location.poolIndex >= poolCount) {
+                LOG(ERROR) << "Invalid poolIndex " << operand.location.poolIndex << "/"
+                           << poolCount;
+                return false;
+            }
+            // TODO: Validate that we are within the pool.
+        } else {
+            LOG(ERROR) << "Invalid lifetime";
             return false;
         }
     }
@@ -213,13 +208,68 @@ static bool validOperations(const hidl_vec<Operation>& operations, size_t operan
 }
 
 // TODO doublecheck
-// TODO also do validateRequest
 bool validateModel(const Model& model) {
     const size_t operandCount = model.operands.size();
     return (validOperands(model.operands, model.operandValues, model.pools.size()) &&
             validOperations(model.operations, operandCount) &&
             validOperandIndexes(model.inputIndexes, operandCount) &&
             validOperandIndexes(model.outputIndexes, operandCount));
+}
+
+bool validRequestArguments(const hidl_vec<RequestArgument>& arguments,
+                           const hidl_vec<uint32_t>& operandIndexes,
+                           const hidl_vec<Operand>& operands, size_t poolCount,
+                           const char* type) {
+    const size_t argumentCount = arguments.size();
+    if (argumentCount != operandIndexes.size()) {
+        LOG(ERROR) << "Request specifies " << argumentCount << " " << type << "s but the model has "
+                   << operandIndexes.size();
+        return false;
+    }
+    for (size_t argumentIndex = 0; argumentIndex < argumentCount; argumentIndex++) {
+        const RequestArgument& argument = arguments[argumentIndex];
+        const uint32_t operandIndex = operandIndexes[argumentIndex];
+        const Operand& operand = operands[operandIndex];
+        if (argument.location.poolIndex >= poolCount) {
+            LOG(ERROR) << "Request " << type << " " << argumentIndex << " has an invalid poolIndex "
+                       << argument.location.poolIndex << "/" << poolCount;
+            return false;
+        }
+        // TODO: Validate that we are within the pool.
+        uint32_t rank = argument.dimensions.size();
+        if (rank > 0) {
+            if (rank != operand.dimensions.size()) {
+                LOG(ERROR) << "Request " << type << " " << argumentIndex
+                           << " has number of dimensions (" << rank
+                           << ") different than the model's (" << operand.dimensions.size() << ")";
+                return false;
+            }
+            for (size_t i = 0; i < rank; i++) {
+                if (argument.dimensions[i] != operand.dimensions[i] &&
+                    operand.dimensions[i] != 0) {
+                    LOG(ERROR) << "Request " << type << " " << argumentIndex
+                               << " has dimension " << i << " of " << operand.dimensions[i]
+                               << " different than the model's " << operand.dimensions[i];
+                    return false;
+                }
+                if (argument.dimensions[i] == 0) {
+                    LOG(ERROR) << "Request " << type << " " << argumentIndex
+                               << " has dimension " << i << " of zero";
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+// TODO doublecheck
+bool validateRequest(const Request& request, const Model& model) {
+    const size_t poolCount = request.pools.size();
+    return (validRequestArguments(request.inputs, model.inputIndexes, model.operands, poolCount,
+                                  "input") &&
+            validRequestArguments(request.outputs, model.outputIndexes, model.operands, poolCount,
+                                  "output"));
 }
 
 } // namespace nn

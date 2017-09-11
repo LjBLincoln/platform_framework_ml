@@ -93,6 +93,7 @@ std::string toString(const std::vector<Type>& range) {
 }
 
 bool validateModel(const Model& model);
+bool validateRequest(const Request& request, const Model& model);
 
 } // namespace nn
 } // namespace android
