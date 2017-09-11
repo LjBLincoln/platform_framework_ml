@@ -215,7 +215,11 @@ int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model,
 
     LOG(DEBUG) << "RequestBuilder::startComputeOnDevice1";
     // TODO Dangerous!  In async, the model will outlive it here. Safe for now
-    sp<IPreparedModel> preparedModel = driver->prepareModel(model);
+    sp<Event> preparationEvent = new Event();
+    sp<IPreparedModel> preparedModel = driver->prepareModel(model, preparationEvent);
+    // Immediately synchronize with event for now
+    // TODO: change to asynchronous later
+    preparationEvent->wait();
     if (preparedModel == nullptr) {
         return ANEURALNETWORKS_OP_FAILED;
     }
