@@ -47,14 +47,9 @@ uint32_t getNumberOfDimensions(const Shape& shape);
 
 uint32_t getSizeOfDimension(const Shape& shape, uint32_t dimensionIdx);
 
-inline uint32_t ComputePadding(uint32_t stride, uint32_t in_size, uint32_t filter_size,
-                               uint32_t out_size) {
-    uint32_t tmp = (out_size - 1) * stride + filter_size;
-    if (tmp > in_size) {
-        return (tmp - in_size) / 2;
-    } else {
-        return 0;
-    }
+inline uint32_t computeOutSize(uint32_t imageSize, uint32_t filterSize, uint32_t stride,
+                               uint32_t paddingHead, uint32_t paddingTail) {
+    return (imageSize - filterSize + stride + paddingHead + paddingTail) / stride;
 }
 
 void QuantizeMultiplierSmallerThanOne(double double_multiplier,
