@@ -22,26 +22,6 @@
 namespace android {
 namespace nn {
 
-bool fullyConnectedPrepare(const Shape& input,
-                           const Shape& weights,
-                           const Shape& bias,
-                           Shape* output) {
-    // Check all the parameters of tensor match within themselves and match the
-    // input configuration.
-    uint32_t input_size = getNumberOfElements(input);
-    uint32_t num_units  = getSizeOfDimension(weights, 0);
-    uint32_t batch_size = input_size / getSizeOfDimension(weights, 1);
-
-    DCHECK_EQ(getSizeOfDimension(bias, 0), num_units);
-    DCHECK_EQ(getSizeOfDimension(weights, 1) * batch_size, input_size);
-    DCHECK_EQ(getNumberOfDimensions(weights), 2);
-
-    output->type = input.type;
-    output->dimensions = {batch_size, num_units};
-
-    return true;
-}
-
 bool fullyConnectedFloat32(const float* inputData, const Shape& inputShape,
                            const float* weightsData, const Shape& weightsShape,
                            const float* biasData, const Shape& biasShape,
