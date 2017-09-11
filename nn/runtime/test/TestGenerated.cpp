@@ -22,7 +22,6 @@
 #include <gtest/gtest.h>
 #include <cassert>
 #include <cmath>
-#include <functional>
 #include <iostream>
 #include <map>
 
@@ -107,40 +106,38 @@ class Example {
             Request request(&model);
 
             // Go through all ty-typed inputs
-#define SET_TYPED_TENSOR_INPUT(ty)                                     \
-    for (auto& i : std::get<std::map<int, std::vector<ty>>>(inputs)) { \
-        request.setInput(i.first, (const void*)i.second.data(),        \
-                         i.second.size() * sizeof(ty));                \
-    }
-
-            SET_TYPED_TENSOR_INPUT(float);
-            SET_TYPED_TENSOR_INPUT(int32_t);
-            SET_TYPED_TENSOR_INPUT(uint8_t);
-#undef SET_TYPED_TENSOR_INPUT
+            for_all(inputs, [&request](int idx, auto p, auto s) {
+                ASSERT_EQ(Result::NO_ERROR, request.setInput(idx, p, s));
+            });
 
             MixedTyped test;
             // Go through all typed outputs
-#define SET_TYPED_OUTPUT(ty)                                              \
-    auto& golden_##ty = std::get<std::map<int, std::vector<ty>>>(golden); \
-    auto& test_##ty = std::get<std::map<int, std::vector<ty>>>(test);     \
-    for (auto& i : golden_##ty) {                                         \
-        int idx = i.first;                                                \
-        auto& golden_output = i.second;                                   \
-        test_##ty[idx].resize(golden_output.size());                      \
-        request.setOutput(idx, (void*)test_##ty[idx].data(),              \
-                          test_##ty[idx].size() * sizeof(ty));            \
-    }
-            SET_TYPED_OUTPUT(float);
-            SET_TYPED_OUTPUT(int32_t);
-            SET_TYPED_OUTPUT(uint8_t);
-#undef SET_TYPED_OUTPUT
+            resize_accordingly<float>(golden, test);
+            resize_accordingly<int32_t>(golden, test);
+            resize_accordingly<uint8_t>(golden, test);
+            for_all(test, [&request](int idx, auto p, auto s) {
+                ASSERT_EQ(Result::NO_ERROR, request.setOutput(idx, p, s));
+            });
 
             Result r = request.compute();
             ASSERT_EQ(Result::NO_ERROR, r);
 
-            EXPECT_EQ(golden_float, test_float);
-            EXPECT_EQ(golden_int32_t, test_int32_t);
-            EXPECT_EQ(golden_uint8_t, test_uint8_t);
+            // We want "close-enough" results for float
+            for (auto& i : std::get<Float32Operands>(golden)) {
+                int idx = i.first;
+                auto& test_float_operands = std::get<Float32Operands>(test);
+                auto& golden_float = i.second;
+                auto& test_float = test_float_operands[idx];
+                for (unsigned int i = 0; i < golden_float.size(); i++) {
+                    SCOPED_TRACE(i);
+                    EXPECT_FLOAT_EQ(golden_float[i], test_float[i]);
+                }
+            }
+
+            EXPECT_EQ(std::get<Int32Operands>(golden),
+                      std::get<Int32Operands>(test));
+            EXPECT_EQ(std::get<Quant8Operands>(golden),
+                      std::get<Quant8Operands>(test));
         }
     }
 };
@@ -235,7 +232,6 @@ bool Execute(std::function<void(Model*)> create_model,
         });
 }
 }  // namespace
-
 
 TEST_F(GeneratedTests, conv_1_h3_w2_SAME) {
     ASSERT_EQ(
