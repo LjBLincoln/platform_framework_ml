@@ -194,6 +194,9 @@ void SamplePreparedModel::asyncExecute(const Request& request, const sp<IEvent>&
 
 Return<bool> SamplePreparedModel::execute(const Request& request, const sp<IEvent>& event) {
     LOG(DEBUG) << "SampleDriver::execute(" << toString(request) << ")";
+    if (!validateRequest(request, mModel)) {
+        return false;
+    }
 
     // This thread is intentionally detached because the sample driver service
     // is expected to live forever.

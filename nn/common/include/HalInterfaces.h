@@ -37,26 +37,22 @@ using ::android::hardware::neuralnetworks::V1_0::FusedActivationFunc;
 using ::android::hardware::neuralnetworks::V1_0::IDevice;
 using ::android::hardware::neuralnetworks::V1_0::IEvent;
 using ::android::hardware::neuralnetworks::V1_0::IPreparedModel;
-using ::android::hardware::neuralnetworks::V1_0::InputOutputInfo;
-using ::android::hardware::neuralnetworks::V1_0::LocationValues;
 using ::android::hardware::neuralnetworks::V1_0::Model;
 using ::android::hardware::neuralnetworks::V1_0::Operand;
+using ::android::hardware::neuralnetworks::V1_0::OperandLifeTime;
 using ::android::hardware::neuralnetworks::V1_0::OperandType;
 using ::android::hardware::neuralnetworks::V1_0::Operation;
 using ::android::hardware::neuralnetworks::V1_0::OperationTuple;
 using ::android::hardware::neuralnetworks::V1_0::OperationType;
 using ::android::hardware::neuralnetworks::V1_0::PerformanceInfo;
 using ::android::hardware::neuralnetworks::V1_0::Request;
+using ::android::hardware::neuralnetworks::V1_0::RequestArgument;
 using ::android::hardware::neuralnetworks::V1_0::Status;
 using ::android::hidl::allocator::V1_0::IAllocator;
 using ::android::hidl::memory::V1_0::IMemory;
 
 namespace android {
 namespace nn {
-
-// Shortcuts
-const uint32_t SAME_BLOCK = static_cast<uint32_t>(LocationValues::LOCATION_SAME_BLOCK);
-const uint32_t RUN_TIME = static_cast<uint32_t>(LocationValues::LOCATION_AT_RUN_TIME);
 
 } // namespace nn
 } // namespace android
