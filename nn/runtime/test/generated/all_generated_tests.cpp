@@ -49,6 +49,18 @@ TEST_F(GeneratedTests, concat_float) {
     Execute(concat_float::CreateModel, concat_float::examples);
 }
 
+namespace concat_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated concat_quant8 test
+#include "generated/examples/concat_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/concat_quant8.model.cpp"
+} // namespace concat_quant8
+TEST_F(GeneratedTests, concat_quant8) {
+    Execute(concat_quant8::CreateModel, concat_quant8::examples);
+}
+
 namespace l2_pool_float {
 std::vector<MixedTypedExample> examples = {
 // Generated l2_pool_float test
