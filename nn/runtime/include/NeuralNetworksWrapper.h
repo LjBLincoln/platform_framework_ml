@@ -174,6 +174,8 @@ public:
         return *this;
     }
 
+    int finish() { return ANeuralNetworksModel_finish(mModel); }
+
     uint32_t addOperand(const OperandType* type) {
         if (ANeuralNetworksModel_addOperand(mModel, &(type->operandType)) !=
             ANEURALNETWORKS_NO_ERROR) {

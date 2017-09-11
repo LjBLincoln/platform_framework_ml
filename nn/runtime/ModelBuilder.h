@@ -45,7 +45,10 @@ public:
     int setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
                             const ANeuralNetworksIntList* outputs);
 
-    CompilationBuilder* createCompilation();
+    int finish();
+    bool isFinished() const { return mCompletedModel; }
+
+    int createCompilation(CompilationBuilder** compilation);
 
     void setHidlModel(Model* model) const;
 
@@ -74,7 +77,6 @@ private:
         return mOperandIndexes[info.offset + listIndex];
     }
     */
-    void finishTheModel();
 
     // The operations of the graph.
     std::vector<Operation> mOperations;
