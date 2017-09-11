@@ -145,12 +145,12 @@ enum {
 };
 
 /**
- * Request execution preferences.
+ * Execution preferences.
  */
 enum {
     /**
-     * Prefer executing the request in a way that minimizes battery drain.
-     * This is desirable for requests that will be executed often.
+     * Prefer executing in a way that minimizes battery drain.
+     * This is desirable for compilations that will be executed often.
      */
     ANEURALNETWORKS_PREFER_LOW_POWER = 0,
     /**
@@ -198,6 +198,26 @@ enum {
  * usage for hardware buffers.  See {@Link ANeuralNetworksMemory_createFromHardwareBuffer}.
  */
 typedef struct ANeuralNetworksMemory ANeuralNetworksMemory;
+
+/**
+ * ANeuralNetworksCompilation is an opaque type that can be used to compile
+ * a machine learning model.
+ *
+ * <p>To use:<ul>
+ *    <li>Create a new compilation instance by calling the
+ *        {@link ANeuralNetworksCompilation_create} function.</li>
+ *    <li>Perform the compilation with {@link ANeuralNetworksCompilation_start}.</li>
+ *    <li>Wait for the compilation to complete with {@link ANeuralNetworksCompilation_wait}.</li>
+ *    <li>Use the compilation as many times as needed
+ *        with {@link ANeuralNetworksRequest_create}.</li>
+ *    <li>Destroy the compilation with {@link ANeuralNetworksCompilation_free}
+ *        once all requests using the compilation have completed.</li></ul></p>
+ *
+ * <p>Multiple threads can wait for or use a completed compilation at the same time.
+ * An application is responsible to ensure that multiple threads do not perform
+ * any other actions on the compilation at the same time.</p>
+ */
+typedef struct ANeuralNetworksCompilation ANeuralNetworksCompilation;
 
 /**
  * ANeuralNetworksRequest is an opaque type that can be used to apply a machine
@@ -311,6 +331,8 @@ int ANeuralNetworksInitialize();
  *
  * Threads blocked on {@link ANeuralNetworksRequest_wait} calls will be
  * released before this function terminates.
+ *
+ * [TODO what about in flight compilation, and waiters on it?]
  *
  * See {@link ANeuralNetworksInitialize} for details on how multiple calls
  * to Initialize and Shutdown work.
@@ -438,8 +460,8 @@ void ANeuralNetworksModel_free(ANeuralNetworksModel* model);
  * An application is responsible to make sure that no other thread uses
  * the model at the same time.
  *
- * A model can't be modified once a request has been created for it by
- * {@link ANeuralNetworksRequest_create}.
+ * A model can't be modified once a compilation has been created for it by
+ * {@link ANeuralNetworksCompilation_create}.
  *
  * @param model The model to be modified.
  * @param type The {@link ANeuralNetworksOperandType} that describes the shape
@@ -461,8 +483,8 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
  * be copied during processing, modifying the data after this call yields
  * undefined results.
  *
- * A model can't be modified once a request has been created for it by
- * {@link ANeuralNetworksRequest_create}.
+ * A model can't be modified once a compilation has been created for it by
+ * {@link ANeuralNetworksCompilation_create}.
  *
  * @param model The model to be modified.
  * @param index The index of the model operand we're setting.
@@ -483,14 +505,14 @@ int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t in
  * As the data may be copied during processing, modifying the data after this call
  * yields undefined results.
  *
- * A model can't be modified once a request has been created for it by
- * {@link ANeuralNetworksRequest_create}.
+ * A model can't be modified once a compilation has been created for it by
+ * {@link ANeuralNetworksCompilation_create}.
  *
  * @param model The model to be modified.
  * @param index The index of the model operand we're setting.
  * @param buffer A pointer to the data to use.
  * @param memory The memory containing the data.
- * @param offset This specifies the location of the data whithin the memory.
+ * @param offset This specifies the location of the data within the memory.
  *               The offset is in bytes from the start of memory.
  * @param length The size in bytes of the data value.
  *
@@ -515,8 +537,8 @@ int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, 
  * An application is responsible to make sure that no other thread uses
  * the model at the same time.
  *
- * A model can't be modified once a request has been created for it by
- * {@link ANeuralNetworksRequest_create}.
+ * A model can't be modified once a compilation has been created for it by
+ * {@link ANeuralNetworksCompilation_create}.
  *
  * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
@@ -537,29 +559,120 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
  * The operands specified by inputs and outputs must have been
  * previously added by calls to {@link ANeuralNetworksModel_addOperand}.
  *
- * A model can't be modified once a request has been created for it by
- * {@link ANeuralNetworksRequest_create}.
+ * A model can't be modified once a compilation has been created for it by
+ * {@link ANeuralNetworksCompilation_create}.
  */
 int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model,
                                              ANeuralNetworksIntList* inputs,
                                              ANeuralNetworksIntList* outputs);
 
 /**
- * Create a {@link ANeuralNetworksRequest} to apply the given model.
- * This only creates the object.  Computation is only performed once
- * {@link ANeuralNetworksRequest_startCompute} is invoked.
+ * Create a {@link ANeuralNetworksCompilation} to compile the given model.
+ * This only creates the object.  Compilation is only performed once
+ * {@link ANeuralNetworksCompilation_start} is invoked.
  *
- * <p>The provided model must outlive the request.</p>
+ * <p>The provided model must outlive the compilation.</p>
  *
  * This function is thread safe.
  *
- * @param model The {@link ANeuralNetworksModel} to be evaluated.
- * @param request The newly created object or NULL if unsuccessful.
+ * @param model The {@link ANeuralNetworksModel} to be compiled.
+ * @param compilation The newly created object or NULL if unsuccessful.
  *
  * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA
  *         if the model is invalid.
  */
-int ANeuralNetworksRequest_create(ANeuralNetworksModel* model, ANeuralNetworksRequest** request);
+int ANeuralNetworksCompilation_create(ANeuralNetworksModel* model,
+                                      ANeuralNetworksCompilation** compilation);
+
+/**
+ * Destroy a compilation.
+ *
+ * <p>If called on a compilation for which
+ * {@link ANeuralNetworksCompilation_start} has been called, the
+ * function will return immediately but will mark the compilation to be deleted
+ * once the compilation completes.  The {link ANeuralNetworksCompilation_wait}
+ * will return ERROR_DELETED.
+ *
+ * This function is thread safe.
+ *
+ * @param compilation The compilation to be destroyed. Passing NULL is acceptable and
+ *                    results in no operation.
+ */
+void ANeuralNetworksCompilation_free(ANeuralNetworksCompilation* compilation);
+
+/**
+ * Sets the execution preference.
+ *
+ * <p>Provides guidance to the runtime when trade-offs are possible.</p>
+ *
+ * This function is thread safe.
+ *
+ * @param compilation The compilation to be modified.
+ * @param preference Either {@link PREFER_LOW_POWER},
+ *                  {@link PREFER_SINGLE_FAST_ANSWER}, or
+ *                  {@link PREFER_SUSTAINED_SPEED}.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
+ */
+int ANeuralNetworksCompilation_setPreference(ANeuralNetworksCompilation* compilation,
+                                             uint32_t preference);
+
+/**
+ * Schedule the compilation to be performed.
+ *
+ * <p>Schedules the compilation to be performed. Once the model has been
+ * compiled and the result is available for {@link ANeuralNetworksReques_create},
+ * the compilation will be signaled. Use {@link ANeuralNetworksompilation_wait}
+ * to wait for that signal.</p>
+ *
+ * Multiple compilations can be scheduled and performed concurrently, and
+ * compilations can be performed concurrently with execution of requests.
+ * The runtime makes no guarantee on the ordering of the completion of compilations
+ * and requests. If it's important to the application, the application should enforce
+ * the ordering by using
+ * {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksEvent_wait}.
+ *
+ * ANeuralNetworksCompilation_wait must be called to recuperate the resources used
+ * by the compilation.
+ *
+ * This function must only be called once for a given compilation.
+ *
+ * @param compilation The compilation to be scheduled.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
+ */
+int ANeuralNetworksCompilation_start(ANeuralNetworksCompilation* compilation);
+
+/**
+ * Waits until the compilation completes.
+ *
+ * More than one thread can wait on a compilation.  When the compilation completes,
+ * all threads will be released.
+ * [TODO Should we free just one to enable thread pools?]
+ *
+ * This function is thread safe.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if the compilation completed normally.
+ */
+int ANeuralNetworksCompilation_wait(ANeuralNetworksCompilation* compilation);
+
+/**
+ * Create a {@link ANeuralNetworksRequest} to apply the given compilation.
+ * This only creates the object.  Computation is only performed once
+ * {@link ANeuralNetworksRequest_startCompute} is invoked.
+ *
+ * <p>The provided compilation must outlive the request.</p>
+ *
+ * This function is thread safe.
+ *
+ * @param compilation The {@link ANeuralNetworksCompilation} to be evaluated.
+ * @param request The newly created object or NULL if unsuccessful.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA
+ *         if the compilation is invalid.
+ */
+int ANeuralNetworksRequest_create(ANeuralNetworksCompilation* compilation,
+                                  ANeuralNetworksRequest** request);
 
 /**
  * Destroy a request.
@@ -577,22 +690,6 @@ int ANeuralNetworksRequest_create(ANeuralNetworksModel* model, ANeuralNetworksRe
  *                results in no operation.
  */
 void ANeuralNetworksRequest_free(ANeuralNetworksRequest* request);
-
-/**
- * Sets the execution preference.
- *
- * <p>Provides guidance to the runtime when trade-offs are possible.</p>
- *
- * This function is thread safe.
- *
- * @param request The request to be modified.
- * @param preference Either {@link PREFER_LOW_POWER},
- *                  {@link PREFER_SINGLE_FAST_ANSWER}, or
- *                  {@link PREFER_SUSTAINED_SPEED}.
- *
- * @return ANEURALNETWORKS_NO_ERROR if successful.
- */
-int ANeuralNetworksRequest_setPreference(ANeuralNetworksRequest* request, uint32_t preference);
 
 /**
  * Associate a user buffer with an input of the model of the
@@ -656,7 +753,7 @@ int ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest* request, i
  * This function is thread safe.
  *
  * @param request The request to be modified.
- * @param index The index of the model operand we're associating the input to.
+ * @param index The index of the model operand we're associating the output to.
  * @param type The type of the operand. This is useful if the model did not
  * fully specify the operand. If specified in the model, type should be NULL or
  *             have the same value as specified in the model.
@@ -706,17 +803,18 @@ int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, 
  * signaled. Use {@link ANeuralNetworksRequest_wait} to wait for that event.
  * </p>
  *
- * Multiple requests can be scheduled and executed concurrently. The runtime makes
- * no guarantee on the ordering of the completion of the requests.  If it's
- * important to the application, the application should enforce the ordering by
- * using the returned events.
+ * Multiple requests can be scheduled and executed concurrently, and compilations
+ * can be performed concurrently with execution of requests. The runtime makes
+ * no guarantee on the ordering of the completion of compilations and requests.
+ * If it's important to the application, the application should enforce the ordering
+ * by using {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksEvent_wait}.
  *
  * ANeuralNetworksRequest_wait must be called to recuperate the resources used
  * by the event.
  *
  * This function is thread safe.
  *
- * @param request The request to be modified.
+ * @param request The request to be scheduled and executed.
  * @param event The event that will be signaled on completion.
  *              [TODO define the functions to create/delete events?
  *                    or startCompute creates, and free deletes?]

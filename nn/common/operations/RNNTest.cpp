@@ -208,7 +208,9 @@ class BasicRNNOpModel {
   void Invoke() {
     ASSERT_TRUE(model_.isValid());
 
-    Request request(&model_);
+    Compilation compilation(&model_);
+    compilation.compile();
+    Request request(&compilation);
 #define SetInputOrWeight(X)                                                 \
   ASSERT_EQ(request.setInput(RNN::k##X##Tensor, X##_.data(), sizeof(X##_)), \
             Result::NO_ERROR);
