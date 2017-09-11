@@ -80,56 +80,547 @@ enum {
      * This operation is OEM specific. It should only be used for OEM applications.
      */
     ANEURALNETWORKS_OEM_OPERATION = 0,
-    /* Adds two tensors.
+    /* Adds two tensors, elment-wise.
      *
      * Takes two input tensors of identical type and compatible dimensions.  The output
      * is the sum of both input tensors, optionally modified by an activation function.
      *
-     * TODO: Do we accept any number of dimensions? TENSOR_FLOAT16, TENSOR_FLOAT32, TENSOR_INT32,
-     *       TENSOR_QUANT8_ASYMM?
-     * TODO: Define "broadcast requirements" and have a link for Broadcast.
-     * TODO: Define "fused activation" and have a link for FusedActivation.
+     * Two dimensions are compatible when:
+     *     1. they are equal, or
+     *     2. one of them is 1
+     *
+     * The size of the output is the maximum size along each dimension of the input operands.
+     * It starts with the trailing dimensions, and works its way forward.
+     *
+     * Example:
+     *     input1.dimension =    {4, 1, 2}
+     *     input2.dimension = {5, 4, 3, 1}
+     *     output.dimension = {5, 4, 3, 2}
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * Supported tensor rank: up to 4
      *
      * Inputs:
      * 0: A tensor.
-     * 1: A tensor of the same type as input0.  It should have the same shape too or satisfy
-     *    broadcast requirements.  See Broadcast.
-     * 2: An optional INT32? value.  Specifies the activation to invoke on the result of each
-     *    addition.  See FusedActivation.
+     * 1: A tensor of the same type, and compatible dimensions as input0.
+     * 2: An INT32 value, and has to be one of the ANEURALNETWORKS_FUSED_* values.
+     *    Specifies the activation to invoke on the result of each addition.
      *
      * Ouputs:
-     * 0: The sum, a tensor of the same type and shape as input0.
+     * 0: The sum, a tensor of the same type as input0.
      */
     ANEURALNETWORKS_ADD = 1,
-    // TODO Document all the other ops.
+    /* Performs a 2-D average pooling operation.
+     *
+     * The output dimensions are functions of the filter dimensions, stride, and padding.
+     *
+     * The values in output Tensor is computed as:
+     *     output[batch, row, col, channel] =
+     *         sum_{i, j}(input[batch, row + i, col + j, channel]) / sum(1)
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: 4, with "NHWC" data layout.
+     *
+     * Inputs:
+     * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
+     * 1: An INT32 value, specifying the padding on the left, in the ‘width’ dimension.
+     * 2: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
+     * 3: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
+     * 4: An INT32 value, specifying the padding on the bottom, in the ‘height’ dimension.
+     * 5: An INT32 value, specifying the output stride in the ‘width’ dimension.
+     * 6: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * 7: An INT32 value, specifying the filter width.
+     * 8: An INT32 value, specifying the filter height.
+     * 9: An INT32 value, and has to be one of the ANEURALNETWORKS_FUSED_* values.
+     *    Specifies the activation to invoke on the result of each addition.
+     *
+     * Ouputs:
+     * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth].
+     */
     ANEURALNETWORKS_AVERAGE_POOL_2D = 2,
+    /* Concatenates the input tensors along the given dimension.
+     *
+     * The input tensors must have identical type and the same dimensions except the
+     * dimension along the concatenation axis.
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0 ~ n: The list on n input tensors, of shape [D0, D1, ..., Daxis(i), ..., Dm]
+     * n+1: An INT32 value, specifying the concatenation axis.
+     * n+2: An INT32 value, and has to be one of the ANEURALNETWORKS_FUSED_* values.
+     *    Specifies the activation to invoke on the result of each addition.
+     *
+     * Ouputs:
+     * 0: The output, a tensor of the same type as the input tensors.
+          The output shape is [D0, D1, ..., sum(Daxis(i)), ..., Dm].
+     */
     ANEURALNETWORKS_CONCATENATION = 3,
+    /* Performs an 2-D convolution operation.
+     *
+     * The CONV_2D op sweeps a 2-D filter that can mix channels together over a batch of
+     * images, applying the filter to each window of each image of the appropriate size.
+     *
+     * The output dimensions are functions of the filter dimensions, stride, and padding.
+     *
+     * The values in output Tensor is computed as:
+     *     output[batch, row, col, channel] =
+     *         sum_{i, j} (
+     *             input[batch, row + i, col + j, k] *
+     *             filter[channel, row + i, col + j, k] +
+     *             bias[channel]
+     *         )
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: 4, with "NHWC" data layout.
+     *
+     * Inputs:
+     * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
+     * 1: A 4-D tensor, of shape [depth_out, filter_height, filter_width, depth_in],
+     *    specifying the filter.
+     * 2: A 1-D tensor, of shape [depth_out], specifying the bias.
+     *    For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
+     *    also be of {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
+     *    For input tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the bias
+     *    should be of {@link ANEURALNETWORKS_TENSOR_INT32}.
+     * 3: An INT32 value, specifying the padding on the left, in the ‘width’ dimension.
+     * 4: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
+     * 5: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
+     * 6: An INT32 value, specifying the padding on the bottom, in the ‘height’ dimension.
+     * 7: An INT32 value, specifying the output stride in the ‘width’ dimension.
+     * 8: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * 9: An INT32 value, and has to be one of the ANEURALNETWORKS_FUSED_* values.
+     *    Specifies the activation to invoke on the result of each addition.
+     *
+     * Ouputs:
+     * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth_out].
+     */
     ANEURALNETWORKS_CONV_2D = 4,
+    /* Performs an depthwise 2-D convolution operation.
+     *
+     * Given an input tensor of shape [batches, height, width, depth_in] and a filter
+     * tensor of shape [depth_out, filter_height, filter_width, depth_in] containing
+     * in_channels convolutional filters of depth 1, DEPTHWISE_CONV applies a different
+     * filter to each input channel (expanding from 1 channel to channel_multiplier channels
+     * for each), then concatenates the results together.
+     *
+     * The output has depth_out = depth_in * depth_multiplier channels.
+     * The output dimensions are functions of the filter dimensions, stride, and padding.
+     *
+     * The values in output Tensor is computed as:
+     *     output[b, i, j, k * channel_multiplier + q] =
+     *         sum_{di, dj} (
+     *             input[b, strides[1] * i + di, strides[2] * j + dj, k] *
+     *             filter[di, dj, k, q]
+     *         )
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: 4, with "NHWC" data layout.
+     *
+     * Inputs:
+     * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
+     * 1: A 4-D tensor, of shape [depth_out, filter_height, filter_width, depth_in],
+     *    specifying the filter.
+     * 2: A 1-D tensor, of shape [depth_out], specifying the bias.
+     *    For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
+     *    also be of {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
+     *    For input tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the bias
+     *    should be of {@link ANEURALNETWORKS_TENSOR_INT32}.
+     * 3: An INT32 value, specifying the padding on the left, in the ‘width’ dimension.
+     * 4: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
+     * 5: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
+     * 6: An INT32 value, specifying the padding on the bottom, in the ‘height’ dimension.
+     * 7: An INT32 value, specifying the output stride in the ‘width’ dimension.
+     * 8: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * 9: An INT32 value, specifying the depthwise multiplier.
+     * 10: An INT32 value, and has to be one of the ANEURALNETWORKS_FUSED_* values.
+     *    Specifies the activation to invoke on the result of each addition.
+     *
+     * Ouputs:
+     * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth_out].
+     */
     ANEURALNETWORKS_DEPTHWISE_CONV_2D = 5,
+    /* Rearranges data from depth into blocks of spatial data.
+     *
+     * More specifically, this op outputs a copy of the input tensor where values from
+     * the depth dimension are moved in spatial blocks to the height and width dimensions.
+     * The value block_size indicates the input block size and how the data is moved.
+     *
+     * Chunks of data of size block_size * block_size from depth are rearranged into
+     * non-overlapping blocks of size block_size x block_size.
+     *
+     * The width of the output tensor is input_depth * block_size, whereas the height is
+     * input_height * block_size.
+     * The depth of the input tensor must be divisible by block_size * block_size
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: 4, with "NHWC" data layout.
+     *
+     * Inputs:
+     * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
+     * 1: An INT32 value, specifying the block_size. block_size must be >=1 and
+     *    block_size * block_size must be a divisor of the input depth.
+     *
+     * Ouputs:
+     * 0: The output 4-D tensor, of shape [batch, height*block_size, width*block_size,
+     *    depth/(block_size*block_size)].
+     */
     ANEURALNETWORKS_DEPTH_TO_SPACE = 6,
+    /* Dequantizes the input tensor.
+     *
+     * The formula is:
+     *     output = (input - zero_value) * scale.
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0: A tensor of type {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}.
+     *
+     * Ouputs:
+     * 0: The output tensor of same shape as input0, but with type
+          {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
+     */
     ANEURALNETWORKS_DEQUANTIZE = 7,
     ANEURALNETWORKS_EMBEDDING_LOOKUP = 8,
     ANEURALNETWORKS_FAKE_QUANT = 9,
+    /* Computes element-wise floor() on the input tensor.
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0: A tensor.
+     *
+     * Ouputs:
+     * 0: The output, a tensor of the same type and dimensions as input0.
+     */
     ANEURALNETWORKS_FLOOR = 10,
+    /* Denotes a fully (densely) connected layer, which connects all elements in the input
+     * tensor with each element in the output tensor.
+     *
+     * This layer implements the operation:
+     *     outputs = activation(inputs * weights’ + bias)
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: up to 4.
+     *
+     * Inputs:
+     * 0: A tensor, specifying the input. If rank is greater than 2, then it gets flattened to
+     *    a 2-D Tensor. The 2-D Tensor is handled as if dimensions corresponded to shape
+     *    [batch_size, input_size], where “batch_size” corresponds to the batching dimension,
+     *    and “input_size” is the size of the input.
+     * 1: A 2-D tensor, specifying the weights, of shape [num_units, input_size], where “num_units”
+     *    corresponds to the number of output nodes.
+     * 2: A 1-D tensor, of shape [num_units], specifying the bias.
+     *    For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
+     *    also be of {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
+     *    For input tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the bias
+     *    should be of {@link ANEURALNETWORKS_TENSOR_INT32}.
+     * 3: An INT32 value, and has to be one of the ANEURALNETWORKS_FUSED_* values.
+     *    Specifies the activation to invoke on the result of each addition.
+     *
+     * Ouputs:
+     * 0: The output tensor, of shape [batch_size, num_units].
+     */
     ANEURALNETWORKS_FULLY_CONNECTED = 11,
     ANEURALNETWORKS_HASHTABLE_LOOKUP = 12,
+    /* Applies L2 normalization along a the depth dimension.
+     *
+     * The values in output Tensor is computed as:
+     *     output[batch, row, col, channel] =
+     *         input[batch, row, col, channel] /
+     *         sqrt(sum_{c} pow(input[batch, row, col, c], 2))
+     *
+     * For x with more dimensions, independently normalizes each 1-D slice along dimension dim.
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * Supported tensor rank: 4, with "NHWC" data layout.
+     *
+     * Inputs:
+     * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
+     *
+     * Ouputs:
+     * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth].
+     */
     ANEURALNETWORKS_L2_NORMALIZATION = 13,
+    /* Performs an 2-D L2 pooling operation.
+     *
+     * The output dimensions are functions of the filter dimensions, stride, and padding.
+     *
+     * The values in output Tensor is computed as:
+     *     output[batch, row, col, channel] =
+     *         sqrt(sum_{i, j} pow(input[batch, row + i, col + j, channel], 2) / sum(1))
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * Supported tensor rank: 4, with "NHWC" data layout.
+     *
+     * Inputs:
+     * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
+     * 1: An INT32 value, specifying the padding on the left, in the ‘width’ dimension.
+     * 2: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
+     * 3: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
+     * 4: An INT32 value, specifying the padding on the bottom, in the ‘height’ dimension.
+     * 5: An INT32 value, specifying the output stride in the ‘width’ dimension.
+     * 6: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * 7: An INT32 value, specifying the filter width.
+     * 8: An INT32 value, specifying the filter height.
+     * 9: An INT32 value, and has to be one of the ANEURALNETWORKS_FUSED_* values.
+     *    Specifies the activation to invoke on the result of each addition.
+     *
+     * Ouputs:
+     * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth].
+     */
     ANEURALNETWORKS_L2_POOL_2D = 14,
+    /* Applies Local Response Normalization along the depth dimension.
+     *
+     * The 4-D input tensor is treated as a 3-D array of 1-D vectors (along the last
+     * dimension), and each vector is normalized independently. Within a given vector,
+     * each component is divided by the weighted, squared sum of inputs within depth_radius.
+     *
+     * In details:
+     *     sqr_sum[a, b, c, d] =
+     *         sum(pow(input[a, b, c, d - depth_radius : d + depth_radius + 1], 2)
+     *     output = input / pow((bias + alpha * sqr_sum), beta)
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * Supported tensor rank: 4, with "NHWC" data layout.
+     *
+     * Inputs:
+     * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
+     * 1: An INT32 value, specifying the radius of the normalization window.
+     * 2: A FLOAT32 value, specifying the bias, must not be zero.
+     * 3: A FLOAT32 value, specifying the scale factor, alpha.
+     * 4: A FLOAT32 value, specifying the exponent, beta.
+     *
+     * Ouputs:
+     * 0: The output tensor of same shape as input0.
+     */
     ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION = 15,
+    /* Computes sigmoid activation on the input tensor element-wise.
+     *
+     * In details:
+     *     output = 1 / (1 + exp(-input))
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: up to 4.
+     *
+     * Inputs:
+     * 0: A tensor, specifying the input.
+     *
+     * Ouputs:
+     * 0: The output tensor of same shape as input0.
+     */
     ANEURALNETWORKS_LOGISTIC = 16,
     ANEURALNETWORKS_LSH_PROJECTION = 17,
     ANEURALNETWORKS_LSTM = 18,
+    /* Performs an 2-D max pooling operation.
+     *
+     * The output dimensions are functions of the filter dimensions, stride, and padding.
+     *
+     * The values in output Tensor is computed as:
+     *     output[batch, row, col, channel] =
+     *         max_{i, j} (input[batch, row + i, col + j, channel])
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: 4, with "NHWC" data layout.
+     *
+     * Inputs:
+     * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
+     * 1: An INT32 value, specifying the padding on the left, in the ‘width’ dimension.
+     * 2: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
+     * 3: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
+     * 4: An INT32 value, specifying the padding on the bottom, in the ‘height’ dimension.
+     * 5: An INT32 value, specifying the output stride in the ‘width’ dimension.
+     * 6: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * 7: An INT32 value, specifying the filter width.
+     * 8: An INT32 value, specifying the filter height.
+     * 9: An INT32 value, and has to be one of the ANEURALNETWORKS_FUSED_* values.
+     *    Specifies the activation to invoke on the result of each addition.
+     *
+     * Ouputs:
+     * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth].
+     */
     ANEURALNETWORKS_MAX_POOL_2D = 19,
+    /* Multiplies two tensors, elment-wise.
+     *
+     * Takes two input tensors of identical type and compatible dimensions.  The output
+     * is the product of both input tensors, optionally modified by an activation function.
+     *
+     * Two dimensions are compatible when:
+     *     1. they are equal, or
+     *     2. one of them is 1
+     *
+     * The size of the resulting output is the maximum size along each dimension of the
+     * input operands. It starts with the trailing dimensions, and works its way forward.
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0: A tensor.
+     * 1: A tensor of the same type, and compatible dimensions as input0.
+     * 2: An INT32 value, and has to be one of the ANEURALNETWORKS_FUSED_* values.
+     *    Specifies the activation to invoke on the result of each addition.
+     *
+     * Ouputs:
+     * 0: The product, a tensor of the same type as input0.
+     */
     ANEURALNETWORKS_MUL = 20,
+    /* Computes rectified linear activation on the input tensor element-wise.
+     *
+     * In details:
+     *     output = max(0, input)
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: up to 4.
+     *
+     * Inputs:
+     * 0: A tensor, specifying the input.
+     *
+     * Ouputs:
+     * 0: The output tensor of same shape as input0.
+     */
     ANEURALNETWORKS_RELU = 21,
+    /* Computes rectified linear 1 activation on the input tensor element-wise.
+     *
+     * In details:
+     *     output = min(1.f, max(-1.f, input))
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: up to 4.
+     *
+     * Inputs:
+     * 0: A tensor, specifying the input.
+     *
+     * Ouputs:
+     * 0: The output tensor of same shape as input0.
+     */
     ANEURALNETWORKS_RELU1 = 22,
+    /* Computes rectified linear 6 activation on the input tensor element-wise.
+     *
+     * In details:
+     *     output = min(6, max(0, input))
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: up to 4.
+     *
+     * Inputs:
+     * 0: A tensor, specifying the input.
+     *
+     * Ouputs:
+     * 0: The output tensor of same shape as input0.
+     */
     ANEURALNETWORKS_RELU6 = 23,
+    /* Reshapes a tensor.
+     *
+     * Given tensor, this operation returns a tensor that has the same values as tensor,
+     * but with a newly specified shape.
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: up to 4.
+     *
+     * Inputs:
+     * 0: A tensor, specifying the tensor to be reshaped.
+     * 1: A 1-D tensor of type {@link ANEURALNETWORKS_TENSOR_INT32}, defining the shape
+     *    of the output tensor. The number of elements implied by shape must be the same
+     *    as the number of elements in the input tensor.
+     *
+     * Ouputs:
+     * 0: The output tensor, of shape specified by the input shape.
+     */
     ANEURALNETWORKS_RESHAPE = 24,
+    /* Resizes images to given size using the bilinear interpretation.
+     *
+     * Resized images will be distorted if their original aspect ratio is not the same as input.
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * Supported tensor rank: 4, with "NHWC" data layout.
+     *
+     * Inputs:
+     * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
+     * 1: An INT32 value, specifying the output width of the output tensor.
+     * 2: An INT32 value, specifying the output height of the output tensor.
+     *
+     * Ouputs:
+     * 0: The output 4-D tensor, of shape [batches, new_height, new_width, depth].
+     */
     ANEURALNETWORKS_RESIZE_BILINEAR = 25,
     ANEURALNETWORKS_RNN = 26,
+    /* Computes the softmax activation on the input tensor element-wise, per batch, by
+     * normalizing the input vector so the maximum coefficient is zero.
+     *
+     * In details:
+     *     output[batch, i] =
+     *         exp((input[batch, i] - max(input[batch, :])) * beta) /
+     *         sum_{k}{exp((input[batch, k] - max(input[batch, :])) * beta)}
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: 2 or 4.
+     *
+     * Inputs:
+     * 0: A 2-D or 4-D tensor, specifying the tensor to be reshaped.
+     * 1: A FLOAT32 value, specifying the scaling factor for the exponent, beta.
+     *
+     * Ouputs:
+     * 0: The output tensor of same shape as input0.
+     */
     ANEURALNETWORKS_SOFTMAX = 27,
+    /* Rearranges blocks of spatial data, into depth.
+     *
+     * More specifically, this op outputs a copy of the input tensor where values from
+     * the height and width dimensions are moved to the depth dimension.
+     * The value block_size indicates the input block size and how the data is moved.
+     *
+     * Chunks of data of size block_size * block_size from depth are rearranged into
+     * non-overlapping blocks of size block_size x block_size.
+     *
+     * The depth of the output tensor is input_depth * block_size * block_size.
+     * The input tensor's height and width must be divisible by block_size.
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *                         {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     * Supported tensor rank: 4, with "NHWC" data layout.
+     *
+     * Inputs:
+     * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
+     * 1: An INT32 value, specifying the block_size. block_size must be >=1 and
+     *    block_size must be a divisor of both the input height and width.
+     *
+     * Ouputs:
+     * 0: The output 4-D tensor, of shape [batch, height/block_size, width/block_size,
+     *    depth*block_size*block_size].
+     */
     ANEURALNETWORKS_SPACE_TO_DEPTH = 28,
     ANEURALNETWORKS_SVDF = 29,
+    /* Computes hyperbolic tangent of input tensor element-wise.
+     *
+     * In details:
+     *     output = tanh(input)
+     *
+     * Supported tensor types: {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * Supported tensor rank: up to 4.
+     *
+     * Inputs:
+     * 0: A tensor, specifying the input.
+     *
+     * Ouputs:
+     * 0: The output tensor of same shape as input0.
+     */
     ANEURALNETWORKS_TANH = 30,
 };
 
