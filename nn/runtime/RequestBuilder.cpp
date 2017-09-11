@@ -38,7 +38,7 @@ int ModelArgumentInfo::setFromPointer(const Operand& operand,
         return n;
     }
     state = ModelArgumentInfo::POINTER;
-    locationAndDimension.location = {.poolIndex = RUN_TIME, .offset = 0, .length = length};
+    locationAndDimension.location = {.poolIndex = 0, .offset = 0, .length = length};
     buffer = data;
     return ANEURALNETWORKS_NO_ERROR;
 }
@@ -201,7 +201,7 @@ int RequestBuilder::allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo
 }
 
 static void copyLocationAndDimension(const std::vector<ModelArgumentInfo>& argumentInfos,
-                                     hidl_vec<InputOutputInfo>* ioInfos) {
+                                     hidl_vec<RequestArgument>* ioInfos) {
     size_t count = argumentInfos.size();
     ioInfos->resize(count);
     for (size_t i = 0; i < count; i++) {
@@ -314,7 +314,7 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
     event->notify(executionStatus);
 }
 
-int RequestBuilder::startComputeOnCpu([[maybe_unused]] const Model& model, sp<Event>* event) {
+int RequestBuilder::startComputeOnCpu(const Model& model, sp<Event>* event) {
     // TODO: use a thread pool
 
     // Prepare the event for asynchronous execution. The sp<Event> object is

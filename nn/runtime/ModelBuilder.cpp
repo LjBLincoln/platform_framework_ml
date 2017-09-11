@@ -42,22 +42,18 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
         return ANEURALNETWORKS_BAD_DATA;
     }
     mOperands.resize(idx + 1);
-    auto& entry = mOperands[idx];
-    entry.type = static_cast<OperandType>(type.type);
-    entry.scale = type.scale;
-    entry.zeroPoint = type.offset;
-
-    // TODO  entry.numberOfConsumers = 0;
-    setFromIntList(&entry.dimensions, type.dimensions);
-    entry.location = {.poolIndex = RUN_TIME, .offset = 0, .length = 0};
-    entry.numberOfConsumers = 0;
-
+    auto& operand = mOperands[idx];
+    operand.type = static_cast<OperandType>(type.type);
+    setFromIntList(&operand.dimensions, type.dimensions);
+    operand.numberOfConsumers = 0;
+    operand.scale = type.scale;
+    operand.zeroPoint = type.offset;
+    operand.lifetime = OperandLifeTime::TEMPORARY_VARIABLE;
+    operand.location = {.poolIndex = 0, .offset = 0, .length = 0};
     return ANEURALNETWORKS_NO_ERROR;
 }
 
 int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t length) {
-    //    auto roundUp = [](size_t x) { return (x + 0xF) & ~0xF; };
-
     if (index >= operandCount()) {
         LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting operand " << index << " of "
                    << operandCount();
@@ -73,7 +69,8 @@ int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t len
     uint32_t existingSize = static_cast<uint32_t>(mOperandValues.size());
     uint32_t extraBytes = alignBytesNeeded(existingSize, length);
     mOperandValues.resize(existingSize + extraBytes + length);
-    operand.location = {.poolIndex = SAME_BLOCK,
+    operand.lifetime = OperandLifeTime::CONSTANT_COPY;
+    operand.location = {.poolIndex = 0,
                         .offset = existingSize + extraBytes,
                         .length = neededLength};
     memcpy(&mOperandValues[operand.location.offset], buffer, length);
@@ -95,6 +92,7 @@ int ModelBuilder::setOperandValueFromMemory(uint32_t index, const Memory* memory
         return ANEURALNETWORKS_BAD_DATA;
     }
     // TODO validate does not exceed length of memory
+    operand.lifetime = OperandLifeTime::CONSTANT_REFERENCE;
     operand.location = {.poolIndex = mMemories.add(memory),
                         .offset = offset,
                         .length = neededLength};
@@ -134,9 +132,41 @@ int ModelBuilder::setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
                 << "ANeuralNetworksModel_setInputsAndOutputs can't modify after request creation";
         return ANEURALNETWORKS_BAD_DATA;
     }
-    // TODO Validate all inputs
-    setFromIntList(&mInputIndexes, *inputs);
-    setFromIntList(&mOutputIndexes, *outputs);
+
+    // Makes a copy of the index list, validates the arguments, and changes
+    // the lifetime info of the corresponding operand.
+    auto setArguments = [&](std::vector<uint32_t>* indexVector,
+                            const ANeuralNetworksIntList& indexList,
+                            OperandLifeTime lifetime) -> bool {
+        indexVector->resize(indexList.count);
+        for (uint32_t i = 0; i < indexList.count; i++) {
+            const uint32_t operandIndex = indexList.data[i];
+            if (operandIndex >= mOperands.size()) {
+                LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs Can't set input or output "
+                              "to be "
+                           << operandIndex << " as this exceeds the numbe of operands "
+                           << mOperands.size();
+                return false;
+            }
+            (*indexVector)[i] = operandIndex;
+            Operand& operand = mOperands[operandIndex];
+            if (operand.lifetime != OperandLifeTime::TEMPORARY_VARIABLE) {
+                LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs Can't set operand "
+                           << operandIndex
+                           << " to be an input or output.  Check that it's not a constant or "
+                              "already an input or output";
+                return false;
+            }
+            operand.lifetime = lifetime;
+        }
+        return true;
+    };
+
+    if (!setArguments(&mInputIndexes, *inputs, OperandLifeTime::MODEL_INPUT) ||
+        !setArguments(&mOutputIndexes, *outputs, OperandLifeTime::MODEL_OUTPUT)) {
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+
     return ANEURALNETWORKS_NO_ERROR;
 }
 
@@ -159,11 +189,6 @@ void ModelBuilder::sortIntoRunOrder() {
     std::vector<uint32_t> opsReadyToRun;
     std::vector<Operation> runOrder;
 
-    // Mark the inputs
-    for (auto i : mInputIndexes) {
-        mOperands[i].location.poolIndex = 0; // We'll reset it to unknown aftewards
-    }
-
     // Tracks how many inputs are needed for each operation to be ready to run.
     std::multimap<uint32_t, uint32_t> operandToOperations;
     std::vector<uint32_t> unknownInputCount(operationCount());
@@ -171,7 +196,9 @@ void ModelBuilder::sortIntoRunOrder() {
         uint32_t& count = unknownInputCount[operationIndex];
         count = 0;
         for (uint32_t operandIndex : mOperations[operationIndex].inputs) {
-            if (mOperands[operandIndex].location.poolIndex == RUN_TIME) {
+            auto lifetime = mOperands[operandIndex].lifetime;
+            if (lifetime == OperandLifeTime::TEMPORARY_VARIABLE ||
+                lifetime == OperandLifeTime::MODEL_OUTPUT) {
                 count++;
                 operandToOperations.insert(
                         std::pair<uint32_t, uint32_t>(operandIndex, operationIndex));
@@ -180,12 +207,6 @@ void ModelBuilder::sortIntoRunOrder() {
         if (count == 0) {
             opsReadyToRun.push_back(operationIndex);
         }
-    }
-    // TODO verify that a modelInput can't be set as output or vice-versa
-    // TODO test what happens when a model output is also used as input to an
-    // op!!!
-    for (auto i : mInputIndexes) {
-        mOperands[i].location.poolIndex = RUN_TIME;
     }
 
     while (opsReadyToRun.size() > 0) {
@@ -196,9 +217,8 @@ void ModelBuilder::sortIntoRunOrder() {
 
         runOrder.push_back(mOperations[opIndex]);
 
-        // Mark all its output as known.
+        // Mark all its outputs as known.
         for (uint32_t operandIndex : operation.outputs) {
-            // const Operand& output = mOperands[operandIndex];
             auto range = operandToOperations.equal_range(operandIndex);
             for (auto i = range.first; i != range.second; i++) {
                 uint32_t& count = unknownInputCount[i->second];
