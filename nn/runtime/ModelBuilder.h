@@ -28,8 +28,8 @@
 namespace android {
 namespace nn {
 
+class CompilationBuilder;
 class Memory;
-class RequestBuilder;
 
 class ModelBuilder {
 public:
@@ -45,7 +45,7 @@ public:
     int setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
                             const ANeuralNetworksIntList* outputs);
 
-    RequestBuilder* createRequest();
+    CompilationBuilder* createCompilation();
 
     void setHidlModel(Model* model) const;
 
