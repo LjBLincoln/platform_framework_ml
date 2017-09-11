@@ -170,15 +170,27 @@ class Type(object):
     for key, value in sorted(Type.__types.items()):
       print ("  OperandType " + str(value.__name) + "(Type::" + str(key) + ");", file=filename)
 
+  def get_parsed_shape(self):
+    # Parse shape
+    if (self.__shape != "" and self.__shape != "{}"):
+      left, sep, right = self.__shape.partition('{')
+      real_shape, sep, right = right.partition('}')
+      assert right == ""
+      shape = [int(x) for x in real_shape.split(",")]
+      # left now looks like "0.0f, 127.5f, "
+      real_fminmax, sep, right = left.rpartition(',')
+      return real_fminmax.replace("f",""), real_shape
+    else:
+      return "", ""
+
   def get_size(self):
     element_size = TypeLookup.get_size(self.__vt)
     # Parse shape
     nr_elements = 1
-    if (self.__shape != "" and self.__shape != "{}"):
-      left, sep, right = self.__shape.partition('{')
-      real_shape, sep, right = right.partition('}')
-      assert left == ""
-      assert right == ""
+    fminmax, real_shape = self.get_parsed_shape()
+    assert fminmax == ""
+
+    if (real_shape != "" and real_shape != "{}"):
       shape = [int(x) for x in real_shape.split(",")]
       nr_elements = reduce((lambda x, y: x*y), shape)
     return element_size * nr_elements
@@ -591,6 +603,15 @@ def import_source():
 
   return (args.model, args.example)
 
+
+# Print in C float literal format
+def pretty_print_as_float(x):
+  s = str(float(x))
+  if s.find(".") >= 0:
+    return s + "f"
+  else:
+    return s + ".0f"
+
 # Generate operands in VTS format
 def generate_vts_operands():
   # Dump operand definitions
@@ -602,9 +623,7 @@ def generate_vts_operands():
             .scale = {scale},
             .zeroPoint = {zero_point},
             .lifetime = OperandLifeTime::{lifetime},
-            .location = {{.poolIndex = 0,
-                         .offset = {offset},
-                         .length = {length}}},
+            .location = {{.poolIndex = 0, .offset = {offset}, .length = {length}}},
         }}"""
   offset = 0
   op_definitions = []
@@ -613,13 +632,25 @@ def generate_vts_operands():
     no_consumers = len(o.outs) if o.traversable() else 0
     lifetime = o.lifetime()
     length = ty.get_size() if o.is_weight() else 0
+    fminmax, real_shape = ty.get_parsed_shape()
+    scale = 0.0
+    zero_point = 0.0
+    # TODO: parse this in Type instead
+    if fminmax != "":
+      fmin, sep, fmax = fminmax.partition(",")
+      assert fmin != ""
+      assert fmax != ""
+      fmin = float(fmin)
+      fmax = float(fmax)
+      scale = (fmax - fmin) / 255
+      zero_point = min(255.0, max(0, int(round(0 - fmin / scale))))
 
     op = {
         "operand_type": ty.get_element_type(),
-        "shape": ty.get_shape(),
+        "shape": "{%s}" % real_shape,
         "no_consumers": no_consumers,
-        "scale": "0.0f",  #TODO
-        "zero_point": "0",  #TODO
+        "scale": pretty_print_as_float(scale),
+        "zero_point": str(int(zero_point)),
         "lifetime": lifetime,
         "offset": offset if o.is_weight() else 0,
         "length": length
@@ -649,10 +680,10 @@ def generate_vts_operand_values():
       assert 0 and "Unsupported VTS operand type"
 
   init_defs = ", ".join([str(x) for x in binit])
+  if (init_defs != ""):
+    init_defs = "\n      %s\n    " % init_defs
   byte_vec_fmt = """\
-    std::vector<uint8_t> operandValues = {
-      %s
-    };""" % init_defs
+    std::vector<uint8_t> operandValues = {%s};""" % init_defs
   return byte_vec_fmt
 
 # Generate VTS operations
@@ -664,14 +695,15 @@ class VTSOps(object):
     except AttributeError: # not an op, but things like weights
       return
     op_fmt = """\
-    {{
-        .opTuple = {{OperationType::{op_code}, OperandType::{op_type}}},
-        .inputs = {{{ins}}},
-        .outputs = {{{outs}}},
-    }}"""
+        {{
+            .opTuple = {{OperationType::{op_code},
+                        OperandType::{op_type}}},
+            .inputs = {{{ins}}},
+            .outputs = {{{outs}}},
+        }}"""
     op_content = {
         'op_code': op.optype,
-        'op_type': 'TENSOR_FLOAT32', # TODO: support quantized
+        'op_type': op.type.get_element_type(),
         'ins': ", ".join([str(x.ID()) for x in op.ins]),
         'outs': ", ".join([str(x.ID()) for x in op.outs]),
     }

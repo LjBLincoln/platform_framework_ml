@@ -121,13 +121,14 @@ class Example {
             resize_accordingly<float>(golden, test);
             resize_accordingly<int32_t>(golden, test);
             resize_accordingly<uint8_t>(golden, test);
-            for_all(test, [&request](int idx, auto p, auto s) {
+            for_all(test, [&request](int idx, void* p, auto s) {
                 ASSERT_EQ(Result::NO_ERROR, request.setOutput(idx, p, s));
             });
 
             Result r = request.compute();
             ASSERT_EQ(Result::NO_ERROR, r);
-
+#define USE_EXPECT_FLOAT_EQ 1
+#ifdef USE_EXPECT_FLOAT_EQ
             // We want "close-enough" results for float
             for (auto& i : std::get<Float32Operands>(golden)) {
                 int idx = i.first;
@@ -139,7 +140,10 @@ class Example {
                     EXPECT_FLOAT_EQ(golden_float[i], test_float[i]);
                 }
             }
-
+#else  // Use EXPECT_EQ instead; nicer error reporting
+            EXPECT_EQ(std::get<Float32Operands>(golden),
+                      std::get<Float32Operands>(test));
+#endif
             EXPECT_EQ(std::get<Int32Operands>(golden),
                       std::get<Int32Operands>(test));
             EXPECT_EQ(std::get<Quant8Operands>(golden),
