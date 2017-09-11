@@ -37,6 +37,18 @@ TEST_F(GeneratedTests, avg_pool_quant8) {
     Execute(avg_pool_quant8::CreateModel, avg_pool_quant8::examples);
 }
 
+namespace concat_float {
+std::vector<MixedTypedExample> examples = {
+// Generated concat_float test
+#include "generated/examples/concat_float.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/concat_float.model.cpp"
+} // namespace concat_float
+TEST_F(GeneratedTests, concat_float) {
+    Execute(concat_float::CreateModel, concat_float::examples);
+}
+
 namespace l2_pool_float {
 std::vector<MixedTypedExample> examples = {
 // Generated l2_pool_float test
@@ -59,6 +71,18 @@ std::vector<MixedTypedExample> examples = {
 } // namespace max_pool_float
 TEST_F(GeneratedTests, max_pool_float) {
     Execute(max_pool_float::CreateModel, max_pool_float::examples);
+}
+
+namespace max_pool_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated max_pool_quant8 test
+#include "generated/examples/max_pool_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/max_pool_quant8.model.cpp"
+} // namespace max_pool_quant8
+TEST_F(GeneratedTests, max_pool_quant8) {
+    Execute(max_pool_quant8::CreateModel, max_pool_quant8::examples);
 }
 
 namespace relu1_float {
