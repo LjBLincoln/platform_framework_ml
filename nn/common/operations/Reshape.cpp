@@ -73,8 +73,8 @@ bool reshapeGeneric(const void* inputData, const Shape& inputShape,
 }
 
 bool resizeBilinearPrepare(const Shape& input,
-                           int32_t height,
                            int32_t width,
+                           int32_t height,
                            Shape* output) {
     DCHECK_EQ(getNumberOfDimensions(input), 4);
     uint32_t batches  = getSizeOfDimension(input, 0);
