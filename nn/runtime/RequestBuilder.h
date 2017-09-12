@@ -45,7 +45,7 @@ struct ModelArgumentInfo {
     //   locationAndDimension.location.{poolIndex, offset, length} is valid.
     //   locationAndDimension.dimension is valid.
     enum { POINTER, MEMORY, UNSPECIFIED } state;
-    InputOutputInfo locationAndDimension;
+    RequestArgument locationAndDimension;
     void* buffer;
 
     int setFromPointer(const Operand& operand, const ANeuralNetworksOperandType* type, void* buffer,
@@ -85,7 +85,7 @@ private:
     // The information we'll send to the driver about the inputs and outputs.
     // Note that we build this in two steps:
     // 1. As the arguments are specified, set the corresponding mInputs or mOutputs element.
-    //    If set from a pointer, don't set the location in the InputOutputInfo but store it
+    //    If set from a pointer, don't set the location in the RequestArgument but store it
     //    instead in mInputBuffers or mOutputBuffers.
     // 2. Once we have all the inputs and outputs, if needed, allocate shared memory for
     //    the m*Buffers entries.  Copy the input values into the shared memory.

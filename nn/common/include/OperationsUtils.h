@@ -47,14 +47,9 @@ uint32_t getNumberOfDimensions(const Shape& shape);
 
 uint32_t getSizeOfDimension(const Shape& shape, uint32_t dimensionIdx);
 
-inline uint32_t ComputePadding(uint32_t stride, uint32_t in_size, uint32_t filter_size,
-                               uint32_t out_size) {
-    uint32_t tmp = (out_size - 1) * stride + filter_size;
-    if (tmp > in_size) {
-        return (tmp - in_size) / 2;
-    } else {
-        return 0;
-    }
+inline uint32_t computeOutSize(uint32_t imageSize, uint32_t filterSize, uint32_t stride,
+                               uint32_t paddingHead, uint32_t paddingTail) {
+    return (imageSize - filterSize + stride + paddingHead + paddingTail) / stride;
 }
 
 void QuantizeMultiplierSmallerThanOne(double double_multiplier,
@@ -77,6 +72,25 @@ void CalculateActivationRangeUint8(int32_t activation,
                                    int32_t* act_max);
 
 int32_t CalculateInputRadius(int input_integer_bits, int input_left_shift);
+
+#define ANDROID_NN_MACRO_DISPATCH(macro)                                    \
+    switch (activation) {                                                   \
+        case (int32_t) FusedActivationFunc::NONE:                           \
+            macro(kNone);                                                   \
+            break;                                                          \
+        case (int32_t) FusedActivationFunc::RELU:                           \
+            macro(kRelu);                                                   \
+            break;                                                          \
+        case (int32_t) FusedActivationFunc::RELU1:                          \
+            macro(kRelu1);                                                  \
+            break;                                                          \
+        case (int32_t) FusedActivationFunc::RELU6:                          \
+            macro(kRelu6);                                                  \
+            break;                                                          \
+        default:                                                            \
+            LOG(ERROR) << "Unsupported fused activation function type";     \
+            return false;                                                   \
+    }
 
 } // namespace nn
 } // namespace android

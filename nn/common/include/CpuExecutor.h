@@ -38,7 +38,7 @@ struct RunTimeOperandInfo {
     std::vector<uint32_t> dimensions;
 
     float scale;
-    int32_t offset;
+    int32_t offset;  // TODO rename zeroValue
     // Where the operand's data is stored.  Check the corresponding
     // location information in the model to figure out if this points
     // to memory we have allocated for an temporary operand.
@@ -62,9 +62,11 @@ struct RunTimeOperandInfo {
 // Used to keep a pointer to each of the memory pools.
 struct RunTimePoolInfo {
     sp<IMemory> memory;
+    hidl_memory hidlMemory;
     uint8_t* buffer;
 
     bool set(const hidl_memory& hidlMemory);
+    bool update();
 };
 
 // This class is used to execute a model on the CPU.
@@ -86,13 +88,6 @@ private:
     void freeNoLongerUsedOperands(const std::vector<uint32_t>& inputs);
     void setLocationAndUses(RunTimeOperandInfo* to, const DataLocation& location,
                             const std::vector<RunTimePoolInfo>& runTimePoolInfos);
-    bool setRunTimeOperandInfo(uint32_t operandIndex, const std::vector<uint32_t>& dimensions,
-                               const DataLocation& location, uint32_t useCount,
-                               const std::vector<RunTimePoolInfo>& runTimePoolInfos);
-    // The operand is a model input or output.  Override the information that
-    // came with the model with the one passed by the calling program.
-    // void overrideOperand(uint32_t operandIndex, const InputOutputInfo& info);
-    //  void overrideAddress(uint32_t operandIndex, void* buffer);
 
     // The model and the request that we'll execute. Only valid while run()
     // is being executed.

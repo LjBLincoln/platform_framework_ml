@@ -102,38 +102,46 @@ enum {
      */
     ANEURALNETWORKS_ADD = 1,
     // TODO Document all the other ops.
-    ANEURALNETWORKS_AVERAGE_POOL = 2,
-    ANEURALNETWORKS_CAST = 3,
-    ANEURALNETWORKS_CONCATENATION = 4,
-    ANEURALNETWORKS_CONV = 5,
-    ANEURALNETWORKS_DEPTHWISE_CONV = 6,
-    ANEURALNETWORKS_DEPTH_TO_SPACE = 7,
-    ANEURALNETWORKS_DEQUANTIZE = 8,
-    ANEURALNETWORKS_EMBEDDING_LOOKUP = 9,
-    ANEURALNETWORKS_FAKE_QUANT = 10,
-    ANEURALNETWORKS_FLOOR = 11,
-    ANEURALNETWORKS_FULLY_CONNECTED = 12,
-    ANEURALNETWORKS_GATHER = 13,
-    ANEURALNETWORKS_HASHTABLE_LOOKUP = 14,
-    ANEURALNETWORKS_L2_NORMALIZATION = 15,
-    ANEURALNETWORKS_L2_POOL = 16,
-    ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION = 17,
-    ANEURALNETWORKS_LOGISTIC = 18,
-    ANEURALNETWORKS_LSH_PROJECTION = 19,
-    ANEURALNETWORKS_LSTM = 20,
-    ANEURALNETWORKS_MAX_POOL = 21,
-    ANEURALNETWORKS_MUL = 22,
-    ANEURALNETWORKS_RELU = 23,
-    ANEURALNETWORKS_RELU1 = 24,
-    ANEURALNETWORKS_RELU6 = 25,
-    ANEURALNETWORKS_RESHAPE = 26,
-    ANEURALNETWORKS_RESIZE_BILINEAR = 27,
-    ANEURALNETWORKS_RNN = 28,
-    ANEURALNETWORKS_SOFTMAX = 29,
-    ANEURALNETWORKS_SPACE_TO_DEPTH = 30,
-    ANEURALNETWORKS_SPLIT = 31,
-    ANEURALNETWORKS_SVDF = 32,
-    ANEURALNETWORKS_TANH = 33,
+    ANEURALNETWORKS_AVERAGE_POOL_2D = 2,
+    ANEURALNETWORKS_CONCATENATION = 3,
+    ANEURALNETWORKS_CONV_2D = 4,
+    ANEURALNETWORKS_DEPTHWISE_CONV_2D = 5,
+    ANEURALNETWORKS_DEPTH_TO_SPACE = 6,
+    ANEURALNETWORKS_DEQUANTIZE = 7,
+    ANEURALNETWORKS_EMBEDDING_LOOKUP = 8,
+    ANEURALNETWORKS_FAKE_QUANT = 9,
+    ANEURALNETWORKS_FLOOR = 10,
+    ANEURALNETWORKS_FULLY_CONNECTED = 11,
+    ANEURALNETWORKS_HASHTABLE_LOOKUP = 12,
+    ANEURALNETWORKS_L2_NORMALIZATION = 13,
+    ANEURALNETWORKS_L2_POOL_2D = 14,
+    ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION = 15,
+    ANEURALNETWORKS_LOGISTIC = 16,
+    ANEURALNETWORKS_LSH_PROJECTION = 17,
+    ANEURALNETWORKS_LSTM = 18,
+    ANEURALNETWORKS_MAX_POOL_2D = 19,
+    ANEURALNETWORKS_MUL = 20,
+    ANEURALNETWORKS_RELU = 21,
+    ANEURALNETWORKS_RELU1 = 22,
+    ANEURALNETWORKS_RELU6 = 23,
+    ANEURALNETWORKS_RESHAPE = 24,
+    ANEURALNETWORKS_RESIZE_BILINEAR = 25,
+    ANEURALNETWORKS_RNN = 26,
+    ANEURALNETWORKS_SOFTMAX = 27,
+    ANEURALNETWORKS_SPACE_TO_DEPTH = 28,
+    ANEURALNETWORKS_SVDF = 29,
+    ANEURALNETWORKS_TANH = 30,
+};
+
+/**
+ * Fused activation function types.
+ *
+ */
+enum {
+    ANEURALNETWORKS_FUSED_NONE = 0,   // NO fused activation function.
+    ANEURALNETWORKS_FUSED_RELU = 1,   // Fused RELU activation function.
+    ANEURALNETWORKS_FUSED_RELU1 = 2,  // Fused RELU1 activation function.
+    ANEURALNETWORKS_FUSED_RELU6 = 3,  // Fused RELU6 activation function.
 };
 
 /**
@@ -330,15 +338,24 @@ void ANeuralNetworksShutdown();
  */
 int ANeuralNetworksMemory_createShared(size_t size, ANeuralNetworksMemory** memory);
 
-/* TODO Should we also have from Surface, IONBuffer, ashmem and:
-int ANeuralNetworksMemory_createFromHidlMemory(android::hardware::hidl_memory hidlMemory,
-                                               ANeuralNetworksMemory** memory);
-int ANeuralNetworksMemory_createFromFd(int fd, ANeuralNetworksMemory** memory);
-int ANeuralNetworksMemory_createFromGrallocBuffer(buffer_handle_t buffer,
-                                                  ANeuralNetworksMemory** memory);
-int ANeuralNetworksMemory_createFromHardwareBuffer(AHardwareBuffer* buffer,
-                                                   ANeuralNetworksMemory** memory);
-*/
+/**
+ * Creates a shared memory object from a file descriptor.
+ *
+ * The shared memory is backed by a file descriptor via mmap.
+ * See {@link ANeuralNetworksMemory} for a description on how to use
+ * this shared memory.
+ *
+ * @param size The requested size in bytes.
+ *             Must not be larger than the file size.
+ * @param prot The desired memory protection for mmap.
+ * @param fd The requested file descriptor.
+ * @param memory The memory object to be created.
+ *               Set to NULL if unsuccessful.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if the request completed normally.
+ */
+int ANeuralNetworksMemory_createFromFd(size_t size, int protect, int fd,
+                                       ANeuralNetworksMemory** memory);
 
 /**
  * Returns pointer to the memory.
@@ -358,10 +375,10 @@ int ANeuralNetworksMemory_createFromHardwareBuffer(AHardwareBuffer* buffer,
 int ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory, uint8_t** buffer);
 
 /**
- * Delete a shared memory object.
+ * Delete a memory object.
  *
- * Destroys the object used by the run time to keep track of the shared memory.
- * This will free the underlying actual shared memory if no other code has open
+ * Destroys the object used by the run time to keep track of the memory.
+ * This will free the underlying actual memory if no other code has open
  * handles to this memory.  [TODO verify]
  *
  * @param memory The memory object to be freed.
@@ -606,7 +623,7 @@ int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t ind
  * Associate part of a memory object with an input of the model of the
  * {@link ANeuralNetworksRequest}.
  *
- * <p>The provided shared memory must outlive the request.</p>
+ * <p>The provided memory must outlive the request.</p>
  *
  * This function is thread safe.
  *
@@ -659,7 +676,7 @@ int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t in
  * Associate part of a memory object with an output of the model of the
  * {@link ANeuralNetworksRequest}.
  *
- * <p>The provided shared memory must outlive the request.</p>
+ * <p>The provided memory must outlive the request.</p>
  *
  * @param request The request to be modified.
  * @param index The index of the model operand we're associating the input to.
