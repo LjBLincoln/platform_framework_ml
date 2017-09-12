@@ -99,6 +99,22 @@ void CalculateActivationRangeUint8(int32_t activation,
 
 int32_t CalculateInputRadius(int input_integer_bits, int input_left_shift);
 
+inline void calculateExplicitPadding(int32_t in_size, int32_t stride,
+                                     int32_t filter_size, int32_t padding_implicit,
+                                     int32_t* padding_head, int32_t* padding_tail) {
+    *padding_head = 0;
+    *padding_tail = 0;
+
+    if (padding_implicit == kPaddingSame) {
+        int32_t out_size = (in_size + stride - 1) / stride;
+        int32_t tmp = (out_size - 1) * stride + filter_size;
+        if (tmp > in_size) {
+            *padding_head = (tmp - in_size) / 2;
+            *padding_tail = (tmp - in_size) - *padding_head;
+        }
+    }
+}
+
 // Preparation functions for the corresponding ops
 bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out1);
 
