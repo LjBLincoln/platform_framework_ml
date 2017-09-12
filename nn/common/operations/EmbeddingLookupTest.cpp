@@ -84,6 +84,8 @@ class EmbeddingLookupOpModel {
 
     model_.addOperation(ANEURALNETWORKS_EMBEDDING_LOOKUP, inputs, outputs);
     model_.setInputsAndOutputs(inputs, outputs);
+
+    model_.finish();
   }
 
   void Invoke() {

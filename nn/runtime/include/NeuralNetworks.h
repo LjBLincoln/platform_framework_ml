@@ -667,6 +667,7 @@ enum {
     ANEURALNETWORKS_BAD_DATA = 4,
     ANEURALNETWORKS_OP_FAILED = 5,
     ANEURALNETWORKS_UNMAPPABLE = 5,
+    ANEURALNETWORKS_BAD_STATE = 6,
 };
 
 /**
@@ -704,6 +705,9 @@ typedef struct ANeuralNetworksMemory ANeuralNetworksMemory;
  *    <li>Destroy the compilation with {@link ANeuralNetworksCompilation_free}
  *        once all requests using the compilation have completed.</li></ul></p>
  *
+ * <p>A compilation cannot be modified once {@link ANeuralNetworksCompilation_start}
+ * has been called on it.</p>
+ *
  * <p>Multiple threads can wait for or use a completed compilation at the same time.
  * An application is responsible to ensure that multiple threads do not perform
  * any other actions on the compilation at the same time.</p>
@@ -725,15 +729,17 @@ typedef struct ANeuralNetworksCompilation ANeuralNetworksCompilation;
  *        {@Link ANeuralNetworksRequest_setOutputFromMemory}.</li>
  *    <li>Apply the model with {@link ANeuralNetworksRequest_startCompute}.</li>
  *    <li>Wait for the request to complete with {@link
- * ANeuralNetworksRequest_wait}.</li> <li>Repeat the previous steps as often as
- * needed.</li> <li>Destroy the request with {@link
- * ANeuralNetworksRequest_free}.</li></ul></p>
+ *        ANeuralNetworksRequest_wait}.</li>
+ *    <li>Destroy the request with
+ *        {@link ANeuralNetworksRequest_free}.</li></ul></p>
  *
- * <p>A request can be reused by simply modifying the content of the input
- * buffers and restarting the computation. It's also valid to call
- * ANeuralNetworksRequest_setInput or ANeuralNetworksRequest_setOutput before
- * restarting the request, as long as only the address of the buffer
- * changes.</p>
+ * <p>A request cannot be modified once {@link ANeuralNetworksRequest_start}
+ * has been called on it.</p>
+ * [TODO enforce this]
+ *
+ * <p>A request can be applied to a model with
+ * {@link ANeuralNetworksRequest_startCompute} only once. Create new requests
+ * to do new evaluations of the model.</p>
  *
  * <p>The functions that manipulate requests are thread safe.</p>
  * [TODO: We could have it that it's the responsibility of the application to
@@ -752,7 +758,9 @@ typedef struct ANeuralNetworksRequest ANeuralNetworksRequest;
  * <li>{@link ANeuralNetworksModel_addOperand},</li>
  * </ul>
  *
- * A model is destroyed by calling{@link ANeuralNetworksModel_free}.
+ * A model is completed by calling {@link ANeuralNetworksModel_finish}.
+ *
+ * A model is destroyed by calling {@link ANeuralNetworksModel_free}.
  */
 typedef struct ANeuralNetworksModel ANeuralNetworksModel;
 
@@ -908,6 +916,9 @@ void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory);
  * {@link ANeuralNetworksModel_addOperation} and
  * {@link ANeuralNetworksModel_addOperand}
  *
+ * <p>{@link ANeuralNetworksModel_finish} should be called once the model
+ * has been fully constructed.</p>
+ *
  * <p>{@link ANeuralNetworksModel_free} should be called once the model
  * is no longer needed.</p>
  *
@@ -923,6 +934,9 @@ int ANeuralNetworksModel_create(ANeuralNetworksModel** model);
 /**
  * Destroy a model.
  *
+ * The model need not have been finished by a call to
+ * {@link ANeuralNetworksModel_finish}.
+ *
  * An application is responsible to make sure that no other thread uses
  * the model at the same time.
  *
@@ -930,6 +944,19 @@ int ANeuralNetworksModel_create(ANeuralNetworksModel** model);
  *              results in no operation.
  */
 void ANeuralNetworksModel_free(ANeuralNetworksModel* model);
+
+/**
+ * Indicate that we have finished modifying a model. Required before
+ * calling {@link ANeuralNetworksCompilation_compile}.
+ *
+ * An application is responsible to make sure that no other thread uses
+ * the model at the same time.
+ *
+ * @param model The model to be finished.
+ *
+ * @return ANEURALNETWORKS_NO_ERROR if successful.
+ */
+int ANeuralNetworksModel_finish(ANeuralNetworksModel* model);
 
 /**
  * Add an operand to a model.
@@ -951,8 +978,8 @@ void ANeuralNetworksModel_free(ANeuralNetworksModel* model);
  * An application is responsible to make sure that no other thread uses
  * the model at the same time.
  *
- * A model can't be modified once a compilation has been created for it by
- * {@link ANeuralNetworksCompilation_create}.
+ * A model can't be modified once {@link ANeuralNetworksModel_finish} has been
+ * called on it.
  *
  * @param model The model to be modified.
  * @param type The {@link ANeuralNetworksOperandType} that describes the shape
@@ -974,8 +1001,8 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
  * be copied during processing, modifying the data after this call yields
  * undefined results.
  *
- * A model can't be modified once a compilation has been created for it by
- * {@link ANeuralNetworksCompilation_create}.
+ * A model can't be modified once {@link ANeuralNetworksModel_finish} has been
+ * called on it.
  *
  * @param model The model to be modified.
  * @param index The index of the model operand we're setting.
@@ -996,8 +1023,8 @@ int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t in
  * As the data may be copied during processing, modifying the data after this call
  * yields undefined results.
  *
- * A model can't be modified once a compilation has been created for it by
- * {@link ANeuralNetworksCompilation_create}.
+ * A model can't be modified once {@link ANeuralNetworksModel_finish} has been
+ * called on it.
  *
  * @param model The model to be modified.
  * @param index The index of the model operand we're setting.
@@ -1028,8 +1055,8 @@ int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, 
  * An application is responsible to make sure that no other thread uses
  * the model at the same time.
  *
- * A model can't be modified once a compilation has been created for it by
- * {@link ANeuralNetworksCompilation_create}.
+ * A model can't be modified once {@link ANeuralNetworksModel_finish} has been
+ * called on it.
  *
  * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
@@ -1050,8 +1077,8 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
  * The operands specified by inputs and outputs must have been
  * previously added by calls to {@link ANeuralNetworksModel_addOperand}.
  *
- * A model can't be modified once a compilation has been created for it by
- * {@link ANeuralNetworksCompilation_create}.
+ * A model can't be modified once {@link ANeuralNetworksModel_finish} has been
+ * called on it.
  */
 int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model,
                                              ANeuralNetworksIntList* inputs,
@@ -1063,6 +1090,9 @@ int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model,
  * {@link ANeuralNetworksCompilation_start} is invoked.
  *
  * <p>The provided model must outlive the compilation.</p>
+ *
+ * The model must already have been finished by a call to
+ * {@link ANeuralNetworksModel_finish}.
  *
  * This function is thread safe.
  *

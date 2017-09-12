@@ -33,8 +33,9 @@ int CompilationBuilder::compile() {
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-RequestBuilder* CompilationBuilder::createRequest() {
-    return new RequestBuilder(this);
+int CompilationBuilder::createRequest(RequestBuilder **request) {
+    *request = new RequestBuilder(this);
+    return (*request ? ANEURALNETWORKS_NO_ERROR : ANEURALNETWORKS_OUT_OF_MEMORY);
 }
 
 }  // namespace nn

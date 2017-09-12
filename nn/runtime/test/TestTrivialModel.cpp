@@ -69,6 +69,7 @@ void CreateAddTwoTensorModel(Model* model) {
     model->addOperation(ANEURALNETWORKS_ADD, {a, b, d}, {c});
     model->setInputsAndOutputs({a, b}, {c});
     ASSERT_TRUE(model->isValid());
+    model->finish();
 }
 
 // Create a model that can add three tensors using a two node graph,
@@ -89,6 +90,7 @@ void CreateAddThreeTensorModel(Model* model, const Matrix3x4 bias) {
     model->addOperation(ANEURALNETWORKS_ADD, {b, e, f}, {d});
     model->setInputsAndOutputs({c, a}, {d});
     ASSERT_TRUE(model->isValid());
+    model->finish();
 }
 
 // Check that the values are the same. This works only if dealing with integer
@@ -169,6 +171,7 @@ TEST_F(TrivialTest, BroadcastAddTwo) {
     modelBroadcastAdd2.addOperation(ANEURALNETWORKS_ADD, {a, b, activation}, {c});
     modelBroadcastAdd2.setInputsAndOutputs({a, b}, {c});
     ASSERT_TRUE(modelBroadcastAdd2.isValid());
+    modelBroadcastAdd2.finish();
 
     // Test the one node model.
     Matrix3x4 actual;
@@ -200,6 +203,7 @@ TEST_F(TrivialTest, BroadcastMulTwo) {
     modelBroadcastMul2.addOperation(ANEURALNETWORKS_MUL, {a, b, activation}, {c});
     modelBroadcastMul2.setInputsAndOutputs({a, b}, {c});
     ASSERT_TRUE(modelBroadcastMul2.isValid());
+    modelBroadcastMul2.finish();
 
     // Test the one node model.
     Matrix3x4 actual;

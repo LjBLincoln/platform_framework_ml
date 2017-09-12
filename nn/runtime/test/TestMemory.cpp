@@ -97,6 +97,7 @@ TEST_F(MemoryTest, TestAllocatedMemory) {
     model.addOperation(ANEURALNETWORKS_ADD, {b, e, f}, {d});
     model.setInputsAndOutputs({c}, {d});
     ASSERT_TRUE(model.isValid());
+    model.finish();
 
     // Test the two node model.
     constexpr uint32_t offsetForMatrix1 = 20;
@@ -159,6 +160,7 @@ TEST_F(MemoryTest, TestFd) {
     model.addOperation(ANEURALNETWORKS_ADD, {b, e, f}, {d});
     model.setInputsAndOutputs({c}, {d});
     ASSERT_TRUE(model.isValid());
+    model.finish();
 
     // Test the three node model.
     Matrix3x4 actual;
