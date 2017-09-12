@@ -22,31 +22,6 @@
 namespace android {
 namespace nn {
 
-bool genericPoolingPrepare(const Shape& input,
-                           int32_t padding_left, int32_t padding_right,
-                           int32_t padding_top, int32_t padding_bottom,
-                           int32_t stride_width, int32_t stride_height,
-                           int32_t filter_width, int32_t filter_height,
-                           Shape* output) {
-    DCHECK_EQ(getNumberOfDimensions(input), 4);
-    DCHECK_EQ(stride_width, stride_height);
-
-    uint32_t batches      = getSizeOfDimension(input, 0);
-    uint32_t width        = getSizeOfDimension(input, 2);
-    uint32_t height       = getSizeOfDimension(input, 1);
-    uint32_t channels_out = getSizeOfDimension(input, 3);
-
-    uint32_t outWidth = computeOutSize(width, filter_width, stride_width,
-                                       padding_left, padding_right);
-    uint32_t outHeight = computeOutSize(height, filter_height, stride_height,
-                                        padding_top, padding_bottom);
-
-    output->type = input.type;
-    output->dimensions = {batches, outHeight, outWidth, channels_out};
-    return true;
-}
-
-
 #define ANDROID_NN_POOLING_PARAMETERS                                           \
     uint32_t height       = getSizeOfDimension(inputShape, 1);                  \
     uint32_t width        = getSizeOfDimension(inputShape, 2);                  \

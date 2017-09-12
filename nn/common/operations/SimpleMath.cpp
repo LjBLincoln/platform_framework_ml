@@ -25,39 +25,6 @@
 
 namespace android {
 namespace nn {
-
-bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out) {
-    if (getNumberOfDimensions(in1) > 4 || getNumberOfDimensions(in2) > 4) {
-        LOG(ERROR) << "Only supports upto 4D tensors.";
-        return false;
-    }
-    if (SameShape(in1, in2)) {
-        return SetShape(in1, out);
-    } else {
-        // BroadcastAdd needed
-        uint32_t numberOfDims1 = getNumberOfDimensions(in1);
-        uint32_t numberOfDims2 = getNumberOfDimensions(in2);
-        uint32_t maxDims = std::max(numberOfDims1, numberOfDims2);
-        out->dimensions = std::vector<uint32_t>(maxDims);
-        for (uint32_t i = 1; i <= maxDims; i++) {
-            uint32_t dim1 = 1;
-            if (i <= numberOfDims1) {
-                dim1 = getSizeOfDimension(in1, numberOfDims1 - i);
-            }
-            uint32_t dim2 = 1;
-            if (i <= numberOfDims2) {
-                dim2 = getSizeOfDimension(in2, numberOfDims2 - i);
-            }
-            if (dim1 != dim2 && dim1 != 1 && dim2 != 1) {
-                LOG(ERROR) << "Dimensions mismatch for BroadcastAdd";
-                return false;
-            }
-            out->dimensions[maxDims - i] = std::max(dim1, dim2);
-        }
-    }
-    return true;
-}
-
 bool addFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
@@ -118,25 +85,12 @@ bool mulFloat32(const float* in1, const Shape& shape1,
     return true;
 }
 
-bool floorPrepare(const Shape& input, Shape* output) {
-    return SetShape(input, output);
-}
-
 bool floorFloat32(const float* inputData,
                   float* outputData,
                   const Shape& shape) {
     Dims<4> dim = convertShapeToDims(shape);
     optimized_ops::Floor(inputData, dim, outputData, dim);
     return true;
-}
-
-bool dequantizePrepare(const Shape& input, Shape* output) {
-    if (input.type != OperandType::TENSOR_QUANT8_ASYMM ||
-            output->type != OperandType::TENSOR_FLOAT32) {
-        LOG(ERROR) << "bad input / output operand type.";
-        return false;
-    }
-    return SetShape(input, output);
 }
 
 bool dequantizeQuant8ToFloat32(const uint8_t* inputData,
