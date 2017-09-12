@@ -41,6 +41,7 @@ class Example {
                         std::function<bool(const T, const T)> compare) {
         Model model;
         create_model(&model);
+        model.finish();
 
         int example_no = 1;
         bool error = false;
@@ -97,6 +98,7 @@ class Example {
                         std::vector<MixedTypedExampleType>& examples) {
         Model model;
         create_model(&model);
+        model.finish();
 
         int example_no = 1;
         for (auto& example : examples) {

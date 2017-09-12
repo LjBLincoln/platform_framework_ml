@@ -35,7 +35,7 @@ public:
 
     int compile();  // TODO: Asynchronous (startCompile?)
 
-    RequestBuilder* createRequest();
+    int createRequest(RequestBuilder** request);
 
 private:
     // int startComputeOnCpu(const Model& model, sp<Event>* event);

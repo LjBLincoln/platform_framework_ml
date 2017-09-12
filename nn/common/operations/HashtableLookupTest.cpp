@@ -98,6 +98,8 @@ class HashtableLookupOpModel {
 
     model_.addOperation(ANEURALNETWORKS_HASHTABLE_LOOKUP, inputs, outputs);
     model_.setInputsAndOutputs(inputs, outputs);
+
+    model_.finish();
   }
 
   void Invoke() {

@@ -179,6 +179,8 @@ class SVDFOpModel {
 
     model_.addOperation(ANEURALNETWORKS_SVDF, inputs, outputs);
     model_.setInputsAndOutputs(inputs, outputs);
+
+    model_.finish();
   }
 
   void Invoke() {
