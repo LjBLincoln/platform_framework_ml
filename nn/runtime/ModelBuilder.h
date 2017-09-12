@@ -40,10 +40,10 @@ public:
     int setOperandValueFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
                                   size_t length);
 
-    int addOperation(ANeuralNetworksOperationType type, const ANeuralNetworksIntList* inputs,
-                     const ANeuralNetworksIntList* outputs);
-    int setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
-                            const ANeuralNetworksIntList* outputs);
+    int addOperation(ANeuralNetworksOperationType type, uint32_t inputCount, const uint32_t* inputs,
+                     uint32_t outputCount, const uint32_t* outputs);
+    int setInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs, uint32_t outputCount,
+                            const uint32_t* outputs);
 
     int finish();
     bool isFinished() const { return mCompletedModel; }
@@ -101,7 +101,7 @@ private:
     mutable bool mCompletedModel = false;
 };
 
-} // namespace nn
-} // namespace android
+}  // namespace nn
+}  // namespace android
 
-#endif // ANDROID_ML_NN_RUNTIME_MODEL_BUILDER_H
+#endif  // ANDROID_ML_NN_RUNTIME_MODEL_BUILDER_H

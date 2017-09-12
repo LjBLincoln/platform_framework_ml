@@ -20,13 +20,14 @@
 
 #define LOG_TAG "NeuralNetworks"
 
+#include "NeuralNetworks.h"
+
 #include "CompilationBuilder.h"
 #include "Event.h"
 #include "ExecutionBuilder.h"
-#include "NeuralNetworks.h"
-#include "NeuralNetworksOEM.h"
 #include "Manager.h"
 #include "Memory.h"
+#include "NeuralNetworksOEM.h"
 #include "ModelBuilder.h"
 
 #include <memory>
@@ -133,7 +134,8 @@ static_assert(static_cast<int32_t>(OperandType::TENSOR_QUANT8_ASYMM) ==
 
 static_assert(static_cast<int32_t>(OperationType::ADD) == ANEURALNETWORKS_ADD,
               "OperationType::ADD != ANEURALNETWORKS_ADD");
-static_assert(static_cast<int32_t>(OperationType::AVERAGE_POOL_2D) == ANEURALNETWORKS_AVERAGE_POOL_2D,
+static_assert(static_cast<int32_t>(OperationType::AVERAGE_POOL_2D) ==
+                          ANEURALNETWORKS_AVERAGE_POOL_2D,
               "OperationType::AVERAGE_POOL_2D != ANEURALNETWORKS_AVERAGE_POOL_2D");
 static_assert(static_cast<int32_t>(OperationType::CONV_2D) == ANEURALNETWORKS_CONV_2D,
               "OperationType::CONV_2D != ANEURALNETWORKS_CONV_2D");
@@ -215,10 +217,10 @@ using namespace android::nn;
 static int ValidateOperandType(const ANeuralNetworksOperandType& type, const char* tag,
                                bool allowPartial) {
     if (!allowPartial) {
-        for (uint32_t i = 0; i < type.dimensions.count; i++) {
-            if (type.dimensions.data[i] == 0) {
+        for (uint32_t i = 0; i < type.dimensionCount; i++) {
+            if (type.dimensions[i] == 0) {
                 LOG(ERROR) << tag << " OperandType invalid dimensions[" << i
-                           << "] = " << type.dimensions.data[i];
+                           << "] = " << type.dimensions[i];
                 return ANEURALNETWORKS_BAD_DATA;
             }
         }
@@ -241,12 +243,12 @@ static int ValidateOperandType(const ANeuralNetworksOperandType& type, const cha
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-static int ValidateOperandList(const ANeuralNetworksIntList& list, uint32_t count,
+static int ValidateOperandList(uint32_t count, const uint32_t* list, uint32_t operandCount,
                                const char* tag) {
-    for (uint32_t i = 0; i < list.count; i++) {
-        if (list.data[i] >= count) {
-            LOG(ERROR) << tag << " invalid operand index at " << i << " = " << list.data[i]
-                       << ", count " << count;
+    for (uint32_t i = 0; i < count; i++) {
+        if (list[i] >= operandCount) {
+            LOG(ERROR) << tag << " invalid operand index at " << i << " = " << list[i]
+                       << ", operandCount " << operandCount;
             return ANEURALNETWORKS_BAD_DATA;
         }
     }
@@ -353,9 +355,9 @@ int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, 
 }
 
 int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
-                                      ANeuralNetworksOperationType type,
-                                      ANeuralNetworksIntList* inputs,
-                                      ANeuralNetworksIntList* outputs) {
+                                      ANeuralNetworksOperationType type, uint32_t inputCount,
+                                      const uint32_t* inputs, uint32_t outputCount,
+                                      const uint32_t* outputs) {
     if (!model || !inputs || !outputs) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperation passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -365,40 +367,40 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
         LOG(ERROR) << "ANeuralNetworksModel_addOperation invalid operations type " << type;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    int n = ValidateOperandList(*inputs, m->operandCount(),
+    int n = ValidateOperandList(inputCount, inputs, m->operandCount(),
                                 "ANeuralNetworksModel_addOperation inputs");
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
-    n = ValidateOperandList(*outputs, m->operandCount(),
+    n = ValidateOperandList(outputCount, outputs, m->operandCount(),
                             "ANeuralNetworksModel_addOperation outputs");
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
 
-    return m->addOperation(type, inputs, outputs);
+    return m->addOperation(type, inputCount, inputs, outputCount, outputs);
 }
 
-int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model,
-                                             ANeuralNetworksIntList* inputs,
-                                             ANeuralNetworksIntList* outputs) {
+int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model, uint32_t inputCount,
+                                             const uint32_t* inputs, uint32_t outputCount,
+                                             const uint32_t* outputs) {
     if (!model || !inputs || !outputs) {
         LOG(ERROR) << ("ANeuralNetworksModel_setInputsAndOutputs passed a nullptr");
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
-    int n = ValidateOperandList(*inputs, m->operandCount(),
+    int n = ValidateOperandList(inputCount, inputs, m->operandCount(),
                                 "ANeuralNetworksModel_setInputsAndOutputs inputs");
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
-    n = ValidateOperandList(*outputs, m->operandCount(),
+    n = ValidateOperandList(outputCount, outputs, m->operandCount(),
                             "ANeuralNetworksModel_setInputsAndOutputs outputs");
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
 
-    return m->setInputsAndOutputs(inputs, outputs);
+    return m->setInputsAndOutputs(inputCount, inputs, outputCount, outputs);
 }
 
 int ANeuralNetworksCompilation_create(ANeuralNetworksModel* model,
