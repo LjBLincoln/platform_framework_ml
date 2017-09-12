@@ -520,7 +520,10 @@ void ANeuralNetworksRequest_free(ANeuralNetworksRequest* request) {
     // TODO specification says that a request-in-flight can be deleted
     // No validation.  Free of nullptr is valid.
     RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
-    delete r;
+    if (r) {
+        r->wait();
+        delete r;
+    }
 }
 
 int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t index,
@@ -599,45 +602,23 @@ int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, 
     return r->setOutputFromMemory(index, type, m, offset, length);
 }
 
-int ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest* request,
-                                        ANeuralNetworksEvent** event) {
-    if (!request || !event) {
+int ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest* request) {
+    if (!request) {
         LOG(ERROR) << "ANeuralNetworksRequest_startCompute passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     // TODO validate the rest
 
     RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
-
-    // Dynamically allocate an sp to wrap an event. The sp<Event> object is
-    // returned when the request has been successfully launched, otherwise a
-    // nullptr is returned. The sp is used for ref-counting purposes. Without
-    // it, the HIDL service could attempt to communicate with a dead event
-    // object.
-    std::unique_ptr<sp<Event>> e = std::make_unique<sp<Event>>();
-    *event = nullptr;
-
-    int n = r->startCompute(e.get());
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-    *event = reinterpret_cast<ANeuralNetworksEvent*>(e.release());
-    return ANEURALNETWORKS_NO_ERROR;
+    return r->startCompute();
 }
 
-int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event) {
-    if (event == nullptr) {
-        LOG(ERROR) << "ANeuralNetworksEvent_wait passed a nullptr";
+int ANeuralNetworksRequest_wait(ANeuralNetworksRequest* request) {
+    if (!request) {
+        LOG(ERROR) << "ANeuralNetworksRequest_wait passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
 
-    sp<Event>* e = reinterpret_cast<sp<Event>*>(event);
-    (*e)->wait();
-    return ANEURALNETWORKS_NO_ERROR;
-}
-
-void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event) {
-    // No validation.  Free of nullptr is valid.
-    sp<Event>* e = reinterpret_cast<sp<Event>*>(event);
-    delete e;
+    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
+    return r->wait();
 }
