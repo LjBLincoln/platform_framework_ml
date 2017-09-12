@@ -339,7 +339,29 @@ typedef enum {
      *      {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
      */
     ANEURALNETWORKS_DEQUANTIZE = 7,
+
+    /**
+     * Looks up items from a given tensor.
+     *
+     * Each item in the output is a raw copy of the corresponding item in
+     * the input “values”. If the the given “lookup” indices are out of bounds,
+     * the op will fail and an error will be reported.
+     *
+     * Inputs:
+     * * 0: Values. An n-D tensor of any type X (where n >= 2). E.g., if n is 2,
+     *      then the shape would be [lookup_dimension, values_dimension], where
+     *      “lookup_dimension” corresponds to the indexing dimension in the lookup
+     *      table, and “values_dimension” to the contents.
+     * * 1: Lookups. An 1-D tensor of type T, of shape [lookup_size], where
+     *      “lookup_size” is the number of elements to look for, and each entry
+     *      corresponds to the first dimension of the “values” tensor.
+     *
+     * Output:
+     * * 0: A n-D tensor of type X and the same rank and shape as the “values”
+     *      tensor, except for the first dimension which has size “lookup_size”.
+     */
     ANEURALNETWORKS_EMBEDDING_LOOKUP = 8,
+
     ANEURALNETWORKS_FAKE_QUANT = 9,
     /** Computes element-wise floor() on the input tensor.
      *
@@ -387,7 +409,23 @@ typedef enum {
      * * 0: The output tensor, of shape [batch_size, num_units].
      */
     ANEURALNETWORKS_FULLY_CONNECTED = 11,
+
+    /**
+     * Looks up values of a hash table with given keys.
+     *
+     * Inputs:
+     * * 0: Lookups. A 1-D int32 tensor with shape [ k ].
+     * * 1: Keys. A 1-D int32 tensor with shape [ n ], *MUST* be sorted in
+     *      ascending order.
+     * * 2: Values. A tensor with shape [ n … ].
+     *
+     * Outputs:
+     * * 0: Output. A tensor with shape [ k …].
+     * * 1: Hits. A uint8 tensor with shape [ k ] indicates whether the lookup
+     *      hits or not.
+     */
     ANEURALNETWORKS_HASHTABLE_LOOKUP = 12,
+
     /** Applies L2 normalization along the depth dimension.
      *
      * The values in the output tensor are computed as:
@@ -410,6 +448,7 @@ typedef enum {
      * * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth].
      */
     ANEURALNETWORKS_L2_NORMALIZATION = 13,
+
     /** Performs an 2-D L2 pooling operation.
      *
      * The output dimensions are functions of the filter dimensions, stride, and padding.
@@ -488,8 +527,141 @@ typedef enum {
      * * 0: The output tensor of same shape as input0.
      */
     ANEURALNETWORKS_LOGISTIC = 16,
+
+    /**
+     * Projects an input to a bit vector via locality senstive hashing.
+     *
+     * Inputs:
+     * * 0: Hash functions. Dim.size == 2, DataType: Float.
+     *            Tensor[0].Dim[0]: Number of hash functions.
+     *            Tensor[0].Dim[1]: Number of seeds per hash functions.
+     *            Tensor[0].Dim[1] <= 32 in sparse case.
+     *
+     * * 1: Input. Dim.size >= 1, no restriction on DataType.
+     * * 2: Weight. Optional. Dim.size == 1, DataType: Float.
+     *     If not set, each input element is considered to have the same weight of
+     *     1.0.
+     *     Tensor[1].Dim[0] == Tensor[2].Dim[0]
+     * * 3: Type:
+     *        Sparse: Value LSHProjectionType_SPARSE(=1).
+     *          Computed bit vector is considered to be sparse.
+     *          Each output element is an int32 made up of multiple bits computed from
+     *          hash functions.
+     *
+     *        Dense: Value LSHProjectionType_DENSE(=2).
+     *          Computed bit vector is considered to be dense. Each output element
+     *          represents a bit and can take the value of either 0 or 1.
+     *
+     * Outputs:
+     * * 0: If the projection type is sparse:
+     *        Output.Dim == { Tensor[0].Dim[0] }
+     *        A tensor of int32 that represents hash signatures.
+     *      If the projection type is Dense:
+     *        Output.Dim == { Tensor[0].Dim[0] * Tensor[0].Dim[1] }
+     *        A flattened tensor that represents projected bit vectors.
+     */
     ANEURALNETWORKS_LSH_PROJECTION = 17,
+
+    /**
+     * Long short-term memory unit (LSTM) recurrent network layer.
+     *
+     * The default non-peephole implementation is based on:
+     * http://deeplearning.cs.cmu.edu/pdfs/Hochreiter97_lstm.pdf
+     * S. Hochreiter and J. Schmidhuber. "Long Short-Term Memory". Neural
+     * Computation, 9(8):1735-1780, 1997.
+     *
+     * The peephole implementation is based on:
+     * https://research.google.com/pubs/archive/43905.pdf
+     * Hasim Sak, Andrew Senior, and Francoise Beaufays. "Long short-term memory
+     * recurrent neural network architectures for large scale acoustic modeling."
+     * INTERSPEECH, 2014.
+     *
+     * The coupling of input and forget gate (CIFG) is based on:
+     * http://arxiv.org/pdf/1503.04069.pdf
+     * Greff et al. "LSTM: A Search Space Odyssey"
+     *
+     * The class has the following independently optional inputs:
+     * * If input gate (if CIFG): “input_to_forget_weights”,
+     *   “recurrent_to_input_weights”, “cell_to_input_weights”, “input_gate_bias”.
+     * * If no peephole connections: “cell_to_input_weights”,
+     *   “cell_to_forget_weights”, “cell_to_output_weights”.
+     * * If no projection layer: “projection_weights” and “projection_bias”.
+     * * If no projection bias: “projection_bias”.
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *
+     * Inputs:
+     * * 0: Input.
+     *      A 2-D tensor of type T, of shape [batch_size, input_size], where
+     *      “batch_size” corresponds to the batching dimension, and “input_size”
+     *      is the size of the input.
+     * * 1: input_to_input_weights.
+     *      A 2-D tensor of type T, of shape [num_units, input_size], where
+     *      “num_units” corresponds to the number of cell units.
+     * * 2: input_to_forget_weights.
+     *      A 2-D tensor of type T, of shape [num_units, input_size].
+     * * 3: input_to_cell_weights.
+     *      A 2-D tensor of type T, of shape [num_units, input_size].
+     * * 4: input_to_output_weights.
+     *      A 2-D tensor of type T, of shape [num_units, input_size].
+     * * 5: recurrent_to_input_weights.
+     *      A 2-D tensor of type T, of shape [num_units, output_size], where
+     *      “output_size” corresponds to either the number of cell units (i.e.,
+     *      “num_units”), or the second dimension of the “projection_weights”, if
+     *      defined.
+     * * 6: recurrent_to_forget_weights.
+     *      A 2-D tensor of type T, of shape [num_units, output_size].
+     * * 7: recurrent_to_cell_weights.
+     *      A 2-D tensor of type T, of shape [num_units, output_size].
+     * * 8: recurrent_to_output_weights.
+     *      A 2-D tensor of type T, of shape [num_units, output_size].
+     * * 9: cell_to_input_weights.
+     *      A 1-D tensor of type T, of shape [num_units].
+     * * 10:cell_to_forget_weights.
+     *      A 1-D tensor of type T, of shape [num_units].
+     * * 11:cell_to_output_weights.
+     *      A 1-D tensor of type T, of shape [num_units].
+     * * 12:input_gate_bias.
+     *      A 1-D tensor of type T, of shape [num_units].
+     * * 13:forget_gate_bias.
+     *      A 1-D tensor of type T, of shape [num_units].
+     * * 14:cell_bias.
+     *      A 1-D tensor of type T, of shape [num_units].
+     * * 15:output_gate_bias.
+     *      A 1-D tensor of type T, of shape [num_units].
+     * * 16:projection_weights.
+     *      A 2-D tensor of type T, of shape [output_size, num_units].
+     * * 17:projection_bias.
+     *      A 1-D tensor of type T, of shape [output_size].
+     *
+     * Parameters:
+     * * 18:fused_activation_function.
+     *      An (optional) ActivationFunctionType indicating the activation
+     *      function.
+     *      If “NONE” is specified then it results in a linear activation.
+     * * 19:cell_clip.
+     *      A clipping threshold for the cell state, such that values are bound
+     *      within [-cell_clip, cell_clip]. If set to 0.0 then clipping is
+     *      disabled.
+     * * 20:proj_clip.
+     *      A clipping threshold for the output from the projection layer, such
+     *      that values are bound within [-proj_clip, proj_clip]. If set to 0.0
+     *      then clipping is disabled.
+     *
+     * Outputs:
+     * * 0: scratch_buffer.
+     *      A 3-D tensor of type T, of shape [batch_size, num_cell, 4].
+     * * 1: output_state.
+     *      A 2-D tensor of type T, of shape [batch_size, output_size].
+     * * 2: cell_state.
+     *      A 2-D tensor of type T, of shape [batch_size, num_units].
+     * * 3: output.
+     *      A 2-D tensor of type T, of shape [batch_size, output_size]. This is
+     *      effectively the same as the current “output_state” value.
+     */
     ANEURALNETWORKS_LSTM = 18,
+
     /** Performs an 2-D max pooling operation.
      *
      * The output dimensions are functions of the filter dimensions, stride, and padding.
@@ -522,6 +694,7 @@ typedef enum {
      * * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth].
      */
     ANEURALNETWORKS_MAX_POOL_2D = 19,
+
     /** Multiplies two tensors, elment-wise.
      *
      * Takes two input tensors of identical type and compatible dimensions. The output
@@ -645,7 +818,58 @@ typedef enum {
      * * 0: The output 4-D tensor, of shape [batches, new_height, new_width, depth].
      */
     ANEURALNETWORKS_RESIZE_BILINEAR = 25,
+
+    /**
+     * A basic recurrent neural network layer.
+     *
+     * This layer implements the operation:
+     * outputs = state = activation(inputs * input_weights + state * recurrent_weights + bias)
+     *
+     * Where:
+     * * “input_weights” is a weight matrix that multiplies the inputs;
+     * * “recurrent_weights” is a weight matrix that multiplies the current
+     *    “state” which itself is the output from the previous time step
+     *    computation;
+     * * “bias” is a bias vector (added to each output vector in the batch);
+     * * “activation” is the function passed as the “fused_activation_function”
+     *   argument (if not “NONE”).
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *
+     * Inputs:
+     * * 0: input.
+     *      A 2-D tensor of type T, of shape [batch_size, input_size], where
+     *      “batch_size” corresponds to the batching dimension, and “input_size” is
+     *      the size of the input.
+     * * 1: weights.
+     *      A 2-D tensor of type T, of shape [num_units, input_size], where
+     *      “num_units” corresponds to the number of units.
+     * * 2: recurrent_weights.
+     *      A 2-D tensor of type T, of shape [num_units, num_units], with columns
+     *      corresponding to the weights from each unit.
+     * * 3: bias.
+     *      A 1-D tensor of type T, of shape [num_units].
+     *
+     *    For FLOAT32 input tensor, bias must also be FLOAT32.
+     *    For UINT8 input tensor, bias must be INT32.
+     *
+     * Parameters
+     * * 4: fused_activation_function.
+     *      An (optional) ActivationFunctionType indicating the activation
+     *      function. If “NONE” is specified then it results in a linear
+     *      activation.
+     *
+     * * 5: Hidden state.
+     *      A 2-D tensor of type T, of shape [batch_size, num_units].
+     *
+     * Outputs:
+     * * 0: output.
+     *      A 2-D tensor of type T, of shape [batch_size, num_units]. This is
+     *      effectively the same as the current state value.
+     */
     ANEURALNETWORKS_RNN = 26,
+
     /** Computes the softmax activation on the input tensor element-wise, per batch, by
      * normalizing the input vector so the maximum coefficient is zero.
      *
@@ -669,6 +893,7 @@ typedef enum {
      * * 0: The output tensor of same shape as input0.
      */
     ANEURALNETWORKS_SOFTMAX = 27,
+
     /** Rearranges blocks of spatial data, into depth.
      *
      * More specifically, this op outputs a copy of the input tensor where values from
@@ -697,7 +922,80 @@ typedef enum {
      *      depth*block_size*block_size].
      */
     ANEURALNETWORKS_SPACE_TO_DEPTH = 28,
+
+    /**
+     * SVDF op is a kind of stateful layer derived from the notion that a
+     * densely connected layer that's processing a sequence of input frames can
+     * be approximated by using a singular value decomposition of each of its
+     * nodes. The implementation is based on:
+     *
+     * https://research.google.com/pubs/archive/43813.pdf
+     *
+     * P. Nakkiran, R. Alvarez, R. Prabhavalkar, C. Parada.
+     * “Compressing Deep Neural Networks using a Rank-Constrained Topology”.
+     * INTERSPEECH, 2015.
+     *
+     * It processes the incoming input using a 2-stage filtering mechanism:
+     * * stage 1 performs filtering on the "features" dimension, whose outputs get
+     *   pushed into a memory of fixed-size memory_size.
+     * * stage 2 performs filtering on the "time" dimension of the memory_size
+     *   memoized outputs of stage 1.
+     *
+     * Specifically, for rank 1, this layer implements the operation:
+     *
+     *    memory = push(conv1d(inputs, weights_feature, feature_dim, "VALID"));
+     *    outputs = activation(memory * weights_time + bias);
+     *
+     * Where:
+     * * “weights_feature” is a weights matrix that processes the inputs (by
+     *   convolving the input with every “feature filter”), and whose outputs get
+     *   pushed, stacked in order, into the fixed-size “memory” (the oldest entry
+     *   gets dropped);
+     * * “weights_time” is a weights matrix that processes the “memory” (by a
+     *   batched matrix multiplication on the num_units);
+     * * “bias” is an optional bias vector (added to each output vector in the
+     *   batch); and
+     * * “activation” is the function passed as the “fused_activation_function”
+     *   argument (if not “NONE”).
+     *
+     * Each rank adds a dimension to the weights matrices by means of stacking
+     * the filters.
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *
+     * Inputs:
+     * * 0: input.
+     *      A 2-D tensor of type T, of shape [batch_size, input_size], where
+     *      “batch_size” corresponds to the batching dimension, and “input_size” is
+     *      the size of the input.
+     * * 1: weights_feature.
+     *      A 2-D tensor of type T, of shape [num_units, input_size], where
+     *      “num_units” corresponds to the number of units.
+     * * 2: weights_time.
+     *      A 2-D tensor of type T, of shape [num_units, memory_size], where
+     *      “memory_size” corresponds to the fixed-size of the memory.
+     * * 3: bias.
+     *      A optional 1-D tensor of type T, of shape [num_units].
+     *
+     *    For FLOAT32 input tensor, bias must also be FLOAT32.
+     *    For UINT8 input tensor, bias must be INT32.
+     *
+     * Parameters:
+     * * 4: rank.
+     *      The rank of the SVD approximation.
+     * * 5: fused_activation_function.
+     *      An (optional) ActivationFunctionType indicating the activation function.
+     *      If “NONE” is specified then it results in a linear activation.
+     *
+     * Outputs:
+     * * 0: state.
+     *      A 2-D tensor of type T, of shape [batch_size, (memory_size - 1) * num_units * rank].
+     * * 1: output.
+     *      A 2-D tensor of type T, of shape [batch_size, num_units].
+     */
     ANEURALNETWORKS_SVDF = 29,
+
     /** Computes hyperbolic tangent of input tensor element-wise.
      *
      * The output is calculated using this formula:
