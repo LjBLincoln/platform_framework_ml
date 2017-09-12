@@ -19,6 +19,7 @@
 #include "NeuralNetworksWrapper.h"
 #include "TestHarness.h"
 
+//#include <android-base/logging.h>
 #include <gtest/gtest.h>
 #include <cassert>
 #include <cmath>
@@ -167,11 +168,9 @@ void Execute(std::function<void(Model*)> create_model,
 class GeneratedTests : public ::testing::Test {
    protected:
     virtual void SetUp() {
-        ASSERT_EQ(android::nn::wrapper::Initialize(),
-                  android::nn::wrapper::Result::NO_ERROR);
+        // For detailed logs, uncomment this line:
+        // SetMinimumLogSeverity(android::base::VERBOSE);
     }
-
-    virtual void TearDown() { android::nn::wrapper::Shutdown(); }
 };
 
 // Testcases generated from runtime/test/specs/*.mod.py

@@ -83,14 +83,6 @@ struct OperandType {
     }
 };
 
-inline Result Initialize() {
-    return static_cast<Result>(ANeuralNetworksInitialize());
-}
-
-inline void Shutdown() {
-    ANeuralNetworksShutdown();
-}
-
 class Memory {
 public:
     Memory(size_t size, int protect, int fd, size_t offset) {

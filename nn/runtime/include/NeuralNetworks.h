@@ -1177,49 +1177,6 @@ typedef struct ANeuralNetworksOperandType {
 typedef int32_t ANeuralNetworksOperationType;
 
 /**
- * Initializes the machine learning runtime.
- *
- * This should be called before any other ANeuralNetworks functions.
- * This function may start work threads, may clean up part of the
- * cache, and query the capabilities of the drivers.
- *
- * As the initialization may take some time, you may want to call
- * this function outside of the initialization path of your application,
- * so that your application starts quickly.
- *
- * Your application should call {@link ANeuralNetworksShutdown} to tear
- * down the runtime.
- *
- * It is safe for a process to call this function multiple times.
- * The first call performs the initialization. Successive calls increase
- * an internal reference count. An equivalent number of calls to
- * ANeuralNetworksShutdown must be performed for the runtime to be
- * destroyed. This enables libraries to safely call Initialize and Shutdown.
- *
- * This function is thread safe.
- *
- * @return ANEURALNETWORKS_NO_ERROR if successful.
- */
-int ANeuralNetworksInitialize();
-
-/**
- * Destroys the machine learning runtime.
- *
- * This function frees any resource used by the runtime. It will wait
- * until in flight executions have completed and will prevent new ones
- * from being started with {@link ANeuralNetworksExecution_startCompute}.
- *
- * Threads blocked on {@link ANeuralNetworksExecution_wait} calls will be
- * released before this function terminates.
- *
- * See {@link ANeuralNetworksInitialize} for details on how multiple calls
- * to Initialize and Shutdown work.
- *
- * This function is thread safe.
- */
-void ANeuralNetworksShutdown();
-
-/**
  * Creates a shared memory object from a file descriptor.
  *
  * The shared memory is backed by a file descriptor via mmap.
