@@ -138,7 +138,7 @@ bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runT
         to.type = from.type;
         to.dimensions = from.dimensions;
         to.scale = from.scale;
-        to.offset = from.location.offset;
+        to.offset = from.zeroPoint;
         to.length = from.location.length;
         switch (from.lifetime) {
             case OperandLifeTime::TEMPORARY_VARIABLE:
