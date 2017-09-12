@@ -24,8 +24,6 @@ using ::android::hardware::Return;
 using ::android::hardware::Void;
 using ::android::sp;
 
-using ReturnedStatus = ::android::hardware::neuralnetworks::V1_0::Status;
-
 /**
  * The Event class is used internally by the Neuralnetworks runtime to
  * synchronize between different threads. An asynchronous task is launched
@@ -79,7 +77,7 @@ struct Event : public IEvent {
      *
      * @param neuralnetworks::V1_0::Status SUCCESS or ERROR
      */
-    Return<void> notify(ReturnedStatus status) override;
+    Return<void> notify(ErrorStatus status) override;
 
     /**
      * Event::poll returns the current status of the event.

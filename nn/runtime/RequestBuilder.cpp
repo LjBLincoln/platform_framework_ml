@@ -218,14 +218,24 @@ static void copyLocationAndDimension(const std::vector<ModelArgumentInfo>& argum
 }
 
 int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model) {
-    LOG(DEBUG) << "RequestBuilder::startComputeOnDevice1";
+    LOG(DEBUG) << "RequestBuilder::startComputeOnDevice";
     // TODO Dangerous!  In async, the model will outlive it here. Safe for now
     sp<Event> preparationEvent = new Event();
-    sp<IPreparedModel> preparedModel = driver->prepareModel(model, preparationEvent);
+    ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
+    sp<IPreparedModel> preparedModel;
+
+    driver->prepareModel(model, preparationEvent,
+                         [&](ErrorStatus status, const sp<IPreparedModel>& prepared) {
+                             prepareStatus = status;
+                             preparedModel = prepared;
+                         });
+
     // Immediately synchronize with event for now
     // TODO: change to asynchronous later
-    preparationEvent->wait();
-    if (preparedModel == nullptr) {
+    Event::Status eventStatus = preparationEvent->wait();
+
+    if (prepareStatus != ErrorStatus::NONE || preparedModel == nullptr ||
+            eventStatus != Event::Status::SUCCESS) {
         return ANEURALNETWORKS_OP_FAILED;
     }
 
@@ -281,7 +291,7 @@ int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model)
     // maybe the HIDL infrastructure handles this magically? At worst,
     // it seems like this is a small memory leak, if the Event stays
     // alive forever.
-    if (!preparedModel->execute(request, eventSp)) {
+    if (preparedModel->execute(request, eventSp) != ErrorStatus::NONE) {
         LOG(DEBUG) << "**Execute failed**";
         return ANEURALNETWORKS_OP_FAILED;
     }
@@ -320,8 +330,9 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
                                    const sp<IEvent>& event) {
     CpuExecutor executor;
     int err = executor.run(model, request, runTimePoolInfos);
-    Status executionStatus = err == ANEURALNETWORKS_NO_ERROR ? Status::SUCCESS : Status::ERROR;
-    event->notify(executionStatus);
+    ErrorStatus status = err == ANEURALNETWORKS_NO_ERROR ?
+            ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
+    event->notify(status);
 }
 
 int RequestBuilder::startComputeOnCpu(const Model& model) {
