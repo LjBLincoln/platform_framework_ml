@@ -26,63 +26,10 @@
 namespace android {
 namespace nn {
 
-bool reshapePrepare(const Shape& input,
-                    const int32_t* targetDims,
-                    const int32_t targetDimsSize,
-                    Shape* output) {
-    // Reshape allows one of the targetDims components to have the
-    // special -1 value, meaning it will be calculated automatically based on the
-    // input. Here we calculate what that dimension should be so that the number
-    // of output elements in the same as the number of input elements.
-    int32_t numInputElements = (int32_t) getNumberOfElements(input);
-
-    std::vector<uint32_t> outDims(targetDimsSize);
-    int32_t numOutputElements = 1;
-    int32_t strechDim = -1;
-    for (int32_t i = 0; i < targetDimsSize; ++i) {
-        int32_t value = targetDims[i];
-        if (value == -1) {
-            DCHECK_EQ(strechDim, -1);
-            strechDim = i;
-        } else {
-            numOutputElements *= value;
-            outDims[i] = (uint32_t)value;
-        }
-    }
-    if (strechDim != -1) {
-        int32_t strechValue = numInputElements / numOutputElements;
-        outDims[strechDim] = (uint32_t) strechValue;
-        numOutputElements *= strechValue;
-    }
-
-    DCHECK_EQ(numInputElements, numOutputElements);
-
-    output->type = input.type;
-    output->dimensions = outDims;
-    output->offset = input.offset;
-    output->scale = input.scale;
-
-    return true;
-}
-
 bool reshapeGeneric(const void* inputData, const Shape& inputShape,
                     void* outputData, const Shape& outputShape) {
     size_t count = sizeOfData(inputShape.type, inputShape.dimensions);
     memcpy(outputData, inputData, count);
-    return true;
-}
-
-bool resizeBilinearPrepare(const Shape& input,
-                           int32_t width,
-                           int32_t height,
-                           Shape* output) {
-    DCHECK_EQ(getNumberOfDimensions(input), 4);
-    uint32_t batches  = getSizeOfDimension(input, 0);
-    uint32_t channels = getSizeOfDimension(input, 3);
-
-    output->type = input.type;
-    output->dimensions = {batches, (uint32_t)height, (uint32_t)width, channels};
-
     return true;
 }
 
@@ -100,29 +47,6 @@ bool resizeBilinearFloat32(const float* inputData, const Shape& inputShape,
             inputData, convertShapeToDims(inputShape),
             outDimData, convertShapeToDims(outDimShape),
             outputData, convertShapeToDims(outputShape));
-    return true;
-}
-
-bool depthToSpacePrepare(const Shape& input,
-                         int32_t blockSize,
-                         Shape* output) {
-    DCHECK_EQ(getNumberOfDimensions(input), 4);
-    DCHECK_GT(blockSize, 0);
-
-    uint32_t batches  = getSizeOfDimension(input, 0);
-    uint32_t height   = getSizeOfDimension(input, 1);
-    uint32_t width    = getSizeOfDimension(input, 2);
-    uint32_t channels = getSizeOfDimension(input, 3);
-
-    DCHECK_EQ(channels % (uint32_t)(blockSize * blockSize), 0);
-    output->type = input.type;
-    output->dimensions = {batches,
-                          height * blockSize,
-                          width * blockSize,
-                          channels / (blockSize * blockSize)};
-    output->offset = input.offset;
-    output->scale = input.scale;
-
     return true;
 }
 
@@ -147,31 +71,6 @@ bool depthToSpaceGeneric(const uint8_t* inputData, const Shape& inputShape,
         LOG(ERROR) << "Unsupported data type";
         return false;
     }
-    return true;
-}
-
-bool spaceToDepthPrepare(const Shape& input,
-                         int32_t blockSize,
-                         Shape* output) {
-    DCHECK_EQ(getNumberOfDimensions(input), 4);
-    DCHECK_GT(blockSize, 0);
-
-    uint32_t batches  = getSizeOfDimension(input, 0);
-    uint32_t height   = getSizeOfDimension(input, 1);
-    uint32_t width    = getSizeOfDimension(input, 2);
-    uint32_t channels = getSizeOfDimension(input, 3);
-
-    DCHECK_EQ(height % (uint32_t)blockSize, 0);
-    DCHECK_EQ(width % (uint32_t)blockSize, 0);
-
-    output->type = input.type;
-    output->dimensions = {batches,
-                          height / blockSize,
-                          width / blockSize,
-                          channels * (blockSize * blockSize)};
-    output->offset = input.offset;
-    output->scale = input.scale;
-
     return true;
 }
 

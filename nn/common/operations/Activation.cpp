@@ -22,12 +22,6 @@
 namespace android {
 namespace nn {
 
-bool genericActivationPrepare(const Shape& input,
-                              Shape* output) {
-    DCHECK_EQ(getNumberOfDimensions(input), 4);
-    return SetShape(input, output);
-}
-
 bool reluFloat32(const float* inputData, const Shape& inputShape,
                  float* outputData, const Shape& outputShape) {
     int numElements = getNumberOfElements(inputShape);
