@@ -50,13 +50,8 @@ EmbeddingLookup::EmbeddingLookup(const Operation& operation,
 }
 
 bool EmbeddingLookup::Eval() {
-  auto multiAll = [](const std::vector<uint32_t> &dims) -> uint32_t {
-    uint32_t sz = 1;
-    for (uint32_t d : dims) { sz *= d; }
-    return sz;
-  };
   const int row_size = value_->shape().dimensions[0];
-  const int total_bytes = sizeof(float) * multiAll(value_->shape().dimensions);
+  const int total_bytes = sizeOfData(value_->type, value_->dimensions);
   const int row_bytes = total_bytes/row_size;
 
   for (uint32_t i = 0; i < lookup_->shape().dimensions[0]; i++) {
