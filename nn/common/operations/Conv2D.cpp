@@ -26,37 +26,6 @@ namespace nn {
 static constexpr int kStaticBufferSize = 1605632;
 static char static_scratch_buffer[kStaticBufferSize];
 
-bool convPrepare(const Shape& input,
-                 const Shape& filter,
-                 const Shape& bias,
-                 int32_t padding_left, int32_t padding_right,
-                 int32_t padding_top, int32_t padding_bottom,
-                 int32_t stride_width, int32_t stride_height,
-                 Shape* output) {
-    DCHECK_EQ(getNumberOfDimensions(input), 4);
-    DCHECK_EQ(getNumberOfDimensions(filter), 4);
-    DCHECK_EQ(getNumberOfDimensions(bias), 1);
-
-    DCHECK_EQ(getSizeOfDimension(filter, 3), getSizeOfDimension(bias, 0));
-    DCHECK_EQ(stride_width, stride_height);
-
-    uint32_t channels_out = getSizeOfDimension(filter, 0);
-    uint32_t width        = getSizeOfDimension(input, 2);
-    uint32_t height       = getSizeOfDimension(input, 1);
-    uint32_t filterWidth  = getSizeOfDimension(filter, 2);
-    uint32_t filterHeight = getSizeOfDimension(filter, 1);
-    uint32_t batches      = getSizeOfDimension(input, 0);
-
-    uint32_t outWidth = computeOutSize(width, filterWidth, stride_width,
-                                       padding_left, padding_right);
-    uint32_t outHeight = computeOutSize(height, filterHeight, stride_height,
-                                        padding_top, padding_bottom);
-
-    output->type = input.type;
-    output->dimensions = {batches, outHeight, outWidth, channels_out};
-    return true;
-}
-
 #define ANDROID_NN_CONV_PARAMETERS(Type)                                        \
     uint32_t height       = getSizeOfDimension(inputShape, 1);                  \
     uint32_t width        = getSizeOfDimension(inputShape, 2);                  \
