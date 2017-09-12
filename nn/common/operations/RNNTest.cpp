@@ -178,6 +178,8 @@ class BasicRNNOpModel {
 
     model_.addOperation(ANEURALNETWORKS_RNN, inputs, outputs);
     model_.setInputsAndOutputs(inputs, outputs);
+
+    model_.finish();
   }
 
 #define DefineSetter(X)                          \

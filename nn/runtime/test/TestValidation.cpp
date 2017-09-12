@@ -58,6 +58,7 @@ protected:
         ANeuralNetworksIntList outputs{.count = 1, .data = outList};
         ASSERT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_ADD, &inputs, &outputs),
                   ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
 
         ASSERT_EQ(ANeuralNetworksCompilation_create(mModel, &mCompilation), ANEURALNETWORKS_NO_ERROR);
     }
@@ -150,10 +151,18 @@ TEST_F(ValidationTestModel, SetInputsAndOutputs) {
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
+TEST_F(ValidationTestModel, Finish) {
+    EXPECT_EQ(ANeuralNetworksModel_finish(nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_BAD_STATE);
+}
+
 TEST_F(ValidationTestModel, CreateCompilation) {
     ANeuralNetworksCompilation* compilation = nullptr;
     EXPECT_EQ(ANeuralNetworksCompilation_create(nullptr, &compilation), ANEURALNETWORKS_UNEXPECTED_NULL);
     EXPECT_EQ(ANeuralNetworksCompilation_create(mModel, nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksCompilation_create(mModel, &compilation), ANEURALNETWORKS_BAD_STATE);
+
     // EXPECT_EQ(ANeuralNetworksCompilation_create(mModel, ANeuralNetworksCompilation *
     // *compilation),
     //          ANEURALNETWORKS_UNEXPECTED_NULL);

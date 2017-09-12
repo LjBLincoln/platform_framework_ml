@@ -140,6 +140,8 @@ public:
         FOR_ALL_OUTPUT_TENSORS(ReserveOutput);
 
 #undef ReserveOutput
+
+        model_.finish();
     }
 
 #define DefineSetter(X)                                 \
