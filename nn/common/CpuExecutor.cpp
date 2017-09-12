@@ -138,7 +138,7 @@ bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runT
         to.type = from.type;
         to.dimensions = from.dimensions;
         to.scale = from.scale;
-        to.offset = from.location.offset;
+        to.offset = from.zeroPoint;
         to.length = from.location.length;
         switch (from.lifetime) {
             case OperandLifeTime::TEMPORARY_VARIABLE:
@@ -872,15 +872,15 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
-            int32_t height = getScalarData<int32_t>(mOperands[ins[1]]);
-            int32_t width = getScalarData<int32_t>(mOperands[ins[2]]);
+            int32_t width = getScalarData<int32_t>(mOperands[ins[1]]);
+            int32_t height = getScalarData<int32_t>(mOperands[ins[2]]);
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
 
             if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
                 success = resizeBilinearPrepare(input.shape(),
-                                                height, width,
+                                                width, height,
                                                 &outShape) &&
                           allocateIfNeeded(&output, outShape) &&
                           resizeBilinearFloat32(reinterpret_cast<const float*>(input.buffer),

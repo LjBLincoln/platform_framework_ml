@@ -28,8 +28,8 @@
 namespace android {
 namespace nn {
 
+class CompilationBuilder;
 class Memory;
-class RequestBuilder;
 
 class ModelBuilder {
 public:
@@ -45,7 +45,10 @@ public:
     int setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
                             const ANeuralNetworksIntList* outputs);
 
-    RequestBuilder* createRequest();
+    int finish();
+    bool isFinished() const { return mCompletedModel; }
+
+    int createCompilation(CompilationBuilder** compilation);
 
     void setHidlModel(Model* model) const;
 
@@ -74,7 +77,6 @@ private:
         return mOperandIndexes[info.offset + listIndex];
     }
     */
-    void finishTheModel();
 
     // The operations of the graph.
     std::vector<Operation> mOperations;

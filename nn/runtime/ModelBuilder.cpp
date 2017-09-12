@@ -18,7 +18,7 @@
 
 #include "ModelBuilder.h"
 
-#include "RequestBuilder.h"
+#include "CompilationBuilder.h"
 #include "Utils.h"
 
 #include <map>
@@ -33,7 +33,7 @@ const uint32_t MAX_NUMBER_OF_OPERATIONS = 0xFFFFFFFE;
 
 int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
     if (mCompletedModel) {
-        LOG(ERROR) << "ANeuralNetworksModel_addOperand can't modify after request creation";
+        LOG(ERROR) << "ANeuralNetworksModel_addOperand can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
     size_t idx = mOperands.size();
@@ -103,7 +103,7 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type,
                                const ANeuralNetworksIntList* inputs,
                                const ANeuralNetworksIntList* outputs) {
     if (mCompletedModel) {
-        LOG(ERROR) << "ANeuralNetworksModel_addOperation can't modify after request creation";
+        LOG(ERROR) << "ANeuralNetworksModel_addOperation can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
     uint32_t operationIndex = operationCount();
@@ -129,7 +129,7 @@ int ModelBuilder::setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
                                       const ANeuralNetworksIntList* outputs) {
     if (mCompletedModel) {
         LOG(ERROR)
-                << "ANeuralNetworksModel_setInputsAndOutputs can't modify after request creation";
+                << "ANeuralNetworksModel_setInputsAndOutputs can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
 
@@ -170,18 +170,27 @@ int ModelBuilder::setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-RequestBuilder* ModelBuilder::createRequest() {
-    finishTheModel();
-    return new RequestBuilder(this);
+int ModelBuilder::createCompilation(CompilationBuilder** compilation) {
+    if (!mCompletedModel) {
+        LOG(ERROR) << "ANeuralNetworksCompilation_create passed an unfinished model";
+        *compilation = nullptr;
+        return ANEURALNETWORKS_BAD_STATE;
+    }
+    *compilation = new CompilationBuilder(this);
+    return (*compilation ? ANEURALNETWORKS_NO_ERROR : ANEURALNETWORKS_OUT_OF_MEMORY);
 }
 
-void ModelBuilder::finishTheModel() {
-    if (!mCompletedModel) {
-        // We sort the operations so that they will be in the appropriate
-        // order for a single-threaded, op at a time execution.
-        sortIntoRunOrder();
-        mCompletedModel = true;
+int ModelBuilder::finish() {
+    if (mCompletedModel) {
+        LOG(ERROR) << "ANeuralNetworksModel_finish called more than once";
+        return ANEURALNETWORKS_BAD_STATE;
     }
+
+    // We sort the operations so that they will be in the appropriate
+    // order for a single-threaded, op at a time execution.
+    sortIntoRunOrder();
+    mCompletedModel = true;
+    return ANEURALNETWORKS_NO_ERROR;
 }
 
 void ModelBuilder::sortIntoRunOrder() {

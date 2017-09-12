@@ -174,6 +174,8 @@ public:
         return *this;
     }
 
+    int finish() { return ANeuralNetworksModel_finish(mModel); }
+
     uint32_t addOperand(const OperandType* type) {
         if (ANeuralNetworksModel_addOperand(mModel, &(type->operandType)) !=
             ANEURALNETWORKS_NO_ERROR) {
@@ -269,10 +271,58 @@ private:
     ANeuralNetworksEvent* mEvent = nullptr;
 };
 
+class Compilation {
+public:
+    Compilation(const Model* model) {
+        int result = ANeuralNetworksCompilation_create(model->getHandle(), &mCompilation);
+        if (result != 0) {
+            // TODO Handle the error
+        }
+    }
+
+    ~Compilation() { ANeuralNetworksCompilation_free(mCompilation); }
+
+    Compilation(const Compilation&) = delete;
+    Compilation& operator=(const Compilation &) = delete;
+
+    Compilation(Compilation&& other) {
+        *this = std::move(other);
+    }
+    Compilation& operator=(Compilation&& other) {
+        if (this != &other) {
+            mCompilation = other.mCompilation;
+            other.mCompilation = nullptr;
+        }
+        return *this;
+    }
+
+    Result setPreference(ExecutePreference preference) {
+        return static_cast<Result>(ANeuralNetworksCompilation_setPreference(
+                    mCompilation, static_cast<uint32_t>(preference)));
+    }
+
+    // TODO startCompile
+
+    Result compile() {
+        Result result = static_cast<Result>(ANeuralNetworksCompilation_start(mCompilation));
+        if (result != Result::NO_ERROR) {
+            return result;
+        }
+        // TODO how to manage the lifetime of compilations when multiple waiters
+        // is not clear.
+        return static_cast<Result>(ANeuralNetworksCompilation_wait(mCompilation));
+    }
+
+    ANeuralNetworksCompilation* getHandle() const { return mCompilation; }
+
+private:
+    ANeuralNetworksCompilation* mCompilation = nullptr;
+};
+
 class Request {
 public:
-    Request(const Model* model) {
-        int result = ANeuralNetworksRequest_create(model->getHandle(), &mRequest);
+    Request(const Compilation* compilation) {
+        int result = ANeuralNetworksRequest_create(compilation->getHandle(), &mRequest);
         if (result != 0) {
             // TODO Handle the error
         }
@@ -298,11 +348,6 @@ public:
             other.mRequest = nullptr;
         }
         return *this;
-    }
-
-    Result setPreference(ExecutePreference preference) {
-        return static_cast<Result>(ANeuralNetworksRequest_setPreference(
-                    mRequest, static_cast<uint32_t>(preference)));
     }
 
     Result setInput(uint32_t index, const void* buffer, size_t length,
@@ -344,7 +389,9 @@ public:
         }
         // TODO how to manage the lifetime of events when multiple waiters is not
         // clear.
-        return static_cast<Result>(ANeuralNetworksEvent_wait(event));
+        result = static_cast<Result>(ANeuralNetworksEvent_wait(event));
+        ANeuralNetworksEvent_free(event);
+        return result;
     }
 
 private:

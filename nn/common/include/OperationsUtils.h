@@ -25,6 +25,32 @@
 namespace android {
 namespace nn {
 
+enum PaddingScheme {
+    kPaddingUnknown = 0,
+    kPaddingSame = 1,
+    kPaddingValid = 2,
+};
+
+inline PaddingScheme getPaddingScheme(uint32_t filterWidth, uint32_t filterHeight,
+                                      uint32_t paddingLeft, uint32_t paddingRight,
+                                      uint32_t paddingTop, uint32_t paddingBottom) {
+    if (paddingLeft > paddingRight || paddingTop > paddingBottom) {
+        return kPaddingUnknown;
+    }
+
+    uint32_t totolPaddingWidth = paddingLeft + paddingRight;
+    uint32_t totolPaddingHeight = paddingTop + paddingBottom;
+    if (totolPaddingWidth == filterWidth - 1 &&
+        totolPaddingHeight == filterHeight -1) {
+        return kPaddingSame;
+    } else if (totolPaddingWidth == 0 &&
+               totolPaddingHeight == 0) {
+        return kPaddingValid;
+    } else {
+        return kPaddingUnknown;
+    }
+}
+
 // The type and dimensions of an operand.
 struct Shape {
     OperandType type;
@@ -72,6 +98,67 @@ void CalculateActivationRangeUint8(int32_t activation,
                                    int32_t* act_max);
 
 int32_t CalculateInputRadius(int input_integer_bits, int input_left_shift);
+
+// Preparation functions for the corresponding ops
+bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out1);
+
+bool floorPrepare(const Shape& input, Shape* output);
+
+bool dequantizePrepare(const Shape& input, Shape* output);
+
+bool depthwiseConvPrepare(const Shape& input,
+                          const Shape& filter,
+                          const Shape& bias,
+                          int32_t padding_left, int32_t padding_right,
+                          int32_t padding_top, int32_t padding_bottom,
+                          int32_t stride_width, int32_t stride_height,
+                          Shape* output);
+
+bool convPrepare(const Shape& input,
+                 const Shape& filter,
+                 const Shape& bias,
+                 int32_t padding_left, int32_t padding_right,
+                 int32_t padding_top, int32_t padding_bottom,
+                 int32_t stride_width, int32_t stride_height,
+                 Shape* output);
+
+bool genericPoolingPrepare(const Shape& input,
+                           int32_t padding_left, int32_t padding_right,
+                           int32_t padding_top, int32_t padding_bottom,
+                           int32_t stride_width, int32_t stride_height,
+                           int32_t filter_width, int32_t filter_height,
+                           Shape* output);
+
+bool genericActivationPrepare(const Shape& input, Shape* output);
+
+bool fullyConnectedPrepare(const Shape& input,
+                           const Shape& weights,
+                           const Shape& bias,
+                           Shape* output);
+
+bool concatenationPrepare(const std::vector<Shape>& inputShapes,
+                          int32_t axis,
+                          Shape* output);
+
+bool genericNormalizationPrepare(const Shape& input, Shape* output);
+
+bool reshapePrepare(const Shape& input,
+                    const int32_t* targetDims,
+                    const int32_t targetDimsSize,
+                    Shape* output);
+
+bool resizeBilinearPrepare(const Shape& input,
+                           int32_t height,
+                           int32_t width,
+                           Shape* output);
+
+bool depthToSpacePrepare(const Shape& input,
+                         int32_t blockSize,
+                         Shape* output);
+
+bool spaceToDepthPrepare(const Shape& input,
+                         int32_t blockSize,
+                         Shape* output);
 
 #define ANDROID_NN_MACRO_DISPATCH(macro)                                    \
     switch (activation) {                                                   \

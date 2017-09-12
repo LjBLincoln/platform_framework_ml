@@ -20,6 +20,7 @@
 
 #define LOG_TAG "NeuralNetworks"
 
+#include "CompilationBuilder.h"
 #include "Event.h"
 #include "NeuralNetworks.h"
 #include "Manager.h"
@@ -111,6 +112,7 @@ static_assert(ANEURALNETWORKS_UNEXPECTED_NULL == 3,
               "ANEURALNETWORKS_UNEXPECTED_NULL may have changed");
 static_assert(ANEURALNETWORKS_BAD_DATA == 4, "ANEURALNETWORKS_BAD_DATA may have changed");
 static_assert(ANEURALNETWORKS_OP_FAILED == 5, "ANEURALNETWORKS_OP_FAILED may have changed");
+static_assert(ANEURALNETWORKS_BAD_STATE == 6, "ANEURALNETWORKS_BAD_STATE may have changed");
 
 // Make sure that the constants are compatible with the values defined in
 // hardware/interfaces/neuralnetworks/1.0/types.hal.
@@ -349,6 +351,15 @@ void ANeuralNetworksModel_free(ANeuralNetworksModel* model) {
     delete m;
 }
 
+int ANeuralNetworksModel_finish(ANeuralNetworksModel* model) {
+    if (!model) {
+        LOG(ERROR) << "ANeuralNetworksModel_finish passed a nullptr";
+        return ANEURALNETWORKS_UNEXPECTED_NULL;
+    }
+    ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
+    return m->finish();
+}
+
 int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
                                     const ANeuralNetworksOperandType* type) {
     if (!model || !type) {
@@ -434,41 +445,82 @@ int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model,
     return m->setInputsAndOutputs(inputs, outputs);
 }
 
-int ANeuralNetworksRequest_create(ANeuralNetworksModel* model, ANeuralNetworksRequest** request) {
-    if (!model || !request) {
-        LOG(ERROR) << "ANeuralNetworksRequest_create passed a nullptr";
+int ANeuralNetworksCompilation_create(ANeuralNetworksModel* model,
+                                      ANeuralNetworksCompilation** compilation) {
+    if (!model || !compilation) {
+        LOG(ERROR) << "ANeuralNetworksCompilation_create passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
 
     ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
-    RequestBuilder* r = m->createRequest();
-    if (r == nullptr) {
-        *request = nullptr;
-        return ANEURALNETWORKS_OUT_OF_MEMORY;
-    }
-    *request = reinterpret_cast<ANeuralNetworksRequest*>(r);
-    return ANEURALNETWORKS_NO_ERROR;
+    CompilationBuilder* c = nullptr;
+    int result = m->createCompilation(&c);
+    *compilation = reinterpret_cast<ANeuralNetworksCompilation*>(c);
+    return result;
 }
 
-void ANeuralNetworksRequest_free(ANeuralNetworksRequest* request) {
+void ANeuralNetworksCompilation_free(ANeuralNetworksCompilation* compilation) {
     // No validation.  Free of nullptr is valid.
-    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
-    delete r;
+    // TODO specification says that a compilation-in-flight can be deleted
+    CompilationBuilder* c = reinterpret_cast<CompilationBuilder*>(compilation);
+    delete c;
 }
 
-int ANeuralNetworksRequest_setPreference(ANeuralNetworksRequest* request, uint32_t preference) {
-    if (!request) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setPreference passed a nullptr";
+int ANeuralNetworksCompilation_setPreference(ANeuralNetworksCompilation* compilation,
+                                             uint32_t preference) {
+    if (!compilation) {
+        LOG(ERROR) << "ANeuralNetworksCompilation_setPreference passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     if (preference >= kNumberOfPreferences) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setPreference invalid preference " << preference;
+        LOG(ERROR) << "ANeuralNetworksCompilation_setPreference invalid preference " << preference;
         return ANEURALNETWORKS_BAD_DATA;
     }
 
-    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
-    r->setPreference(preference);
+    CompilationBuilder* c = reinterpret_cast<CompilationBuilder*>(compilation);
+    c->setPreference(preference);
     return ANEURALNETWORKS_NO_ERROR;
+}
+
+int ANeuralNetworksCompilation_start(ANeuralNetworksCompilation* compilation) {
+    if (!compilation) {
+        LOG(ERROR) << "ANeuralNetworksCompilation_start passed a nullptr";
+        return ANEURALNETWORKS_UNEXPECTED_NULL;
+    }
+    // TODO validate the rest
+
+    CompilationBuilder* c = reinterpret_cast<CompilationBuilder*>(compilation);
+    return c->compile();  // TODO asynchronous
+}
+
+int ANeuralNetworksCompilation_wait(ANeuralNetworksCompilation* compilation) {
+    if (!compilation) {
+        LOG(ERROR) << "ANeuralNetworksCompilation_wait passed a nullptr";
+        return ANEURALNETWORKS_UNEXPECTED_NULL;
+    }
+    // TODO asynchronous
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int ANeuralNetworksRequest_create(ANeuralNetworksCompilation* compilation,
+                                  ANeuralNetworksRequest** request) {
+    if (!compilation || !request) {
+        LOG(ERROR) << "ANeuralNetworksRequest_create passed a nullptr";
+        return ANEURALNETWORKS_UNEXPECTED_NULL;
+    }
+
+    CompilationBuilder* c = reinterpret_cast<CompilationBuilder*>(compilation);
+    RequestBuilder* r = nullptr;
+    int result = c->createRequest(&r);
+    *request = reinterpret_cast<ANeuralNetworksRequest*>(r);
+    return result;
+}
+
+void ANeuralNetworksRequest_free(ANeuralNetworksRequest* request) {
+    // TODO specification says that a request-in-flight can be deleted
+    // No validation.  Free of nullptr is valid.
+    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
+    delete r;
 }
 
 int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t index,

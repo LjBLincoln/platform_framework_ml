@@ -162,5 +162,320 @@ int32_t CalculateInputRadius(int input_integer_bits, int input_left_shift) {
     return static_cast<int32_t>(std::floor(max_input_rescaled));
 }
 
+
+// Macro to check if the input parameters for operation are valid or not.
+#define nnOpsCheck(v)                                                                      \
+    if (!(v)) {                                                                            \
+        LOG(ERROR) << "nnOpsCheck failed: "  << #v << "'\n";                               \
+        return false;                                                                      \
+    }
+
+bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out) {
+    nnOpsCheck(getNumberOfDimensions(in1) <= 4 && getNumberOfDimensions(in2) <= 4);
+    if (SameShape(in1, in2)) {
+        return SetShape(in1, out);
+    } else {
+        // BroadcastAdd needed
+        uint32_t numberOfDims1 = getNumberOfDimensions(in1);
+        uint32_t numberOfDims2 = getNumberOfDimensions(in2);
+        uint32_t maxDims = std::max(numberOfDims1, numberOfDims2);
+        out->dimensions = std::vector<uint32_t>(maxDims);
+        for (uint32_t i = 1; i <= maxDims; i++) {
+            uint32_t dim1 = 1;
+            if (i <= numberOfDims1) {
+                dim1 = getSizeOfDimension(in1, numberOfDims1 - i);
+            }
+            uint32_t dim2 = 1;
+            if (i <= numberOfDims2) {
+                dim2 = getSizeOfDimension(in2, numberOfDims2 - i);
+            }
+            if (dim1 != dim2 && dim1 != 1 && dim2 != 1) {
+                LOG(ERROR) << "Dimensions mismatch for BroadcastAdd";
+                return false;
+            }
+            out->dimensions[maxDims - i] = std::max(dim1, dim2);
+        }
+    }
+    return true;
+}
+
+bool floorPrepare(const Shape& input, Shape* output) {
+    return SetShape(input, output);
+}
+
+bool dequantizePrepare(const Shape& input, Shape* output) {
+    if (input.type != OperandType::TENSOR_QUANT8_ASYMM ||
+            output->type != OperandType::TENSOR_FLOAT32) {
+        LOG(ERROR) << "bad input / output operand type.";
+        return false;
+    }
+    return SetShape(input, output);
+}
+
+bool convPrepare(const Shape& input,
+                 const Shape& filter,
+                 const Shape& bias,
+                 int32_t padding_left, int32_t padding_right,
+                 int32_t padding_top, int32_t padding_bottom,
+                 int32_t stride_width, int32_t stride_height,
+                 Shape* output) {
+    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    nnOpsCheck(getNumberOfDimensions(filter) == 4);
+    nnOpsCheck(getNumberOfDimensions(bias) == 1);
+
+    nnOpsCheck(getSizeOfDimension(filter, 0) == getSizeOfDimension(bias, 0));
+    nnOpsCheck(getSizeOfDimension(filter, 3) == getSizeOfDimension(input, 3));
+
+    nnOpsCheck(stride_width == stride_height);
+
+    uint32_t channels_out = getSizeOfDimension(filter, 0);
+    uint32_t width        = getSizeOfDimension(input, 2);
+    uint32_t height       = getSizeOfDimension(input, 1);
+    uint32_t filterWidth  = getSizeOfDimension(filter, 2);
+    uint32_t filterHeight = getSizeOfDimension(filter, 1);
+    uint32_t batches      = getSizeOfDimension(input, 0);
+
+    uint32_t outWidth = computeOutSize(width, filterWidth, stride_width,
+                                       padding_left, padding_right);
+    uint32_t outHeight = computeOutSize(height, filterHeight, stride_height,
+                                        padding_top, padding_bottom);
+
+    output->type = input.type;
+    output->dimensions = {batches, outHeight, outWidth, channels_out};
+    return true;
+}
+
+bool depthwiseConvPrepare(const Shape& input,
+                          const Shape& filter,
+                          const Shape& bias,
+                          int32_t padding_left, int32_t padding_right,
+                          int32_t padding_top, int32_t padding_bottom,
+                          int32_t stride_width, int32_t stride_height,
+                          Shape* output) {
+    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    nnOpsCheck(getNumberOfDimensions(filter) == 4);
+    nnOpsCheck(getNumberOfDimensions(bias) == 1);
+
+    nnOpsCheck(getSizeOfDimension(filter, 3) == getSizeOfDimension(bias, 0));
+
+    nnOpsCheck(stride_width == stride_height);
+
+    uint32_t channels_out = getSizeOfDimension(filter, 3);
+    uint32_t width        = getSizeOfDimension(input, 2);
+    uint32_t height       = getSizeOfDimension(input, 1);
+    uint32_t filterWidth  = getSizeOfDimension(filter, 2);
+    uint32_t filterHeight = getSizeOfDimension(filter, 1);
+    uint32_t batches      = getSizeOfDimension(input, 0);
+
+    uint32_t outWidth = computeOutSize(width, filterWidth, stride_width,
+                                       padding_left, padding_right);
+    uint32_t outHeight = computeOutSize(height, filterHeight, stride_height,
+                                        padding_top, padding_bottom);
+
+    output->type = input.type;
+    output->dimensions = {batches, outHeight, outWidth, channels_out};
+    return true;
+}
+
+
+bool genericPoolingPrepare(const Shape& input,
+                           int32_t padding_left, int32_t padding_right,
+                           int32_t padding_top, int32_t padding_bottom,
+                           int32_t stride_width, int32_t stride_height,
+                           int32_t filter_width, int32_t filter_height,
+                           Shape* output) {
+    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    nnOpsCheck(stride_width == stride_height);
+
+    uint32_t batches      = getSizeOfDimension(input, 0);
+    uint32_t width        = getSizeOfDimension(input, 2);
+    uint32_t height       = getSizeOfDimension(input, 1);
+    uint32_t channels_out = getSizeOfDimension(input, 3);
+
+    uint32_t outWidth = computeOutSize(width, filter_width, stride_width,
+                                       padding_left, padding_right);
+    uint32_t outHeight = computeOutSize(height, filter_height, stride_height,
+                                        padding_top, padding_bottom);
+
+    output->type = input.type;
+    output->dimensions = {batches, outHeight, outWidth, channels_out};
+    return true;
+}
+
+
+bool genericActivationPrepare(const Shape& input,
+                              Shape* output) {
+    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    return SetShape(input, output);
+}
+
+bool fullyConnectedPrepare(const Shape& input,
+                           const Shape& weights,
+                           const Shape& bias,
+                           Shape* output) {
+    // Check all the parameters of tensor match within themselves and match the
+    // input configuration.
+    uint32_t input_size = getNumberOfElements(input);
+    uint32_t num_units  = getSizeOfDimension(weights, 0);
+    uint32_t batch_size = input_size / getSizeOfDimension(weights, 1);
+
+    nnOpsCheck(getSizeOfDimension(bias, 0) == num_units);
+    nnOpsCheck(getSizeOfDimension(weights, 1) * batch_size == input_size);
+    nnOpsCheck(getNumberOfDimensions(weights) == 2);
+
+    output->type = input.type;
+    output->dimensions = {batch_size, num_units};
+
+    return true;
+}
+
+bool concatenationPrepare(const std::vector<Shape>& inputShapes,
+                          int32_t axis,
+                          Shape* output) {
+
+    int num_inputs = inputShapes.size();
+    OperandType input_type = inputShapes[0].type;
+    uint32_t num_dimensions = getNumberOfDimensions(inputShapes[0]);
+
+    nnOpsCheck(axis >= 0);
+    nnOpsCheck(axis < (int32_t)num_dimensions);
+
+    int sum_axis = getSizeOfDimension(inputShapes[0], axis);
+    for (int i = 1; i < num_inputs; ++i) {
+        nnOpsCheck(getNumberOfDimensions(inputShapes[i]) == num_dimensions);
+        nnOpsCheck(inputShapes[i].type == inputShapes[0].type);
+        if (input_type == OperandType::TENSOR_QUANT8_ASYMM) {
+            nnOpsCheck(inputShapes[0].offset == inputShapes[i].offset);
+            nnOpsCheck(inputShapes[0].scale == inputShapes[i].scale);
+        }
+        for (int d = 0; d < (int32_t)num_dimensions; ++d) {
+            if (d == axis) {
+                sum_axis += getSizeOfDimension(inputShapes[i], axis);
+            } else {
+                nnOpsCheck(getSizeOfDimension(inputShapes[0], d) ==
+                           getSizeOfDimension(inputShapes[i], d));
+            }
+        }
+    }
+
+    output->type = input_type;
+    output->dimensions = inputShapes[0].dimensions;
+    output->dimensions[axis] = sum_axis;
+
+    if (input_type == OperandType::TENSOR_QUANT8_ASYMM) {
+        nnOpsCheck(inputShapes[0].offset == output->offset);
+        nnOpsCheck(inputShapes[0].scale == output->scale);
+    }
+
+    return true;
+}
+
+
+bool genericNormalizationPrepare(const Shape& input, Shape* output) {
+    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    return SetShape(input, output);
+}
+
+bool reshapePrepare(const Shape& input,
+                    const int32_t* targetDims,
+                    const int32_t targetDimsSize,
+                    Shape* output) {
+    // Reshape allows one of the targetDims components to have the
+    // special -1 value, meaning it will be calculated automatically based on the
+    // input. Here we calculate what that dimension should be so that the number
+    // of output elements in the same as the number of input elements.
+    int32_t numInputElements = (int32_t) getNumberOfElements(input);
+
+    std::vector<uint32_t> outDims(targetDimsSize);
+    int32_t numOutputElements = 1;
+    int32_t strechDim = -1;
+    for (int32_t i = 0; i < targetDimsSize; ++i) {
+        int32_t value = targetDims[i];
+        if (value == -1) {
+            nnOpsCheck(strechDim == -1);
+            strechDim = i;
+        } else {
+            numOutputElements *= value;
+            outDims[i] = (uint32_t)value;
+        }
+    }
+    if (strechDim != -1) {
+        int32_t strechValue = numInputElements / numOutputElements;
+        outDims[strechDim] = (uint32_t) strechValue;
+        numOutputElements *= strechValue;
+    }
+
+    nnOpsCheck(numInputElements == numOutputElements);
+
+    output->type = input.type;
+    output->dimensions = outDims;
+    output->offset = input.offset;
+    output->scale = input.scale;
+
+    return true;
+}
+
+bool resizeBilinearPrepare(const Shape& input,
+                           int32_t width,
+                           int32_t height,
+                           Shape* output) {
+    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    uint32_t batches  = getSizeOfDimension(input, 0);
+    uint32_t channels = getSizeOfDimension(input, 3);
+
+    output->type = input.type;
+    output->dimensions = {batches, (uint32_t)height, (uint32_t)width, channels};
+
+    return true;
+}
+
+bool depthToSpacePrepare(const Shape& input,
+                         int32_t blockSize,
+                         Shape* output) {
+    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    nnOpsCheck(blockSize > 0);
+
+    uint32_t batches  = getSizeOfDimension(input, 0);
+    uint32_t height   = getSizeOfDimension(input, 1);
+    uint32_t width    = getSizeOfDimension(input, 2);
+    uint32_t channels = getSizeOfDimension(input, 3);
+
+    nnOpsCheck(channels % (blockSize * blockSize) == 0);
+    output->type = input.type;
+    output->dimensions = {batches,
+                          height * blockSize,
+                          width * blockSize,
+                          channels / (blockSize * blockSize)};
+    output->offset = input.offset;
+    output->scale = input.scale;
+
+    return true;
+}
+
+bool spaceToDepthPrepare(const Shape& input,
+                         int32_t blockSize,
+                         Shape* output) {
+    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    nnOpsCheck(blockSize > 0);
+
+    uint32_t batches  = getSizeOfDimension(input, 0);
+    uint32_t height   = getSizeOfDimension(input, 1);
+    uint32_t width    = getSizeOfDimension(input, 2);
+    uint32_t channels = getSizeOfDimension(input, 3);
+
+    nnOpsCheck(height % blockSize == 0);
+    nnOpsCheck(width % blockSize == 0);
+
+    output->type = input.type;
+    output->dimensions = {batches,
+                          height / blockSize,
+                          width / blockSize,
+                          channels * (blockSize * blockSize)};
+    output->offset = input.offset;
+    output->scale = input.scale;
+
+    return true;
+}
+
 } // namespace nn
 } // namespace android
