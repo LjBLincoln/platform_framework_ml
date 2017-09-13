@@ -1,4 +1,4 @@
-// Generated file (from: hashtable_lookup.mod.py). Do not edit
+// Generated file (from: hashtable_lookup_float.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type2(Type::TENSOR_FLOAT32, {3, 2});
   OperandType type1(Type::TENSOR_FLOAT32, {3});
@@ -17,4 +17,9 @@ void CreateModel(Model *model) {
     {lookup, key, value},
     {output, hits});
   assert(model->isValid());
+}
+
+bool is_ignored(int i) {
+  static std::set<int> ignore = {};
+  return ignore.find(i) != ignore.end();
 }
