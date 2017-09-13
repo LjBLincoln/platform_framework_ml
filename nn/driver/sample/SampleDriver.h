@@ -33,7 +33,7 @@ public:
     Return<void> initialize(initialize_cb _hidl_cb) override;
     Return<void> getSupportedSubgraph(const Model& model,
                                       getSupportedSubgraph_cb _hidl_cb) override;
-    Return<sp<IPreparedModel>> prepareModel(const Model& model) override;
+    Return<sp<IPreparedModel>> prepareModel(const Model& model, const sp<IEvent>& event) override;
     Return<DeviceStatus> getStatus() override;
 };
 
