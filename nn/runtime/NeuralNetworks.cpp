@@ -23,6 +23,7 @@
 #include "CompilationBuilder.h"
 #include "Event.h"
 #include "NeuralNetworks.h"
+#include "NeuralNetworksOEM.h"
 #include "Manager.h"
 #include "Memory.h"
 #include "ModelBuilder.h"
@@ -31,63 +32,65 @@
 #include <memory>
 #include <vector>
 
-// Make sure the constants defined in the header file have not changed values.
-// IMPORTANT: When adding new values, update kNumberOfDataTypes in Utils.h.
-static_assert(ANEURALNETWORKS_OEM == 0, "ANEURALNETWORKS_OEM may have changed");
-static_assert(ANEURALNETWORKS_FLOAT32 == 1, "ANEURALNETWORKS_FLOAT32 may have changed");
-static_assert(ANEURALNETWORKS_INT32 == 2, "ANEURALNETWORKS_INT32 may have changed");
-static_assert(ANEURALNETWORKS_UINT32 == 3, "ANEURALNETWORKS_UINT32 may have changed");
-static_assert(ANEURALNETWORKS_TENSOR_OEM_BYTE == 4,
-              "ANEURALNETWORKS_TENSOR_OEM_BYTE may have changed");
-static_assert(ANEURALNETWORKS_TENSOR_FLOAT32 == 5,
+// Make sure the constants defined in the header files have not changed values.
+// IMPORTANT: When adding new values, update kNumberOfDataTypes or kNumberOfDataTypesOEM
+// in Utils.h.
+static_assert(ANEURALNETWORKS_FLOAT32 == 0, "ANEURALNETWORKS_FLOAT32 may have changed");
+static_assert(ANEURALNETWORKS_INT32 == 1, "ANEURALNETWORKS_INT32 may have changed");
+static_assert(ANEURALNETWORKS_UINT32 == 2, "ANEURALNETWORKS_UINT32 may have changed");
+static_assert(ANEURALNETWORKS_TENSOR_FLOAT32 == 3,
               "ANEURALNETWORKS_TENSOR_FLOAT32 may have changed");
-static_assert(ANEURALNETWORKS_TENSOR_INT32 == 6, "ANEURALNETWORKS_TENSOR_INT32 may have changed");
-static_assert(ANEURALNETWORKS_TENSOR_QUANT8_ASYMM == 7,
+static_assert(ANEURALNETWORKS_TENSOR_INT32 == 4, "ANEURALNETWORKS_TENSOR_INT32 may have changed");
+static_assert(ANEURALNETWORKS_TENSOR_QUANT8_ASYMM == 5,
               "ANEURALNETWORKS_TENSOR_QUANT8_ASYMM may have changed");
+static_assert(ANEURALNETWORKS_OEM_SCALAR == 10000, "ANEURALNETWORKS_OEM_SCALAR may have changed");
+static_assert(ANEURALNETWORKS_TENSOR_OEM_BYTE == 10001,
+              "ANEURALNETWORKS_TENSOR_OEM_BYTE may have changed");
 
-// IMPORTANT: When adding new values, update kNumberOfOperationTypes in Utils.h.
-static_assert(ANEURALNETWORKS_OEM_OPERATION == 0, "ANEURALNETWORKS_OEM_OPERATION may have changed");
-static_assert(ANEURALNETWORKS_ADD == 1, "ANEURALNETWORKS_ADD may have changed");
-static_assert(ANEURALNETWORKS_AVERAGE_POOL_2D == 2,
+// IMPORTANT: When adding new values, update kNumberOfOperationTypes or
+// kNumberOfOperationTypesOEMin Utils.h.
+static_assert(ANEURALNETWORKS_ADD == 0, "ANEURALNETWORKS_ADD may have changed");
+static_assert(ANEURALNETWORKS_AVERAGE_POOL_2D == 1,
               "ANEURALNETWORKS_AVERAGE_POOL_2D may have changed");
-static_assert(ANEURALNETWORKS_CONCATENATION == 3, "ANEURALNETWORKS_CONCATENATION may have changed");
-static_assert(ANEURALNETWORKS_CONV_2D == 4, "ANEURALNETWORKS_CONV_2D may have changed");
-static_assert(ANEURALNETWORKS_DEPTHWISE_CONV_2D == 5,
+static_assert(ANEURALNETWORKS_CONCATENATION == 2, "ANEURALNETWORKS_CONCATENATION may have changed");
+static_assert(ANEURALNETWORKS_CONV_2D == 3, "ANEURALNETWORKS_CONV_2D may have changed");
+static_assert(ANEURALNETWORKS_DEPTHWISE_CONV_2D == 4,
               "ANEURALNETWORKS_DEPTHWISE_CONV_2D may have changed");
-static_assert(ANEURALNETWORKS_DEPTH_TO_SPACE == 6,
+static_assert(ANEURALNETWORKS_DEPTH_TO_SPACE == 5,
               "ANEURALNETWORKS_DEPTH_TO_SPACE may have changed");
-static_assert(ANEURALNETWORKS_DEQUANTIZE == 7, "ANEURALNETWORKS_DEQUANTIZE may have changed");
-static_assert(ANEURALNETWORKS_EMBEDDING_LOOKUP == 8,
+static_assert(ANEURALNETWORKS_DEQUANTIZE == 6, "ANEURALNETWORKS_DEQUANTIZE may have changed");
+static_assert(ANEURALNETWORKS_EMBEDDING_LOOKUP == 7,
               "ANEURALNETWORKS_EMBEDDING_LOOKUP may have changed");
-static_assert(ANEURALNETWORKS_FAKE_QUANT == 9, "ANEURALNETWORKS_FAKE_QUANT may have changed");
-static_assert(ANEURALNETWORKS_FLOOR == 10, "ANEURALNETWORKS_FLOOR may have changed");
-static_assert(ANEURALNETWORKS_FULLY_CONNECTED == 11,
+static_assert(ANEURALNETWORKS_FLOOR == 8, "ANEURALNETWORKS_FLOOR may have changed");
+static_assert(ANEURALNETWORKS_FULLY_CONNECTED == 9,
               "ANEURALNETWORKS_FULLY_CONNECTED may have changed");
-static_assert(ANEURALNETWORKS_HASHTABLE_LOOKUP == 12,
+static_assert(ANEURALNETWORKS_HASHTABLE_LOOKUP == 10,
               "ANEURALNETWORKS_HASHTABLE_LOOKUP may have changed");
-static_assert(ANEURALNETWORKS_L2_NORMALIZATION == 13,
+static_assert(ANEURALNETWORKS_L2_NORMALIZATION == 11,
               "ANEURALNETWORKS_L2_NORMALIZATION may have changed");
-static_assert(ANEURALNETWORKS_L2_POOL_2D == 14, "ANEURALNETWORKS_L2_POOL may have changed");
-static_assert(ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION == 15,
+static_assert(ANEURALNETWORKS_L2_POOL_2D == 12, "ANEURALNETWORKS_L2_POOL may have changed");
+static_assert(ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION == 13,
               "ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION may have changed");
-static_assert(ANEURALNETWORKS_LOGISTIC == 16, "ANEURALNETWORKS_LOGISTIC may have changed");
-static_assert(ANEURALNETWORKS_LSH_PROJECTION == 17,
+static_assert(ANEURALNETWORKS_LOGISTIC == 14, "ANEURALNETWORKS_LOGISTIC may have changed");
+static_assert(ANEURALNETWORKS_LSH_PROJECTION == 15,
               "ANEURALNETWORKS_LSH_PROJECTION may have changed");
-static_assert(ANEURALNETWORKS_LSTM == 18, "ANEURALNETWORKS_LSTM may have changed");
-static_assert(ANEURALNETWORKS_MAX_POOL_2D == 19, "ANEURALNETWORKS_MAX_POOL may have changed");
-static_assert(ANEURALNETWORKS_MUL == 20, "ANEURALNETWORKS_MUL may have changed");
-static_assert(ANEURALNETWORKS_RELU == 21, "ANEURALNETWORKS_RELU may have changed");
-static_assert(ANEURALNETWORKS_RELU1 == 22, "ANEURALNETWORKS_RELU1 may have changed");
-static_assert(ANEURALNETWORKS_RELU6 == 23, "ANEURALNETWORKS_RELU6 may have changed");
-static_assert(ANEURALNETWORKS_RESHAPE == 24, "ANEURALNETWORKS_RESHAPE may have changed");
-static_assert(ANEURALNETWORKS_RESIZE_BILINEAR == 25,
+static_assert(ANEURALNETWORKS_LSTM == 16, "ANEURALNETWORKS_LSTM may have changed");
+static_assert(ANEURALNETWORKS_MAX_POOL_2D == 17, "ANEURALNETWORKS_MAX_POOL may have changed");
+static_assert(ANEURALNETWORKS_MUL == 18, "ANEURALNETWORKS_MUL may have changed");
+static_assert(ANEURALNETWORKS_RELU == 19, "ANEURALNETWORKS_RELU may have changed");
+static_assert(ANEURALNETWORKS_RELU1 == 20, "ANEURALNETWORKS_RELU1 may have changed");
+static_assert(ANEURALNETWORKS_RELU6 == 21, "ANEURALNETWORKS_RELU6 may have changed");
+static_assert(ANEURALNETWORKS_RESHAPE == 22, "ANEURALNETWORKS_RESHAPE may have changed");
+static_assert(ANEURALNETWORKS_RESIZE_BILINEAR == 23,
               "ANEURALNETWORKS_RESIZE_BILINEAR may have changed");
-static_assert(ANEURALNETWORKS_RNN == 26, "ANEURALNETWORKS_RNN may have changed");
-static_assert(ANEURALNETWORKS_SOFTMAX == 27, "ANEURALNETWORKS_SOFTMAX may have changed");
-static_assert(ANEURALNETWORKS_SPACE_TO_DEPTH == 28,
+static_assert(ANEURALNETWORKS_RNN == 24, "ANEURALNETWORKS_RNN may have changed");
+static_assert(ANEURALNETWORKS_SOFTMAX == 25, "ANEURALNETWORKS_SOFTMAX may have changed");
+static_assert(ANEURALNETWORKS_SPACE_TO_DEPTH == 26,
               "ANEURALNETWORKS_SPACE_TO_DEPTH may have changed");
-static_assert(ANEURALNETWORKS_SVDF == 29, "ANEURALNETWORKS_SVDF may have changed");
-static_assert(ANEURALNETWORKS_TANH == 30, "ANEURALNETWORKS_TANH may have changed");
+static_assert(ANEURALNETWORKS_SVDF == 27, "ANEURALNETWORKS_SVDF may have changed");
+static_assert(ANEURALNETWORKS_TANH == 28, "ANEURALNETWORKS_TANH may have changed");
+static_assert(ANEURALNETWORKS_OEM_OPERATION == 10000,
+              "ANEURALNETWORKS_OEM_OPERATION may have changed");
 
 static_assert(ANEURALNETWORKS_FUSED_NONE == 0, "ANEURALNETWORKS_FUSED_NONE may have changed");
 static_assert(ANEURALNETWORKS_FUSED_RELU == 1, "ANEURALNETWORKS_FUSED_RELU may have changed");
@@ -112,7 +115,7 @@ static_assert(ANEURALNETWORKS_BAD_STATE == 6, "ANEURALNETWORKS_BAD_STATE may hav
 
 // Make sure that the constants are compatible with the values defined in
 // hardware/interfaces/neuralnetworks/1.0/types.hal.
-static_assert(static_cast<uint32_t>(OperandType::OEM) == ANEURALNETWORKS_OEM,
+static_assert(static_cast<uint32_t>(OperandType::OEM) == ANEURALNETWORKS_OEM_SCALAR,
               "OEM != ANEURALNETWORKS_OEM");
 static_assert(static_cast<uint32_t>(OperandType::FLOAT32) == ANEURALNETWORKS_FLOAT32,
               "FLOAT32 != ANEURALNETWORKS_FLOAT32");
@@ -145,8 +148,6 @@ static_assert(static_cast<uint32_t>(OperationType::DEQUANTIZE) == ANEURALNETWORK
 static_assert(static_cast<uint32_t>(OperationType::EMBEDDING_LOOKUP) ==
                           ANEURALNETWORKS_EMBEDDING_LOOKUP,
               "OperationType::EMBEDDING_LOOKUP != ANEURALNETWORKS_EMBEDDING_LOOKUP");
-static_assert(static_cast<uint32_t>(OperationType::FAKE_QUANT) == ANEURALNETWORKS_FAKE_QUANT,
-              "OperationType::FAKE_QUANT != ANEURALNETWORKS_FAKE_QUANT");
 static_assert(static_cast<uint32_t>(OperationType::FLOOR) == ANEURALNETWORKS_FLOOR,
               "OperationType::FLOOR != ANEURALNETWORKS_FLOOR");
 static_assert(static_cast<uint32_t>(OperationType::FULLY_CONNECTED) ==
@@ -222,7 +223,7 @@ static int ValidateOperandType(const ANeuralNetworksOperandType& type, const cha
             }
         }
     }
-    if (type.type >= kNumberOfDataTypes) {
+    if (!validCode(kNumberOfDataTypes, kNumberOfDataTypesOEM, type.type)) {
         LOG(ERROR) << tag << " OperandType invalid type " << type.type;
         return ANEURALNETWORKS_BAD_DATA;
     }
@@ -360,7 +361,7 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
-    if (type >= kNumberOfOperationTypes) {
+    if (!validCode(kNumberOfOperationTypes, kNumberOfOperationTypesOEM, type)) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperation invalid operations type " << type;
         return ANEURALNETWORKS_BAD_DATA;
     }

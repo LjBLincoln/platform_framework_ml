@@ -26,14 +26,23 @@
 namespace android {
 namespace nn {
 
-// The number of data types defined in NeuralNetworks.h.
-const int kNumberOfDataTypes = 8;
+// The number of data types (OperandCode) defined in NeuralNetworks.h.
+const int kNumberOfDataTypes = 6;
 
-// The number of operation types defined in NeuralNetworks.h.
-const int kNumberOfOperationTypes = 31;
+// The number of operation types (OperationCode) defined in NeuralNetworks.h.
+const int kNumberOfOperationTypes = 30;
 
 // The number of execution preferences defined in NeuralNetworks.h.
 const int kNumberOfPreferences = 3;
+
+// The number of data types (OperandCode) defined in NeuralNetworksOEM.h.
+const int kNumberOfDataTypesOEM = 2;
+
+// The number of operation types (OperationCode) defined in NeuralNetworksOEM.h.
+const int kNumberOfOperationTypesOEM = 1;
+
+// The lowest number assigned to any OEM Code in NeuralNetworksOEM.h.
+const int kOEMCodeBase = 10000;
 
 // TODO Remove all the LOG(DEBUG) statements in all the files.
 
@@ -90,6 +99,10 @@ std::string toString(const std::vector<Type>& range) {
         os += (i == 0 ? "" : ", ") + toString(range[i]);
     }
     return os += "]";
+}
+
+inline bool validCode(uint32_t codeCount, uint32_t codeCountOEM, uint32_t code) {
+    return (code < codeCount) || (code >= kOEMCodeBase && (code - kOEMCodeBase) < codeCountOEM);
 }
 
 bool validateModel(const Model& model);
