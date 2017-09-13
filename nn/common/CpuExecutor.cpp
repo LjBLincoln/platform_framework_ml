@@ -48,7 +48,9 @@ bool RunTimePoolInfo::set(const hidl_memory& hidlMemory) {
         size_t size = hidlMemory.size();
         int fd = hidlMemory.handle()->data[0];
         int prot = hidlMemory.handle()->data[1];
-        buffer = static_cast<uint8_t*>(mmap(nullptr, size, prot, MAP_SHARED, fd, 0));
+        size_t offset = getSizeFromInts(hidlMemory.handle()->data[2],
+                                        hidlMemory.handle()->data[3]);
+        buffer = static_cast<uint8_t*>(mmap(nullptr, size, prot, MAP_SHARED, fd, offset));
         if (buffer == MAP_FAILED) {
             LOG(ERROR) << "Can't mmap the file descriptor.";
             return false;

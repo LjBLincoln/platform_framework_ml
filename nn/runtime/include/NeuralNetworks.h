@@ -933,21 +933,6 @@ int ANeuralNetworksInitialize();
 void ANeuralNetworksShutdown();
 
 /**
- * Creates a shared memory object.
- *
- * Creates a shared memory region of the specified size in bytes.
- * See {@link ANeuralNetworksMemory} for a description on how to use
- * this shared memory.
- *
- * @param size The requested size in bytes.
- * @param memory The memory object to be created.
- *               Set to NULL if unsuccessful.
- *
- * @return ANEURALNETWORKS_NO_ERROR if the request completed normally.
- */
-int ANeuralNetworksMemory_createShared(size_t size, ANeuralNetworksMemory** memory);
-
-/**
  * Creates a shared memory object from a file descriptor.
  *
  * The shared memory is backed by a file descriptor via mmap.
@@ -956,32 +941,21 @@ int ANeuralNetworksMemory_createShared(size_t size, ANeuralNetworksMemory** memo
  *
  * @param size The requested size in bytes.
  *             Must not be larger than the file size.
- * @param prot The desired memory protection for mmap.
+ * @param prot The desired memory protection for the mapping.
+ *             It is either PROT_NONE or the bitwise OR of one or
+ *             more of the following flags: PROT_READ, PROT_WRITE.
  * @param fd The requested file descriptor.
+ *           The file descriptor has to be mmap-able. The file
+ *           descriptor will be duplicated.
+ * @param offset The offset to the beginning of the file of the area to map.
+ *               The offset has to be aligned to a page size.
  * @param memory The memory object to be created.
  *               Set to NULL if unsuccessful.
  *
  * @return ANEURALNETWORKS_NO_ERROR if the request completed normally.
  */
-int ANeuralNetworksMemory_createFromFd(size_t size, int protect, int fd,
+int ANeuralNetworksMemory_createFromFd(size_t size, int protect, int fd, size_t offset,
                                        ANeuralNetworksMemory** memory);
-
-/**
- * Returns pointer to the memory.
- *
- * Returns a pointer to the underlying memory. Not all memories represented by
- * {@link ANeuralNetworksMemory} can return a CPU addressable pointer, so be sure to
- * check the return value.
- *
- * @param memory The memory object we are inquiring about.
- * @param buffer A pointer to where the buffer pointer is returned. *buffer is set
- *               to NULL in case of error.
- *
- * @return ANEURALNETWORKS_NO_ERROR if the request completed normally.
- *         ANEURALNETWORKS_UNMAPPABLE is returned if the memory can't be accessed
- *         directly by the CPU. Other error codes are possible.
- */
-int ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory, uint8_t** buffer);
 
 /**
  * Delete a memory object.

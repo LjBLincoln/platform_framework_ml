@@ -95,6 +95,10 @@ std::string toString(const std::vector<Type>& range) {
 bool validateModel(const Model& model);
 bool validateRequest(const Request& request, const Model& model);
 
+inline size_t getSizeFromInts(int lower, int higher) {
+    return (uint32_t)(lower) + ((uint64_t)(uint32_t)(higher) << 32);
+
+}
 } // namespace nn
 } // namespace android
 

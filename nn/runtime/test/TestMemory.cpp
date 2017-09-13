@@ -16,6 +16,7 @@
 
 #include "NeuralNetworksWrapper.h"
 
+#include <android/sharedmem.h>
 #include <gtest/gtest.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -64,20 +65,23 @@ int CompareMatrices(const Matrix3x4& expected, const Matrix3x4& actual) {
     return errors;
 }
 
-TEST_F(MemoryTest, TestAllocatedMemory) {
+// TODO: test non-zero offset.
+TEST_F(MemoryTest, TestASharedMemory) {
     // Layout where to place matrix2 and matrix3 in the memory we'll allocate.
     // We have gaps to test that we don't assume contiguity.
     constexpr uint32_t offsetForMatrix2 = 20;
     constexpr uint32_t offsetForMatrix3 = offsetForMatrix2 + sizeof(matrix2) + 30;
     constexpr uint32_t memorySize = offsetForMatrix3 + sizeof(matrix3) + 60;
 
-    Memory weights(memorySize);
+    int weightsFd = ASharedMemory_create("weights", memorySize);
+    ASSERT_GT(weightsFd, -1);
+    uint8_t* weightsData = (uint8_t*)mmap(nullptr, memorySize, PROT_READ | PROT_WRITE,
+                                          MAP_SHARED, weightsFd, 0);
+    ASSERT_NE(weightsData, nullptr);
+    memcpy(weightsData + offsetForMatrix2, matrix2, sizeof(matrix2));
+    memcpy(weightsData + offsetForMatrix3, matrix3, sizeof(matrix3));
+    Memory weights(memorySize, PROT_READ | PROT_WRITE, weightsFd, 0);
     ASSERT_TRUE(weights.isValid());
-    uint8_t* data = nullptr;
-    ASSERT_EQ(weights.getPointer(&data), Result::NO_ERROR);
-    ASSERT_NE(data, nullptr);
-    memcpy(data + offsetForMatrix2, matrix2, sizeof(matrix2));
-    memcpy(data + offsetForMatrix3, matrix3, sizeof(matrix3));
 
     Model model;
     OperandType matrixType(Type::TENSOR_FLOAT32, {3, 4});
@@ -101,16 +105,24 @@ TEST_F(MemoryTest, TestAllocatedMemory) {
 
     // Test the two node model.
     constexpr uint32_t offsetForMatrix1 = 20;
-    Memory input(offsetForMatrix1 + sizeof(Matrix3x4));
+    int inputFd = ASharedMemory_create("input", offsetForMatrix1 + sizeof(Matrix3x4));
+    ASSERT_GT(inputFd, -1);
+    uint8_t* inputData = (uint8_t*)mmap(nullptr, offsetForMatrix1 + sizeof(Matrix3x4),
+                                        PROT_READ | PROT_WRITE, MAP_SHARED, inputFd, 0);
+    ASSERT_NE(inputData, nullptr);
+    memcpy(inputData + offsetForMatrix1, matrix1, sizeof(Matrix3x4));
+    Memory input(offsetForMatrix1 + sizeof(Matrix3x4), PROT_READ, inputFd, 0);
     ASSERT_TRUE(input.isValid());
-    ASSERT_EQ(input.getPointer(&data), Result::NO_ERROR);
-    memcpy(data + offsetForMatrix1, matrix1, sizeof(Matrix3x4));
 
     constexpr uint32_t offsetForActual = 32;
-    Memory actual(offsetForActual + sizeof(Matrix3x4));
+    int outputFd = ASharedMemory_create("output", offsetForActual + sizeof(Matrix3x4));
+    ASSERT_GT(outputFd, -1);
+    uint8_t* outputData = (uint8_t*)mmap(nullptr, offsetForActual + sizeof(Matrix3x4),
+                                         PROT_READ | PROT_WRITE, MAP_SHARED, outputFd, 0);
+    ASSERT_NE(outputData, nullptr);
+    memset(outputData, 0, offsetForActual + sizeof(Matrix3x4));
+    Memory actual(offsetForActual + sizeof(Matrix3x4), PROT_READ | PROT_WRITE, outputFd, 0);
     ASSERT_TRUE(actual.isValid());
-    ASSERT_EQ(actual.getPointer(&data), Result::NO_ERROR);
-    memset(data, 0, offsetForActual + sizeof(Matrix3x4));
 
     Compilation compilation2(&model);
     ASSERT_EQ(compilation2.compile(), Result::NO_ERROR);
@@ -121,9 +133,7 @@ TEST_F(MemoryTest, TestAllocatedMemory) {
     ASSERT_EQ(request2.setOutputFromMemory(0, &actual, offsetForActual, sizeof(Matrix3x4)),
               Result::NO_ERROR);
     ASSERT_EQ(request2.compute(), Result::NO_ERROR);
-    data = nullptr;
-    ASSERT_EQ(actual.getPointer(&data), Result::NO_ERROR);
-    ASSERT_EQ(CompareMatrices(expected3, *reinterpret_cast<Matrix3x4*>(data + offsetForActual)), 0);
+    ASSERT_EQ(CompareMatrices(expected3, *reinterpret_cast<Matrix3x4*>(outputData + offsetForActual)), 0);
 }
 
 TEST_F(MemoryTest, TestFd) {
@@ -139,7 +149,7 @@ TEST_F(MemoryTest, TestFd) {
     write(fd, matrix3, sizeof(matrix3));
     fsync(fd);
 
-    Memory weights(offsetForMatrix3 + sizeof(matrix3), PROT_READ, fd);
+    Memory weights(offsetForMatrix3 + sizeof(matrix3), PROT_READ, fd, 0);
     ASSERT_TRUE(weights.isValid());
 
     Model model;

@@ -274,30 +274,7 @@ void ANeuralNetworksShutdown() {
     DeviceManager::get()->shutdown();
 }
 
-int ANeuralNetworksMemory_createShared(size_t size, ANeuralNetworksMemory** memory) {
-    if (!memory) {
-        LOG(ERROR) << "ANeuralNetworksMemory_createShared passed a nullptr";
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
-    if (size > std::numeric_limits<uint32_t>::max()) {
-        LOG(ERROR) << "ANeuralNetworksMemory_createShared size exceeds max " << size;
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-    uint32_t size32 = static_cast<uint32_t>(size);
-    *memory = nullptr;
-    std::unique_ptr<Memory> m = std::make_unique<Memory>();
-    if (m == nullptr) {
-        return ANEURALNETWORKS_OUT_OF_MEMORY;
-    }
-    int n = m->create(size32);
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-    *memory = reinterpret_cast<ANeuralNetworksMemory*>(m.release());
-    return ANEURALNETWORKS_NO_ERROR;
-}
-
-int ANeuralNetworksMemory_createFromFd(size_t size, int prot, int fd,
+int ANeuralNetworksMemory_createFromFd(size_t size, int prot, int fd, size_t offset,
                                        ANeuralNetworksMemory** memory) {
     if (fd < 0) {
         LOG(ERROR) << "ANeuralNetworksMemory_createFromFd invalid fd " << fd;
@@ -308,21 +285,12 @@ int ANeuralNetworksMemory_createFromFd(size_t size, int prot, int fd,
     if (m == nullptr) {
         return ANEURALNETWORKS_OUT_OF_MEMORY;
     }
-    int n = m->set(size, prot, fd);
+    int n = m->set(size, prot, fd, offset);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
     *memory = reinterpret_cast<ANeuralNetworksMemory*>(m.release());
     return ANEURALNETWORKS_NO_ERROR;
-}
-
-int ANeuralNetworksMemory_getPointer(ANeuralNetworksMemory* memory, uint8_t** buffer) {
-    if (!memory || !buffer) {
-        LOG(ERROR) << "ANeuralNetworksMemory_getPointer passed a nullptr";
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
-    Memory* m = reinterpret_cast<Memory*>(memory);
-    return m->getPointer(buffer);
 }
 
 void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory) {
