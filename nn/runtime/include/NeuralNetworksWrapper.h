@@ -95,18 +95,13 @@ inline void Shutdown() {
 
 class Memory {
 public:
-    Memory(size_t size) {
-        mValid = ANeuralNetworksMemory_createShared(size, &mMemory) == ANEURALNETWORKS_NO_ERROR;
-    }
-    Memory(size_t size, int protect, int fd) {
-        mValid = ANeuralNetworksMemory_createFromFd(size, protect, fd, &mMemory) ==
+
+    Memory(size_t size, int protect, int fd, size_t offset) {
+        mValid = ANeuralNetworksMemory_createFromFd(size, protect, fd, offset, &mMemory) ==
                          ANEURALNETWORKS_NO_ERROR;
     }
 
     ~Memory() { ANeuralNetworksMemory_free(mMemory); }
-    Result getPointer(uint8_t** buffer) {
-        return static_cast<Result>(ANeuralNetworksMemory_getPointer(mMemory, buffer));
-    }
 
     // Disallow copy semantics to ensure the runtime object can only be freed
     // once. Copy semantics could be enabled if some sort of reference counting
