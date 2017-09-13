@@ -61,6 +61,18 @@ TEST_F(GeneratedTests, concat_quant8) {
     Execute(concat_quant8::CreateModel, concat_quant8::examples);
 }
 
+namespace hashtable_lookup {
+std::vector<MixedTypedExample> examples = {
+// Generated hashtable_lookup test
+#include "generated/examples/hashtable_lookup.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/hashtable_lookup.model.cpp"
+} // namespace hashtable_lookup
+TEST_F(GeneratedTests, hashtable_lookup) {
+    Execute(hashtable_lookup::CreateModel, hashtable_lookup::examples);
+}
+
 namespace l2_pool_float {
 std::vector<MixedTypedExample> examples = {
 // Generated l2_pool_float test
@@ -71,6 +83,18 @@ std::vector<MixedTypedExample> examples = {
 } // namespace l2_pool_float
 TEST_F(GeneratedTests, l2_pool_float) {
     Execute(l2_pool_float::CreateModel, l2_pool_float::examples);
+}
+
+namespace lsh_projection {
+std::vector<MixedTypedExample> examples = {
+// Generated lsh_projection test
+#include "generated/examples/lsh_projection.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lsh_projection.model.cpp"
+} // namespace lsh_projection
+TEST_F(GeneratedTests, lsh_projection) {
+    Execute(lsh_projection::CreateModel, lsh_projection::examples);
 }
 
 namespace max_pool_float {
@@ -107,6 +131,18 @@ std::vector<MixedTypedExample> examples = {
 } // namespace relu1_float
 TEST_F(GeneratedTests, relu1_float) {
     Execute(relu1_float::CreateModel, relu1_float::examples);
+}
+
+namespace relu1_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated relu1_quant8 test
+#include "generated/examples/relu1_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/relu1_quant8.model.cpp"
+} // namespace relu1_quant8
+TEST_F(GeneratedTests, relu1_quant8) {
+    Execute(relu1_quant8::CreateModel, relu1_quant8::examples);
 }
 
 namespace relu6_float {

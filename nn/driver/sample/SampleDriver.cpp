@@ -139,12 +139,18 @@ Return<void> SampleDriver::getSupportedSubgraph([[maybe_unused]] const Model& mo
     return Void();
 }
 
-Return<sp<IPreparedModel>> SampleDriver::prepareModel(const Model& model) {
+Return<sp<IPreparedModel>> SampleDriver::prepareModel(const Model& model,
+                                                      const sp<IEvent>& event) {
     LOG(DEBUG) << "SampleDriver::prepareModel(" << toString(model) << ")"; // TODO errror
     if (!validateModel(model)) {
         return nullptr;
     }
-    return new SamplePreparedModel(model);
+
+    // TODO: make asynchronous later
+    sp<IPreparedModel> preparedModel = new SamplePreparedModel(model);
+    event->notify(Status::SUCCESS);
+
+    return preparedModel;
 }
 
 Return<DeviceStatus> SampleDriver::getStatus() {
