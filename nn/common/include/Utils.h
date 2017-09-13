@@ -27,7 +27,7 @@ namespace android {
 namespace nn {
 
 // The number of data types defined in NeuralNetworks.h.
-const int kNumberOfDataTypes = 12;
+const int kNumberOfDataTypes = 8;
 
 // The number of operation types defined in NeuralNetworks.h.
 const int kNumberOfOperationTypes = 31;

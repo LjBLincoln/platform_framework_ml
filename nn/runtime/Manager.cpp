@@ -27,8 +27,12 @@
 namespace android {
 namespace nn {
 
+// TODO: handle errors from initialize correctly
 void Device::initialize() {
-    mInterface->initialize([&]([[maybe_unused]] const Capabilities& capabilities) {
+    mInterface->getCapabilities([&](ErrorStatus status, const Capabilities& capabilities) {
+        if (status != ErrorStatus::NONE) {
+            LOG(ERROR) << "IDevice::getCapabilities returned the error " << toString(status);
+        }
         LOG(DEBUG) << "Capab " << capabilities.float16Performance.execTime;
         LOG(DEBUG) << "Capab " << capabilities.float32Performance.execTime;
         /*

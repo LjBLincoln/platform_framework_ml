@@ -29,9 +29,9 @@ namespace sample_driver {
 
 SampleDriver::~SampleDriver() {}
 
-Return<void> SampleDriver::initialize(initialize_cb cb) {
+Return<void> SampleDriver::getCapabilities(getCapabilities_cb cb) {
     SetMinimumLogSeverity(base::VERBOSE);
-    LOG(DEBUG) << "SampleDriver::initialize()";
+    LOG(DEBUG) << "SampleDriver::getCapabilities()";
 
     // Our driver supports every op.
     static hidl_vec<OperationTuple> supportedOperationTuples{
@@ -124,33 +124,38 @@ Return<void> SampleDriver::initialize(initialize_cb cb) {
     };
 
     // return
-    cb(capabilities);
+    cb(ErrorStatus::NONE, capabilities);
     return Void();
 }
 
-Return<void> SampleDriver::getSupportedSubgraph([[maybe_unused]] const Model& model,
-                                                getSupportedSubgraph_cb cb) {
-    LOG(DEBUG) << "SampleDriver::getSupportedSubgraph()";
-    std::vector<bool> canDo; // TODO implement
+Return<void> SampleDriver::getSupportedOperations(const Model& model,
+                                                  getSupportedOperations_cb cb) {
+    LOG(DEBUG) << "SampleDriver::getSupportedOperations()";
     if (validateModel(model)) {
-        // TODO
+        std::vector<bool> supported(model.operations.size(), true);
+        cb(ErrorStatus::NONE, supported);
     }
-    cb(canDo);
+    else {
+        std::vector<bool> supported;
+        cb(ErrorStatus::INVALID_ARGUMENT, supported);
+    }
     return Void();
 }
 
-Return<sp<IPreparedModel>> SampleDriver::prepareModel(const Model& model,
-                                                      const sp<IEvent>& event) {
+Return<void> SampleDriver::prepareModel(const Model& model, const sp<IEvent>& event,
+                                        prepareModel_cb cb) {
     LOG(DEBUG) << "SampleDriver::prepareModel(" << toString(model) << ")"; // TODO errror
-    if (!validateModel(model)) {
-        return nullptr;
+    if (validateModel(model)) {
+        // TODO: make asynchronous later
+        cb(ErrorStatus::NONE, new SamplePreparedModel(model));
+    }
+    else {
+        cb(ErrorStatus::INVALID_ARGUMENT, nullptr);
     }
 
-    // TODO: make asynchronous later
-    sp<IPreparedModel> preparedModel = new SamplePreparedModel(model);
-    event->notify(Status::SUCCESS);
-
-    return preparedModel;
+    // TODO: notify errors if they occur
+    event->notify(ErrorStatus::NONE);
+    return Void();
 }
 
 Return<DeviceStatus> SampleDriver::getStatus() {
@@ -184,31 +189,32 @@ void SamplePreparedModel::asyncExecute(const Request& request, const sp<IEvent>&
 
     std::vector<RunTimePoolInfo> poolInfo;
     if (!mapPools(&poolInfo, request.pools)) {
-        event->notify(Status::ERROR);
+        event->notify(ErrorStatus::GENERAL_FAILURE);
         return;
     }
 
     CpuExecutor executor;
     int n = executor.run(mModel, request, poolInfo);
     LOG(DEBUG) << "executor.run returned " << n;
-    Status executionStatus = n == ANEURALNETWORKS_NO_ERROR ? Status::SUCCESS : Status::ERROR;
+    ErrorStatus executionStatus = n == ANEURALNETWORKS_NO_ERROR ?
+            ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
     Return<void> returned = event->notify(executionStatus);
     if (!returned.isOk()) {
         LOG(ERROR) << "hidl callback failed to return properly: " << returned.description();
     }
 }
 
-Return<bool> SamplePreparedModel::execute(const Request& request, const sp<IEvent>& event) {
+Return<ErrorStatus> SamplePreparedModel::execute(const Request& request, const sp<IEvent>& event) {
     LOG(DEBUG) << "SampleDriver::execute(" << toString(request) << ")";
     if (!validateRequest(request, mModel)) {
-        return false;
+        return ErrorStatus::INVALID_ARGUMENT;
     }
 
     // This thread is intentionally detached because the sample driver service
     // is expected to live forever.
     std::thread([this, request, event]{ asyncExecute(request, event); }).detach();
 
-    return true;
+    return ErrorStatus::NONE;
 }
 
 } // namespace sample_driver

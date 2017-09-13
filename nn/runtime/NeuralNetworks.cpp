@@ -33,20 +33,16 @@
 
 // Make sure the constants defined in the header file have not changed values.
 // IMPORTANT: When adding new values, update kNumberOfDataTypes in Utils.h.
-static_assert(ANEURALNETWORKS_FLOAT16 == 0, "ANEURALNETWORKS_FLOAT16 may have changed");
+static_assert(ANEURALNETWORKS_OEM == 0, "ANEURALNETWORKS_OEM may have changed");
 static_assert(ANEURALNETWORKS_FLOAT32 == 1, "ANEURALNETWORKS_FLOAT32 may have changed");
-static_assert(ANEURALNETWORKS_INT8 == 2, "ANEURALNETWORKS_INT8 may have changed");
-static_assert(ANEURALNETWORKS_UINT8 == 3, "ANEURALNETWORKS_UINT8 may have changed");
-static_assert(ANEURALNETWORKS_INT16 == 4, "ANEURALNETWORKS_INT16 may have changed");
-static_assert(ANEURALNETWORKS_UINT16 == 5, "ANEURALNETWORKS_UINT16 may have changed");
-static_assert(ANEURALNETWORKS_INT32 == 6, "ANEURALNETWORKS_INT32 may have changed");
-static_assert(ANEURALNETWORKS_UINT32 == 7, "ANEURALNETWORKS_UINT32 may have changed");
-static_assert(ANEURALNETWORKS_TENSOR_FLOAT16 == 8,
-              "ANEURALNETWORKS_TENSOR_FLOAT16 may have changed");
-static_assert(ANEURALNETWORKS_TENSOR_FLOAT32 == 9,
+static_assert(ANEURALNETWORKS_INT32 == 2, "ANEURALNETWORKS_INT32 may have changed");
+static_assert(ANEURALNETWORKS_UINT32 == 3, "ANEURALNETWORKS_UINT32 may have changed");
+static_assert(ANEURALNETWORKS_TENSOR_OEM_BYTE == 4,
+              "ANEURALNETWORKS_TENSOR_OEM_BYTE may have changed");
+static_assert(ANEURALNETWORKS_TENSOR_FLOAT32 == 5,
               "ANEURALNETWORKS_TENSOR_FLOAT32 may have changed");
-static_assert(ANEURALNETWORKS_TENSOR_INT32 == 10, "ANEURALNETWORKS_TENSOR_INT32 may have changed");
-static_assert(ANEURALNETWORKS_TENSOR_QUANT8_ASYMM == 11,
+static_assert(ANEURALNETWORKS_TENSOR_INT32 == 6, "ANEURALNETWORKS_TENSOR_INT32 may have changed");
+static_assert(ANEURALNETWORKS_TENSOR_QUANT8_ASYMM == 7,
               "ANEURALNETWORKS_TENSOR_QUANT8_ASYMM may have changed");
 
 // IMPORTANT: When adding new values, update kNumberOfOperationTypes in Utils.h.
@@ -116,24 +112,16 @@ static_assert(ANEURALNETWORKS_BAD_STATE == 6, "ANEURALNETWORKS_BAD_STATE may hav
 
 // Make sure that the constants are compatible with the values defined in
 // hardware/interfaces/neuralnetworks/1.0/types.hal.
-static_assert(static_cast<uint32_t>(OperandType::FLOAT16) == ANEURALNETWORKS_FLOAT16,
-              "FLOAT16 != ANEURALNETWORKS_FLOAT16");
+static_assert(static_cast<uint32_t>(OperandType::OEM) == ANEURALNETWORKS_OEM,
+              "OEM != ANEURALNETWORKS_OEM");
 static_assert(static_cast<uint32_t>(OperandType::FLOAT32) == ANEURALNETWORKS_FLOAT32,
               "FLOAT32 != ANEURALNETWORKS_FLOAT32");
-static_assert(static_cast<uint32_t>(OperandType::INT8) == ANEURALNETWORKS_INT8,
-              "INT8 != ANEURALNETWORKS_INT8");
-static_assert(static_cast<uint32_t>(OperandType::UINT8) == ANEURALNETWORKS_UINT8,
-              "UINT8 != ANEURALNETWORKS_UINT8");
-static_assert(static_cast<uint32_t>(OperandType::INT16) == ANEURALNETWORKS_INT16,
-              "INT16 != ANEURALNETWORKS_INT16");
-static_assert(static_cast<uint32_t>(OperandType::UINT16) == ANEURALNETWORKS_UINT16,
-              "UINT16 != ANEURALNETWORKS_UINT16");
 static_assert(static_cast<uint32_t>(OperandType::INT32) == ANEURALNETWORKS_INT32,
               "INT32 != ANEURALNETWORKS_INT32");
 static_assert(static_cast<uint32_t>(OperandType::UINT32) == ANEURALNETWORKS_UINT32,
               "UINT32 != ANEURALNETWORKS_UINT32");
-static_assert(static_cast<uint32_t>(OperandType::TENSOR_FLOAT16) == ANEURALNETWORKS_TENSOR_FLOAT16,
-              "TENSOR_FLOAT16 != ANEURALNETWORKS_TENSOR_FLOAT16");
+static_assert(static_cast<uint32_t>(OperandType::TENSOR_OEM_BYTE) == ANEURALNETWORKS_TENSOR_OEM_BYTE,
+              "TENSOR_OEM_BYTE != ANEURALNETWORKS_TENSOR_OEM_BYTE");
 static_assert(static_cast<uint32_t>(OperandType::TENSOR_FLOAT32) == ANEURALNETWORKS_TENSOR_FLOAT32,
               "TENSOR_FLOAT32 != ANEURALNETWORKS_TENSOR_FLOAT32");
 static_assert(static_cast<uint32_t>(OperandType::TENSOR_QUANT8_ASYMM) ==
@@ -244,8 +232,7 @@ static int ValidateOperandType(const ANeuralNetworksOperandType& type, const cha
     type.scale); return ANEURALNETWORKS_BAD_DATA;
     }
     if (type.scale != 0.f &&
-        (type.type == ANEURALNETWORKS_FLOAT16 ||
-         type.type != ANEURALNETWORKS_FLOAT32)) {
+        (type.type != ANEURALNETWORKS_FLOAT32)) {
             LOG(ERROR) << ("%s OperandType scale %f with float type %u", tag, type.scale,
     type.type); return ANEURALNETWORKS_BAD_DATA;
         }
