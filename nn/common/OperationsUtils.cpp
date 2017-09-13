@@ -305,7 +305,7 @@ bool genericPoolingPrepare(const Shape& input,
 
 bool genericActivationPrepare(const Shape& input,
                               Shape* output) {
-    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    nnOpsCheck(getNumberOfDimensions(input) <= 4);
     return SetShape(input, output);
 }
 
