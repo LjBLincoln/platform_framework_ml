@@ -85,6 +85,18 @@ TEST_F(GeneratedTests, l2_pool_float) {
     Execute(l2_pool_float::CreateModel, l2_pool_float::examples);
 }
 
+namespace lsh_projection {
+std::vector<MixedTypedExample> examples = {
+// Generated lsh_projection test
+#include "generated/examples/lsh_projection.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lsh_projection.model.cpp"
+} // namespace lsh_projection
+TEST_F(GeneratedTests, lsh_projection) {
+    Execute(lsh_projection::CreateModel, lsh_projection::examples);
+}
+
 namespace max_pool_float {
 std::vector<MixedTypedExample> examples = {
 // Generated max_pool_float test
