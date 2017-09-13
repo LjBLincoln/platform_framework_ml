@@ -887,12 +887,6 @@ typedef struct ANeuralNetworksOperandType {
     int32_t offset;
 } ANeuralNetworksOperandType;
 
-/**
- * ANeuralNetworksEvent is an opaque type that represents an event
- * that will be signaled once a request completes.
- */
-typedef struct ANeuralNetworksEvent ANeuralNetworksEvent;
-
 typedef uint32_t ANeuralNetworksOperationType;
 
 /**
@@ -1251,7 +1245,7 @@ int ANeuralNetworksCompilation_setPreference(ANeuralNetworksCompilation* compila
  * The runtime makes no guarantee on the ordering of the completion of compilations
  * and requests. If it's important to the application, the application should enforce
  * the ordering by using
- * {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksEvent_wait}.
+ * {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksRequest_wait}.
  *
  * ANeuralNetworksCompilation_wait must be called to recuperate the resources used
  * by the compilation.
@@ -1302,9 +1296,8 @@ int ANeuralNetworksRequest_create(ANeuralNetworksCompilation* compilation,
  * <p>If called on a request for which
  * {@link ANeuralNetworksRequest_startCompute} has been called, the
  * function will return immediately but will mark the request to be deleted
- * once the computation completes. The related {@link ANeuralNetworksEvent}
- * will be signaled but the {@link ANeuralNetworksRequest_wait} will return
- * ANEURALNETWORKS_ERROR_DELETED.
+ * once the computation completes.   The {link ANeuralNetworksRequest_wait}
+ * will return ANEURALNETWORKS_ERROR_DELETED.
  *
  * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
  *
@@ -1423,48 +1416,38 @@ int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, 
  * Schedule the request for execution.
  *
  * <p>Schedules the request for execution. Once the model has been
- * applied and the outputs are ready to be consumed, the returned event will be
- * signaled. Use {@link ANeuralNetworksRequest_wait} to wait for that event.
+ * applied and the outputs are ready to be consumed, the request will be
+ * signaled. Use {@link ANeuralNetworksRequest_wait} to wait for that signal.
  * </p>
  *
  * Multiple requests can be scheduled and executed concurrently, and compilations
  * can be performed concurrently with execution of requests. The runtime makes
  * no guarantee on the ordering of the completion of compilations and requests.
  * If it's important to the application, the application should enforce the ordering
- * by using {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksEvent_wait}.
+ * by using {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksRequest_wait}.
  *
  * ANeuralNetworksRequest_wait must be called to recuperate the resources used
- * by the event.
+ * by the request.
  *
  * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
  *
  * @param request The request to be scheduled and executed.
- * @param event The event that will be signaled on completion. event is set to
- *              NULL if there's an error.
  *
  * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
-int ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest* request,
-                                        ANeuralNetworksEvent** event);
+int ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest* request);
 
 /**
  * Waits until the request completes.
  *
- * More than one thread can wait on an event. When the request completes,
+ * More than one thread can wait on a request.  When the request completes,
  * all threads will be released.
  *
  * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
  *
  * @return ANEURALNETWORKS_NO_ERROR if the request completed normally.
  */
-int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event);
-
-/**
- * Destroys the event.
- *
- * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
- */
-void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event);
+int ANeuralNetworksRequest_wait(ANeuralNetworksRequest* request);
 
 __END_DECLS
 
