@@ -76,7 +76,8 @@ int SizeOfDimension(const RunTimeOperandInfo* operand, int dim) {
 int running_sign_bit(const RunTimeOperandInfo* input,
                      const RunTimeOperandInfo* weight, float seed) {
   double score = 0.0;
-  int input_item_bytes = sizeof(int32_t) * SizeOfDimension(input, 1);
+  int input_item_bytes = sizeOfData(input->type, input->dimensions) /
+      SizeOfDimension(input, 0);
   char* input_ptr = (char*)(input->buffer);
 
   const size_t seed_size = sizeof(float);
