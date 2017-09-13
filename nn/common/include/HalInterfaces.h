@@ -33,6 +33,7 @@ using ::android::hardware::hidl_vec;
 using ::android::hardware::neuralnetworks::V1_0::Capabilities;
 using ::android::hardware::neuralnetworks::V1_0::DataLocation;
 using ::android::hardware::neuralnetworks::V1_0::DeviceStatus;
+using ::android::hardware::neuralnetworks::V1_0::ErrorStatus;
 using ::android::hardware::neuralnetworks::V1_0::FusedActivationFunc;
 using ::android::hardware::neuralnetworks::V1_0::IDevice;
 using ::android::hardware::neuralnetworks::V1_0::IEvent;
@@ -47,7 +48,6 @@ using ::android::hardware::neuralnetworks::V1_0::OperationType;
 using ::android::hardware::neuralnetworks::V1_0::PerformanceInfo;
 using ::android::hardware::neuralnetworks::V1_0::Request;
 using ::android::hardware::neuralnetworks::V1_0::RequestArgument;
-using ::android::hardware::neuralnetworks::V1_0::Status;
 using ::android::hidl::allocator::V1_0::IAllocator;
 using ::android::hidl::memory::V1_0::IMemory;
 

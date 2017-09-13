@@ -63,42 +63,34 @@ __BEGIN_DECLS
 typedef enum {
     /** The following entries are used to declare scalars. */
 
-    /** A 16 bit floating point scalar value. */
-    ANEURALNETWORKS_FLOAT16 = 0,
+    /** OEM specific scalar value. */
+    ANEURALNETWORKS_OEM = 0,
     /** A 32 bit floating point scalar value. */
     ANEURALNETWORKS_FLOAT32 = 1,
-    /** A signed 8 bit integer scalar value. */
-    ANEURALNETWORKS_INT8 = 2,
-    /** An unsigned 8 bit integer scalar value. */
-    ANEURALNETWORKS_UINT8 = 3,
-    /** A signed 16 bit integer scalar value. */
-    ANEURALNETWORKS_INT16 = 4,
-    /** An unsigned 16 bit integer scalar value. */
-    ANEURALNETWORKS_UINT16 = 5,
     /** A signed 32 bit integer scalar value. */
-    ANEURALNETWORKS_INT32 = 6,
+    ANEURALNETWORKS_INT32 = 2,
     /** An unsigned 32 bit integer scalar value. */
-    ANEURALNETWORKS_UINT32 = 7,
+    ANEURALNETWORKS_UINT32 = 3,
 
     /** The following entries are used to declare tensors. */
 
-    /** A tensor of 16 bit floating point values. */
-    ANEURALNETWORKS_TENSOR_FLOAT16 = 8,
+    /** A tensor of OEM specific values. */
+    ANEURALNETWORKS_TENSOR_OEM_BYTE = 4,
     /** A tensor of 32 bit floating point values. */
-    ANEURALNETWORKS_TENSOR_FLOAT32 = 9,
+    ANEURALNETWORKS_TENSOR_FLOAT32 = 5,
     /** A tensor of 32 bit integer values. */
-    ANEURALNETWORKS_TENSOR_INT32 = 10,
+    ANEURALNETWORKS_TENSOR_INT32 = 6,
     /** A tensor of 8 bit integers that represent real numbers.
      *
      * Attached to this tensor are two numbers that can be used to convert
-     * the 8 bit integer to the real value and vice versa. These two numbers are:
+     * the 8 bit integer to the real value and vice versa.  These two numbers are:
      * - scale: a 32 bit floating point value
      * - zero_value: an 32 bit integer
      *
      * The formula is:
      * real_value = (integer_value - zero_value) * scale.
      */
-    ANEURALNETWORKS_TENSOR_QUANT8_ASYMM = 11,
+    ANEURALNETWORKS_TENSOR_QUANT8_ASYMM = 7,
 } OperandCode;
 
 /**
