@@ -61,7 +61,7 @@ HashtableLookup::HashtableLookup(const Operation& operation,
 
 bool HashtableLookup::Eval() {
   const int num_rows = value_->shape().dimensions[0];
-  const int row_bytes = sizeof(float) * value_->shape().dimensions[1];
+  const int row_bytes = sizeOfData(value_->type, value_->dimensions) / num_rows;
   void* pointer = nullptr;
 
   for (int i = 0; i < static_cast<int>(lookup_->shape().dimensions[0]); i++) {
