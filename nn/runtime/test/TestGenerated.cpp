@@ -48,13 +48,13 @@ class Example {
         for (auto& example : examples) {
             Compilation compilation(&model);
             compilation.compile();
-            Request request(&compilation);
+            Execution execution(&compilation);
 
             // Go through all inputs
             for (auto& i : example.first) {
                 std::vector<T>& input = i.second;
-                request.setInput(i.first, (const void*)input.data(),
-                                 input.size() * sizeof(T));
+                execution.setInput(i.first, (const void*)input.data(),
+                                   input.size() * sizeof(T));
             }
 
             std::map<int, std::vector<T>> test_outputs;
@@ -65,12 +65,12 @@ class Example {
                 std::vector<T>& output = i.second;
                 test_outputs[i.first].resize(output.size());
                 std::vector<T>& test_output = test_outputs[i.first];
-                request.setOutput(output_no++, (void*)test_output.data(),
-                                  test_output.size() * sizeof(T));
+                execution.setOutput(output_no++, (void*)test_output.data(),
+                                    test_output.size() * sizeof(T));
             }
-            Result r = request.compute();
+            Result r = execution.compute();
             if (r != Result::NO_ERROR)
-                std::cerr << "Request was not completed normally\n";
+                std::cerr << "Execution was not completed normally\n";
             bool mismatch = false;
             for (auto& i : example.second) {
                 const std::vector<T>& test = test_outputs[i.first];
@@ -109,11 +109,11 @@ class Example {
 
             Compilation compilation(&model);
             compilation.compile();
-            Request request(&compilation);
+            Execution execution(&compilation);
 
             // Go through all ty-typed inputs
-            for_all(inputs, [&request](int idx, auto p, auto s) {
-                ASSERT_EQ(Result::NO_ERROR, request.setInput(idx, p, s));
+            for_all(inputs, [&execution](int idx, auto p, auto s) {
+                ASSERT_EQ(Result::NO_ERROR, execution.setInput(idx, p, s));
             });
 
             MixedTyped test;
@@ -121,11 +121,11 @@ class Example {
             resize_accordingly<float>(golden, test);
             resize_accordingly<int32_t>(golden, test);
             resize_accordingly<uint8_t>(golden, test);
-            for_all(test, [&request](int idx, void* p, auto s) {
-                ASSERT_EQ(Result::NO_ERROR, request.setOutput(idx, p, s));
+            for_all(test, [&execution](int idx, void* p, auto s) {
+                ASSERT_EQ(Result::NO_ERROR, execution.setOutput(idx, p, s));
             });
 
-            Result r = request.compute();
+            Result r = execution.compute();
             ASSERT_EQ(Result::NO_ERROR, r);
 #define USE_EXPECT_FLOAT_EQ 1
 #ifdef USE_EXPECT_FLOAT_EQ

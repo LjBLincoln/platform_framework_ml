@@ -274,33 +274,33 @@ private:
     ANeuralNetworksCompilation* mCompilation = nullptr;
 };
 
-class Request {
+class Execution {
 public:
-    Request(const Compilation* compilation) {
-        int result = ANeuralNetworksRequest_create(compilation->getHandle(), &mRequest);
+    Execution(const Compilation* compilation) {
+        int result = ANeuralNetworksExecution_create(compilation->getHandle(), &mExecution);
         if (result != 0) {
             // TODO Handle the error
         }
     }
 
-    ~Request() { ANeuralNetworksRequest_free(mRequest); }
+    ~Execution() { ANeuralNetworksExecution_free(mExecution); }
 
     // Disallow copy semantics to ensure the runtime object can only be freed
     // once. Copy semantics could be enabled if some sort of reference counting
     // or deep-copy system for runtime objects is added later.
-    Request(const Request&) = delete;
-    Request& operator=(const Request&) = delete;
+    Execution(const Execution&) = delete;
+    Execution& operator=(const Execution&) = delete;
 
     // Move semantics to remove access to the runtime object from the wrapper
     // object that is being moved. This ensures the runtime object will be
     // freed only once.
-    Request(Request&& other) {
+    Execution(Execution&& other) {
         *this = std::move(other);
     }
-    Request& operator=(Request&& other) {
+    Execution& operator=(Execution&& other) {
         if (this != &other) {
-            mRequest = other.mRequest;
-            other.mRequest = nullptr;
+            mExecution = other.mExecution;
+            other.mExecution = nullptr;
         }
         return *this;
     }
@@ -308,48 +308,48 @@ public:
     Result setInput(uint32_t index, const void* buffer, size_t length,
                     const ANeuralNetworksOperandType* type = nullptr) {
         return static_cast<Result>(
-                    ANeuralNetworksRequest_setInput(mRequest, index, type, buffer, length));
+                    ANeuralNetworksExecution_setInput(mExecution, index, type, buffer, length));
     }
 
     Result setInputFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
                               uint32_t length, const ANeuralNetworksOperandType* type = nullptr) {
-        return static_cast<Result>(ANeuralNetworksRequest_setInputFromMemory(
-                    mRequest, index, type, memory->get(), offset, length));
+        return static_cast<Result>(ANeuralNetworksExecution_setInputFromMemory(
+                    mExecution, index, type, memory->get(), offset, length));
     }
 
     Result setOutput(uint32_t index, void* buffer, size_t length,
                      const ANeuralNetworksOperandType* type = nullptr) {
         return static_cast<Result>(
-                    ANeuralNetworksRequest_setOutput(mRequest, index, type, buffer, length));
+                    ANeuralNetworksExecution_setOutput(mExecution, index, type, buffer, length));
     }
 
     Result setOutputFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
                                uint32_t length, const ANeuralNetworksOperandType* type = nullptr) {
-        return static_cast<Result>(ANeuralNetworksRequest_setOutputFromMemory(
-                    mRequest, index, type, memory->get(), offset, length));
+        return static_cast<Result>(ANeuralNetworksExecution_setOutputFromMemory(
+                    mExecution, index, type, memory->get(), offset, length));
     }
 
     Result startCompute() {
-        Result result = static_cast<Result>(ANeuralNetworksRequest_startCompute(mRequest));
+        Result result = static_cast<Result>(ANeuralNetworksExecution_startCompute(mExecution));
         return result;
     }
 
     Result wait() {
-        return static_cast<Result>(ANeuralNetworksRequest_wait(mRequest));
+        return static_cast<Result>(ANeuralNetworksExecution_wait(mExecution));
     }
 
     Result compute() {
-        Result result = static_cast<Result>(ANeuralNetworksRequest_startCompute(mRequest));
+        Result result = static_cast<Result>(ANeuralNetworksExecution_startCompute(mExecution));
         if (result != Result::NO_ERROR) {
             return result;
         }
         // TODO how to manage the lifetime of events when multiple waiters is not
         // clear.
-        return static_cast<Result>(ANeuralNetworksRequest_wait(mRequest));
+        return static_cast<Result>(ANeuralNetworksExecution_wait(mExecution));
     }
 
 private:
-    ANeuralNetworksRequest* mRequest = nullptr;
+    ANeuralNetworksExecution* mExecution = nullptr;
 };
 
 }  // namespace wrapper
