@@ -1073,8 +1073,8 @@ typedef enum {
  * can be used to directly created shared memory.
  *
  * Memory objects can also be used to specify the input and output arguments of
- * a request. See {@link ANeuralNetworksRequest_setInputFromMemory}
- * and {@link ANeuralNetworksRequest_setOutputFromMemory}. This is a typical
+ * an execution. See {@link ANeuralNetworksExecution_setInputFromMemory}
+ * and {@link ANeuralNetworksExecution_setOutputFromMemory}. This is a typical
  * usage for hardware buffers. See {@link ANeuralNetworksMemory_createFromHardwareBuffer}.
  */
 typedef struct ANeuralNetworksMemory ANeuralNetworksMemory;
@@ -1108,9 +1108,9 @@ typedef struct ANeuralNetworksModel ANeuralNetworksModel;
  *    <li>Perform the compilation with {@link ANeuralNetworksCompilation_start}.</li>
  *    <li>Wait for the compilation to complete with {@link ANeuralNetworksCompilation_wait}.</li>
  *    <li>Use the compilation as many times as needed
- *        with {@link ANeuralNetworksRequest_create}.</li>
+ *        with {@link ANeuralNetworksExecution_create}.</li>
  *    <li>Destroy the compilation with {@link ANeuralNetworksCompilation_free}
- *        once all requests using the compilation have completed.</li></ul></p>
+ *        once all executions using the compilation have completed.</li></ul></p>
  *
  * <p>A compilation cannot be modified once {@link ANeuralNetworksCompilation_start}
  * has been called on it.</p>
@@ -1124,36 +1124,36 @@ typedef struct ANeuralNetworksModel ANeuralNetworksModel;
 typedef struct ANeuralNetworksCompilation ANeuralNetworksCompilation;
 
 /**
- * ANeuralNetworksRequest is an opaque type that can be used to apply a machine
+ * ANeuralNetworksExecution is an opaque type that can be used to apply a machine
  * learning model to a set of inputs.
  *
  * <p>To use:<ul>
- *    <li>Create a new request instance by calling the
- *        {@link ANeuralNetworksRequest_create} function.</li>
+ *    <li>Create a new execution instance by calling the
+ *        {@link ANeuralNetworksExecution_create} function.</li>
  *    <li>Associate data to the model inputs with
- *        {@link ANeuralNetworksRequest_setInput} or
- *        {@link ANeuralNetworksRequest_setInputFromMemory}.</li>
+ *        {@link ANeuralNetworksExecution_setInput} or
+ *        {@link ANeuralNetworksExecution_setInputFromMemory}.</li>
  *    <li>Associate output buffers to the model outputs with
- *        {@link ANeuralNetworksRequest_setOutput} or
- *        {@link ANeuralNetworksRequest_setOutputFromMemory}.</li>
- *    <li>Apply the model with {@link ANeuralNetworksRequest_startCompute}.</li>
- *    <li>Wait for the request to complete with {@link
- *        ANeuralNetworksRequest_wait}.</li>
- *    <li>Destroy the request with
- *        {@link ANeuralNetworksRequest_free}.</li></ul></p>
+ *        {@link ANeuralNetworksExecution_setOutput} or
+ *        {@link ANeuralNetworksExecution_setOutputFromMemory}.</li>
+ *    <li>Apply the model with {@link ANeuralNetworksExecution_startCompute}.</li>
+ *    <li>Wait for the execution to complete with {@link
+ *        ANeuralNetworksExecution_wait}.</li>
+ *    <li>Destroy the execution with
+ *        {@link ANeuralNetworksExecution_free}.</li></ul></p>
  *
- * <p>A request cannot be modified once {@link ANeuralNetworksRequest_start}
+ * <p>An execution cannot be modified once {@link ANeuralNetworksExecution_start}
  * has been called on it.</p>
  *
- * <p>A request can be applied to a model with
- * {@link ANeuralNetworksRequest_startCompute} only once. Create new requests
+ * <p>An execution can be applied to a model with
+ * {@link ANeuralNetworksExecution_startCompute} only once. Create new executions
  * to do new evaluations of the model.</p>
  *
  * <p>It is the application's responsibility to make sure that only one thread
- * modifies a request at a given time. It is however safe for more than one
- * thread to use {@link ANeuralNetworksRequest_wait} at the same time.</p>
+ * modifies an execution at a given time. It is however safe for more than one
+ * thread to use {@link ANeuralNetworksExecution_wait} at the same time.</p>
  */
-typedef struct ANeuralNetworksRequest ANeuralNetworksRequest;
+typedef struct ANeuralNetworksExecution ANeuralNetworksExecution;
 
 typedef struct ANeuralNetworksIntList {
     uint32_t count;
@@ -1209,10 +1209,10 @@ int ANeuralNetworksInitialize();
  * Destroys the machine learning runtime.
  *
  * This function frees any resource used by the runtime. It will wait
- * until in flight requests have completed and will prevent new ones
- * from being started with {@link ANeuralNetworksRequest_startCompute}.
+ * until in flight executions have completed and will prevent new ones
+ * from being started with {@link ANeuralNetworksExecution_startCompute}.
  *
- * Threads blocked on {@link ANeuralNetworksRequest_wait} calls will be
+ * Threads blocked on {@link ANeuralNetworksExecution_wait} calls will be
  * released before this function terminates.
  *
  * See {@link ANeuralNetworksInitialize} for details on how multiple calls
@@ -1262,7 +1262,7 @@ void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory);
  * Create an empty {@link ANeuralNetworksModel}.
  *
  * <p>This only creates the object. Computation is performed once
- * {@link ANeuralNetworksRequest_startCompute} is invoked.
+ * {@link ANeuralNetworksExecution_startCompute} is invoked.
  *
  * The model should be constructed with calls to
  * {@link ANeuralNetworksModel_addOperation} and
@@ -1317,16 +1317,16 @@ int ANeuralNetworksModel_finish(ANeuralNetworksModel* model);
  * The order in which the operands are added is important. The first one added
  * to a model will have the index value 0, the second 1, etc. These indexes are
  * used as operand identifiers in {@link ANeuralNetworksModel_addOperation},
- * {@link ANeuralNetworksRequest_setInput},
- * {@link ANeuralNetworksRequest_setInputFromMemory},
- * {@link ANeuralNetworksRequest_setOutput},
- * {@link ANeuralNetworksRequest_setOutputFromMemory} and
- * {@link ANeuralNetworksRequest_setOperandValue}.
+ * {@link ANeuralNetworksExecution_setInput},
+ * {@link ANeuralNetworksExecution_setInputFromMemory},
+ * {@link ANeuralNetworksExecution_setOutput},
+ * {@link ANeuralNetworksExecution_setOutputFromMemory} and
+ * {@link ANeuralNetworksExecution_setOperandValue}.
  *
  * To build a model that can accomodate inputs of various sizes, as you may want
  * to do for a CNN, set the size of the dimensions that will vary at run time to 0.
  * If you do so, provide the full dimensions when calling
- * {@link ANeuralNetworksRequest_setInput} or {@link ANeuralNetworksRequest_setInputFromMemory}.
+ * {@link ANeuralNetworksExecution_setInput} or {@link ANeuralNetworksExecution_setInputFromMemory}.
  *
  * Attempting to modify a model once {@link ANeuralNetworksModel_finish} has been
  * called will return an error.
@@ -1349,7 +1349,7 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
  *
  * For tensor values, a pointer to the buffer is stored within the model.
  * The application is responsible for not changing the content of this region
- * until all requests using this model have completed. As the data may
+ * until all executions using this model have completed. As the data may
  * be copied during processing, modifying the data after this call yields
  * undefined results.
  *
@@ -1373,7 +1373,7 @@ int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t in
  *
  * The content of the memory is not copied. A reference to that memory is stored
  * inside the model. The application is responsible for not changing the content
- * of the memory region until all requests using this model have completed.
+ * of the memory region until all executions using this model have completed.
  * As the data may be copied during processing, modifying the data after this call
  * yields undefined results.
  *
@@ -1505,11 +1505,11 @@ int ANeuralNetworksCompilation_setPreference(ANeuralNetworksCompilation* compila
  * to wait for that signal.</p>
  *
  * Multiple compilations can be scheduled and performed concurrently, and
- * compilations can be performed concurrently with execution of requests.
+ * compilations can be performed concurrently with executions.
  * The runtime makes no guarantee on the ordering of the completion of compilations
- * and requests. If it's important to the application, the application should enforce
+ * and executions. If it's important to the application, the application should enforce
  * the ordering by using
- * {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksRequest_wait}.
+ * {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksExecution_wait}.
  *
  * ANeuralNetworksCompilation_wait must be called to recuperate the resources used
  * by the compilation.
@@ -1537,48 +1537,48 @@ int ANeuralNetworksCompilation_start(ANeuralNetworksCompilation* compilation);
 int ANeuralNetworksCompilation_wait(ANeuralNetworksCompilation* compilation);
 
 /**
- * Create a {@link ANeuralNetworksRequest} to apply the given compilation.
+ * Create a {@link ANeuralNetworksExecution} to apply the given compilation.
  * This only creates the object. Computation is only performed once
- * {@link ANeuralNetworksRequest_startCompute} is invoked.
+ * {@link ANeuralNetworksExecution_startCompute} is invoked.
  *
- * <p>The provided compilation must outlive the request.</p>
+ * <p>The provided compilation must outlive the execution.</p>
  *
- * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
+ * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
  * @param compilation The {@link ANeuralNetworksCompilation} to be evaluated.
- * @param request The newly created object or NULL if unsuccessful.
+ * @param execution The newly created object or NULL if unsuccessful.
  *
  * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA
  *         if the compilation is invalid.
  */
-int ANeuralNetworksRequest_create(ANeuralNetworksCompilation* compilation,
-                                  ANeuralNetworksRequest** request);
+int ANeuralNetworksExecution_create(ANeuralNetworksCompilation* compilation,
+                                    ANeuralNetworksExecution** execution);
 
 /**
- * Destroy a request.
+ * Destroy an execution.
  *
- * <p>If called on a request for which
- * {@link ANeuralNetworksRequest_startCompute} has been called, the
- * function will return immediately but will mark the request to be deleted
- * once the computation completes.   The {link ANeuralNetworksRequest_wait}
+ * <p>If called on an execution for which
+ * {@link ANeuralNetworksExecution_startCompute} has been called, the
+ * function will return immediately but will mark the execution to be deleted
+ * once the computation completes.   The {link ANeuralNetworksExecution_wait}
  * will return ANEURALNETWORKS_ERROR_DELETED.
  *
- * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
+ * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
- * @param request The request to be destroyed. Passing NULL is acceptable and
- *                results in no operation.
+ * @param execution The execution to be destroyed. Passing NULL is acceptable and
+ *                  results in no operation.
  */
-void ANeuralNetworksRequest_free(ANeuralNetworksRequest* request);
+void ANeuralNetworksExecution_free(ANeuralNetworksExecution* execution);
 
 /**
  * Associate a user buffer with an input of the model of the
- * {@link ANeuralNetworksRequest}.
+ * {@link ANeuralNetworksExecution}.
  *
- * <p>The provided buffer must outlive the request.</p>
+ * <p>The provided buffer must outlive the execution.</p>
  *
- * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
+ * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
- * @param request The request to be modified.
+ * @param execution The execution to be modified.
  * @param index The index of the model operand we're associating the input to.
  * @param type The type of the operand. This should be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
@@ -1591,19 +1591,19 @@ void ANeuralNetworksRequest_free(ANeuralNetworksRequest* request);
  * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA if the
  *         name is not recognized or the buffer is too small for the input.
  */
-int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t index,
-                                    const ANeuralNetworksOperandType* type, const void* buffer,
-                                    size_t length);
+int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32_t index,
+                                      const ANeuralNetworksOperandType* type, const void* buffer,
+                                      size_t length);
 
 /**
  * Associate part of a memory object with an input of the model of the
- * {@link ANeuralNetworksRequest}.
+ * {@link ANeuralNetworksExecution}.
  *
- * <p>The provided memory must outlive the request.</p>
+ * <p>The provided memory must outlive the execution.</p>
  *
- * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
+ * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
- * @param request The request to be modified.
+ * @param execution The execution to be modified.
  * @param index The index of the model operand we're associating the input to.
  * @param type The type of the operand. This can be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
@@ -1618,20 +1618,20 @@ int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t ind
  * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA if the
  *         name is not recognized or the buffer is too small for the input.
  */
-int ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest* request, int32_t index,
-                                              const ANeuralNetworksOperandType* type,
-                                              const ANeuralNetworksMemory* memory, uint32_t offset,
-                                              uint32_t length);
+int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execution, int32_t index,
+                                                const ANeuralNetworksOperandType* type,
+                                                const ANeuralNetworksMemory* memory, uint32_t offset,
+                                                uint32_t length);
 
 /**
  * Associate a user buffer with an output of the model of the
- * {@link ANeuralNetworksRequest}.
+ * {@link ANeuralNetworksExecution}.
  *
- * <p>The provided buffer must outlive the request.</p>
+ * <p>The provided buffer must outlive the execution.</p>
  *
- * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
+ * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
- * @param request The request to be modified.
+ * @param execution The execution to be modified.
  * @param index The index of the model operand we're associating the output to.
  * @param type The type of the operand. This can be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
@@ -1644,19 +1644,19 @@ int ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest* request, i
  * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA if the
  *         name is not recognized or the buffer is too small for the output.
  */
-int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t index,
-                                     const ANeuralNetworksOperandType* type, void* buffer,
-                                     size_t length);
+int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int32_t index,
+                                       const ANeuralNetworksOperandType* type, void* buffer,
+                                       size_t length);
 
 /**
  * Associate part of a memory object with an output of the model of the
- * {@link ANeuralNetworksRequest}.
+ * {@link ANeuralNetworksExecution}.
  *
- * <p>The provided memory must outlive the request.</p>
+ * <p>The provided memory must outlive the execution.</p>
  *
- * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
+ * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
- * @param request The request to be modified.
+ * @param execution The execution to be modified.
  * @param index The index of the model operand we're associating the input to.
  * @param type The type of the operand. This can be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
@@ -1671,47 +1671,47 @@ int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t in
  * @return ANEURALNETWORKS_NO_ERROR if successful, ANEURALNETWORKS_BAD_DATA if the
  *         name is not recognized or the buffer is too small for the output.
  */
-int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, int32_t index,
-                                               const ANeuralNetworksOperandType* type,
-                                               const ANeuralNetworksMemory* memory, uint32_t offset,
-                                               uint32_t length);
+int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execution, int32_t index,
+                                                 const ANeuralNetworksOperandType* type,
+                                                 const ANeuralNetworksMemory* memory, uint32_t offset,
+                                                 uint32_t length);
 
 /**
- * Schedule the request for execution.
+ * Schedule evaluation of the execution.
  *
- * <p>Schedules the request for execution. Once the model has been
- * applied and the outputs are ready to be consumed, the request will be
- * signaled. Use {@link ANeuralNetworksRequest_wait} to wait for that signal.
+ * <p>Schedules evaluation of the execution. Once the model has been
+ * applied and the outputs are ready to be consumed, the execution will be
+ * signaled. Use {@link ANeuralNetworksExecution_wait} to wait for that signal.
  * </p>
  *
- * Multiple requests can be scheduled and executed concurrently, and compilations
- * can be performed concurrently with execution of requests. The runtime makes
- * no guarantee on the ordering of the completion of compilations and requests.
+ * Multiple executions can be scheduled and evaluated concurrently, and compilations
+ * can be performed concurrently with executions. The runtime makes
+ * no guarantee on the ordering of the completion of compilations and executions.
  * If it's important to the application, the application should enforce the ordering
- * by using {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksRequest_wait}.
+ * by using {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksExecution_wait}.
  *
- * ANeuralNetworksRequest_wait must be called to recuperate the resources used
- * by the request.
+ * ANeuralNetworksExecution_wait must be called to recuperate the resources used
+ * by the execution.
  *
- * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
+ * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
- * @param request The request to be scheduled and executed.
+ * @param execution The execution to be scheduled and executed.
  *
  * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
-int ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest* request);
+int ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution* execution);
 
 /**
- * Waits until the request completes.
+ * Waits until the execution completes.
  *
- * More than one thread can wait on a request.  When the request completes,
+ * More than one thread can wait on a execution.  When the execution completes,
  * all threads will be released.
  *
- * See {@link ANeuralNetworksRequest} for information on multithreaded usage.
+ * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
- * @return ANEURALNETWORKS_NO_ERROR if the request completed normally.
+ * @return ANEURALNETWORKS_NO_ERROR if the execution completed normally.
  */
-int ANeuralNetworksRequest_wait(ANeuralNetworksRequest* request);
+int ANeuralNetworksExecution_wait(ANeuralNetworksExecution* execution);
 
 __END_DECLS
 

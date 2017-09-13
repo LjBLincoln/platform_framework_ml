@@ -22,11 +22,11 @@
 
 #include "CompilationBuilder.h"
 #include "Event.h"
+#include "ExecutionBuilder.h"
 #include "NeuralNetworks.h"
 #include "Manager.h"
 #include "Memory.h"
 #include "ModelBuilder.h"
-#include "RequestBuilder.h"
 
 #include <memory>
 #include <vector>
@@ -457,123 +457,123 @@ int ANeuralNetworksCompilation_wait(ANeuralNetworksCompilation* compilation) {
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ANeuralNetworksRequest_create(ANeuralNetworksCompilation* compilation,
-                                  ANeuralNetworksRequest** request) {
-    if (!compilation || !request) {
-        LOG(ERROR) << "ANeuralNetworksRequest_create passed a nullptr";
+int ANeuralNetworksExecution_create(ANeuralNetworksCompilation* compilation,
+                                    ANeuralNetworksExecution** execution) {
+    if (!compilation || !execution) {
+        LOG(ERROR) << "ANeuralNetworksExecution_create passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
 
     CompilationBuilder* c = reinterpret_cast<CompilationBuilder*>(compilation);
-    RequestBuilder* r = nullptr;
-    int result = c->createRequest(&r);
-    *request = reinterpret_cast<ANeuralNetworksRequest*>(r);
+    ExecutionBuilder* r = nullptr;
+    int result = c->createExecution(&r);
+    *execution = reinterpret_cast<ANeuralNetworksExecution*>(r);
     return result;
 }
 
-void ANeuralNetworksRequest_free(ANeuralNetworksRequest* request) {
-    // TODO specification says that a request-in-flight can be deleted
+void ANeuralNetworksExecution_free(ANeuralNetworksExecution* execution) {
+    // TODO specification says that an execution-in-flight can be deleted
     // No validation.  Free of nullptr is valid.
-    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
+    ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
     if (r) {
         r->wait();
         delete r;
     }
 }
 
-int ANeuralNetworksRequest_setInput(ANeuralNetworksRequest* request, int32_t index,
-                                    const ANeuralNetworksOperandType* type, const void* buffer,
-                                    size_t length) {
+int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32_t index,
+                                      const ANeuralNetworksOperandType* type, const void* buffer,
+                                      size_t length) {
     // TODO: For a non-optional input, also verify that buffer is not null.
-    if (!request) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setInput passed a nullptr";
+    if (!execution) {
+        LOG(ERROR) << "ANeuralNetworksExecution_setInput passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     if (type != nullptr) {
-        int n = ValidateOperandType(*type, "ANeuralNetworksRequest_setInput", false);
+        int n = ValidateOperandType(*type, "ANeuralNetworksExecution_setInput", false);
         if (n != ANEURALNETWORKS_NO_ERROR) {
             return n;
         }
     }
     if (length > 0xFFFFFFFF) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setInput input exceeds max length " << length;
+        LOG(ERROR) << "ANeuralNetworksExecution_setInput input exceeds max length " << length;
         return ANEURALNETWORKS_BAD_DATA;
     }
     uint32_t l = static_cast<uint32_t>(length);
-    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
+    ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
     return r->setInput(index, type, buffer, l);
 }
 
-int ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest* request, int32_t index,
-                                              const ANeuralNetworksOperandType* type,
-                                              const ANeuralNetworksMemory* memory, uint32_t offset,
-                                              uint32_t length) {
-    if (!request || !memory) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setInputFromMemory passed a nullptr";
+int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execution, int32_t index,
+                                                const ANeuralNetworksOperandType* type,
+                                                const ANeuralNetworksMemory* memory, uint32_t offset,
+                                                uint32_t length) {
+    if (!execution || !memory) {
+        LOG(ERROR) << "ANeuralNetworksExecution_setInputFromMemory passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     // TODO validate the rest
 
     const Memory* m = reinterpret_cast<const Memory*>(memory);
-    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
+    ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
     return r->setInputFromMemory(index, type, m, offset, length);
 }
 
-int ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest* request, int32_t index,
-                                     const ANeuralNetworksOperandType* type, void* buffer,
-                                     size_t length) {
-    if (!request || !buffer) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setOutput passed a nullptr";
+int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int32_t index,
+                                       const ANeuralNetworksOperandType* type, void* buffer,
+                                       size_t length) {
+    if (!execution || !buffer) {
+        LOG(ERROR) << "ANeuralNetworksExecution_setOutput passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     if (type != nullptr) {
-        int n = ValidateOperandType(*type, "ANeuralNetworksRequest_setOutput", false);
+        int n = ValidateOperandType(*type, "ANeuralNetworksExecution_setOutput", false);
         if (n != ANEURALNETWORKS_NO_ERROR) {
             return n;
         }
     }
     if (length > 0xFFFFFFFF) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setOutput input exceeds max length " << length;
+        LOG(ERROR) << "ANeuralNetworksExecution_setOutput input exceeds max length " << length;
         return ANEURALNETWORKS_BAD_DATA;
     }
     uint32_t l = static_cast<uint32_t>(length);
 
-    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
+    ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
     return r->setOutput(index, type, buffer, l);
 }
 
-int ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest* request, int32_t index,
-                                               const ANeuralNetworksOperandType* type,
-                                               const ANeuralNetworksMemory* memory, uint32_t offset,
-                                               uint32_t length) {
-    if (!request || !memory) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setOutputFromMemory passed a nullptr";
+int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execution, int32_t index,
+                                                 const ANeuralNetworksOperandType* type,
+                                                 const ANeuralNetworksMemory* memory, uint32_t offset,
+                                                 uint32_t length) {
+    if (!execution || !memory) {
+        LOG(ERROR) << "ANeuralNetworksExecution_setOutputFromMemory passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     // TODO validate the rest
 
-    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
+    ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
     const Memory* m = reinterpret_cast<const Memory*>(memory);
     return r->setOutputFromMemory(index, type, m, offset, length);
 }
 
-int ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest* request) {
-    if (!request) {
-        LOG(ERROR) << "ANeuralNetworksRequest_startCompute passed a nullptr";
+int ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution* execution) {
+    if (!execution) {
+        LOG(ERROR) << "ANeuralNetworksExecution_startCompute passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     // TODO validate the rest
 
-    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
+    ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
     return r->startCompute();
 }
 
-int ANeuralNetworksRequest_wait(ANeuralNetworksRequest* request) {
-    if (!request) {
-        LOG(ERROR) << "ANeuralNetworksRequest_wait passed a nullptr";
+int ANeuralNetworksExecution_wait(ANeuralNetworksExecution* execution) {
+    if (!execution) {
+        LOG(ERROR) << "ANeuralNetworksExecution_wait passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
 
-    RequestBuilder* r = reinterpret_cast<RequestBuilder*>(request);
+    ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
     return r->wait();
 }

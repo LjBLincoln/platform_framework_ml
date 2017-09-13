@@ -177,19 +177,19 @@ public:
 
         Compilation compilation(&model_);
         compilation.compile();
-        Request request(&compilation);
-#define SetInputOrWeight(X)                                             \
-        ASSERT_EQ(request.setInput(LSTMCell::k##X##Tensor, X##_.data(), \
-                                   sizeof(X##_)),                       \
+        Execution execution(&compilation);
+#define SetInputOrWeight(X)                                               \
+        ASSERT_EQ(execution.setInput(LSTMCell::k##X##Tensor, X##_.data(), \
+                                     sizeof(X##_)),                       \
                   Result::NO_ERROR);
 
         FOR_ALL_INPUT_AND_WEIGHT_TENSORS(SetInputOrWeight);
 
 #undef SetInputOrWeight
 
-#define SetOutput(X)                                                    \
-        ASSERT_EQ(request.setOutput(LSTMCell::k##X##Tensor, X##_.data(), \
-                                    sizeof(X##_)),                      \
+#define SetOutput(X)                                                       \
+        ASSERT_EQ(execution.setOutput(LSTMCell::k##X##Tensor, X##_.data(), \
+                                      sizeof(X##_)),                       \
                   Result::NO_ERROR);
 
         FOR_ALL_OUTPUT_TENSORS(SetOutput);
@@ -197,45 +197,45 @@ public:
 #undef SetOutput
 
         if (use_cifg_) {
-            request.setInput(LSTMCell::kInputToInputWeightsTensor, nullptr, 0);
-            request.setInput(LSTMCell::kRecurrentToInputWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kInputToInputWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kRecurrentToInputWeightsTensor, nullptr, 0);
         }
 
         if (use_peephole_) {
             if (use_cifg_) {
-                request.setInput(LSTMCell::kCellToInputWeightsTensor, nullptr, 0);
+                execution.setInput(LSTMCell::kCellToInputWeightsTensor, nullptr, 0);
             }
         } else {
-            request.setInput(LSTMCell::kCellToInputWeightsTensor, nullptr, 0);
-            request.setInput(LSTMCell::kCellToForgetWeightsTensor, nullptr, 0);
-            request.setInput(LSTMCell::kCellToOutputWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kCellToInputWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kCellToForgetWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kCellToOutputWeightsTensor, nullptr, 0);
         }
 
         if (use_projection_weights_) {
             if (!use_projection_bias_) {
-                request.setInput(LSTMCell::kProjectionBiasTensor, nullptr, 0);
+                execution.setInput(LSTMCell::kProjectionBiasTensor, nullptr, 0);
             }
         } else {
-            request.setInput(LSTMCell::kProjectionWeightsTensor, nullptr, 0);
-            request.setInput(LSTMCell::kProjectionBiasTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kProjectionWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kProjectionBiasTensor, nullptr, 0);
         }
 
-        ASSERT_EQ(request.setInput(LSTMCell::kActivationParam,
-                                   &activation_, sizeof(activation_)),
+        ASSERT_EQ(execution.setInput(LSTMCell::kActivationParam,
+                                     &activation_, sizeof(activation_)),
                   Result::NO_ERROR);
-        ASSERT_EQ(request.setInput(LSTMCell::kCellClipParam,
-                                   &cell_clip_, sizeof(cell_clip_)),
+        ASSERT_EQ(execution.setInput(LSTMCell::kCellClipParam,
+                                     &cell_clip_, sizeof(cell_clip_)),
                   Result::NO_ERROR);
-        ASSERT_EQ(request.setInput(LSTMCell::kProjClipParam,
-                                   &proj_clip_, sizeof(proj_clip_)),
+        ASSERT_EQ(execution.setInput(LSTMCell::kProjClipParam,
+                                     &proj_clip_, sizeof(proj_clip_)),
                   Result::NO_ERROR);
 
-        ASSERT_EQ(request.compute(), Result::NO_ERROR);
+        ASSERT_EQ(execution.compute(), Result::NO_ERROR);
     }
 
 private:
     Model model_;
-    // Request request_;
+    // Execution execution_;
     const uint32_t n_batch_;
     const uint32_t n_input_;
     const uint32_t n_cell_;

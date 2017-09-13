@@ -118,11 +118,11 @@ TEST_F(TrivialTest, AddTwo) {
     memset(&actual, 0, sizeof(actual));
     Compilation compilation(&modelAdd2);
     compilation.compile();
-    Request request(&compilation);
-    ASSERT_EQ(request.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    Execution execution(&compilation);
+    ASSERT_EQ(execution.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected2, actual), 0);
 }
 
@@ -135,22 +135,22 @@ TEST_F(TrivialTest, AddThree) {
     memset(&actual, 0, sizeof(actual));
     Compilation compilation2(&modelAdd3);
     compilation2.compile();
-    Request request2(&compilation2);
-    ASSERT_EQ(request2.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request2.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request2.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request2.compute(), Result::NO_ERROR);
+    Execution execution2(&compilation2);
+    ASSERT_EQ(execution2.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution2.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution2.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution2.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected3, actual), 0);
 
     // Test it a second time to make sure the model is reusable.
     memset(&actual, 0, sizeof(actual));
     Compilation compilation3(&modelAdd3);
     compilation3.compile();
-    Request request3(&compilation3);
-    ASSERT_EQ(request3.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request3.setInput(1, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request3.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request3.compute(), Result::NO_ERROR);
+    Execution execution3(&compilation3);
+    ASSERT_EQ(execution3.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution3.setInput(1, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution3.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution3.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected3b, actual), 0);
 }
 
@@ -178,11 +178,11 @@ TEST_F(TrivialTest, BroadcastAddTwo) {
     memset(&actual, 0, sizeof(actual));
     Compilation compilation(&modelBroadcastAdd2);
     compilation.compile();
-    Request request(&compilation);
-    ASSERT_EQ(request.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    Execution execution(&compilation);
+    ASSERT_EQ(execution.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected2b, actual), 0);
 }
 
@@ -210,11 +210,11 @@ TEST_F(TrivialTest, BroadcastMulTwo) {
     memset(&actual, 0, sizeof(actual));
     Compilation compilation(&modelBroadcastMul2);
     compilation.compile();
-    Request request(&compilation);
-    ASSERT_EQ(request.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    Execution execution(&compilation);
+    ASSERT_EQ(execution.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected2c, actual), 0);
 }
 
