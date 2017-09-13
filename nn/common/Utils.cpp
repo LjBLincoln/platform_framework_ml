@@ -29,9 +29,8 @@ namespace nn {
 #define COUNT(X) (sizeof(X) / sizeof(X[0]))
 
 const char* kTypeNames[kNumberOfDataTypes] = {
-        "FLOAT16",        "FLOAT32",        "INT8",         "UINT8",
-        "INT16",          "UINT16",         "INT32",        "UINT32",
-        "TENSOR_FLOAT16", "TENSOR_FLOAT32", "TENSOR_INT32", "TENSOR_QUANT8_ASYMM",
+        "OEM",             "FLOAT32",        "INT32",        "UINT32",
+        "TENSOR_OEM_BYTE", "TENSOR_FLOAT32", "TENSOR_INT32", "TENSOR_QUANT8_ASYMM",
 };
 
 static_assert(COUNT(kTypeNames) == kNumberOfDataTypes, "kTypeNames is incorrect");
@@ -84,18 +83,14 @@ const char* getOperationName(OperationType type) {
 }
 
 const uint32_t kSizeOfDataType[]{
-        2, // ANEURALNETWORKS_FLOAT16
+        0, // ANEURALNETWORKS_OEM
         4, // ANEURALNETWORKS_FLOAT32
-        1, // ANEURALNETWORKS_INT8
-        1, // ANEURALNETWORKS_UINT8
-        2, // ANEURALNETWORKS_INT16
-        2, // ANEURALNETWORKS_UINT16
         4, // ANEURALNETWORKS_INT32
         4, // ANEURALNETWORKS_UINT32
-        2, // ANEURALNETWORKS_TENSOR_FLOAT16
+        1, // ANEURALNETWORKS_TENSOR_OEM_BYTE
         4, // ANEURALNETWORKS_TENSOR_FLOAT32
         4, // ANEURALNETWORKS_TENSOR_INT32
-        1  // ANEURALNETWORKS_TENSOR_SIMMETRICAL_QUANT8
+        1  // ANEURALNETWORKS_TENSOR_SYMMETRICAL_QUANT8
 };
 
 static_assert(COUNT(kSizeOfDataType) == kNumberOfDataTypes, "kSizeOfDataType is incorrect");
