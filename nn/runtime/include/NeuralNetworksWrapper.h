@@ -237,40 +237,6 @@ private:
     bool mValid = true;
 };
 
-class Event {
-public:
-    ~Event() { ANeuralNetworksEvent_free(mEvent); }
-
-    // Disallow copy semantics to ensure the runtime object can only be freed
-    // once. Copy semantics could be enabled if some sort of reference counting
-    // or deep-copy system for runtime objects is added later.
-    Event(const Event&) = delete;
-    Event& operator=(const Event&) = delete;
-
-    // Move semantics to remove access to the runtime object from the wrapper
-    // object that is being moved. This ensures the runtime object will be
-    // freed only once.
-    Event(Event&& other) {
-        *this = std::move(other);
-    }
-    Event& operator=(Event&& other) {
-        if (this != &other) {
-            mEvent = other.mEvent;
-            other.mEvent = nullptr;
-        }
-        return *this;
-    }
-
-    Result wait() { return static_cast<Result>(ANeuralNetworksEvent_wait(mEvent)); }
-    void set(ANeuralNetworksEvent* newEvent) {
-        ANeuralNetworksEvent_free(mEvent);
-        mEvent = newEvent;
-    }
-
-private:
-    ANeuralNetworksEvent* mEvent = nullptr;
-};
-
 class Compilation {
 public:
     Compilation(const Model* model) {
@@ -374,24 +340,23 @@ public:
                     mRequest, index, type, memory->get(), offset, length));
     }
 
-    Result startCompute(Event* event) {
-        ANeuralNetworksEvent* ev = nullptr;
-        Result result = static_cast<Result>(ANeuralNetworksRequest_startCompute(mRequest, &ev));
-        event->set(ev);
+    Result startCompute() {
+        Result result = static_cast<Result>(ANeuralNetworksRequest_startCompute(mRequest));
         return result;
     }
 
+    Result wait() {
+        return static_cast<Result>(ANeuralNetworksRequest_wait(mRequest));
+    }
+
     Result compute() {
-        ANeuralNetworksEvent* event = nullptr;
-        Result result = static_cast<Result>(ANeuralNetworksRequest_startCompute(mRequest, &event));
+        Result result = static_cast<Result>(ANeuralNetworksRequest_startCompute(mRequest));
         if (result != Result::NO_ERROR) {
             return result;
         }
         // TODO how to manage the lifetime of events when multiple waiters is not
         // clear.
-        result = static_cast<Result>(ANeuralNetworksEvent_wait(event));
-        ANeuralNetworksEvent_free(event);
-        return result;
+        return static_cast<Result>(ANeuralNetworksRequest_wait(mRequest));
     }
 
 private:
