@@ -26,7 +26,8 @@ for i in range(rows):
 
 model = Model()
 
-lookup = Input("lookup", "TENSOR_FLOAT32", "{%d}"%lookups)
+# lookup, key, and hits are all int32 stored as float32.
+lookup = Input("lookup", "TENSOR_FLOAT32", "{%d}" % lookups)
 key = Input("key", "TENSOR_FLOAT32", "{%d}" % (keys))
 value = Input("value", "TENSOR_FLOAT32", "{%d, %d}" % (rows, features))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (lookups, features))
