@@ -99,20 +99,20 @@ class LSHProjectionOpModel {
 
     Compilation compilation(&model_);
     compilation.compile();
-    Request request(&compilation);
+    Execution execution(&compilation);
 
-#define SetInputOrWeight(X, T)                                           \
-    ASSERT_EQ(request.setInput(LSHProjection::k##X##Tensor, X##_.data(), \
-                               sizeof(X##_)),                            \
+#define SetInputOrWeight(X, T)                                             \
+    ASSERT_EQ(execution.setInput(LSHProjection::k##X##Tensor, X##_.data(), \
+                                 sizeof(X##_)),                            \
               Result::NO_ERROR);
 
     FOR_ALL_INPUT_AND_WEIGHT_TENSORS(SetInputOrWeight);
 
 #undef SetInputOrWeight
 
-#define SetOutput(X)                                                    \
-  ASSERT_EQ(request.setOutput(LSHProjection::k##X##Tensor, X##_.data(), \
-                              sizeof(X##_)),                            \
+#define SetOutput(X)                                                      \
+  ASSERT_EQ(execution.setOutput(LSHProjection::k##X##Tensor, X##_.data(), \
+                                sizeof(X##_)),                            \
             Result::NO_ERROR);
 
     FOR_ALL_OUTPUT_TENSORS(SetOutput);
@@ -120,10 +120,10 @@ class LSHProjectionOpModel {
 #undef SetOutput
 
     ASSERT_EQ(
-        request.setInput(LSHProjection::kTypeParam, &type_, sizeof(type_)),
+        execution.setInput(LSHProjection::kTypeParam, &type_, sizeof(type_)),
         Result::NO_ERROR);
 
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
   }
 
  private:

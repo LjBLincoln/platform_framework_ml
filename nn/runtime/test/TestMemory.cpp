@@ -127,12 +127,12 @@ TEST_F(MemoryTest, TestASharedMemory) {
     Compilation compilation2(&model);
     ASSERT_EQ(compilation2.compile(), Result::NO_ERROR);
 
-    Request request2(&compilation2);
-    ASSERT_EQ(request2.setInputFromMemory(0, &input, offsetForMatrix1, sizeof(Matrix3x4)),
+    Execution execution2(&compilation2);
+    ASSERT_EQ(execution2.setInputFromMemory(0, &input, offsetForMatrix1, sizeof(Matrix3x4)),
               Result::NO_ERROR);
-    ASSERT_EQ(request2.setOutputFromMemory(0, &actual, offsetForActual, sizeof(Matrix3x4)),
+    ASSERT_EQ(execution2.setOutputFromMemory(0, &actual, offsetForActual, sizeof(Matrix3x4)),
               Result::NO_ERROR);
-    ASSERT_EQ(request2.compute(), Result::NO_ERROR);
+    ASSERT_EQ(execution2.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected3, *reinterpret_cast<Matrix3x4*>(outputData + offsetForActual)), 0);
 }
 
@@ -177,10 +177,10 @@ TEST_F(MemoryTest, TestFd) {
     memset(&actual, 0, sizeof(actual));
     Compilation compilation2(&model);
     ASSERT_EQ(compilation2.compile(), Result::NO_ERROR);
-    Request request2(&compilation2);
-    ASSERT_EQ(request2.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request2.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request2.compute(), Result::NO_ERROR);
+    Execution execution2(&compilation2);
+    ASSERT_EQ(execution2.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution2.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution2.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected3, actual), 0);
 
     close(fd);

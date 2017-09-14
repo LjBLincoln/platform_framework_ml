@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_ML_NN_RUNTIME_REQUEST_BUILDER_H
-#define ANDROID_ML_NN_RUNTIME_REQUEST_BUILDER_H
+#ifndef ANDROID_ML_NN_RUNTIME_EXECUTION_BUILDER_H
+#define ANDROID_ML_NN_RUNTIME_EXECUTION_BUILDER_H
 
 #include "Event.h"
 #include "HalInterfaces.h"
@@ -56,9 +56,9 @@ struct ModelArgumentInfo {
     int updateDimensionInfo(const Operand& operand, const ANeuralNetworksOperandType* newType);
 };
 
-class RequestBuilder {
+class ExecutionBuilder {
 public:
-    RequestBuilder(const CompilationBuilder* compilation);
+    ExecutionBuilder(const CompilationBuilder* compilation);
 
     int setInput(uint32_t index, const ANeuralNetworksOperandType* type, const void* buffer,
                  uint32_t length);
@@ -99,11 +99,11 @@ private:
     Memory mOutputPointerArguments;
     MemoryTracker mMemories;
 
-    // Used for synchronizing with request.
+    // Used for synchronizing with execution.
     sp<Event> mEvent;
 };
 
 } // namespace nn
 } // namespace android
 
-#endif // ANDROID_ML_NN_RUNTIME_REQUEST_BUILDER_H
+#endif // ANDROID_ML_NN_RUNTIME_EXECUTION_BUILDER_H

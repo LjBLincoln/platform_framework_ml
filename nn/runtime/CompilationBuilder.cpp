@@ -18,7 +18,7 @@
 
 #include "CompilationBuilder.h"
 
-#include "RequestBuilder.h"
+#include "ExecutionBuilder.h"
 
 namespace android {
 namespace nn {
@@ -33,9 +33,9 @@ int CompilationBuilder::compile() {
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int CompilationBuilder::createRequest(RequestBuilder **request) {
-    *request = new RequestBuilder(this);
-    return (*request ? ANEURALNETWORKS_NO_ERROR : ANEURALNETWORKS_OUT_OF_MEMORY);
+int CompilationBuilder::createExecution(ExecutionBuilder **execution) {
+    *execution = new ExecutionBuilder(this);
+    return (*execution ? ANEURALNETWORKS_NO_ERROR : ANEURALNETWORKS_OUT_OF_MEMORY);
 }
 
 }  // namespace nn

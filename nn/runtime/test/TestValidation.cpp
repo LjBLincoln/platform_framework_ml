@@ -69,7 +69,7 @@ protected:
     ANeuralNetworksCompilation* mCompilation = nullptr;
 };
 
-class ValidationTestRequest : public ValidationTestCompilation {
+class ValidationTestExecution : public ValidationTestCompilation {
 protected:
     virtual void SetUp() {
         ValidationTestCompilation::SetUp();
@@ -77,13 +77,14 @@ protected:
         ASSERT_EQ(ANeuralNetworksCompilation_start(mCompilation), ANEURALNETWORKS_NO_ERROR);
         ASSERT_EQ(ANeuralNetworksCompilation_wait(mCompilation), ANEURALNETWORKS_NO_ERROR);
 
-        ASSERT_EQ(ANeuralNetworksRequest_create(mCompilation, &mRequest), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksExecution_create(mCompilation, &mExecution),
+                  ANEURALNETWORKS_NO_ERROR);
     }
     virtual void TearDown() {
-        ANeuralNetworksRequest_free(mRequest);
+        ANeuralNetworksExecution_free(mExecution);
         ValidationTestCompilation::TearDown();
     }
-    ANeuralNetworksRequest* mRequest = nullptr;
+    ANeuralNetworksExecution* mExecution = nullptr;
 };
 
 TEST_F(ValidationTest, CreateModel) {
@@ -176,52 +177,55 @@ TEST_F(ValidationTestCompilation, SetPreference) {
               ANEURALNETWORKS_BAD_DATA);
 }
 
-TEST_F(ValidationTestCompilation, CreateRequest) {
-    ANeuralNetworksRequest* request = nullptr;
-    EXPECT_EQ(ANeuralNetworksRequest_create(nullptr, &request), ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksRequest_create(mCompilation, nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
-    // EXPECT_EQ(ANeuralNetworksRequest_create(mCompilation, ANeuralNetworksRequest *
-    // *request),
+TEST_F(ValidationTestCompilation, CreateExecution) {
+    ANeuralNetworksExecution* execution = nullptr;
+    EXPECT_EQ(ANeuralNetworksExecution_create(nullptr, &execution),
+              ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksExecution_create(mCompilation, nullptr),
+              ANEURALNETWORKS_UNEXPECTED_NULL);
+    // EXPECT_EQ(ANeuralNetworksExecution_create(mCompilation, ANeuralNetworksExecution *
+    // *execution),
     //          ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
 #if 0
 // TODO do more..
-TEST_F(ValidationTestRequest, SetInput) {
-    EXPECT_EQ(ANeuralNetworksRequest_setInput(ANeuralNetworksRequest * request, int32_t index,
-                                              const ANeuralNetworksOperandType* type,
-                                              const void* buffer, size_t length),
+TEST_F(ValidationTestExecution, SetInput) {
+    EXPECT_EQ(ANeuralNetworksExecution_setInput(ANeuralNetworksExecution * execution, int32_t index,
+                                                const ANeuralNetworksOperandType* type,
+                                                const void* buffer, size_t length),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, SetInputFromMemory) {
-    EXPECT_EQ(ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest * request,
-                                                        int32_t index,
-                                                        const ANeuralNetworksOperandType* type,
-                                                        const ANeuralNetworksMemory* buffer,
-                                                        uint32_t offset),
+TEST_F(ValidationTestExecution, SetInputFromMemory) {
+    EXPECT_EQ(ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution * execution,
+                                                          int32_t index,
+                                                          const ANeuralNetworksOperandType* type,
+                                                          const ANeuralNetworksMemory* buffer,
+                                                          uint32_t offset),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, SetOutput) {
-    EXPECT_EQ(ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest * request, int32_t index,
-                                               const ANeuralNetworksOperandType* type, void* buffer,
-                                               size_t length),
+TEST_F(ValidationTestExecution, SetOutput) {
+    EXPECT_EQ(ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution * execution,
+                                                 int32_t index,
+                                                 const ANeuralNetworksOperandType* type,
+                                                 void* buffer, size_t length),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, SetOutputFromMemory) {
-    EXPECT_EQ(ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest * request,
-                                                         int32_t index,
-                                                         const ANeuralNetworksOperandType* type,
-                                                         const ANeuralNetworksMemory* buffer,
-                                                         uint32_t offset),
+TEST_F(ValidationTestExecution, SetOutputFromMemory) {
+    EXPECT_EQ(ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution * execution,
+                                                           int32_t index,
+                                                           const ANeuralNetworksOperandType* type,
+                                                           const ANeuralNetworksMemory* buffer,
+                                                           uint32_t offset),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, StartCompute) {
-    EXPECT_EQ(ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest * request,
-                                                  ANeuralNetworksEvent * *event),
+TEST_F(ValidationTestExecution, StartCompute) {
+    EXPECT_EQ(ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution * execution,
+                                                    ANeuralNetworksEvent * *event),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
