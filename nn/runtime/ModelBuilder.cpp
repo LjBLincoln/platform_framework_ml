@@ -47,7 +47,7 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
     setFromIntList(&operand.dimensions, type.dimensionCount, type.dimensions);
     operand.numberOfConsumers = 0;
     operand.scale = type.scale;
-    operand.zeroPoint = type.offset;
+    operand.zeroPoint = type.zeroPoint;
     operand.lifetime = OperandLifeTime::TEMPORARY_VARIABLE;
     operand.location = {.poolIndex = 0, .offset = 0, .length = 0};
     return ANEURALNETWORKS_NO_ERROR;

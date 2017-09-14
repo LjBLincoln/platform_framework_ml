@@ -84,7 +84,7 @@ static bool allocateIfNeeded(RunTimeOperandInfo* info, const Shape& shape) {
     info->type = shape.type;
     info->dimensions = shape.dimensions;
     info->scale = shape.scale;
-    info->offset = shape.offset;
+    info->zeroPoint = shape.offset;
     if (info->buffer == nullptr) {
         uint32_t length = sizeOfData(info->type, info->dimensions);
         info->buffer = new uint8_t[length];
@@ -140,7 +140,7 @@ bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runT
         to.type = from.type;
         to.dimensions = from.dimensions;
         to.scale = from.scale;
-        to.offset = from.zeroPoint;
+        to.zeroPoint = from.zeroPoint;
         to.length = from.location.length;
         switch (from.lifetime) {
             case OperandLifeTime::TEMPORARY_VARIABLE:

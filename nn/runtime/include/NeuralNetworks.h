@@ -1171,7 +1171,7 @@ typedef struct ANeuralNetworksOperandType {
      * The dequantized value of each entry is (value - offset) * scale.
      */
     float scale;
-    int32_t offset;
+    int32_t zeroPoint;
 } ANeuralNetworksOperandType;
 
 typedef int32_t ANeuralNetworksOperationType;
