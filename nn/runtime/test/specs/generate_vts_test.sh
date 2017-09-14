@@ -34,7 +34,10 @@ function generate_one_testcase {
   echo \#include \"vts_models/$BASENAME.model.cpp\"
   echo }  // namespace $BASENAME
   echo TEST_F\(NeuralnetworksHidlTest\, $BASENAME\) {
-  echo '    generated_tests::Execute'\(device, $BASENAME\:\:createTestModel\, $BASENAME\:\:examples\)\;
+  echo '    generated_tests::Execute'\(device,
+  echo '                             '$BASENAME\:\:createTestModel\,
+  echo '                             '$BASENAME\:\:is_ignored\,
+  echo '                             '$BASENAME\:\:examples\)\;
   echo }
 }
 
