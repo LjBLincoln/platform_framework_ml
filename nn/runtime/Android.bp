@@ -36,6 +36,7 @@ cc_library {
         "CompilationBuilder.cpp",
         "Event.cpp",
         "ExecutionBuilder.cpp",
+        "ExecutionPlan.cpp",
         "Manager.cpp",
         "Memory.cpp",
         "ModelBuilder.cpp",
