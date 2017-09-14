@@ -255,15 +255,6 @@ static int ValidateOperandList(uint32_t count, const uint32_t* list, uint32_t op
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ANeuralNetworksInitialize() {
-    DeviceManager::get()->initialize();
-    return ANEURALNETWORKS_NO_ERROR;
-}
-
-void ANeuralNetworksShutdown() {
-    DeviceManager::get()->shutdown();
-}
-
 int ANeuralNetworksMemory_createFromFd(size_t size, int prot, int fd, size_t offset,
                                        ANeuralNetworksMemory** memory) {
     if (fd < 0) {

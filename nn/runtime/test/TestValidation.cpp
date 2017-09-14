@@ -16,27 +16,31 @@
 
 #include "NeuralNetworks.h"
 
+//#include <android-base/logging.h>
 #include <gtest/gtest.h>
 #include <string>
+
 
 // This file tests all the validations done by the Neural Networks API.
 
 namespace {
 class ValidationTest : public ::testing::Test {
 protected:
-    virtual void SetUp() { ASSERT_EQ(ANeuralNetworksInitialize(), ANEURALNETWORKS_NO_ERROR); }
-    virtual void TearDown() { ANeuralNetworksShutdown(); }
+    virtual void SetUp() {
+        // For detailed logs, uncomment this line:
+        // SetMinimumLogSeverity(android::base::VERBOSE);
+    }
 };
 
-class ValidationTestModel : public ::testing::Test {
+class ValidationTestModel : public ValidationTest {
 protected:
     virtual void SetUp() {
-        ASSERT_EQ(ANeuralNetworksInitialize(), ANEURALNETWORKS_NO_ERROR);
+        ValidationTest::SetUp();
         ASSERT_EQ(ANeuralNetworksModel_create(&mModel), ANEURALNETWORKS_NO_ERROR);
     }
     virtual void TearDown() {
         ANeuralNetworksModel_free(mModel);
-        ANeuralNetworksShutdown();
+        ValidationTest::TearDown();
     }
     ANeuralNetworksModel* mModel = nullptr;
 };

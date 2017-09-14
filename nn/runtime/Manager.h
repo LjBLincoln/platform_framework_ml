@@ -49,11 +49,6 @@ private:
 // Use get() to retrieve it.
 class DeviceManager {
 public:
-    // Initializes the manager: discover devices, query for their capabilities, etc.
-    // This can be expensive, so we do it only when requested by the application.
-    void initialize();
-    void shutdown();
-
     // TODO For now, just return the first one.
     std::shared_ptr<Device> getAvailableDriver() const {
         return mUseCpuOnly || mDevices.empty() ? nullptr : mDevices[0];
@@ -66,6 +61,9 @@ public:
     static DeviceManager* get();
 
 private:
+    // Builds the list of available drivers and queries their capabilities.
+    DeviceManager();
+
     // Adds a device for the manager to use.
     void registerDevice(const char* name, const sp<IDevice>& device) {
         auto d = std::make_shared<Device>(name, device);
@@ -78,16 +76,7 @@ private:
     // List of all the devices we discovered.
     std::vector<std::shared_ptr<Device>> mDevices;
 
-    // The number of times initialise() has been called.  We will reset the content
-    // of the manager when the equivalent number of shutdown() have been called.
-    // This is done so that a library can call initialize and shutdown without
-    // interfering with other code.
-    //
-    // TODO Need to revisit this whole section when integrating with HIDL and
-    // ensuring multithreading is good.  Consider std::atomic<int>.
-    int mUsageCount = 0;
-
-    // If we true, we'll ignore the drivers that are on the device and run everything
+    // If true, we'll ignore the drivers that are on the device and run everything
     // on the CPU.
     bool mUseCpuOnly = false;
 };
