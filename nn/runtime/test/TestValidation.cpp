@@ -79,8 +79,7 @@ protected:
     virtual void SetUp() {
         ValidationTestCompilation::SetUp();
 
-        ASSERT_EQ(ANeuralNetworksCompilation_start(mCompilation), ANEURALNETWORKS_NO_ERROR);
-        ASSERT_EQ(ANeuralNetworksCompilation_wait(mCompilation), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksCompilation_finish(mCompilation), ANEURALNETWORKS_NO_ERROR);
 
         ASSERT_EQ(ANeuralNetworksExecution_create(mCompilation, &mExecution),
                   ANEURALNETWORKS_NO_ERROR);
@@ -188,9 +187,20 @@ TEST_F(ValidationTestCompilation, CreateExecution) {
               ANEURALNETWORKS_UNEXPECTED_NULL);
     EXPECT_EQ(ANeuralNetworksExecution_create(mCompilation, nullptr),
               ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksExecution_create(mCompilation, &execution),
+              ANEURALNETWORKS_BAD_STATE);
     // EXPECT_EQ(ANeuralNetworksExecution_create(mCompilation, ANeuralNetworksExecution *
     // *execution),
     //          ANEURALNETWORKS_UNEXPECTED_NULL);
+}
+
+TEST_F(ValidationTestCompilation, Finish) {
+    EXPECT_EQ(ANeuralNetworksCompilation_finish(nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksCompilation_finish(mCompilation), ANEURALNETWORKS_NO_ERROR);
+    EXPECT_EQ(ANeuralNetworksCompilation_setPreference(mCompilation,
+                                                       ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER),
+              ANEURALNETWORKS_BAD_STATE);
+    EXPECT_EQ(ANeuralNetworksCompilation_finish(mCompilation), ANEURALNETWORKS_BAD_STATE);
 }
 
 #if 0

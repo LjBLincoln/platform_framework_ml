@@ -211,7 +211,7 @@ class BasicRNNOpModel {
     ASSERT_TRUE(model_.isValid());
 
     Compilation compilation(&model_);
-    compilation.compile();
+    compilation.finish();
     Execution execution(&compilation);
 #define SetInputOrWeight(X)                                                   \
   ASSERT_EQ(execution.setInput(RNN::k##X##Tensor, X##_.data(), sizeof(X##_)), \

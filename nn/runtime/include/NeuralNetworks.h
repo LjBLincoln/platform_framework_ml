@@ -1081,6 +1081,9 @@ typedef struct ANeuralNetworksMemory ANeuralNetworksMemory;
  * A model is completed by calling {@link ANeuralNetworksModel_finish}.
  * A model is destroyed by calling {@link ANeuralNetworksModel_free}.
  *
+ * <p>A model cannot be modified once {@link ANeuralNetworksModel_finish}
+ * has been called on it.</p>
+ *
  * <p>It is the application's responsibility to make sure that only one thread
  * modifies a model at a given time. It is however safe for more than one
  * thread to use the model once {@link ANeuralNetworksModel_finish} has returned.</p>
@@ -1098,21 +1101,24 @@ typedef struct ANeuralNetworksModel ANeuralNetworksModel;
  * <p>To use:<ul>
  *    <li>Create a new compilation instance by calling the
  *        {@link ANeuralNetworksCompilation_create} function.</li>
- *    <li>Perform the compilation with {@link ANeuralNetworksCompilation_start}.</li>
- *    <li>Wait for the compilation to complete with {@link ANeuralNetworksCompilation_wait}.</li>
+ *    <li>Set any desired properties on the compilation (for example,
+ *        {@link ANeuralNetworksCompilation_setPreference}).</li>
+ *    <li>Complete the compilation with {@link ANeuralNetworksCompilation_finish}.</li>
  *    <li>Use the compilation as many times as needed
  *        with {@link ANeuralNetworksExecution_create}.</li>
  *    <li>Destroy the compilation with {@link ANeuralNetworksCompilation_free}
  *        once all executions using the compilation have completed.</li></ul></p>
  *
- * <p>A compilation cannot be modified once {@link ANeuralNetworksCompilation_start}
+ * A compilation is completed by calling {@link ANeuralNetworksCompilation_finish}.
+ * A compilation is destroyed by calling {@link ANeuralNetworksCompilation_free}.
+ *
+ * <p>A compilation cannot be modified once {@link ANeuralNetworksCompilation_finish}
  * has been called on it.</p>
  *
- * <p>It is the application's responsibility to make sure that only one thread
- * modifies a compilation at a given time. It is however safe for more than one
- * thread to use {@link ANeuralNetworksCompilation_wait} at the same time.
- * It is also safe for multiple threads to use a compilation object once
- * {@link ANeuralNetworksCompilation_wait} has completed.</p>
+ * <p>It is the application's responsibility to make sure that only
+ * one thread modifies a compilation at a given time. It is however
+ * safe for more than one thread to use the compilation once
+ * {@link ANeuralNetworksCompilation_finish} has returned.</p>
  *
  * <p>It is also the application's responsibility to ensure that there are no other
  * uses of the compilation after calling {@link ANeuralNetworksCompilation_free}.
@@ -1250,10 +1256,12 @@ void ANeuralNetworksModel_free(ANeuralNetworksModel* model);
 
 /**
  * Indicate that we have finished modifying a model. Required before
- * calling {@link ANeuralNetworksCompilation_compile}.
+ * calling {@link ANeuralNetworksCompilation_create}.
  *
  * An application is responsible to make sure that no other thread uses
  * the model at the same time.
+ *
+ * This function must only be called once for a given model.
  *
  * See {@link ANeuralNetworksModel} for information on multithreaded usage.
  *
@@ -1400,8 +1408,15 @@ int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model, uint32
 
 /**
  * Create a {@link ANeuralNetworksCompilation} to compile the given model.
- * This only creates the object. Compilation is only performed once
- * {@link ANeuralNetworksCompilation_start} is invoked.
+ *
+ * <p>This only creates the object. Compilation is only performed once
+ * {@link ANeuralNetworksCompilation_finish} is invoked.</p>
+ *
+ * <p>{@link ANeuralNetworksCompilation_finish} should be called once
+ * all desired properties have been set on the compilation.</p>
+ *
+ * <p>{@link ANeuralNetworksModel_free} should be called once the compilation
+ * is no longer needed.</p>
  *
  * <p>The provided model must outlive the compilation.</p>
  *
@@ -1422,11 +1437,8 @@ int ANeuralNetworksCompilation_create(ANeuralNetworksModel* model,
 /**
  * Destroy a compilation.
  *
- * <p>If called on a compilation for which
- * {@link ANeuralNetworksCompilation_start} has been called, the
- * function will return immediately but will mark the compilation to be deleted
- * once the compilation completes. The {@link ANeuralNetworksCompilation_wait}
- * will return ERROR_DELETED.
+ * The compilation need not have been finished by a call to
+ * {@link ANeuralNetworksModel_finish}.
  *
  * See {@link ANeuralNetworksCompilation} for information on multithreaded usage.
  *
@@ -1453,44 +1465,21 @@ int ANeuralNetworksCompilation_setPreference(ANeuralNetworksCompilation* compila
                                              int32_t preference);
 
 /**
- * Schedule the compilation to be performed.
+ * Indicate that we have finished modifying a compilation. Required before
+ * calling {@link ANeuralNetworksExecution_create}.
  *
- * <p>Schedules the compilation to be performed. Once the model has been
- * compiled and the result is available for {@link ANeuralNetworksReques_create},
- * the compilation will be signaled. Use {@link ANeuralNetworksompilation_wait}
- * to wait for that signal.</p>
- *
- * Multiple compilations can be scheduled and performed concurrently, and
- * compilations can be performed concurrently with executions.
- * The runtime makes no guarantee on the ordering of the completion of compilations
- * and executions. If it's important to the application, the application should enforce
- * the ordering by using
- * {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksExecution_wait}.
- *
- * ANeuralNetworksCompilation_wait must be called to recuperate the resources used
- * by the compilation.
+ * An application is responsible to make sure that no other thread uses
+ * the compilation at the same time.
  *
  * This function must only be called once for a given compilation.
  *
  * See {@link ANeuralNetworksCompilation} for information on multithreaded usage.
  *
- * @param compilation The compilation to be scheduled.
+ * @param compilation The compilation to be finished.
  *
  * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
-int ANeuralNetworksCompilation_start(ANeuralNetworksCompilation* compilation);
-
-/**
- * Waits until the compilation completes.
- *
- * More than one thread can wait on a compilation. When the compilation completes,
- * all threads will be released.
- *
- * See {@link ANeuralNetworksCompilation} for information on multithreaded usage.
- *
- * @return ANEURALNETWORKS_NO_ERROR if the compilation completed normally.
- */
-int ANeuralNetworksCompilation_wait(ANeuralNetworksCompilation* compilation);
+int ANeuralNetworksCompilation_finish(ANeuralNetworksCompilation* compilation);
 
 /**
  * Create a {@link ANeuralNetworksExecution} to apply the given compilation.
@@ -1652,11 +1641,11 @@ int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execu
  * signaled. Use {@link ANeuralNetworksExecution_wait} to wait for that signal.
  * </p>
  *
- * Multiple executions can be scheduled and evaluated concurrently, and compilations
- * can be performed concurrently with executions. The runtime makes
- * no guarantee on the ordering of the completion of compilations and executions.
- * If it's important to the application, the application should enforce the ordering
- * by using {@link ANeuralNetworksCompilation_wait} and {@link ANeuralNetworksExecution_wait}.
+ * Multiple executions can be scheduled and evaluated concurrently.  The
+ * runtime makes no guarantee on the ordering of completion of
+ * executions.  If it's important to the application, the application
+ * should enforce the ordering by using
+ * {@link ANeuralNetworksExecution_wait}.
  *
  * ANeuralNetworksExecution_wait must be called to recuperate the resources used
  * by the execution.

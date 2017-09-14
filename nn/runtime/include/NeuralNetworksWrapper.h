@@ -150,7 +150,9 @@ public:
         return *this;
     }
 
-    int finish() { return ANeuralNetworksModel_finish(mModel); }
+    Result finish() {
+        return static_cast<Result>(ANeuralNetworksModel_finish(mModel));
+    }
 
     uint32_t addOperand(const OperandType* type) {
         if (ANeuralNetworksModel_addOperand(mModel, &(type->operandType)) !=
@@ -230,16 +232,8 @@ public:
                     mCompilation, static_cast<int32_t>(preference)));
     }
 
-    // TODO startCompile
-
-    Result compile() {
-        Result result = static_cast<Result>(ANeuralNetworksCompilation_start(mCompilation));
-        if (result != Result::NO_ERROR) {
-            return result;
-        }
-        // TODO how to manage the lifetime of compilations when multiple waiters
-        // is not clear.
-        return static_cast<Result>(ANeuralNetworksCompilation_wait(mCompilation));
+    Result finish() {
+        return static_cast<Result>(ANeuralNetworksCompilation_finish(mCompilation));
     }
 
     ANeuralNetworksCompilation* getHandle() const { return mCompilation; }

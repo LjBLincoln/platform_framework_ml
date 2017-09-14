@@ -427,28 +427,18 @@ int ANeuralNetworksCompilation_setPreference(ANeuralNetworksCompilation* compila
     }
 
     CompilationBuilder* c = reinterpret_cast<CompilationBuilder*>(compilation);
-    c->setPreference(preference);
-    return ANEURALNETWORKS_NO_ERROR;
+    return c->setPreference(preference);
 }
 
-int ANeuralNetworksCompilation_start(ANeuralNetworksCompilation* compilation) {
+int ANeuralNetworksCompilation_finish(ANeuralNetworksCompilation* compilation) {
     if (!compilation) {
-        LOG(ERROR) << "ANeuralNetworksCompilation_start passed a nullptr";
+        LOG(ERROR) << "ANeuralNetworksCompilation_finish passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     // TODO validate the rest
 
     CompilationBuilder* c = reinterpret_cast<CompilationBuilder*>(compilation);
-    return c->compile();  // TODO asynchronous
-}
-
-int ANeuralNetworksCompilation_wait(ANeuralNetworksCompilation* compilation) {
-    if (!compilation) {
-        LOG(ERROR) << "ANeuralNetworksCompilation_wait passed a nullptr";
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
-    // TODO asynchronous
-    return ANEURALNETWORKS_NO_ERROR;
+    return c->finish();
 }
 
 int ANeuralNetworksExecution_create(ANeuralNetworksCompilation* compilation,

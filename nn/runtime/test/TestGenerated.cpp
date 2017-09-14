@@ -48,7 +48,7 @@ class Example {
         bool error = false;
         for (auto& example : examples) {
             Compilation compilation(&model);
-            compilation.compile();
+            compilation.finish();
             Execution execution(&compilation);
 
             // Go through all inputs
@@ -109,7 +109,7 @@ class Example {
             MixedTyped& golden = example.second;
 
             Compilation compilation(&model);
-            compilation.compile();
+            compilation.finish();
             Execution execution(&compilation);
 
             // Go through all ty-typed inputs

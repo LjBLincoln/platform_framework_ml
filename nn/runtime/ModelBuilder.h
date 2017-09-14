@@ -96,7 +96,7 @@ private:
     // pools, revisit.
     std::vector<uint8_t> mOperandValues;
 
-    // Once the request has been created, we should not allow further
+    // Once the model has been finished, we should not allow further
     // modifications to the model.
     mutable bool mCompletedModel = false;
 };

@@ -98,7 +98,7 @@ class LSHProjectionOpModel {
     ASSERT_TRUE(model_.isValid());
 
     Compilation compilation(&model_);
-    compilation.compile();
+    compilation.finish();
     Execution execution(&compilation);
 
 #define SetInputOrWeight(X, T)                                             \
