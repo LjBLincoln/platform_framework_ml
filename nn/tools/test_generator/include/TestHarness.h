@@ -91,5 +91,14 @@ void resize_accordingly(const MixedTyped &golden, MixedTyped &test) {
     });
 }
 
+template <typename ty>
+void filter(const MixedTyped &golden, MixedTyped *filtered,
+                  std::function<bool(int)> is_ignored) {
+    for_each<ty>(golden, [filtered, &is_ignored](int index, auto &m) {
+        auto &g = std::get<std::map<int, std::vector<ty>>>(*filtered);
+        if (!is_ignored(index))
+            g[index] = m;
+    });
+}
 };      // namespace generated_tests
 #endif  // ANDROID_ML_NN_TOOLS_TEST_GENERATOR_TEST_HARNESS_H

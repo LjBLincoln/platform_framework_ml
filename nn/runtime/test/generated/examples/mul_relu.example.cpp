@@ -1,10 +1,10 @@
-// Generated file (from: hashtable_lookup.mod.py). Do not edit
+// Generated file (from: mul_relu.mod.py). Do not edit
 // Begin of an example
 {
 //Input(s)
 { // See tools/test_generator/include/TestHarness.h:MixedTyped
   // int -> FLOAT32 map
-  {{0, {1234, -292, -11, 0}}, {1, {-11, 0, 1234}}, {2, {0.0f, 0.1f, 1.0f, 1.1f, 2.0f, 2.1f}}},
+  {{0, {2, -4, 8, -16}}, {1, {32, -16, -8, 4}}},
   // int -> INT32 map
   {},
   // int -> QUANT8_ASYMM map
@@ -13,7 +13,7 @@
 //Output(s)
 { // See tools/test_generator/include/TestHarness.h:MixedTyped
   // int -> FLOAT32 map
-  {{0, {2.0f, 2.1f, 0, 0, 0.0f, 0.1f, 1.0f, 1.1f}}, {1, {1, 0, 1, 1}}},
+  {{0, {64, 64, 0, 0}}},
   // int -> INT32 map
   {},
   // int -> QUANT8_ASYMM map
