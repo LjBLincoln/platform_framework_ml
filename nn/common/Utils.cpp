@@ -140,6 +140,20 @@ uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions) {
     return size;
 }
 
+OperandTypePerformanceKind getPerformanceKind(OperandType type) {
+    switch (type) {
+        // TODO: What about OEM types?
+        case OperandType::FLOAT32:
+        case OperandType::TENSOR_FLOAT32:
+            return OperandTypePerformanceKind::Float32;
+        case OperandType::TENSOR_QUANT8_ASYMM:
+            return OperandTypePerformanceKind::Quantized8;
+        default:
+            nnAssert(!"Unexpected OperandType");
+            return OperandTypePerformanceKind::Bad;
+    }
+}
+
 hidl_memory allocateSharedMemory(int64_t size) {
     hidl_memory memory;
 
