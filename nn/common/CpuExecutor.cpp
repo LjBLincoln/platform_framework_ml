@@ -48,7 +48,9 @@ bool RunTimePoolInfo::set(const hidl_memory& hidlMemory) {
         size_t size = hidlMemory.size();
         int fd = hidlMemory.handle()->data[0];
         int prot = hidlMemory.handle()->data[1];
-        buffer = static_cast<uint8_t*>(mmap(nullptr, size, prot, MAP_SHARED, fd, 0));
+        size_t offset = getSizeFromInts(hidlMemory.handle()->data[2],
+                                        hidlMemory.handle()->data[3]);
+        buffer = static_cast<uint8_t*>(mmap(nullptr, size, prot, MAP_SHARED, fd, offset));
         if (buffer == MAP_FAILED) {
             LOG(ERROR) << "Can't mmap the file descriptor.";
             return false;
@@ -82,7 +84,7 @@ static bool allocateIfNeeded(RunTimeOperandInfo* info, const Shape& shape) {
     info->type = shape.type;
     info->dimensions = shape.dimensions;
     info->scale = shape.scale;
-    info->offset = shape.offset;
+    info->zeroPoint = shape.offset;
     if (info->buffer == nullptr) {
         uint32_t length = sizeOfData(info->type, info->dimensions);
         info->buffer = new uint8_t[length];
@@ -138,7 +140,7 @@ bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runT
         to.type = from.type;
         to.dimensions = from.dimensions;
         to.scale = from.scale;
-        to.offset = from.zeroPoint;
+        to.zeroPoint = from.zeroPoint;
         to.length = from.location.length;
         switch (from.lifetime) {
             case OperandLifeTime::TEMPORARY_VARIABLE:

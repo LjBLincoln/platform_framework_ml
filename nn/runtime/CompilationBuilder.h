@@ -22,27 +22,32 @@
 namespace android {
 namespace nn {
 
+class ExecutionBuilder;
 class ModelBuilder;
-class RequestBuilder;
 
 class CompilationBuilder {
 public:
-    friend class RequestBuilder;  // TODO remove this
+    friend class ExecutionBuilder;  // TODO remove this
 
     CompilationBuilder(const ModelBuilder* model);
 
-    void setPreference(uint32_t preference) { mPreference = preference; }
+    int setPreference(int32_t preference);
 
-    int compile();  // TODO: Asynchronous (startCompile?)
+    int finish();
 
-    int createRequest(RequestBuilder** request);
+    int createExecution(ExecutionBuilder** execution);
 
 private:
     // int startComputeOnCpu(const Model& model, sp<Event>* event);
 
     const ModelBuilder* mModel;
-    // Whether the application prefers to go fast or use low power for this request.
-    uint32_t mPreference = ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER;
+
+    // Whether the application prefers to go fast or use low power for this execution.
+    int32_t mPreference = ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER;
+
+    // Once the compilation has been finished, we should not allow further
+    // modifications to the compilation.
+    bool mFinished = false;
 };
 
 } // namespace nn

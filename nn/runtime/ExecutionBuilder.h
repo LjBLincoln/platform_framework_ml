@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_ML_NN_RUNTIME_REQUEST_BUILDER_H
-#define ANDROID_ML_NN_RUNTIME_REQUEST_BUILDER_H
+#ifndef ANDROID_ML_NN_RUNTIME_EXECUTION_BUILDER_H
+#define ANDROID_ML_NN_RUNTIME_EXECUTION_BUILDER_H
 
 #include "Event.h"
 #include "HalInterfaces.h"
@@ -56,9 +56,9 @@ struct ModelArgumentInfo {
     int updateDimensionInfo(const Operand& operand, const ANeuralNetworksOperandType* newType);
 };
 
-class RequestBuilder {
+class ExecutionBuilder {
 public:
-    RequestBuilder(const CompilationBuilder* compilation);
+    ExecutionBuilder(const CompilationBuilder* compilation);
 
     int setInput(uint32_t index, const ANeuralNetworksOperandType* type, const void* buffer,
                  uint32_t length);
@@ -68,15 +68,14 @@ public:
                   uint32_t length);
     int setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
                             const Memory* memory, uint32_t offset, uint32_t length);
-    int startCompute();
-    int wait();
+    int startCompute(sp<Event>* event);
 
 private:
     int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
     int updateDimensionInfo(ModelArgumentInfo* info, const ANeuralNetworksOperandType* newType,
                             const Operand& operand);
-    int startComputeOnDevice(sp<IDevice> driver, const Model& model);
-    int startComputeOnCpu(const Model& model);
+    int startComputeOnDevice(sp<IDevice> driver, const Model& model, sp<Event>* event);
+    int startComputeOnCpu(const Model& model, sp<Event>* event);
 
     const ModelBuilder* mModel;
 
@@ -98,12 +97,9 @@ private:
     Memory mInputPointerArguments;
     Memory mOutputPointerArguments;
     MemoryTracker mMemories;
-
-    // Used for synchronizing with request.
-    sp<Event> mEvent;
 };
 
 } // namespace nn
 } // namespace android
 
-#endif // ANDROID_ML_NN_RUNTIME_REQUEST_BUILDER_H
+#endif // ANDROID_ML_NN_RUNTIME_EXECUTION_BUILDER_H

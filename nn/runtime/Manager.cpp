@@ -27,18 +27,20 @@
 namespace android {
 namespace nn {
 
+// TODO: handle errors from initialize correctly
 void Device::initialize() {
-    mInterface->initialize([&]([[maybe_unused]] const Capabilities& capabilities) {
-        LOG(DEBUG) << "Capab " << capabilities.float16Performance.execTime;
+    mInterface->getCapabilities([&](ErrorStatus status, const Capabilities& capabilities) {
+        if (status != ErrorStatus::NONE) {
+            LOG(ERROR) << "IDevice::getCapabilities returned the error " << toString(status);
+        }
         LOG(DEBUG) << "Capab " << capabilities.float32Performance.execTime;
-        /*
-        supportedOperationTypes  = capabilities.supportedOperationTypes;
-        cachesCompilation       = capabilities.cachesCompilation;
-        bootupTime              = capabilities.bootupTime;
-        float16Performance      = capabilities.float16Performance;
-        float32Performance      = capabilities.float32Performance;
-        quantized8Performance   = capabilities.quantized8Performance;
-        */
+        LOG(DEBUG) << "Capab " << capabilities.quantized8Performance.execTime;
+        for (auto& t : capabilities.supportedOperationTuples) {
+            mSupportedOperationTuples.insert(t);
+        }
+        mCachesCompilation = capabilities.cachesCompilation;
+        mFloat32Performance = capabilities.float32Performance;
+        mQuantized8Performance = capabilities.quantized8Performance;
     });
 }
 
@@ -59,7 +61,7 @@ void DeviceManager::findAvailableDevices() {
     }
 
     manager->listByInterface(IDevice::descriptor, [this](const hidl_vec<hidl_string>& names) {
-        for (const auto& name : names) { // int i = 0; i < (int)names.size(); ++i) {
+        for (const auto& name : names) {
             LOG(DEBUG) << "Found interface " << name.c_str();
             sp<IDevice> device = IDevice::getService(name);
             if (device == nullptr) {
@@ -71,26 +73,10 @@ void DeviceManager::findAvailableDevices() {
     });
 }
 
-void DeviceManager::initialize() {
-    if (!LOG_NDEBUG) {
-        // TODO: Remove this before we release.
-        SetMinimumLogSeverity(base::VERBOSE);
-    }
-    LOG(VERBOSE) << "DeviceManager::initialize";
-    if (mUsageCount++ == 0) {
-        findAvailableDevices();
-    }
+DeviceManager::DeviceManager() {
+    LOG(VERBOSE) << "DeviceManager::DeviceManager";
+    findAvailableDevices();
 }
 
-void DeviceManager::shutdown() {
-    LOG(VERBOSE) << "DeviceManager::shutdown";
-    nnAssert(mUsageCount > 0);
-    if (mUsageCount > 0) {
-        if (--mUsageCount == 0) {
-            mDevices.clear();
-        }
-    }
-}
-
-} // namespace nn
-} // namespace android
+}  // namespace nn
+}  // namespace android

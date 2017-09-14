@@ -17,6 +17,11 @@ void CreateModel(Model *model) {
     {op3});
   assert(model->isValid());
 }
+
+bool is_ignored(int i) {
+  static std::set<int> ignore = {};
+  return ignore.find(i) != ignore.end();
+}
 // Generated file (from: addfloat.mod.py). Do not edit
 // Begin of an example
 {

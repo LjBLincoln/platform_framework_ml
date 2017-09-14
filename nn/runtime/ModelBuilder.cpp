@@ -44,10 +44,10 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
     mOperands.resize(idx + 1);
     auto& operand = mOperands[idx];
     operand.type = static_cast<OperandType>(type.type);
-    setFromIntList(&operand.dimensions, type.dimensions);
+    setFromIntList(&operand.dimensions, type.dimensionCount, type.dimensions);
     operand.numberOfConsumers = 0;
     operand.scale = type.scale;
-    operand.zeroPoint = type.offset;
+    operand.zeroPoint = type.zeroPoint;
     operand.lifetime = OperandLifeTime::TEMPORARY_VARIABLE;
     operand.location = {.poolIndex = 0, .offset = 0, .length = 0};
     return ANEURALNETWORKS_NO_ERROR;
@@ -70,9 +70,8 @@ int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t len
     uint32_t extraBytes = alignBytesNeeded(existingSize, length);
     mOperandValues.resize(existingSize + extraBytes + length);
     operand.lifetime = OperandLifeTime::CONSTANT_COPY;
-    operand.location = {.poolIndex = 0,
-                        .offset = existingSize + extraBytes,
-                        .length = neededLength};
+    operand.location = {
+                .poolIndex = 0, .offset = existingSize + extraBytes, .length = neededLength};
     memcpy(&mOperandValues[operand.location.offset], buffer, length);
     return ANEURALNETWORKS_NO_ERROR;
 }
@@ -93,15 +92,14 @@ int ModelBuilder::setOperandValueFromMemory(uint32_t index, const Memory* memory
     }
     // TODO validate does not exceed length of memory
     operand.lifetime = OperandLifeTime::CONSTANT_REFERENCE;
-    operand.location = {.poolIndex = mMemories.add(memory),
-                        .offset = offset,
-                        .length = neededLength};
+    operand.location = {
+                .poolIndex = mMemories.add(memory), .offset = offset, .length = neededLength};
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ModelBuilder::addOperation(ANeuralNetworksOperationType type,
-                               const ANeuralNetworksIntList* inputs,
-                               const ANeuralNetworksIntList* outputs) {
+int ModelBuilder::addOperation(ANeuralNetworksOperationType type, uint32_t inputCount,
+                               const uint32_t* inputs, uint32_t outputCount,
+                               const uint32_t* outputs) {
     if (mCompletedModel) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperation can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
@@ -114,10 +112,10 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type,
     mOperations.resize(operationIndex + 1);
     auto& entry = mOperations[operationIndex];
     entry.opTuple = {static_cast<OperationType>(type),
-                     static_cast<OperandType>(mOperands[inputs->data[0]].type)};
+                     static_cast<OperandType>(mOperands[inputs[0]].type)};
 
-    setFromIntList(&entry.inputs, *inputs);
-    setFromIntList(&entry.outputs, *outputs);
+    setFromIntList(&entry.inputs, inputCount, inputs);
+    setFromIntList(&entry.outputs, outputCount, outputs);
     for (uint32_t i : entry.inputs) {
         mOperands[i].numberOfConsumers++;
         // TODO mOperands[i].consumers.push_back(operationIndex);
@@ -125,22 +123,20 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type,
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ModelBuilder::setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
-                                      const ANeuralNetworksIntList* outputs) {
+int ModelBuilder::setInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs,
+                                      uint32_t outputCount, const uint32_t* outputs) {
     if (mCompletedModel) {
-        LOG(ERROR)
-                << "ANeuralNetworksModel_setInputsAndOutputs can't modify after model finished";
+        LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
 
     // Makes a copy of the index list, validates the arguments, and changes
     // the lifetime info of the corresponding operand.
-    auto setArguments = [&](std::vector<uint32_t>* indexVector,
-                            const ANeuralNetworksIntList& indexList,
-                            OperandLifeTime lifetime) -> bool {
-        indexVector->resize(indexList.count);
-        for (uint32_t i = 0; i < indexList.count; i++) {
-            const uint32_t operandIndex = indexList.data[i];
+    auto setArguments = [&](std::vector<uint32_t>* indexVector, uint32_t indexCount,
+                            const uint32_t* indexList, OperandLifeTime lifetime) -> bool {
+        indexVector->resize(indexCount);
+        for (uint32_t i = 0; i < indexCount; i++) {
+            const uint32_t operandIndex = indexList[i];
             if (operandIndex >= mOperands.size()) {
                 LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs Can't set input or output "
                               "to be "
@@ -162,8 +158,8 @@ int ModelBuilder::setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
         return true;
     };
 
-    if (!setArguments(&mInputIndexes, *inputs, OperandLifeTime::MODEL_INPUT) ||
-        !setArguments(&mOutputIndexes, *outputs, OperandLifeTime::MODEL_OUTPUT)) {
+    if (!setArguments(&mInputIndexes, inputCount, inputs, OperandLifeTime::MODEL_INPUT) ||
+        !setArguments(&mOutputIndexes, outputCount, outputs, OperandLifeTime::MODEL_OUTPUT)) {
         return ANEURALNETWORKS_BAD_DATA;
     }
 
@@ -210,7 +206,7 @@ void ModelBuilder::sortIntoRunOrder() {
                 lifetime == OperandLifeTime::MODEL_OUTPUT) {
                 count++;
                 operandToOperations.insert(
-                        std::pair<uint32_t, uint32_t>(operandIndex, operationIndex));
+                            std::pair<uint32_t, uint32_t>(operandIndex, operationIndex));
             }
         }
         if (count == 0) {
@@ -254,5 +250,5 @@ void ModelBuilder::setHidlModel(Model* model) const {
     }
 }
 
-} // namespace nn
-} // namespace android
+}  // namespace nn
+}  // namespace android

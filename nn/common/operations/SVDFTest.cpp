@@ -187,18 +187,18 @@ class SVDFOpModel {
     ASSERT_TRUE(model_.isValid());
 
     Compilation compilation(&model_);
-    compilation.compile();
-    Request request(&compilation);
-#define SetInputOrWeight(X)                                                  \
-  ASSERT_EQ(request.setInput(SVDF::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+    compilation.finish();
+    Execution execution(&compilation);
+#define SetInputOrWeight(X)                                                    \
+  ASSERT_EQ(execution.setInput(SVDF::k##X##Tensor, X##_.data(), sizeof(X##_)), \
             Result::NO_ERROR);
 
     FOR_ALL_INPUT_AND_WEIGHT_TENSORS(SetInputOrWeight);
 
 #undef SetInputOrWeight
 
-#define SetOutput(X)                                                          \
-  ASSERT_EQ(request.setOutput(SVDF::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+#define SetOutput(X)                                                            \
+  ASSERT_EQ(execution.setOutput(SVDF::k##X##Tensor, X##_.data(), sizeof(X##_)), \
             Result::NO_ERROR);
 
     FOR_ALL_OUTPUT_TENSORS(SetOutput);
@@ -206,15 +206,15 @@ class SVDFOpModel {
 #undef SetOutput
 
     int rank = 1;
-    ASSERT_EQ(request.setInput(SVDF::kRankParam, &rank, sizeof(rank)),
+    ASSERT_EQ(execution.setInput(SVDF::kRankParam, &rank, sizeof(rank)),
               Result::NO_ERROR);
 
     int activation = ActivationFn::kActivationNone;
-    ASSERT_EQ(request.setInput(SVDF::kActivationParam, &activation,
-                               sizeof(activation)),
+    ASSERT_EQ(execution.setInput(SVDF::kActivationParam, &activation,
+                                 sizeof(activation)),
               Result::NO_ERROR);
 
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
   }
 
 #define DefineSetter(X)                          \

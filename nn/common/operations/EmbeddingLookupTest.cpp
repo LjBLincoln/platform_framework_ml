@@ -92,11 +92,11 @@ class EmbeddingLookupOpModel {
     ASSERT_TRUE(model_.isValid());
 
     Compilation compilation(&model_);
-    compilation.compile();
-    Request request(&compilation);
+    compilation.finish();
+    Execution execution(&compilation);
 
 #define SetInputOrWeight(X)                                                  \
-  ASSERT_EQ(request.setInput(EmbeddingLookup::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+  ASSERT_EQ(execution.setInput(EmbeddingLookup::k##X##Tensor, X##_.data(), sizeof(X##_)), \
             Result::NO_ERROR);
 
     FOR_ALL_INPUT_AND_WEIGHT_TENSORS(SetInputOrWeight);
@@ -104,14 +104,14 @@ class EmbeddingLookupOpModel {
 #undef SetInputOrWeight
 
 #define SetOutput(X)                                                          \
-  ASSERT_EQ(request.setOutput(EmbeddingLookup::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+  ASSERT_EQ(execution.setOutput(EmbeddingLookup::k##X##Tensor, X##_.data(), sizeof(X##_)), \
             Result::NO_ERROR);
 
     FOR_ALL_OUTPUT_TENSORS(SetOutput);
 
 #undef SetOutput
 
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
   }
 
 #define DefineSetter(X)                          \

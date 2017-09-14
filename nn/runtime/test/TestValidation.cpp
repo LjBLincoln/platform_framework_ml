@@ -16,27 +16,31 @@
 
 #include "NeuralNetworks.h"
 
+//#include <android-base/logging.h>
 #include <gtest/gtest.h>
 #include <string>
+
 
 // This file tests all the validations done by the Neural Networks API.
 
 namespace {
 class ValidationTest : public ::testing::Test {
 protected:
-    virtual void SetUp() { ASSERT_EQ(ANeuralNetworksInitialize(), ANEURALNETWORKS_NO_ERROR); }
-    virtual void TearDown() { ANeuralNetworksShutdown(); }
+    virtual void SetUp() {
+        // For detailed logs, uncomment this line:
+        // SetMinimumLogSeverity(android::base::VERBOSE);
+    }
 };
 
-class ValidationTestModel : public ::testing::Test {
+class ValidationTestModel : public ValidationTest {
 protected:
     virtual void SetUp() {
-        ASSERT_EQ(ANeuralNetworksInitialize(), ANEURALNETWORKS_NO_ERROR);
+        ValidationTest::SetUp();
         ASSERT_EQ(ANeuralNetworksModel_create(&mModel), ANEURALNETWORKS_NO_ERROR);
     }
     virtual void TearDown() {
         ANeuralNetworksModel_free(mModel);
-        ANeuralNetworksShutdown();
+        ValidationTest::TearDown();
     }
     ANeuralNetworksModel* mModel = nullptr;
 };
@@ -48,19 +52,20 @@ protected:
 
         uint32_t dimensions[]{1};
         ANeuralNetworksOperandType tensorType{.type = ANEURALNETWORKS_TENSOR_FLOAT32,
-                                              .dimensions = {.count = 1, .data = dimensions}};
+                                              .dimensionCount = 1,
+                                              .dimensions = dimensions};
         ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
         ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
         ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
         uint32_t inList[2]{0, 1};
         uint32_t outList[1]{2};
-        ANeuralNetworksIntList inputs{.count = 2, .data = inList};
-        ANeuralNetworksIntList outputs{.count = 1, .data = outList};
-        ASSERT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_ADD, &inputs, &outputs),
+        ASSERT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_ADD, 2, inList, 1,
+                                                    outList),
                   ANEURALNETWORKS_NO_ERROR);
         ASSERT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
 
-        ASSERT_EQ(ANeuralNetworksCompilation_create(mModel, &mCompilation), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksCompilation_create(mModel, &mCompilation),
+                  ANEURALNETWORKS_NO_ERROR);
     }
     virtual void TearDown() {
         ANeuralNetworksCompilation_free(mCompilation);
@@ -69,21 +74,21 @@ protected:
     ANeuralNetworksCompilation* mCompilation = nullptr;
 };
 
-class ValidationTestRequest : public ValidationTestCompilation {
+class ValidationTestExecution : public ValidationTestCompilation {
 protected:
     virtual void SetUp() {
         ValidationTestCompilation::SetUp();
 
-        ASSERT_EQ(ANeuralNetworksCompilation_start(mCompilation), ANEURALNETWORKS_NO_ERROR);
-        ASSERT_EQ(ANeuralNetworksCompilation_wait(mCompilation), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksCompilation_finish(mCompilation), ANEURALNETWORKS_NO_ERROR);
 
-        ASSERT_EQ(ANeuralNetworksRequest_create(mCompilation, &mRequest), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksExecution_create(mCompilation, &mExecution),
+                  ANEURALNETWORKS_NO_ERROR);
     }
     virtual void TearDown() {
-        ANeuralNetworksRequest_free(mRequest);
+        ANeuralNetworksExecution_free(mExecution);
         ValidationTestCompilation::TearDown();
     }
-    ANeuralNetworksRequest* mRequest = nullptr;
+    ANeuralNetworksExecution* mExecution = nullptr;
 };
 
 TEST_F(ValidationTest, CreateModel) {
@@ -91,8 +96,8 @@ TEST_F(ValidationTest, CreateModel) {
 }
 
 TEST_F(ValidationTestModel, AddOperand) {
-    ANeuralNetworksOperandType floatType{.type = ANEURALNETWORKS_FLOAT32,
-                                         .dimensions = {.count = 0, .data = nullptr}};
+    ANeuralNetworksOperandType floatType{
+                .type = ANEURALNETWORKS_FLOAT32, .dimensionCount = 0, .dimensions = nullptr};
     EXPECT_EQ(ANeuralNetworksModel_addOperand(nullptr, &floatType),
               ANEURALNETWORKS_UNEXPECTED_NULL);
     EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
@@ -100,8 +105,8 @@ TEST_F(ValidationTestModel, AddOperand) {
 }
 
 TEST_F(ValidationTestModel, SetOperandValue) {
-    ANeuralNetworksOperandType floatType{.type = ANEURALNETWORKS_FLOAT32,
-                                         .dimensions = {.count = 0, .data = nullptr}};
+    ANeuralNetworksOperandType floatType{
+                .type = ANEURALNETWORKS_FLOAT32, .dimensionCount = 0, .dimensions = nullptr};
     EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, &floatType), ANEURALNETWORKS_NO_ERROR);
 
     char buffer[20];
@@ -123,16 +128,16 @@ TEST_F(ValidationTestModel, SetOperandValue) {
 }
 
 TEST_F(ValidationTestModel, AddOperation) {
-    ANeuralNetworksIntList inputs{};
-    ANeuralNetworksIntList outputs{};
-    EXPECT_EQ(ANeuralNetworksModel_addOperation(nullptr, ANEURALNETWORKS_AVERAGE_POOL_2D, &inputs,
-                                                &outputs),
+    uint32_t input = 0;
+    uint32_t output = 0;
+    EXPECT_EQ(ANeuralNetworksModel_addOperation(nullptr, ANEURALNETWORKS_AVERAGE_POOL_2D, 1, &input,
+                                                1, &output),
               ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_AVERAGE_POOL_2D, nullptr,
-                                                &outputs),
+    EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_AVERAGE_POOL_2D, 0, nullptr,
+                                                1, &output),
               ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_AVERAGE_POOL_2D, &inputs,
-                                                nullptr),
+    EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_AVERAGE_POOL_2D, 1, &input,
+                                                0, nullptr),
               ANEURALNETWORKS_UNEXPECTED_NULL);
     // EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel,
     // ANEURALNETWORKS_AVERAGE_POOL_2D, &inputs,
@@ -141,13 +146,13 @@ TEST_F(ValidationTestModel, AddOperation) {
 }
 
 TEST_F(ValidationTestModel, SetInputsAndOutputs) {
-    ANeuralNetworksIntList inputs;
-    ANeuralNetworksIntList outputs;
-    EXPECT_EQ(ANeuralNetworksModel_setInputsAndOutputs(nullptr, &inputs, &outputs),
+    uint32_t input = 0;
+    uint32_t output = 0;
+    EXPECT_EQ(ANeuralNetworksModel_setInputsAndOutputs(nullptr, 1, &input, 1, &output),
               ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksModel_setInputsAndOutputs(mModel, nullptr, &outputs),
+    EXPECT_EQ(ANeuralNetworksModel_setInputsAndOutputs(mModel, 0, nullptr, 1, &output),
               ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksModel_setInputsAndOutputs(mModel, &inputs, nullptr),
+    EXPECT_EQ(ANeuralNetworksModel_setInputsAndOutputs(mModel, 1, &input, 0, nullptr),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
@@ -159,7 +164,8 @@ TEST_F(ValidationTestModel, Finish) {
 
 TEST_F(ValidationTestModel, CreateCompilation) {
     ANeuralNetworksCompilation* compilation = nullptr;
-    EXPECT_EQ(ANeuralNetworksCompilation_create(nullptr, &compilation), ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksCompilation_create(nullptr, &compilation),
+              ANEURALNETWORKS_UNEXPECTED_NULL);
     EXPECT_EQ(ANeuralNetworksCompilation_create(mModel, nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
     EXPECT_EQ(ANeuralNetworksCompilation_create(mModel, &compilation), ANEURALNETWORKS_BAD_STATE);
 
@@ -172,56 +178,69 @@ TEST_F(ValidationTestCompilation, SetPreference) {
     EXPECT_EQ(ANeuralNetworksCompilation_setPreference(nullptr, ANEURALNETWORKS_PREFER_LOW_POWER),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 
-    EXPECT_EQ(ANeuralNetworksCompilation_setPreference(mCompilation, 40),
-              ANEURALNETWORKS_BAD_DATA);
+    EXPECT_EQ(ANeuralNetworksCompilation_setPreference(mCompilation, 40), ANEURALNETWORKS_BAD_DATA);
 }
 
-TEST_F(ValidationTestCompilation, CreateRequest) {
-    ANeuralNetworksRequest* request = nullptr;
-    EXPECT_EQ(ANeuralNetworksRequest_create(nullptr, &request), ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksRequest_create(mCompilation, nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
-    // EXPECT_EQ(ANeuralNetworksRequest_create(mCompilation, ANeuralNetworksRequest *
-    // *request),
+TEST_F(ValidationTestCompilation, CreateExecution) {
+    ANeuralNetworksExecution* execution = nullptr;
+    EXPECT_EQ(ANeuralNetworksExecution_create(nullptr, &execution),
+              ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksExecution_create(mCompilation, nullptr),
+              ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksExecution_create(mCompilation, &execution),
+              ANEURALNETWORKS_BAD_STATE);
+    // EXPECT_EQ(ANeuralNetworksExecution_create(mCompilation, ANeuralNetworksExecution *
+    // *execution),
     //          ANEURALNETWORKS_UNEXPECTED_NULL);
+}
+
+TEST_F(ValidationTestCompilation, Finish) {
+    EXPECT_EQ(ANeuralNetworksCompilation_finish(nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
+    EXPECT_EQ(ANeuralNetworksCompilation_finish(mCompilation), ANEURALNETWORKS_NO_ERROR);
+    EXPECT_EQ(ANeuralNetworksCompilation_setPreference(mCompilation,
+                                                       ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER),
+              ANEURALNETWORKS_BAD_STATE);
+    EXPECT_EQ(ANeuralNetworksCompilation_finish(mCompilation), ANEURALNETWORKS_BAD_STATE);
 }
 
 #if 0
 // TODO do more..
-TEST_F(ValidationTestRequest, SetInput) {
-    EXPECT_EQ(ANeuralNetworksRequest_setInput(ANeuralNetworksRequest * request, int32_t index,
-                                              const ANeuralNetworksOperandType* type,
-                                              const void* buffer, size_t length),
+TEST_F(ValidationTestExecution, SetInput) {
+    EXPECT_EQ(ANeuralNetworksExecution_setInput(ANeuralNetworksExecution * execution, int32_t index,
+                                                const ANeuralNetworksOperandType* type,
+                                                const void* buffer, size_t length),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, SetInputFromMemory) {
-    EXPECT_EQ(ANeuralNetworksRequest_setInputFromMemory(ANeuralNetworksRequest * request,
-                                                        int32_t index,
-                                                        const ANeuralNetworksOperandType* type,
-                                                        const ANeuralNetworksMemory* buffer,
-                                                        uint32_t offset),
+TEST_F(ValidationTestExecution, SetInputFromMemory) {
+    EXPECT_EQ(ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution * execution,
+                                                          int32_t index,
+                                                          const ANeuralNetworksOperandType* type,
+                                                          const ANeuralNetworksMemory* buffer,
+                                                          uint32_t offset),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, SetOutput) {
-    EXPECT_EQ(ANeuralNetworksRequest_setOutput(ANeuralNetworksRequest * request, int32_t index,
-                                               const ANeuralNetworksOperandType* type, void* buffer,
-                                               size_t length),
+TEST_F(ValidationTestExecution, SetOutput) {
+    EXPECT_EQ(ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution * execution,
+                                                 int32_t index,
+                                                 const ANeuralNetworksOperandType* type,
+                                                 void* buffer, size_t length),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, SetOutputFromMemory) {
-    EXPECT_EQ(ANeuralNetworksRequest_setOutputFromMemory(ANeuralNetworksRequest * request,
-                                                         int32_t index,
-                                                         const ANeuralNetworksOperandType* type,
-                                                         const ANeuralNetworksMemory* buffer,
-                                                         uint32_t offset),
+TEST_F(ValidationTestExecution, SetOutputFromMemory) {
+    EXPECT_EQ(ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution * execution,
+                                                           int32_t index,
+                                                           const ANeuralNetworksOperandType* type,
+                                                           const ANeuralNetworksMemory* buffer,
+                                                           uint32_t offset),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
-TEST_F(ValidationTestRequest, StartCompute) {
-    EXPECT_EQ(ANeuralNetworksRequest_startCompute(ANeuralNetworksRequest * request,
-                                                  ANeuralNetworksEvent * *event),
+TEST_F(ValidationTestExecution, StartCompute) {
+    EXPECT_EQ(ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution * execution,
+                                                    ANeuralNetworksEvent * *event),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 
@@ -236,4 +255,4 @@ TEST_F(ValidationTestEvent, Free) {
 }
 #endif
 
-} // namespace
+}  // namespace

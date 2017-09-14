@@ -18,7 +18,7 @@
 
 #include "CompilationBuilder.h"
 
-#include "RequestBuilder.h"
+#include "ExecutionBuilder.h"
 
 namespace android {
 namespace nn {
@@ -28,14 +28,34 @@ CompilationBuilder::CompilationBuilder(const ModelBuilder* model) :
     LOG(DEBUG) << "CompilationBuilder::CompilationBuilder";
 }
 
-int CompilationBuilder::compile() {
-    // TODO mechanism for tracking state: creating, compiling, compiled
+int CompilationBuilder::finish() {
+    if (mFinished) {
+        LOG(ERROR) << "ANeuralNetworksCompilation_finish called more than once";
+        return ANEURALNETWORKS_BAD_STATE;
+    }
+
+    mFinished = true;
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int CompilationBuilder::createRequest(RequestBuilder **request) {
-    *request = new RequestBuilder(this);
-    return (*request ? ANEURALNETWORKS_NO_ERROR : ANEURALNETWORKS_OUT_OF_MEMORY);
+int CompilationBuilder::setPreference(int32_t preference) {
+    if (mFinished) {
+        LOG(ERROR) <<
+                "ANeuralNetworksCompilation_setPreference can't modify after compilation finished";
+        return ANEURALNETWORKS_BAD_STATE;
+    }
+    mPreference = preference;
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int CompilationBuilder::createExecution(ExecutionBuilder **execution) {
+    if (!mFinished) {
+        LOG(ERROR) << "ANeuralNetworksExecution_create passed an unfinished compilation";
+        *execution = nullptr;
+        return ANEURALNETWORKS_BAD_STATE;
+    }
+    *execution = new ExecutionBuilder(this);
+    return (*execution ? ANEURALNETWORKS_NO_ERROR : ANEURALNETWORKS_OUT_OF_MEMORY);
 }
 
 }  // namespace nn
