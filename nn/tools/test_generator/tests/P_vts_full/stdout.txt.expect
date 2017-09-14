@@ -9,9 +9,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0,
-                         .offset = 0,
-                         .length = 0},
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
         },
         {
             .type = OperandType::INT32,
@@ -20,9 +18,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
-            .location = {.poolIndex = 0,
-                         .offset = 0,
-                         .length = 4},
+            .location = {.poolIndex = 0, .offset = 0, .length = 4},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
@@ -31,9 +27,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
-            .location = {.poolIndex = 0,
-                         .offset = 4,
-                         .length = 16},
+            .location = {.poolIndex = 0, .offset = 4, .length = 16},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
@@ -42,18 +36,17 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::MODEL_OUTPUT,
-            .location = {.poolIndex = 0,
-                         .offset = 0,
-                         .length = 0},
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
         }
     };
 
     const std::vector<Operation> operations = {
-    {
-        .opTuple = {OperationType::ADD, OperandType::TENSOR_FLOAT32},
-        .inputs = {0, 2, 1},
-        .outputs = {3},
-    }
+        {
+            .opTuple = {OperationType::ADD,
+                        OperandType::TENSOR_FLOAT32},
+            .inputs = {0, 2, 1},
+            .outputs = {3},
+        }
     };
 
     const std::vector<uint32_t> inputIndexes = {0};

@@ -30,7 +30,9 @@ function generate_one_testcase {
   echo \#include \"generated/models/$BASENAME.model.cpp\"
   echo }  // namespace $BASENAME
   echo TEST_F\(GeneratedTests\, $BASENAME\) {
-  echo '    Execute'\($BASENAME\:\:CreateModel\, $BASENAME\:\:examples\)\;
+  echo '    Execute'\($BASENAME\:\:CreateModel\,
+  echo '            '$BASENAME\:\:is_ignored\,
+  echo '            '$BASENAME\:\:examples\)\;
   echo }
 }
 

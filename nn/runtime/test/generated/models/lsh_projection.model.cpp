@@ -19,3 +19,8 @@ void CreateModel(Model *model) {
     {output});
   assert(model->isValid());
 }
+
+bool is_ignored(int i) {
+  static std::set<int> ignore = {};
+  return ignore.find(i) != ignore.end();
+}
