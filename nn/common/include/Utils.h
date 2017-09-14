@@ -74,17 +74,17 @@ hidl_memory allocateSharedMemory(int64_t size);
 // to determine what this should be.
 uint32_t alignBytesNeeded(uint32_t index, size_t length);
 
-inline void setFromIntList(hidl_vec<uint32_t>* vec, const ANeuralNetworksIntList& list) {
-    vec->resize(list.count);
-    for (uint32_t i = 0; i < list.count; i++) {
-        (*vec)[i] = list.data[i];
+inline void setFromIntList(hidl_vec<uint32_t>* vec, uint32_t count, const uint32_t* data) {
+    vec->resize(count);
+    for (uint32_t i = 0; i < count; i++) {
+        (*vec)[i] = data[i];
     }
 }
 
-inline void setFromIntList(std::vector<uint32_t>* vec, const ANeuralNetworksIntList& list) {
-    vec->resize(list.count);
-    for (uint32_t i = 0; i < list.count; i++) {
-        (*vec)[i] = list.data[i];
+inline void setFromIntList(std::vector<uint32_t>* vec, uint32_t count, const uint32_t* data) {
+    vec->resize(count);
+    for (uint32_t i = 0; i < count; i++) {
+        (*vec)[i] = data[i];
     }
 }
 
@@ -110,9 +110,8 @@ bool validateRequest(const Request& request, const Model& model);
 
 inline size_t getSizeFromInts(int lower, int higher) {
     return (uint32_t)(lower) + ((uint64_t)(uint32_t)(higher) << 32);
-
 }
-} // namespace nn
-} // namespace android
+}  // namespace nn
+}  // namespace android
 
-#endif // ANDROID_ML_NN_COMMON_UTILS_H
+#endif  // ANDROID_ML_NN_COMMON_UTILS_H

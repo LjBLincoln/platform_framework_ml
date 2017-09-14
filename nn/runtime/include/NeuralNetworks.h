@@ -377,8 +377,8 @@ typedef enum {
      *      a 2-D Tensor. The 2-D Tensor is handled as if dimensions corresponded to shape
      *      [batch_size, input_size], where “batch_size” corresponds to the batching dimension,
      *      and “input_size” is the size of the input.
-     * * 1: A 2-D tensor, specifying the weights, of shape [num_units, input_size], where “num_units”
-     *      corresponds to the number of output nodes.
+     * * 1: A 2-D tensor, specifying the weights, of shape [num_units, input_size], where
+     *      "num_units" corresponds to the number of output nodes.
      * * 2: A 1-D tensor, of shape [num_units], specifying the bias.
      *      For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
      *      also be of {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
@@ -1064,8 +1064,7 @@ typedef enum {
  *
  * Memory objects can also be used to specify the input and output arguments of
  * an execution. See {@link ANeuralNetworksExecution_setInputFromMemory}
- * and {@link ANeuralNetworksExecution_setOutputFromMemory}. This is a typical
- * usage for hardware buffers. See {@link ANeuralNetworksMemory_createFromHardwareBuffer}.
+ * and {@link ANeuralNetworksExecution_setOutputFromMemory}.
  */
 typedef struct ANeuralNetworksMemory ANeuralNetworksMemory;
 
@@ -1085,6 +1084,10 @@ typedef struct ANeuralNetworksMemory ANeuralNetworksMemory;
  * <p>It is the application's responsibility to make sure that only one thread
  * modifies a model at a given time. It is however safe for more than one
  * thread to use the model once {@link ANeuralNetworksModel_finish} has returned.</p>
+ *
+ * <p>It is also the application's responsibility to ensure that there are no other
+ * uses of the model after calling {@link ANeuralNetworksModel_free}.
+ * This includes any compilation or execution object created using the model.</p>
  */
 typedef struct ANeuralNetworksModel ANeuralNetworksModel;
 
@@ -1110,6 +1113,10 @@ typedef struct ANeuralNetworksModel ANeuralNetworksModel;
  * thread to use {@link ANeuralNetworksCompilation_wait} at the same time.
  * It is also safe for multiple threads to use a compilation object once
  * {@link ANeuralNetworksCompilation_wait} has completed.</p>
+ *
+ * <p>It is also the application's responsibility to ensure that there are no other
+ * uses of the compilation after calling {@link ANeuralNetworksCompilation_free}.
+ * This includes any execution object created using the compilation.</p>
  */
 typedef struct ANeuralNetworksCompilation ANeuralNetworksCompilation;
 
@@ -1142,13 +1149,11 @@ typedef struct ANeuralNetworksCompilation ANeuralNetworksCompilation;
  * <p>It is the application's responsibility to make sure that only one thread
  * modifies an execution at a given time. It is however safe for more than one
  * thread to use {@link ANeuralNetworksExecution_wait} at the same time.</p>
+ *
+ * <p>It is also the application's responsibility to ensure that there are no other
+ * uses of the request after calling {@link ANeuralNetworksRequest_free}.</p>
  */
 typedef struct ANeuralNetworksExecution ANeuralNetworksExecution;
-
-typedef struct ANeuralNetworksIntList {
-    uint32_t count;
-    const uint32_t* data;
-} ANeuralNetworksIntList;
 
 /**
  * ANeuralNetworksOperandType describes the type of an operand.
@@ -1157,8 +1162,10 @@ typedef struct ANeuralNetworksIntList {
 typedef struct ANeuralNetworksOperandType {
     /** The data type, e.g ANEURALNETWORKS_INT8. */
     int32_t type;
-    /** Count and size of each dimension. The count should be 0 for scalars. */
-    ANeuralNetworksIntList dimensions;
+    /** The number of dimensions. It should be 0 for scalars. */
+    uint32_t dimensionCount;
+    /** The dimensions of the tensor. It should be nullptr for scalars. */
+    const uint32_t* dimensions;
     /** These two fields are only used for quantized tensors.
      * They should be zero for scalars and non-fixed point tensors.
      * The dequantized value of each entry is (value - offset) * scale.
@@ -1263,8 +1270,6 @@ void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory);
  *
  * <p>{@link ANeuralNetworksModel_free} should be called once the model
  * is no longer needed.</p>
- *
- * This function is thread safe.
  *
  * @param model The {@link ANeuralNetworksModel} to be created.
  *              Set to NULL if unsuccessful.
@@ -1391,8 +1396,10 @@ int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, 
  *
  * @param model The model to be modified.
  * @param type The type of the operation.
- * @param inputs An array of indexes identifying each an operand.
- * @param outputs An array of indexes identifying each an operand.
+ * @param inputCount The number of entries in the inputs array.
+ * @param inputs An array of indexes identifying each operand.
+ * @param outputCount The number of entries in the outputs array.
+ * @param outputs An array of indexes identifying each operand.
  *
  * The operands specified by inputs and outputs must have been
  * previously added by calls to {@link ANeuralNetworksModel_addOperand}.
@@ -1405,9 +1412,9 @@ int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, 
  * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
 int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
-                                      ANeuralNetworksOperationType type,
-                                      ANeuralNetworksIntList* inputs,
-                                      ANeuralNetworksIntList* outputs);
+                                      ANeuralNetworksOperationType type, uint32_t inputCount,
+                                      const uint32_t* inputs, uint32_t outputCount,
+                                      const uint32_t* outputs);
 
 /**
  * Specfifies which operands will be the model's inputs and outputs.
@@ -1416,7 +1423,9 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
  * return an error.
  *
  * @param model The model to be modified.
+ * @param inputCount The number of entries in the inputs array.
  * @param inputs An array of indexes identifying the input operands.
+ * @param outputCount The number of entries in the outputs array.
  * @param outputs An array of indexes identifying the output operands.
  *
  * The operands specified by inputs and outputs must have been
@@ -1428,9 +1437,9 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
  * See {@link ANeuralNetworksModel} for information on multithreaded usage.
  *
  */
-int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model,
-                                             ANeuralNetworksIntList* inputs,
-                                             ANeuralNetworksIntList* outputs);
+int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model, uint32_t inputCount,
+                                             const uint32_t* inputs, uint32_t outputCount,
+                                             const uint32_t* outputs);
 
 /**
  * Create a {@link ANeuralNetworksCompilation} to compile the given model.
@@ -1569,7 +1578,10 @@ void ANeuralNetworksExecution_free(ANeuralNetworksExecution* execution);
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
  * @param execution The execution to be modified.
- * @param index The index of the model operand we're associating the input to.
+ * @param index The index of the input argument we are setting. It is
+ *              an index into the lists passed to
+ *              {@link ANeuralNetworksModel_setInputsAndOutputs}. It is not
+ *              the index associated with {@link ANeuralNetworksModel_addOperand}.
  * @param type The type of the operand. This should be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
  *             model. All other properties of the type must be the same as
@@ -1594,7 +1606,10 @@ int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
  * @param execution The execution to be modified.
- * @param index The index of the model operand we're associating the input to.
+ * @param index The index of the input argument we are setting. It is
+ *              an index into the lists passed to
+ *              {@link ANeuralNetworksModel_setInputsAndOutputs}. It is not
+ *              the index associated with {@link ANeuralNetworksModel_addOperand}.
  * @param type The type of the operand. This can be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
  *             model. All other values must be the same as specified in the
@@ -1622,7 +1637,10 @@ int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execut
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
  * @param execution The execution to be modified.
- * @param index The index of the model operand we're associating the output to.
+ * @param index The index of the output argument we are setting. It is
+ *              an index into the lists passed to
+ *              {@link ANeuralNetworksModel_setInputsAndOutputs}. It is not
+ *              the index associated with {@link ANeuralNetworksModel_addOperand}.
  * @param type The type of the operand. This can be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
  *             model. All other values must be the same as specified in the
@@ -1647,7 +1665,10 @@ int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int3
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
  * @param execution The execution to be modified.
- * @param index The index of the model operand we're associating the input to.
+ * @param index The index of the output argument we are setting. It is
+ *              an index into the lists passed to
+ *              {@link ANeuralNetworksModel_setInputsAndOutputs}. It is not
+ *              the index associated with {@link ANeuralNetworksModel_addOperand}.
  * @param type The type of the operand. This can be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
  *             model. All other values must be the same as specified in the

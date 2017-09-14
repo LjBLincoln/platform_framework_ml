@@ -61,14 +61,14 @@ int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
     if (newType == nullptr) {
         locationAndDimension.dimensions = hidl_vec<uint32_t>();
     } else {
-        uint32_t count = newType->dimensions.count;
+        uint32_t count = newType->dimensionCount;
         if (static_cast<OperandType>(newType->type) != operand.type ||
             count != operand.dimensions.size()) {
             LOG(ERROR) << "ANeuralNetworksExecution_setInput/Output incompatible types";
             return ANEURALNETWORKS_BAD_DATA;
         }
         for (uint32_t i = 0; i < count; i++) {
-            locationAndDimension.dimensions[i] = newType->dimensions.data[i];
+            locationAndDimension.dimensions[i] = newType->dimensions[i];
         }
     }
     return ANEURALNETWORKS_NO_ERROR;
