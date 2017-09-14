@@ -26,6 +26,7 @@ cc_defaults {
         "TestGenerated.cpp",
     ],
     shared_libs: [
+        "libandroid",
         "libbase",
         "libhidlbase",
         "libhidltransport",
