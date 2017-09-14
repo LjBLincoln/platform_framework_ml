@@ -44,21 +44,47 @@ void for_each(MixedTyped &idx_and_data,
 
 // Helper template - go through all index-value pairs
 // expects a functor that takes (int index, void *raw data, size_t sz)
-void for_all(MixedTyped &idx_and_data,
+inline void for_all(MixedTyped &idx_and_data,
              std::function<void(int, void *, size_t)> execute_this) {
-#define FOR_EACH_TYPE(ty)                                           \
-    for_each<ty>(idx_and_data, [&execute_this](int idx, auto &m) {  \
-        execute_this(idx, (void *)m.data(), m.size() * sizeof(ty)); \
-    });
-    FOR_EACH_TYPE(float);
-    FOR_EACH_TYPE(int32_t);
-    FOR_EACH_TYPE(uint8_t);
+    #define FOR_EACH_TYPE(ty)                                           \
+        for_each<ty>(idx_and_data, [&execute_this](int idx, auto &m) {  \
+            execute_this(idx, (void *)m.data(), m.size() * sizeof(ty)); \
+        });
+        FOR_EACH_TYPE(float);
+        FOR_EACH_TYPE(int32_t);
+        FOR_EACH_TYPE(uint8_t);
+    #undef FOR_EACH_TYPE
 }
-#undef FOR_EACH_TYPE
+
+// Const variants of the helper
+// Helper template - go through a given type of input/output
+template <typename T>
+void for_each(const MixedTyped &idx_and_data,
+              std::function<void(int, const std::vector<T> &)> execute_this) {
+    for (auto &i : std::get<std::map<int, std::vector<T>>>(idx_and_data)) {
+        execute_this(i.first, i.second);
+    }
+}
+
+// Const variants of the helper
+// Helper template - go through all index-value pairs
+// expects a functor that takes (int index, void *raw data, size_t sz)
+inline void for_all(const MixedTyped &idx_and_data,
+             std::function<void(int, const void *, size_t)> execute_this) {
+    #define FOR_EACH_TYPE(ty)                                           \
+        for_each<ty>(idx_and_data, [&execute_this](int idx, auto &m) {  \
+            execute_this(idx, (const void *)m.data(),                   \
+                         m.size() * sizeof(ty));                        \
+        });
+        FOR_EACH_TYPE(float);
+        FOR_EACH_TYPE(int32_t);
+        FOR_EACH_TYPE(uint8_t);
+    #undef FOR_EACH_TYPE
+}
 
 // Helper template - resize test output per golden
 template <typename ty>
-void resize_accordingly(MixedTyped &golden, MixedTyped &test) {
+void resize_accordingly(const MixedTyped &golden, MixedTyped &test) {
     for_each<ty>(golden, [&test](int index, auto &m) {
         auto &t = std::get<std::map<int, std::vector<ty>>>(test);
         t[index].resize(m.size());
