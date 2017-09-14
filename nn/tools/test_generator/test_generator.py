@@ -686,8 +686,8 @@ def generate_vts_operand_values():
     ty = w.type.get_element_type()
     if ty == "TENSOR_QUANT8_ASYMM":
       binit += w.initializer
-    elif ty in {"TENSOR_FLOAT32", "TENSOR_INT32", "INT32"}:
-      fmt = "f" if ty == "TENSOR_FLOAT32" else "i"
+    elif ty in {"TENSOR_FLOAT32", "FLOAT32", "TENSOR_INT32", "INT32"}:
+      fmt = "f" if (ty == "TENSOR_FLOAT32" or ty == "FLOAT32") else "i"
       for f in w.initializer:
         binit += [int(x) for x in struct.pack(fmt, f)]
     else:
