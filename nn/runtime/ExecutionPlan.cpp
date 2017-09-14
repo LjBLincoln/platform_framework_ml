@@ -38,10 +38,10 @@ typedef std::function<void(uint32_t)> OperationReadyCallback;
 // are processed.
 class OperandTracker {
 public:
-    // Creates the tracker for this model. Figure out which operation can be
+    // Creates the tracker for this model. Figure out which operations can be
     // executed right away and cb for each one of them.
     OperandTracker(ModelBuilder* model, OperationReadyCallback cb);
-    // Mark the specified operation has having been processed. The output
+    // Mark the specified operation as having been processed. The output
     // of the operation now being known, this may make new operations to be
     // able to run.  Call cb for each one of them.
     void markProcessed(uint32_t operationIndex, OperationReadyCallback cb);
@@ -49,7 +49,7 @@ public:
 private:
     ModelBuilder* mModel;
     std::multimap<uint32_t, uint32_t> mOperandToOperations;
-    std::vector<uint32_t> mUnknownInputCount; // For each operation
+    std::vector<uint32_t> mUnknownInputCount;  // For each operation
 };
 
 OperandTracker::OperandTracker(ModelBuilder* model, OperationReadyCallback cb) : mModel(model) {
