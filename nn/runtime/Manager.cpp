@@ -35,12 +35,12 @@ void Device::initialize() {
         }
         LOG(DEBUG) << "Capab " << capabilities.float32Performance.execTime;
         LOG(DEBUG) << "Capab " << capabilities.quantized8Performance.execTime;
-        /*
-        supportedOperationTypes  = capabilities.supportedOperationTypes;
-        cachesCompilation       = capabilities.cachesCompilation;
-        float32Performance      = capabilities.float32Performance;
-        quantized8Performance   = capabilities.quantized8Performance;
-        */
+        for (auto& t : capabilities.supportedOperationTuples) {
+            mSupportedOperationTuples.insert(t);
+        }
+        mCachesCompilation = capabilities.cachesCompilation;
+        mFloat32Performance = capabilities.float32Performance;
+        mQuantized8Performance = capabilities.quantized8Performance;
     });
 }
 
@@ -61,7 +61,7 @@ void DeviceManager::findAvailableDevices() {
     }
 
     manager->listByInterface(IDevice::descriptor, [this](const hidl_vec<hidl_string>& names) {
-        for (const auto& name : names) { // int i = 0; i < (int)names.size(); ++i) {
+        for (const auto& name : names) {
             LOG(DEBUG) << "Found interface " << name.c_str();
             sp<IDevice> device = IDevice::getService(name);
             if (device == nullptr) {
@@ -78,5 +78,5 @@ DeviceManager::DeviceManager() {
     findAvailableDevices();
 }
 
-} // namespace nn
-} // namespace android
+}  // namespace nn
+}  // namespace android

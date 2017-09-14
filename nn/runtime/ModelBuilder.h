@@ -29,6 +29,9 @@ namespace android {
 namespace nn {
 
 class CompilationBuilder;
+class Device;
+class ExecutionPlan;
+class ExecutionStep;
 class Memory;
 
 class ModelBuilder {
@@ -65,9 +68,21 @@ public:
     const Operand& getInputOperand(uint32_t i) const { return mOperands[mInputIndexes[i]]; }
     const Operand& getOutputOperand(uint32_t i) const { return mOperands[mOutputIndexes[i]]; }
     const Operand& getOperand(uint32_t index) const { return mOperands[index]; }
+    const Operation& getOperation(uint32_t index) const { return mOperations[index]; }
     const MemoryTracker& getMemories() const { return mMemories; }
+    const std::vector<Operation>& getOperations() const { return mOperations; }
+    const uint8_t* getPointerToOperandValue(uint32_t offset) const {
+        return mOperandValues.data() + offset;
+    }
 
 private:
+    int partitionTheWork(uint32_t preference, ExecutionPlan* plan);
+    int findBestDeviceForEachOperation(uint32_t preference,
+                                       const std::vector<std::shared_ptr<Device>>& devices,
+                                       const size_t operationCount,
+                                       const size_t deviceCount,
+                                       std::vector<int>* bestDeviceForOperation);
+
     // Sorts the operations to be in the correct order for single threaded
     // node-at-a-time execution.
     void sortIntoRunOrder();

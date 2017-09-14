@@ -63,6 +63,18 @@ uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions);
 // Returns the name of the operation in ASCII.
 const char* getOperationName(OperationType opCode);
 
+// Indicates the kind of OperandType from the standpoint of performance categorization
+enum class OperandTypePerformanceKind {
+    Bad        = -1,
+    Float32    =  0,
+    Quantized8 =  1,
+};
+
+// Must not be called on integer-type operands (which are more like "attributes"
+// describing an operation, than data for the operation)
+OperandTypePerformanceKind getPerformanceKind(OperandType type);
+
+// Returns the kind of OperationTuple
 hidl_memory allocateSharedMemory(int64_t size);
 
 // Returns the number of padding bytes needed to align data of the
