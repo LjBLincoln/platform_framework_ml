@@ -31,9 +31,9 @@ public:
 
     CompilationBuilder(const ModelBuilder* model);
 
-    void setPreference(int32_t preference) { mPreference = preference; }
+    int setPreference(int32_t preference);
 
-    int compile();  // TODO: Asynchronous (startCompile?)
+    int finish();
 
     int createExecution(ExecutionBuilder** execution);
 
@@ -41,8 +41,13 @@ private:
     // int startComputeOnCpu(const Model& model, sp<Event>* event);
 
     const ModelBuilder* mModel;
+
     // Whether the application prefers to go fast or use low power for this execution.
     int32_t mPreference = ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER;
+
+    // Once the compilation has been finished, we should not allow further
+    // modifications to the compilation.
+    bool mFinished = false;
 };
 
 } // namespace nn
