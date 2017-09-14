@@ -128,7 +128,7 @@ TEST_F(MemoryTest, TestASharedMemory) {
     ASSERT_TRUE(actual.isValid());
 
     Compilation compilation2(&model);
-    ASSERT_EQ(compilation2.compile(), Result::NO_ERROR);
+    ASSERT_EQ(compilation2.finish(), Result::NO_ERROR);
 
     Execution execution2(&compilation2);
     ASSERT_EQ(execution2.setInputFromMemory(0, &input, offsetForMatrix1, sizeof(Matrix3x4)),
@@ -179,7 +179,7 @@ TEST_F(MemoryTest, TestFd) {
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
     Compilation compilation2(&model);
-    ASSERT_EQ(compilation2.compile(), Result::NO_ERROR);
+    ASSERT_EQ(compilation2.finish(), Result::NO_ERROR);
     Execution execution2(&compilation2);
     ASSERT_EQ(execution2.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(execution2.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
