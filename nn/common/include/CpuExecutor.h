@@ -38,7 +38,7 @@ struct RunTimeOperandInfo {
     std::vector<uint32_t> dimensions;
 
     float scale;
-    int32_t offset;  // TODO rename zeroValue
+    int32_t zeroPoint;
     // Where the operand's data is stored.  Check the corresponding
     // location information in the model to figure out if this points
     // to memory we have allocated for an temporary operand.
@@ -55,7 +55,7 @@ struct RunTimeOperandInfo {
         return Shape{.type = type,
                      .dimensions = dimensions,
                      .scale = scale,
-                     .offset = offset};
+                     .offset = zeroPoint};
     }
 };
 
