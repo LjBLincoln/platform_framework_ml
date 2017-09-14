@@ -73,25 +73,9 @@ void DeviceManager::findAvailableDevices() {
     });
 }
 
-void DeviceManager::initialize() {
-    if (!LOG_NDEBUG) {
-        // TODO: Remove this before we release.
-        SetMinimumLogSeverity(base::VERBOSE);
-    }
-    LOG(VERBOSE) << "DeviceManager::initialize";
-    if (mUsageCount++ == 0) {
-        findAvailableDevices();
-    }
-}
-
-void DeviceManager::shutdown() {
-    LOG(VERBOSE) << "DeviceManager::shutdown";
-    nnAssert(mUsageCount > 0);
-    if (mUsageCount > 0) {
-        if (--mUsageCount == 0) {
-            mDevices.clear();
-        }
-    }
+DeviceManager::DeviceManager() {
+    LOG(VERBOSE) << "DeviceManager::DeviceManager";
+    findAvailableDevices();
 }
 
 } // namespace nn

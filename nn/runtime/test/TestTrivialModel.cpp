@@ -16,6 +16,7 @@
 
 #include "NeuralNetworksWrapper.h"
 
+//#include <android-base/logging.h>
 #include <gtest/gtest.h>
 
 using namespace android::nn::wrapper;
@@ -27,8 +28,10 @@ typedef float Matrix4[4];
 
 class TrivialTest : public ::testing::Test {
 protected:
-    virtual void SetUp() { ASSERT_EQ(Initialize(), Result::NO_ERROR); }
-    virtual void TearDown() { Shutdown(); }
+    virtual void SetUp() {
+        // For detailed logs, uncomment this line:
+        // SetMinimumLogSeverity(android::base::VERBOSE);
+    }
 
     const Matrix3x4 matrix1 = {{1.f, 2.f, 3.f, 4.f}, {5.f, 6.f, 7.f, 8.f}, {9.f, 10.f, 11.f, 12.f}};
     const Matrix3x4 matrix2 = {{100.f, 200.f, 300.f, 400.f},
