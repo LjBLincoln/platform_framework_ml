@@ -33,13 +33,11 @@ void Device::initialize() {
         if (status != ErrorStatus::NONE) {
             LOG(ERROR) << "IDevice::getCapabilities returned the error " << toString(status);
         }
-        LOG(DEBUG) << "Capab " << capabilities.float16Performance.execTime;
         LOG(DEBUG) << "Capab " << capabilities.float32Performance.execTime;
+        LOG(DEBUG) << "Capab " << capabilities.quantized8Performance.execTime;
         /*
         supportedOperationTypes  = capabilities.supportedOperationTypes;
         cachesCompilation       = capabilities.cachesCompilation;
-        bootupTime              = capabilities.bootupTime;
-        float16Performance      = capabilities.float16Performance;
         float32Performance      = capabilities.float32Performance;
         quantized8Performance   = capabilities.quantized8Performance;
         */
