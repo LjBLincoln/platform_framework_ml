@@ -1183,6 +1183,13 @@ typedef struct ANeuralNetworksOperandType {
 typedef int32_t ANeuralNetworksOperationType;
 
 /**
+ * ANeuralNetworksEvent is an opaque type that represents an event
+ * that will be signaled once an execution completes.
+ */
+typedef struct ANeuralNetworksEvent ANeuralNetworksEvent;
+
+
+/**
  * Creates a shared memory object from a file descriptor.
  *
  * The shared memory is backed by a file descriptor via mmap.
@@ -1505,8 +1512,9 @@ int ANeuralNetworksExecution_create(ANeuralNetworksCompilation* compilation,
  * <p>If called on an execution for which
  * {@link ANeuralNetworksExecution_startCompute} has been called, the
  * function will return immediately but will mark the execution to be deleted
- * once the computation completes.   The {link ANeuralNetworksExecution_wait}
- * will return ANEURALNETWORKS_ERROR_DELETED.
+ * once the computation completes. The related {@link ANeuralNetworksEvent}
+ * will be signaled and the {@link ANeuralNetworksEvent_wait} will return
+ * ANEURALNETWORKS_ERROR_DELETED.
  *
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
@@ -1637,8 +1645,8 @@ int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execu
  * Schedule evaluation of the execution.
  *
  * <p>Schedules evaluation of the execution. Once the model has been
- * applied and the outputs are ready to be consumed, the execution will be
- * signaled. Use {@link ANeuralNetworksExecution_wait} to wait for that signal.
+ * applied and the outputs are ready to be consumed, the returned event will be
+ * signaled. Use {@link ANeuralNetworksEvent_wait} to wait for that event.
  * </p>
  *
  * Multiple executions can be scheduled and evaluated concurrently.  The
@@ -1653,22 +1661,32 @@ int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execu
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
  * @param execution The execution to be scheduled and executed.
+ * @param event The event that will be signaled on completion. event is set to
+ *              NULL if there's an error.
  *
  * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
-int ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution* execution);
+int ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution* execution,
+                                          ANeuralNetworksEvent** event);
 
 /**
  * Waits until the execution completes.
  *
- * More than one thread can wait on a execution.  When the execution completes,
+ * More than one thread can wait on an event. When the execution completes,
  * all threads will be released.
  *
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
  * @return ANEURALNETWORKS_NO_ERROR if the execution completed normally.
  */
-int ANeuralNetworksExecution_wait(ANeuralNetworksExecution* execution);
+int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event);
+
+/**
+ * Destroys the event.
+ *
+ * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
+ */
+void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event);
 
 __END_DECLS
 

@@ -459,10 +459,7 @@ void ANeuralNetworksExecution_free(ANeuralNetworksExecution* execution) {
     // TODO specification says that an execution-in-flight can be deleted
     // No validation.  Free of nullptr is valid.
     ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
-    if (r) {
-        r->wait();
-        delete r;
-    }
+    delete r;
 }
 
 int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32_t index,
@@ -541,23 +538,48 @@ int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execu
     return r->setOutputFromMemory(index, type, m, offset, length);
 }
 
-int ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution* execution) {
-    if (!execution) {
+int ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution* execution,
+                                          ANeuralNetworksEvent** event) {
+    if (!execution || !event) {
         LOG(ERROR) << "ANeuralNetworksExecution_startCompute passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     // TODO validate the rest
 
     ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
-    return r->startCompute();
+
+    // Dynamically allocate an sp to wrap an event. The sp<Event> object is
+    // returned when the execution has been successfully launched, otherwise a
+    // nullptr is returned. The sp is used for ref-counting purposes. Without
+    // it, the HIDL service could attempt to communicate with a dead event
+    // object.
+    std::unique_ptr<sp<Event>> e = std::make_unique<sp<Event>>();
+    *event = nullptr;
+
+    int n = r->startCompute(e.get());
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    *event = reinterpret_cast<ANeuralNetworksEvent*>(e.release());
+    return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ANeuralNetworksExecution_wait(ANeuralNetworksExecution* execution) {
-    if (!execution) {
-        LOG(ERROR) << "ANeuralNetworksExecution_wait passed a nullptr";
+int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event) {
+    if (event == nullptr) {
+        LOG(ERROR) << "ANeuralNetworksEvent_wait passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
 
-    ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
-    return r->wait();
+    sp<Event>* e = reinterpret_cast<sp<Event>*>(event);
+    (*e)->wait();
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event) {
+    // No validation.  Free of nullptr is valid.
+    if (event) {
+        sp<Event>* e = reinterpret_cast<sp<Event>*>(event);
+        (*e)->wait();
+        delete e;
+    }
 }

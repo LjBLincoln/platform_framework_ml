@@ -68,15 +68,14 @@ public:
                   uint32_t length);
     int setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
                             const Memory* memory, uint32_t offset, uint32_t length);
-    int startCompute();
-    int wait();
+    int startCompute(sp<Event>* event);
 
 private:
     int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
     int updateDimensionInfo(ModelArgumentInfo* info, const ANeuralNetworksOperandType* newType,
                             const Operand& operand);
-    int startComputeOnDevice(sp<IDevice> driver, const Model& model);
-    int startComputeOnCpu(const Model& model);
+    int startComputeOnDevice(sp<IDevice> driver, const Model& model, sp<Event>* event);
+    int startComputeOnCpu(const Model& model, sp<Event>* event);
 
     const ModelBuilder* mModel;
 
@@ -98,9 +97,6 @@ private:
     Memory mInputPointerArguments;
     Memory mOutputPointerArguments;
     MemoryTracker mMemories;
-
-    // Used for synchronizing with execution.
-    sp<Event> mEvent;
 };
 
 } // namespace nn
