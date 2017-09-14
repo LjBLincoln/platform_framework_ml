@@ -61,8 +61,8 @@ struct OperandType {
         operandType.scale = 0.0f;
         operandType.offset = 0;
 
-        operandType.dimensions.count = static_cast<uint32_t>(dimensions.size());
-        operandType.dimensions.data = dimensions.data();
+        operandType.dimensionCount = static_cast<uint32_t>(dimensions.size());
+        operandType.dimensions = dimensions.data();
     }
 
     OperandType(Type type, float scale, const std::vector<uint32_t>& d) : OperandType(type, d) {
@@ -93,10 +93,9 @@ inline void Shutdown() {
 
 class Memory {
 public:
-
     Memory(size_t size, int protect, int fd, size_t offset) {
         mValid = ANeuralNetworksMemory_createFromFd(size, protect, fd, offset, &mMemory) ==
-                         ANEURALNETWORKS_NO_ERROR;
+                 ANEURALNETWORKS_NO_ERROR;
     }
 
     ~Memory() { ANeuralNetworksMemory_free(mMemory); }
@@ -110,9 +109,7 @@ public:
     // Move semantics to remove access to the runtime object from the wrapper
     // object that is being moved. This ensures the runtime object will be
     // freed only once.
-    Memory(Memory&& other) {
-        *this = std::move(other);
-    }
+    Memory(Memory&& other) { *this = std::move(other); }
     Memory& operator=(Memory&& other) {
         if (this != &other) {
             mMemory = other.mMemory;
@@ -148,9 +145,7 @@ public:
     // Move semantics to remove access to the runtime object from the wrapper
     // object that is being moved. This ensures the runtime object will be
     // freed only once.
-    Model(Model&& other) {
-        *this = std::move(other);
-    }
+    Model(Model&& other) { *this = std::move(other); }
     Model& operator=(Model&& other) {
         if (this != &other) {
             mModel = other.mModel;
@@ -190,21 +185,18 @@ public:
 
     void addOperation(ANeuralNetworksOperationType type, const std::vector<uint32_t>& inputs,
                       const std::vector<uint32_t>& outputs) {
-        ANeuralNetworksIntList in, out;
-        Set(&in, inputs);
-        Set(&out, outputs);
-        if (ANeuralNetworksModel_addOperation(mModel, type, &in, &out) !=
-            ANEURALNETWORKS_NO_ERROR) {
+        if (ANeuralNetworksModel_addOperation(mModel, type, static_cast<uint32_t>(inputs.size()),
+                                              inputs.data(), static_cast<uint32_t>(outputs.size()),
+                                              outputs.data()) != ANEURALNETWORKS_NO_ERROR) {
             mValid = false;
         }
     }
     void setInputsAndOutputs(const std::vector<uint32_t>& inputs,
                              const std::vector<uint32_t>& outputs) {
-        ANeuralNetworksIntList in, out;
-        Set(&in, inputs);
-        Set(&out, outputs);
-        if (ANeuralNetworksModel_setInputsAndOutputs(mModel, &in, &out) !=
-            ANEURALNETWORKS_NO_ERROR) {
+        if (ANeuralNetworksModel_setInputsAndOutputs(mModel, static_cast<uint32_t>(inputs.size()),
+                                                     inputs.data(),
+                                                     static_cast<uint32_t>(outputs.size()),
+                                                     outputs.data()) != ANEURALNETWORKS_NO_ERROR) {
             mValid = false;
         }
     }
@@ -212,14 +204,6 @@ public:
     bool isValid() const { return mValid; }
 
 private:
-    /**
-     * WARNING list won't be valid once vec is destroyed or modified.
-     */
-    void Set(ANeuralNetworksIntList* list, const std::vector<uint32_t>& vec) {
-        list->count = static_cast<uint32_t>(vec.size());
-        list->data = vec.data();
-    }
-
     ANeuralNetworksModel* mModel = nullptr;
     // We keep track of the operand ID as a convenience to the caller.
     uint32_t mNextOperandId = 0;
@@ -238,11 +222,9 @@ public:
     ~Compilation() { ANeuralNetworksCompilation_free(mCompilation); }
 
     Compilation(const Compilation&) = delete;
-    Compilation& operator=(const Compilation &) = delete;
+    Compilation& operator=(const Compilation&) = delete;
 
-    Compilation(Compilation&& other) {
-        *this = std::move(other);
-    }
+    Compilation(Compilation&& other) { *this = std::move(other); }
     Compilation& operator=(Compilation&& other) {
         if (this != &other) {
             mCompilation = other.mCompilation;
@@ -294,9 +276,7 @@ public:
     // Move semantics to remove access to the runtime object from the wrapper
     // object that is being moved. This ensures the runtime object will be
     // freed only once.
-    Execution(Execution&& other) {
-        *this = std::move(other);
-    }
+    Execution(Execution&& other) { *this = std::move(other); }
     Execution& operator=(Execution&& other) {
         if (this != &other) {
             mExecution = other.mExecution;
@@ -334,9 +314,7 @@ public:
         return result;
     }
 
-    Result wait() {
-        return static_cast<Result>(ANeuralNetworksExecution_wait(mExecution));
-    }
+    Result wait() { return static_cast<Result>(ANeuralNetworksExecution_wait(mExecution)); }
 
     Result compute() {
         Result result = static_cast<Result>(ANeuralNetworksExecution_startCompute(mExecution));
