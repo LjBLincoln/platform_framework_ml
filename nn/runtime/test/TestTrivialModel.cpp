@@ -120,7 +120,7 @@ TEST_F(TrivialTest, AddTwo) {
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
     Compilation compilation(&modelAdd2);
-    compilation.compile();
+    compilation.finish();
     Execution execution(&compilation);
     ASSERT_EQ(execution.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(execution.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
@@ -137,7 +137,7 @@ TEST_F(TrivialTest, AddThree) {
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
     Compilation compilation2(&modelAdd3);
-    compilation2.compile();
+    compilation2.finish();
     Execution execution2(&compilation2);
     ASSERT_EQ(execution2.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(execution2.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
@@ -148,7 +148,7 @@ TEST_F(TrivialTest, AddThree) {
     // Test it a second time to make sure the model is reusable.
     memset(&actual, 0, sizeof(actual));
     Compilation compilation3(&modelAdd3);
-    compilation3.compile();
+    compilation3.finish();
     Execution execution3(&compilation3);
     ASSERT_EQ(execution3.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(execution3.setInput(1, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
@@ -180,7 +180,7 @@ TEST_F(TrivialTest, BroadcastAddTwo) {
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
     Compilation compilation(&modelBroadcastAdd2);
-    compilation.compile();
+    compilation.finish();
     Execution execution(&compilation);
     ASSERT_EQ(execution.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(execution.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
@@ -212,7 +212,7 @@ TEST_F(TrivialTest, BroadcastMulTwo) {
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
     Compilation compilation(&modelBroadcastMul2);
-    compilation.compile();
+    compilation.finish();
     Execution execution(&compilation);
     ASSERT_EQ(execution.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
     ASSERT_EQ(execution.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);

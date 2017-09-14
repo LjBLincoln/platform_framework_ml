@@ -141,7 +141,9 @@ int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksO
                                          length);
 }
 
-int ExecutionBuilder::startCompute() {
+int ExecutionBuilder::startCompute(sp<Event>* event) {
+    *event = nullptr;
+
     // TODO validate that we have full types for all inputs and outputs,
     // that the graph is not cyclic,
     /*
@@ -166,17 +168,8 @@ int ExecutionBuilder::startCompute() {
     Model model;
     mModel->setHidlModel(&model);
 
-    return device == nullptr ? startComputeOnCpu(model)
-                             : startComputeOnDevice(device->getInterface(), model);
-}
-
-int ExecutionBuilder::wait() {
-    if (mEvent == nullptr) {
-        LOG(ERROR) << "ANeuralNetworksExecution_wait without execution in flight";
-        return ANEURALNETWORKS_BAD_STATE;
-    }
-    mEvent->wait();
-    return ANEURALNETWORKS_NO_ERROR;  // TODO shouldn't we look at wait()'s return value?
+    return device == nullptr ? startComputeOnCpu(model, event)
+                             : startComputeOnDevice(device->getInterface(), model, event);
 }
 
 // Figures out how to place each of the input or outputs in a buffer. This just does the layout,
@@ -217,8 +210,9 @@ static void copyLocationAndDimension(const std::vector<ModelArgumentInfo>& argum
     }
 }
 
-int ExecutionBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model) {
-    LOG(DEBUG) << "ExecutionBuilder::startComputeOnDevice";
+int ExecutionBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model, sp<Event>* event) {
+    *event = nullptr;
+
     // TODO Dangerous!  In async, the model will outlive it here. Safe for now
     sp<Event> preparationEvent = new Event();
     ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
@@ -273,11 +267,11 @@ int ExecutionBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& mode
         request.pools[i] = mMemories[i]->getHidlMemory();
     }
 
-    // Prepare the event for asynchronous execution. The sp<Event>
-    // object is recorded if the execution has been successfully
-    // launched.  The sp is used for ref-counting purposes. Without
-    // it, the HIDL service could attempt to communicate with a dead
-    // event object.
+    // Prepare the event for asynchronous execution. The sp<Event> object is
+    // returned when the execution has been successfully launched, otherwise a
+    // nullptr is returned. The sp is used for ref-counting purposes. Without
+    // it, the HIDL service could attempt to communicate with a dead event
+    // object.
     //
     // TODO: Explain the "dead event" problem further, either here or
     // in the design document.
@@ -321,7 +315,7 @@ int ExecutionBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& mode
     }
     LOG(DEBUG) << "ExecutionBuilder::startComputeOnDevice completed";
 
-    mEvent = eventSp;
+    *event = eventSp;
     return ANEURALNETWORKS_NO_ERROR;
 }
 
@@ -335,12 +329,14 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
     event->notify(status);
 }
 
-int ExecutionBuilder::startComputeOnCpu(const Model& model) {
+int ExecutionBuilder::startComputeOnCpu(const Model& model, sp<Event>* event) {
     // TODO: use a thread pool
 
     // Prepare the event for asynchronous execution. The sp<Event> object is
-    // recorded if the execution has been successfully launched.
+    // returned when the execution has been successfully launched, otherwise a
+    // nullptr is returned.
     sp<Event> eventSp = new Event();
+    *event = nullptr;
 
     std::vector<RunTimePoolInfo> runTimePoolInfos;
     uint32_t count = mMemories.size();
@@ -374,7 +370,7 @@ int ExecutionBuilder::startComputeOnCpu(const Model& model) {
                        std::move(runTimePoolInfos), eventSp);
     eventSp->bind_thread(std::move(thread));
 
-    mEvent = eventSp;
+    *event = eventSp;
     return ANEURALNETWORKS_NO_ERROR;
 }
 
