@@ -53,11 +53,11 @@ enum class Result {
 
 struct OperandType {
     ANeuralNetworksOperandType operandType;
-    // uint32_t type;
+    // int32_t type;
     std::vector<uint32_t> dimensions;
 
     OperandType(Type type, const std::vector<uint32_t>& d) : dimensions(d) {
-        operandType.type = static_cast<uint32_t>(type);
+        operandType.type = static_cast<int32_t>(type);
         operandType.scale = 0.0f;
         operandType.offset = 0;
 
@@ -253,7 +253,7 @@ public:
 
     Result setPreference(ExecutePreference preference) {
         return static_cast<Result>(ANeuralNetworksCompilation_setPreference(
-                    mCompilation, static_cast<uint32_t>(preference)));
+                    mCompilation, static_cast<int32_t>(preference)));
     }
 
     // TODO startCompile

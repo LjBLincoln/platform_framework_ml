@@ -1156,7 +1156,7 @@ typedef struct ANeuralNetworksIntList {
  */
 typedef struct ANeuralNetworksOperandType {
     /** The data type, e.g ANEURALNETWORKS_INT8. */
-    uint32_t type;
+    int32_t type;
     /** Count and size of each dimension. The count should be 0 for scalars. */
     ANeuralNetworksIntList dimensions;
     /** These two fields are only used for quantized tensors.
@@ -1167,7 +1167,7 @@ typedef struct ANeuralNetworksOperandType {
     int32_t offset;
 } ANeuralNetworksOperandType;
 
-typedef uint32_t ANeuralNetworksOperationType;
+typedef int32_t ANeuralNetworksOperationType;
 
 /**
  * Initializes the machine learning runtime.
@@ -1384,7 +1384,7 @@ int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t in
  */
 int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, int32_t index,
                                                    const ANeuralNetworksMemory* memory,
-                                                   uint32_t offset, size_t length);
+                                                   size_t offset, size_t length);
 
 /**
  * Add an operation to a model.
@@ -1484,7 +1484,7 @@ void ANeuralNetworksCompilation_free(ANeuralNetworksCompilation* compilation);
  * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
 int ANeuralNetworksCompilation_setPreference(ANeuralNetworksCompilation* compilation,
-                                             uint32_t preference);
+                                             int32_t preference);
 
 /**
  * Schedule the compilation to be performed.
@@ -1610,8 +1610,8 @@ int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32
  */
 int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execution, int32_t index,
                                                 const ANeuralNetworksOperandType* type,
-                                                const ANeuralNetworksMemory* memory, uint32_t offset,
-                                                uint32_t length);
+                                                const ANeuralNetworksMemory* memory, size_t offset,
+                                                size_t length);
 
 /**
  * Associate a user buffer with an output of the model of the
@@ -1663,8 +1663,8 @@ int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int3
  */
 int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execution, int32_t index,
                                                  const ANeuralNetworksOperandType* type,
-                                                 const ANeuralNetworksMemory* memory, uint32_t offset,
-                                                 uint32_t length);
+                                                 const ANeuralNetworksMemory* memory, size_t offset,
+                                                 size_t length);
 
 /**
  * Schedule evaluation of the execution.

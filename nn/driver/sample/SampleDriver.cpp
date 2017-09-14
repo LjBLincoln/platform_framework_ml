@@ -97,11 +97,6 @@ Return<void> SampleDriver::getCapabilities(getCapabilities_cb cb) {
     };
 
     // TODO: These numbers are completely arbitrary.  To be revised.
-    PerformanceInfo float16Performance = {
-            .execTime = 116.0f, // nanoseconds?
-            .powerUsage = 1.0f, // picoJoules
-    };
-
     PerformanceInfo float32Performance = {
             .execTime = 132.0f, // nanoseconds?
             .powerUsage = 1.0f, // picoJoules
@@ -115,8 +110,6 @@ Return<void> SampleDriver::getCapabilities(getCapabilities_cb cb) {
     Capabilities capabilities = {
             .supportedOperationTuples = supportedOperationTuples,
             .cachesCompilation = false,
-            .bootupTime = 1e-3f,
-            .float16Performance = float16Performance,
             .float32Performance = float32Performance,
             .quantized8Performance = quantized8Performance,
     };
