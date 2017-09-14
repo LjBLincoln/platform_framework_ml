@@ -65,6 +65,11 @@ Model createTestModel() {
         .pools = pools,
     };
 }
+
+bool is_ignored(int i) {
+  static std::set<int> ignore = {};
+  return ignore.find(i) != ignore.end();
+}
 // Generated file (from: vts_full.mod.py). Do not edit
 // Begin of an example
 {

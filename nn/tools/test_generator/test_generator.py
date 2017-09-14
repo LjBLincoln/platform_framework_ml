@@ -763,6 +763,7 @@ Model createTestModel() {{
 
 def generate_vts(model_file):
   generate_vts_model(model_file)
+  print (IgnoredOutput.gen_ignored(), file=model_file)
 
 def print_cts_op(model_file, op):
   fmt = op.Definition()
