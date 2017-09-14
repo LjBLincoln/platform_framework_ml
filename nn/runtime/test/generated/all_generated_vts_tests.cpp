@@ -226,6 +226,51 @@ TEST_F(NeuralnetworksHidlTest, embedding_lookup) {
                              embedding_lookup::examples);
 }
 
+namespace floor {
+std::vector<MixedTypedExample> examples = {
+// Generated floor test
+#include "examples/floor.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/floor.model.cpp"
+} // namespace floor
+TEST_F(NeuralnetworksHidlTest, floor) {
+    generated_tests::Execute(device,
+                             floor::createTestModel,
+                             floor::is_ignored,
+                             floor::examples);
+}
+
+namespace fully_connected_float {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float test
+#include "examples/fully_connected_float.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/fully_connected_float.model.cpp"
+} // namespace fully_connected_float
+TEST_F(NeuralnetworksHidlTest, fully_connected_float) {
+    generated_tests::Execute(device,
+                             fully_connected_float::createTestModel,
+                             fully_connected_float::is_ignored,
+                             fully_connected_float::examples);
+}
+
+namespace fully_connected_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_quant8 test
+#include "examples/fully_connected_quant8.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/fully_connected_quant8.model.cpp"
+} // namespace fully_connected_quant8
+TEST_F(NeuralnetworksHidlTest, fully_connected_quant8) {
+    generated_tests::Execute(device,
+                             fully_connected_quant8::createTestModel,
+                             fully_connected_quant8::is_ignored,
+                             fully_connected_quant8::examples);
+}
+
 namespace hashtable_lookup_float {
 std::vector<MixedTypedExample> examples = {
 // Generated hashtable_lookup_float test
@@ -286,6 +331,126 @@ TEST_F(NeuralnetworksHidlTest, l2_pool_float) {
                              l2_pool_float::examples);
 }
 
+namespace local_response_norm_float_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated local_response_norm_float_1 test
+#include "examples/local_response_norm_float_1.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/local_response_norm_float_1.model.cpp"
+} // namespace local_response_norm_float_1
+TEST_F(NeuralnetworksHidlTest, local_response_norm_float_1) {
+    generated_tests::Execute(device,
+                             local_response_norm_float_1::createTestModel,
+                             local_response_norm_float_1::is_ignored,
+                             local_response_norm_float_1::examples);
+}
+
+namespace local_response_norm_float_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated local_response_norm_float_2 test
+#include "examples/local_response_norm_float_2.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/local_response_norm_float_2.model.cpp"
+} // namespace local_response_norm_float_2
+TEST_F(NeuralnetworksHidlTest, local_response_norm_float_2) {
+    generated_tests::Execute(device,
+                             local_response_norm_float_2::createTestModel,
+                             local_response_norm_float_2::is_ignored,
+                             local_response_norm_float_2::examples);
+}
+
+namespace local_response_norm_float_3 {
+std::vector<MixedTypedExample> examples = {
+// Generated local_response_norm_float_3 test
+#include "examples/local_response_norm_float_3.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/local_response_norm_float_3.model.cpp"
+} // namespace local_response_norm_float_3
+TEST_F(NeuralnetworksHidlTest, local_response_norm_float_3) {
+    generated_tests::Execute(device,
+                             local_response_norm_float_3::createTestModel,
+                             local_response_norm_float_3::is_ignored,
+                             local_response_norm_float_3::examples);
+}
+
+namespace local_response_norm_float_4 {
+std::vector<MixedTypedExample> examples = {
+// Generated local_response_norm_float_4 test
+#include "examples/local_response_norm_float_4.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/local_response_norm_float_4.model.cpp"
+} // namespace local_response_norm_float_4
+TEST_F(NeuralnetworksHidlTest, local_response_norm_float_4) {
+    generated_tests::Execute(device,
+                             local_response_norm_float_4::createTestModel,
+                             local_response_norm_float_4::is_ignored,
+                             local_response_norm_float_4::examples);
+}
+
+namespace lsh_projection {
+std::vector<MixedTypedExample> examples = {
+// Generated lsh_projection test
+#include "examples/lsh_projection.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/lsh_projection.model.cpp"
+} // namespace lsh_projection
+TEST_F(NeuralnetworksHidlTest, lsh_projection) {
+    generated_tests::Execute(device,
+                             lsh_projection::createTestModel,
+                             lsh_projection::is_ignored,
+                             lsh_projection::examples);
+}
+
+namespace lstm2 {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm2 test
+#include "examples/lstm2.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/lstm2.model.cpp"
+} // namespace lstm2
+TEST_F(NeuralnetworksHidlTest, lstm2) {
+    generated_tests::Execute(device,
+                             lstm2::createTestModel,
+                             lstm2::is_ignored,
+                             lstm2::examples);
+}
+
+namespace lstm3 {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm3 test
+#include "examples/lstm3.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/lstm3.model.cpp"
+} // namespace lstm3
+TEST_F(NeuralnetworksHidlTest, lstm3) {
+    generated_tests::Execute(device,
+                             lstm3::createTestModel,
+                             lstm3::is_ignored,
+                             lstm3::examples);
+}
+
+namespace lstm {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm test
+#include "examples/lstm.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/lstm.model.cpp"
+} // namespace lstm
+TEST_F(NeuralnetworksHidlTest, lstm) {
+    generated_tests::Execute(device,
+                             lstm::createTestModel,
+                             lstm::is_ignored,
+                             lstm::examples);
+}
+
 namespace max_pool_float {
 std::vector<MixedTypedExample> examples = {
 // Generated max_pool_float test
@@ -314,6 +479,36 @@ TEST_F(NeuralnetworksHidlTest, max_pool_quant8) {
                              max_pool_quant8::createTestModel,
                              max_pool_quant8::is_ignored,
                              max_pool_quant8::examples);
+}
+
+namespace mul {
+std::vector<MixedTypedExample> examples = {
+// Generated mul test
+#include "examples/mul.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/mul.model.cpp"
+} // namespace mul
+TEST_F(NeuralnetworksHidlTest, mul) {
+    generated_tests::Execute(device,
+                             mul::createTestModel,
+                             mul::is_ignored,
+                             mul::examples);
+}
+
+namespace mul_relu {
+std::vector<MixedTypedExample> examples = {
+// Generated mul_relu test
+#include "examples/mul_relu.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/mul_relu.model.cpp"
+} // namespace mul_relu
+TEST_F(NeuralnetworksHidlTest, mul_relu) {
+    generated_tests::Execute(device,
+                             mul_relu::createTestModel,
+                             mul_relu::is_ignored,
+                             mul_relu::examples);
 }
 
 namespace relu1_float {
@@ -449,4 +644,199 @@ TEST_F(NeuralnetworksHidlTest, resize_bilinear) {
                              resize_bilinear::createTestModel,
                              resize_bilinear::is_ignored,
                              resize_bilinear::examples);
+}
+
+namespace rnn {
+std::vector<MixedTypedExample> examples = {
+// Generated rnn test
+#include "examples/rnn.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/rnn.model.cpp"
+} // namespace rnn
+TEST_F(NeuralnetworksHidlTest, rnn) {
+    generated_tests::Execute(device,
+                             rnn::createTestModel,
+                             rnn::is_ignored,
+                             rnn::examples);
+}
+
+namespace sigmoid_float {
+std::vector<MixedTypedExample> examples = {
+// Generated sigmoid_float test
+#include "examples/sigmoid_float.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/sigmoid_float.model.cpp"
+} // namespace sigmoid_float
+TEST_F(NeuralnetworksHidlTest, sigmoid_float) {
+    generated_tests::Execute(device,
+                             sigmoid_float::createTestModel,
+                             sigmoid_float::is_ignored,
+                             sigmoid_float::examples);
+}
+
+namespace sigmoid_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated sigmoid_quant8 test
+#include "examples/sigmoid_quant8.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/sigmoid_quant8.model.cpp"
+} // namespace sigmoid_quant8
+TEST_F(NeuralnetworksHidlTest, sigmoid_quant8) {
+    generated_tests::Execute(device,
+                             sigmoid_quant8::createTestModel,
+                             sigmoid_quant8::is_ignored,
+                             sigmoid_quant8::examples);
+}
+
+namespace softmax_float_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated softmax_float_1 test
+#include "examples/softmax_float_1.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/softmax_float_1.model.cpp"
+} // namespace softmax_float_1
+TEST_F(NeuralnetworksHidlTest, softmax_float_1) {
+    generated_tests::Execute(device,
+                             softmax_float_1::createTestModel,
+                             softmax_float_1::is_ignored,
+                             softmax_float_1::examples);
+}
+
+namespace softmax_float_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated softmax_float_2 test
+#include "examples/softmax_float_2.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/softmax_float_2.model.cpp"
+} // namespace softmax_float_2
+TEST_F(NeuralnetworksHidlTest, softmax_float_2) {
+    generated_tests::Execute(device,
+                             softmax_float_2::createTestModel,
+                             softmax_float_2::is_ignored,
+                             softmax_float_2::examples);
+}
+
+namespace softmax_quant8_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated softmax_quant8_1 test
+#include "examples/softmax_quant8_1.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/softmax_quant8_1.model.cpp"
+} // namespace softmax_quant8_1
+TEST_F(NeuralnetworksHidlTest, softmax_quant8_1) {
+    generated_tests::Execute(device,
+                             softmax_quant8_1::createTestModel,
+                             softmax_quant8_1::is_ignored,
+                             softmax_quant8_1::examples);
+}
+
+namespace softmax_quant8_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated softmax_quant8_2 test
+#include "examples/softmax_quant8_2.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/softmax_quant8_2.model.cpp"
+} // namespace softmax_quant8_2
+TEST_F(NeuralnetworksHidlTest, softmax_quant8_2) {
+    generated_tests::Execute(device,
+                             softmax_quant8_2::createTestModel,
+                             softmax_quant8_2::is_ignored,
+                             softmax_quant8_2::examples);
+}
+
+namespace space_to_depth_float_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_float_1 test
+#include "examples/space_to_depth_float_1.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/space_to_depth_float_1.model.cpp"
+} // namespace space_to_depth_float_1
+TEST_F(NeuralnetworksHidlTest, space_to_depth_float_1) {
+    generated_tests::Execute(device,
+                             space_to_depth_float_1::createTestModel,
+                             space_to_depth_float_1::is_ignored,
+                             space_to_depth_float_1::examples);
+}
+
+namespace space_to_depth_float_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_float_2 test
+#include "examples/space_to_depth_float_2.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/space_to_depth_float_2.model.cpp"
+} // namespace space_to_depth_float_2
+TEST_F(NeuralnetworksHidlTest, space_to_depth_float_2) {
+    generated_tests::Execute(device,
+                             space_to_depth_float_2::createTestModel,
+                             space_to_depth_float_2::is_ignored,
+                             space_to_depth_float_2::examples);
+}
+
+namespace space_to_depth_quant8_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_quant8_1 test
+#include "examples/space_to_depth_quant8_1.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/space_to_depth_quant8_1.model.cpp"
+} // namespace space_to_depth_quant8_1
+TEST_F(NeuralnetworksHidlTest, space_to_depth_quant8_1) {
+    generated_tests::Execute(device,
+                             space_to_depth_quant8_1::createTestModel,
+                             space_to_depth_quant8_1::is_ignored,
+                             space_to_depth_quant8_1::examples);
+}
+
+namespace space_to_depth_quant8_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_quant8_2 test
+#include "examples/space_to_depth_quant8_2.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/space_to_depth_quant8_2.model.cpp"
+} // namespace space_to_depth_quant8_2
+TEST_F(NeuralnetworksHidlTest, space_to_depth_quant8_2) {
+    generated_tests::Execute(device,
+                             space_to_depth_quant8_2::createTestModel,
+                             space_to_depth_quant8_2::is_ignored,
+                             space_to_depth_quant8_2::examples);
+}
+
+namespace svdf {
+std::vector<MixedTypedExample> examples = {
+// Generated svdf test
+#include "examples/svdf.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/svdf.model.cpp"
+} // namespace svdf
+TEST_F(NeuralnetworksHidlTest, svdf) {
+    generated_tests::Execute(device,
+                             svdf::createTestModel,
+                             svdf::is_ignored,
+                             svdf::examples);
+}
+
+namespace tanh {
+std::vector<MixedTypedExample> examples = {
+// Generated tanh test
+#include "examples/tanh.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/tanh.model.cpp"
+} // namespace tanh
+TEST_F(NeuralnetworksHidlTest, tanh) {
+    generated_tests::Execute(device,
+                             tanh::createTestModel,
+                             tanh::is_ignored,
+                             tanh::examples);
 }
