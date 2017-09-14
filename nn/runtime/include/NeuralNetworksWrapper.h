@@ -59,7 +59,7 @@ struct OperandType {
     OperandType(Type type, const std::vector<uint32_t>& d) : dimensions(d) {
         operandType.type = static_cast<int32_t>(type);
         operandType.scale = 0.0f;
-        operandType.offset = 0;
+        operandType.zeroPoint = 0;
 
         operandType.dimensionCount = static_cast<uint32_t>(dimensions.size());
         operandType.dimensions = dimensions.data();
@@ -75,11 +75,11 @@ struct OperandType {
         uint8_t q_max = std::numeric_limits<uint8_t>::max();
         float range = q_max - q_min;
         float scale = (f_max - f_min) / range;
-        int32_t offset =
+        int32_t zeroPoint =
                     fmin(q_max, fmax(q_min, static_cast<uint8_t>(round(q_min - f_min / scale))));
 
         operandType.scale = scale;
-        operandType.offset = offset;
+        operandType.zeroPoint = zeroPoint;
     }
 };
 
