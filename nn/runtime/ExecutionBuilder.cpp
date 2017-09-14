@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "RequestBuilder"
+#define LOG_TAG "ExecutionBuilder"
 
-#include "RequestBuilder.h"
+#include "ExecutionBuilder.h"
 
 #include "CompilationBuilder.h"
 #include "CpuExecutor.h"
@@ -64,7 +64,7 @@ int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
         uint32_t count = newType->dimensions.count;
         if (static_cast<OperandType>(newType->type) != operand.type ||
             count != operand.dimensions.size()) {
-            LOG(ERROR) << "ANeuralNetworksRequest_setInput/Output incompatible types";
+            LOG(ERROR) << "ANeuralNetworksExecution_setInput/Output incompatible types";
             return ANEURALNETWORKS_BAD_DATA;
         }
         for (uint32_t i = 0; i < count; i++) {
@@ -74,12 +74,12 @@ int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-RequestBuilder::RequestBuilder(const CompilationBuilder* compilation) :
+ExecutionBuilder::ExecutionBuilder(const CompilationBuilder* compilation) :
         mModel(compilation->mModel),
         mInputs(mModel->inputCount()),
         mOutputs(mModel->outputCount()),
         mMemories(mModel->getMemories()) {
-    LOG(DEBUG) << "RequestBuilder::RequestBuilder";
+    LOG(DEBUG) << "ExecutionBuilder::ExecutionBuilder";
     for (auto& p : mInputs) {
         p.state = ModelArgumentInfo::UNSPECIFIED;
     }
@@ -88,22 +88,22 @@ RequestBuilder::RequestBuilder(const CompilationBuilder* compilation) :
     }
 }
 
-int RequestBuilder::setInput(uint32_t index, const ANeuralNetworksOperandType* type,
-                             const void* buffer, uint32_t length) {
+int ExecutionBuilder::setInput(uint32_t index, const ANeuralNetworksOperandType* type,
+                               const void* buffer, uint32_t length) {
     uint32_t count = static_cast<uint32_t>(mInputs.size());
     if (index >= count) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setInput bad index " << index << " " << count;
+        LOG(ERROR) << "ANeuralNetworksExecution_setInput bad index " << index << " " << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
     return mInputs[index].setFromPointer(mModel->getInputOperand(index), type,
                                          const_cast<void*>(buffer), length);
 }
 
-int RequestBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
-                                       const Memory* memory, uint32_t offset, uint32_t length) {
+int ExecutionBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
+                                         const Memory* memory, uint32_t offset, uint32_t length) {
     uint32_t count = static_cast<uint32_t>(mInputs.size());
     if (index >= count) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setInputFromMemory bad index " << index << " "
+        LOG(ERROR) << "ANeuralNetworksExecution_setInputFromMemory bad index " << index << " "
                    << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
@@ -115,21 +115,21 @@ int RequestBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOper
                                         length);
 }
 
-int RequestBuilder::setOutput(uint32_t index, const ANeuralNetworksOperandType* type, void* buffer,
-                              uint32_t length) {
+int ExecutionBuilder::setOutput(uint32_t index, const ANeuralNetworksOperandType* type, void* buffer,
+                                uint32_t length) {
     uint32_t count = static_cast<uint32_t>(mOutputs.size());
     if (index >= count) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setOutput bad index " << index << " " << count;
+        LOG(ERROR) << "ANeuralNetworksExecution_setOutput bad index " << index << " " << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
     return mOutputs[index].setFromPointer(mModel->getOutputOperand(index), type, buffer, length);
 }
 
-int RequestBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
-                                        const Memory* memory, uint32_t offset, uint32_t length) {
+int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
+                                          const Memory* memory, uint32_t offset, uint32_t length) {
     uint32_t count = static_cast<uint32_t>(mOutputs.size());
     if (index >= count) {
-        LOG(ERROR) << "ANeuralNetworksRequest_setOutputFromMemory bad index " << index << " "
+        LOG(ERROR) << "ANeuralNetworksExecution_setOutputFromMemory bad index " << index << " "
                    << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
@@ -141,7 +141,7 @@ int RequestBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOpe
                                          length);
 }
 
-int RequestBuilder::startCompute() {
+int ExecutionBuilder::startCompute() {
     // TODO validate that we have full types for all inputs and outputs,
     // that the graph is not cyclic,
     /*
@@ -149,18 +149,18 @@ int RequestBuilder::startCompute() {
 
     for (auto& p : mInputs) {
         if (p.state == ModelArgumentInfo::UNSPECIFIED) {
-            LOG(ERROR) << "ANeuralNetworksRequest_startCompute not all inputs specified";
+            LOG(ERROR) << "ANeuralNetworksExecution_startCompute not all inputs specified";
             return ANEURALNETWORKS_BAD_DATA;
         }
     }
     */
     for (auto& p : mOutputs) {
         if (p.state == ModelArgumentInfo::UNSPECIFIED) {
-            LOG(ERROR) << "ANeuralNetworksRequest_startCompute not all outputs specified";
+            LOG(ERROR) << "ANeuralNetworksExecution_startCompute not all outputs specified";
             return ANEURALNETWORKS_BAD_DATA;
         }
     }
-    LOG(DEBUG) << "RequestBuilder::startCompute";
+    LOG(DEBUG) << "ExecutionBuilder::startCompute";
 
     std::shared_ptr<Device> device = DeviceManager::get()->getAvailableDriver();
     Model model;
@@ -170,9 +170,9 @@ int RequestBuilder::startCompute() {
                              : startComputeOnDevice(device->getInterface(), model);
 }
 
-int RequestBuilder::wait() {
+int ExecutionBuilder::wait() {
     if (mEvent == nullptr) {
-        LOG(ERROR) << "ANeuralNetworksRequest_wait without request in flight";
+        LOG(ERROR) << "ANeuralNetworksExecution_wait without execution in flight";
         return ANEURALNETWORKS_BAD_STATE;
     }
     mEvent->wait();
@@ -181,8 +181,8 @@ int RequestBuilder::wait() {
 
 // Figures out how to place each of the input or outputs in a buffer. This just does the layout,
 // it does not copy data.  Aligns each input a bit.
-int RequestBuilder::allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args,
-                                                   Memory* memory) {
+int ExecutionBuilder::allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args,
+                                                     Memory* memory) {
     uint32_t nextPoolIndex = mMemories.size();
     int64_t total = 0;
     for (auto& info : *args) {
@@ -196,7 +196,7 @@ int RequestBuilder::allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo
         }
     };
     if (total > 0xFFFFFFFF) {
-        LOG(ERROR) << "ANeuralNetworksRequest_startCompute Size of all inputs or outputs exceeds "
+        LOG(ERROR) << "ANeuralNetworksExecution_startCompute Size of all inputs or outputs exceeds "
                       "2^32.";
         return ANEURALNETWORKS_BAD_DATA;
     }
@@ -217,8 +217,8 @@ static void copyLocationAndDimension(const std::vector<ModelArgumentInfo>& argum
     }
 }
 
-int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model) {
-    LOG(DEBUG) << "RequestBuilder::startComputeOnDevice";
+int ExecutionBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model) {
+    LOG(DEBUG) << "ExecutionBuilder::startComputeOnDevice";
     // TODO Dangerous!  In async, the model will outlive it here. Safe for now
     sp<Event> preparationEvent = new Event();
     ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
@@ -274,7 +274,7 @@ int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model)
     }
 
     // Prepare the event for asynchronous execution. The sp<Event>
-    // object is recorded if the request has been successfully
+    // object is recorded if the execution has been successfully
     // launched.  The sp is used for ref-counting purposes. Without
     // it, the HIDL service could attempt to communicate with a dead
     // event object.
@@ -284,7 +284,7 @@ int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model)
     sp<Event> eventSp = new Event();
 
     LOG(DEBUG) << "Before preparedModel->execute() " << toString(request);
-    // Execute the request.
+    // Execute.
     // TODO: What happens to the Event if the service dies abnormally
     // -- won't that keep the Event live forever, because the service
     // never has the opportunity to bump the reference count down? Or
@@ -319,7 +319,7 @@ int RequestBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model)
             memcpy(info.buffer, data + loc.offset, loc.length);
         }
     }
-    LOG(DEBUG) << "RequestBuilder::startComputeOnDevice completed";
+    LOG(DEBUG) << "ExecutionBuilder::startComputeOnDevice completed";
 
     mEvent = eventSp;
     return ANEURALNETWORKS_NO_ERROR;
@@ -335,11 +335,11 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
     event->notify(status);
 }
 
-int RequestBuilder::startComputeOnCpu(const Model& model) {
+int ExecutionBuilder::startComputeOnCpu(const Model& model) {
     // TODO: use a thread pool
 
     // Prepare the event for asynchronous execution. The sp<Event> object is
-    // recorded if the request has been successfully launched.
+    // recorded if the execution has been successfully launched.
     sp<Event> eventSp = new Event();
 
     std::vector<RunTimePoolInfo> runTimePoolInfos;

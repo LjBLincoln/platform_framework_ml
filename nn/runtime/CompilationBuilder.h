@@ -22,12 +22,12 @@
 namespace android {
 namespace nn {
 
+class ExecutionBuilder;
 class ModelBuilder;
-class RequestBuilder;
 
 class CompilationBuilder {
 public:
-    friend class RequestBuilder;  // TODO remove this
+    friend class ExecutionBuilder;  // TODO remove this
 
     CompilationBuilder(const ModelBuilder* model);
 
@@ -35,13 +35,13 @@ public:
 
     int compile();  // TODO: Asynchronous (startCompile?)
 
-    int createRequest(RequestBuilder** request);
+    int createExecution(ExecutionBuilder** execution);
 
 private:
     // int startComputeOnCpu(const Model& model, sp<Event>* event);
 
     const ModelBuilder* mModel;
-    // Whether the application prefers to go fast or use low power for this request.
+    // Whether the application prefers to go fast or use low power for this execution.
     uint32_t mPreference = ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER;
 };
 
