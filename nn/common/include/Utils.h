@@ -74,7 +74,6 @@ enum class OperandTypePerformanceKind {
 // describing an operation, than data for the operation)
 OperandTypePerformanceKind getPerformanceKind(OperandType type);
 
-// Returns the kind of OperationTuple
 hidl_memory allocateSharedMemory(int64_t size);
 
 // Returns the number of padding bytes needed to align data of the
