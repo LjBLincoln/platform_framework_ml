@@ -836,14 +836,14 @@ typedef enum {
      *    For FLOAT32 input tensor, bias must also be FLOAT32.
      *    For UINT8 input tensor, bias must be INT32.
      *
+     * * 4: Hidden state.
+     *      A 2-D tensor of type T, of shape [batch_size, num_units].
+     *
      * Parameters
-     * * 4: fused_activation_function.
+     * * 5: fused_activation_function.
      *      An (optional) ActivationFunctionType indicating the activation
      *      function. If “NONE” is specified then it results in a linear
      *      activation.
-     *
-     * * 5: Hidden state.
-     *      A 2-D tensor of type T, of shape [batch_size, num_units].
      *
      * Outputs:
      * * 0: output.
