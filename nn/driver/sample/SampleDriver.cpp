@@ -21,6 +21,8 @@
 #include "CpuExecutor.h"
 #include "HalInterfaces.h"
 
+#include <android-base/logging.h>
+#include <hidl/LegacySupport.h>
 #include <thread>
 
 namespace android {
@@ -211,3 +213,17 @@ Return<ErrorStatus> SamplePreparedModel::execute(const Request& request, const s
 } // namespace sample_driver
 } // namespace nn
 } // namespace android
+
+using android::nn::sample_driver::SampleDriver;
+
+int main() {
+    android::sp<SampleDriver> driver = new SampleDriver();
+    android::hardware::configureRpcThreadpool(4, true /* will join */);
+    if (driver->registerAsService("sample") != android::OK) {
+        ALOGE("Could not register service");
+        return 1;
+    }
+    android::hardware::joinRpcThreadpool();
+    ALOGE("Service exited!");
+    return 1;
+}
