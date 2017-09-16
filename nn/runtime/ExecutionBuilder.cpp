@@ -163,14 +163,23 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
         }
     }
 
-    std::shared_ptr<Device> device = DeviceManager::get()->getAvailableDriver();
-    Model model;
-    mModel->setHidlModel(&model);
+    Model hidlModel;
+    mModel->setHidlModel(&hidlModel);
 
-    LOG(DEBUG) << "ExecutionBuilder::startCompute " << device;
-
-    return device == nullptr ? startComputeOnCpu(model, event)
-                             : startComputeOnDevice(device->getInterface(), model, event);
+    // Find a driver that can handle all the operations.
+    const std::vector<std::shared_ptr<Device>>& devices = DeviceManager::get()->getDrivers();
+    for (const auto& device : devices) {
+        hidl_vec<bool> supports;
+        LOG(DEBUG) << "Checking " << device;
+        device->getSupportedOperations(hidlModel, &supports);
+        if (std::find(supports.begin(), supports.end(), false) == supports.end()) {
+            LOG(DEBUG) << "ExecutionBuilder::startCompute on " << device;
+            return startComputeOnDevice(device->getInterface(), hidlModel, event);
+        }
+    }
+    // If none can, run on the CPU.
+    LOG(DEBUG) << "ExecutionBuilder::startCompute on CPU";
+    return startComputeOnCpu(hidlModel, event);
 }
 
 // Figures out how to place each of the input or outputs in a buffer. This just does the layout,

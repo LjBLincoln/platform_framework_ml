@@ -15,13 +15,12 @@
  */
 
 
-cc_binary {
-    name: "android.hardware.neuralnetworks@1.0-service-sample",
+cc_defaults {
+    name: "NeuralNetworksSampleDriver_defaults",
     defaults: ["neuralnetworks_defaults"],
     relative_install_path: "hw",
     proprietary: true,
-    init_rc: ["android.hardware.neuralnetworks@1.0-service-sample.rc"],
-    srcs: [
+     srcs: [
         "SampleDriver.cpp",
     ],
     header_libs: [
@@ -44,4 +43,39 @@ cc_binary {
     static_libs: [
         "libneuralnetworks_common",
     ],
+}
+
+cc_binary {
+    name: "android.hardware.neuralnetworks@1.0-service-sample-all",
+    defaults: ["NeuralNetworksSampleDriver_defaults"],
+    init_rc: ["SampleDriverAll.rc"],
+    srcs: ["SampleDriverAll.cpp"]
+}
+
+cc_binary {
+    name: "android.hardware.neuralnetworks@1.0-service-sample-float-fast",
+    defaults: ["NeuralNetworksSampleDriver_defaults"],
+    init_rc: ["SampleDriverFloatFast.rc"],
+    srcs: ["SampleDriverFloatFast.cpp"]
+}
+
+cc_binary {
+    name: "android.hardware.neuralnetworks@1.0-service-sample-float-slow",
+    defaults: ["NeuralNetworksSampleDriver_defaults"],
+    init_rc: ["SampleDriverFloatSlow.rc"],
+    srcs: ["SampleDriverFloatSlow.cpp"]
+}
+
+cc_binary {
+    name: "android.hardware.neuralnetworks@1.0-service-sample-quant",
+    defaults: ["NeuralNetworksSampleDriver_defaults"],
+    init_rc: ["SampleDriverQuant.rc"],
+    srcs: ["SampleDriverQuant.cpp"]
+}
+
+cc_binary {
+    name: "android.hardware.neuralnetworks@1.0-service-sample-minimal",
+    defaults: ["NeuralNetworksSampleDriver_defaults"],
+    init_rc: ["SampleDriverMinimal.rc"],
+    srcs: ["SampleDriverMinimal.cpp"]
 }
