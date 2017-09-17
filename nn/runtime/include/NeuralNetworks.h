@@ -836,14 +836,14 @@ typedef enum {
      *    For FLOAT32 input tensor, bias must also be FLOAT32.
      *    For UINT8 input tensor, bias must be INT32.
      *
+     * * 4: Hidden state.
+     *      A 2-D tensor of type T, of shape [batch_size, num_units].
+     *
      * Parameters
-     * * 4: fused_activation_function.
+     * * 5: fused_activation_function.
      *      An (optional) ActivationFunctionType indicating the activation
      *      function. If “NONE” is specified then it results in a linear
      *      activation.
-     *
-     * * 5: Hidden state.
-     *      A 2-D tensor of type T, of shape [batch_size, num_units].
      *
      * Outputs:
      * * 0: output.
@@ -1141,11 +1141,11 @@ typedef struct ANeuralNetworksCompilation ANeuralNetworksCompilation;
  *        {@link ANeuralNetworksExecution_setOutputFromMemory}.</li>
  *    <li>Apply the model with {@link ANeuralNetworksExecution_startCompute}.</li>
  *    <li>Wait for the execution to complete with {@link
- *        ANeuralNetworksExecution_wait}.</li>
+ *        ANeuralNetworksEvent_wait}.</li>
  *    <li>Destroy the execution with
  *        {@link ANeuralNetworksExecution_free}.</li></ul></p>
  *
- * <p>An execution cannot be modified once {@link ANeuralNetworksExecution_start}
+ * <p>An execution cannot be modified once {@link ANeuralNetworksExecution_startCompute}
  * has been called on it.</p>
  *
  * <p>An execution can be applied to a model with
@@ -1154,10 +1154,10 @@ typedef struct ANeuralNetworksCompilation ANeuralNetworksCompilation;
  *
  * <p>It is the application's responsibility to make sure that only one thread
  * modifies an execution at a given time. It is however safe for more than one
- * thread to use {@link ANeuralNetworksExecution_wait} at the same time.</p>
+ * thread to use {@link ANeuralNetworksEvent_wait} at the same time.</p>
  *
  * <p>It is also the application's responsibility to ensure that there are no other
- * uses of the request after calling {@link ANeuralNetworksRequest_free}.</p>
+ * uses of the request after calling {@link ANeuralNetworksExecution_free}.</p>
  */
 typedef struct ANeuralNetworksExecution ANeuralNetworksExecution;
 
@@ -1649,13 +1649,13 @@ int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execu
  * signaled. Use {@link ANeuralNetworksEvent_wait} to wait for that event.
  * </p>
  *
- * Multiple executions can be scheduled and evaluated concurrently.  The
+ * Multiple executions can be scheduled and evaluated concurrently. The
  * runtime makes no guarantee on the ordering of completion of
- * executions.  If it's important to the application, the application
+ * executions. If it's important to the application, the application
  * should enforce the ordering by using
- * {@link ANeuralNetworksExecution_wait}.
+ * {@link ANeuralNetworksEvent_wait}.
  *
- * ANeuralNetworksExecution_wait must be called to recuperate the resources used
+ * ANeuralNetworksEvent_wait must be called to recuperate the resources used
  * by the execution.
  *
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
