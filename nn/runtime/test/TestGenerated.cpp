@@ -105,8 +105,8 @@ class Example {
         int example_no = 1;
         for (auto& example : examples) {
             SCOPED_TRACE(example_no++);
-            MixedTyped& inputs = example.first;
-            MixedTyped& golden = example.second;
+            MixedTyped inputs = example.first;
+            const MixedTyped &golden = example.second;
 
             Compilation compilation(&model);
             compilation.finish();
