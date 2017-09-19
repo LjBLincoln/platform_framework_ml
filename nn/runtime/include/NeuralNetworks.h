@@ -253,7 +253,7 @@ typedef enum {
      *
      * Inputs:
      * * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
-     * * 1: A 4-D tensor, of shape [depth_out, filter_height, filter_width, depth_in],
+     * * 1: A 4-D tensor, of shape [1, filter_height, filter_width, depth_out],
      *      specifying the filter.
      * * 2: A 1-D tensor, of shape [depth_out], specifying the bias.
      *      For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
