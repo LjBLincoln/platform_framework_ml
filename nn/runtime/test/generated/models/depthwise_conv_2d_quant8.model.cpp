@@ -1,19 +1,18 @@
 // Generated file (from: depthwise_conv_2d_quant8.mod.py). Do not edit
 void CreateModel(Model *model) {
-  OperandType type3(Type::INT32, {});
+  OperandType type2(Type::INT32, {});
+  OperandType type1(Type::TENSOR_INT32, 0.0f, 63.75f, {2});
   OperandType type0(Type::TENSOR_QUANT8_ASYMM, 0.0f, 127.5f, {1, 2, 2, 2});
-  OperandType type1(Type::TENSOR_QUANT8_ASYMM, 0.0f, 127.5f, {2, 2, 2, 2});
-  OperandType type4(Type::TENSOR_QUANT8_ASYMM, 0.0f, 255.0f, {2});
-  OperandType type2(Type::TENSOR_QUANT8_ASYMM, 0.0f, 63.75f, {2});
+  OperandType type3(Type::TENSOR_QUANT8_ASYMM, 0.0f, 255.0f, {2});
   // Phase 1, operands
   auto op1 = model->addOperand(&type0);
-  auto op2 = model->addOperand(&type1);
-  auto op3 = model->addOperand(&type2);
-  auto pad0 = model->addOperand(&type3);
-  auto act = model->addOperand(&type3);
-  auto stride = model->addOperand(&type3);
-  auto channelMultiplier = model->addOperand(&type3);
-  auto op4 = model->addOperand(&type4);
+  auto op2 = model->addOperand(&type0);
+  auto op3 = model->addOperand(&type1);
+  auto pad0 = model->addOperand(&type2);
+  auto act = model->addOperand(&type2);
+  auto stride = model->addOperand(&type2);
+  auto channelMultiplier = model->addOperand(&type2);
+  auto op4 = model->addOperand(&type3);
   // Phase 2, operations
   static int32_t pad0_init[] = {0};
   model->setOperandValue(pad0, pad0_init, sizeof(int32_t) * 1);

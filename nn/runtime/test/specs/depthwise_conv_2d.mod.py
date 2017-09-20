@@ -1,6 +1,6 @@
 model = Model()
 i1 = Input("op1", "TENSOR_FLOAT32", "{1, 2, 2, 2}")
-f1 = Input("op2", "TENSOR_FLOAT32", "{2, 2, 2, 2}")
+f1 = Input("op2", "TENSOR_FLOAT32", "{1, 2, 2, 2}")
 b1 = Input("op3", "TENSOR_FLOAT32", "{2}")
 pad0 = Int32Scalar("pad0", 0)
 act = Int32Scalar("act", 0)
