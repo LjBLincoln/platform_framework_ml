@@ -317,7 +317,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                           dequantizeQuant8ToFloat32(
                                   reinterpret_cast<const uint8_t*>(input.buffer),
                                   reinterpret_cast<float*>(output.buffer),
-                                  outShape);
+                                  input.shape());
             }
         } break;
         case OperationType::DEPTHWISE_CONV_2D: {

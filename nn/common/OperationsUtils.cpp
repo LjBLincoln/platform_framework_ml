@@ -209,7 +209,12 @@ bool dequantizePrepare(const Shape& input, Shape* output) {
         LOG(ERROR) << "bad input / output operand type.";
         return false;
     }
-    return SetShape(input, output);
+    if (input.dimensions.size() != output->dimensions.size()) {
+        LOG(ERROR) << "input and output tensors don't have the same rank.";
+        return false;
+    }
+    output->dimensions = input.dimensions;
+    return true;
 }
 
 bool convPrepare(const Shape& input,
