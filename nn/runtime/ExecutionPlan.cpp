@@ -189,8 +189,9 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) {
     const size_t deviceCount = devices.size() + 1;
     const size_t operationCount = mOperations.size();
 
-    // If we only have the CPU, no need to try to partition.
-    if (deviceCount == 1) {
+    // If we only have the CPU, or if the graph has no operations, no
+    // need to try to partition.
+    if (deviceCount == 1 || operationCount == 0) {
         // TODO plan->addStep(new ExecutionStep(this));
         return ANEURALNETWORKS_NO_ERROR;
     }
@@ -320,6 +321,16 @@ int ModelBuilder::findBestDeviceForEachOperation(
     }
 
     // Figure out the best driver for each operation.
+    //
+    // TODO: If the best driver is inferior (higher-power or
+    // longer-running, depending on preference) than the CPU, then we
+    // should use the CPU.  We could do this by setting bestChoice
+    // initially to the number representing the CPU
+    // (nonCpuDeviceCount) and bestPerfVal to the CPU value.  Problem
+    // is, we have no such number now, so that will have to be for
+    // release P or later.  One option is that the float performance
+    // is a ratio of device/cpu rather than a number in joules or
+    // microseconds.
     for (size_t operationIndex = 0; operationIndex < operationCount; operationIndex++) {
         int bestChoice = -1;
         float bestPerfVal = 0.0;  // do not check bestPerfVal unless we have bestChoice >= 0
@@ -338,8 +349,9 @@ int ModelBuilder::findBestDeviceForEachOperation(
                 bestPerfVal = perfVal;
             }
         }
+        // No drivers are available for this operation, so choose the CPU.
         (*bestDeviceForOperation)[operationIndex] =
-                bestChoice >= 0 ? bestChoice : static_cast<int>(deviceCount);
+                bestChoice >= 0 ? bestChoice : static_cast<int>(nonCpuDeviceCount);
     }
     return ANEURALNETWORKS_NO_ERROR;
 }
