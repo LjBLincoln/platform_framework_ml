@@ -34,13 +34,6 @@ namespace nn {
 
 struct Shape;
 
-enum PaddingScheme {
-    kPaddingUnknown = 0,
-    kPaddingSame = 1,
-    kPaddingValid = 2,
-};
-
-bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out1);
 bool addFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
@@ -50,23 +43,14 @@ bool mulFloat32(const float* in1, const Shape& shape1,
                 int32_t activation,
                 float* out, const Shape& shapeOut);
 
-bool floorPrepare(const Shape& input, Shape* output);
 bool floorFloat32(const float* inputData,
                   float* outputData,
                   const Shape& shape);
 
-bool dequantizePrepare(const Shape& input, Shape* output);
 bool dequantizeQuant8ToFloat32(const uint8_t* inputData,
                                float* outputData,
                                const Shape& shape);
 
-bool depthwiseConvPrepare(const Shape& input,
-                          const Shape& filter,
-                          const Shape& bias,
-                          int32_t padding_left, int32_t padding_right,
-                          int32_t padding_top, int32_t padding_bottom,
-                          int32_t stride_width, int32_t stride_height,
-                          Shape* output);
 bool depthwiseConvFloat32(const float* inputData, const Shape& inputShape,
                           const float* filterData, const Shape& filterShape,
                           const float* biasData, const Shape& biasShape,
@@ -84,13 +68,6 @@ bool depthwiseConvQuant8(const uint8_t* inputData, const Shape& inputShape,
                          int32_t depth_multiplier, int32_t activation,
                          uint8_t* outputData, const Shape& outputShape);
 
-bool convPrepare(const Shape& input,
-                 const Shape& filter,
-                 const Shape& bias,
-                 int32_t padding_left, int32_t padding_right,
-                 int32_t padding_top, int32_t padding_bottom,
-                 int32_t stride_width, int32_t stride_height,
-                 Shape* output);
 bool convFloat32(const float* inputData, const Shape& inputShape,
                  const float* filterData, const Shape& filterShape,
                  const float* biasData, const Shape& biasShape,
@@ -108,12 +85,6 @@ bool convQuant8(const uint8_t* inputData, const Shape& inputShape,
                 int32_t activation,
                 uint8_t* outputData, const Shape& outputShape);
 
-bool genericPoolingPrepare(const Shape& input,
-                           int32_t padding_left, int32_t padding_right,
-                           int32_t padding_top, int32_t padding_bottom,
-                           int32_t stride_width, int32_t stride_height,
-                           int32_t filter_width, int32_t filter_height,
-                           Shape* output);
 bool averagePoolFloat32(const float* inputData, const Shape& inputShape,
                         int32_t padding_left, int32_t padding_right,
                         int32_t padding_top, int32_t padding_bottom,
@@ -145,7 +116,6 @@ bool maxPoolQuant8(const uint8_t* inputData, const Shape& inputShape,
                    int32_t filter_width, int32_t filter_height, int32_t activation,
                    uint8_t* outputData, const Shape& outputShape);
 
-bool genericActivationPrepare(const Shape& input, Shape* output);
 bool reluFloat32(const float* inputData, const Shape& inputShape,
                  float* outputData, const Shape& outputShape);
 bool relu1Float32(const float* inputData, const Shape& inputShape,
@@ -171,10 +141,6 @@ bool softmaxQuant8(const uint8_t* inputData, const Shape& inputShape,
                    const float beta,
                    uint8_t* outputData, const Shape& outputShape);
 
-bool fullyConnectedPrepare(const Shape& input,
-                           const Shape& weights,
-                           const Shape& bias,
-                           Shape* output);
 bool fullyConnectedFloat32(const float* inputData, const Shape& inputShape,
                            const float* weights, const Shape& weightsShape,
                            const float* biasData, const Shape& biasShape,
@@ -186,9 +152,6 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
                           int32_t activation,
                           uint8_t* outputData, const Shape& outputShape);
 
-bool concatenationPrepare(const std::vector<Shape>& inputShapes,
-                          int32_t axis,
-                          Shape* output);
 bool concatenationFloat32(const std::vector<const float*>& inputDataPtrs,
                           const std::vector<Shape>& inputShapes,
                           int32_t axis, int32_t activation,
@@ -198,7 +161,6 @@ bool concatenationQuant8(const std::vector<const uint8_t*>& inputDataPtrs,
                          int32_t axis, int32_t activation,
                          uint8_t* outputData, const Shape& outputShape);
 
-bool genericNormalizationPrepare(const Shape& input, Shape* output);
 bool l2normFloat32(const float* inputData, const Shape& inputShape,
                    float* outputData, const Shape& outputShape);
 bool l2normQuant8(const uint8_t* inputData, const Shape& inputShape,
@@ -207,32 +169,18 @@ bool localResponseNormFloat32(const float* inputData, const Shape& inputShape,
                               int32_t radius, float bias, float alpha, float beta,
                               float* outputData, const Shape& outputShape);
 
-bool reshapePrepare(const Shape& input,
-                    const int32_t* targetDims,
-                    const int32_t targetDimsSize,
-                    Shape* output);
 bool reshapeGeneric(const void* inputData, const Shape& inputShape,
                     void* outputData, const Shape& outputShape);
 
-bool resizeBilinearPrepare(const Shape& input,
-                           int32_t height,
-                           int32_t width,
-                           Shape* output);
 bool resizeBilinearFloat32(const float* inputData,
                            const Shape& inputShape,
                            float* outputData,
                            const Shape& outputShape);
 
-bool depthToSpacePrepare(const Shape& input,
-                         int32_t blockSize,
-                         Shape* output);
 bool depthToSpaceGeneric(const uint8_t* inputData, const Shape& inputShape,
                          int32_t blockSize,
                          uint8_t* outputData, const Shape& outputShape);
 
-bool spaceToDepthPrepare(const Shape& input,
-                         int32_t blockSize,
-                         Shape* output);
 bool spaceToDepthGeneric(const uint8_t* inputData, const Shape& inputShape,
                          int32_t blockSize,
                          uint8_t* outputData, const Shape& outputShape);

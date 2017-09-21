@@ -26,14 +26,23 @@
 namespace android {
 namespace nn {
 
-// The number of data types defined in NeuralNetworks.h.
-const int kNumberOfDataTypes = 12;
+// The number of data types (OperandCode) defined in NeuralNetworks.h.
+const int kNumberOfDataTypes = 6;
 
-// The number of operation types defined in NeuralNetworks.h.
-const int kNumberOfOperationTypes = 31;
+// The number of operation types (OperationCode) defined in NeuralNetworks.h.
+const int kNumberOfOperationTypes = 30;
 
 // The number of execution preferences defined in NeuralNetworks.h.
 const int kNumberOfPreferences = 3;
+
+// The number of data types (OperandCode) defined in NeuralNetworksOEM.h.
+const int kNumberOfDataTypesOEM = 2;
+
+// The number of operation types (OperationCode) defined in NeuralNetworksOEM.h.
+const int kNumberOfOperationTypesOEM = 1;
+
+// The lowest number assigned to any OEM Code in NeuralNetworksOEM.h.
+const int kOEMCodeBase = 10000;
 
 // TODO Remove all the LOG(DEBUG) statements in all the files.
 
@@ -54,6 +63,17 @@ uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions);
 // Returns the name of the operation in ASCII.
 const char* getOperationName(OperationType opCode);
 
+// Indicates the kind of OperandType from the standpoint of performance categorization
+enum class OperandTypePerformanceKind {
+    Bad        = -1,
+    Float32    =  0,
+    Quantized8 =  1,
+};
+
+// Must not be called on integer-type operands (which are more like "attributes"
+// describing an operation, than data for the operation)
+OperandTypePerformanceKind getPerformanceKind(OperandType type);
+
 hidl_memory allocateSharedMemory(int64_t size);
 
 // Returns the number of padding bytes needed to align data of the
@@ -65,17 +85,17 @@ hidl_memory allocateSharedMemory(int64_t size);
 // to determine what this should be.
 uint32_t alignBytesNeeded(uint32_t index, size_t length);
 
-inline void setFromIntList(hidl_vec<uint32_t>* vec, const ANeuralNetworksIntList& list) {
-    vec->resize(list.count);
-    for (uint32_t i = 0; i < list.count; i++) {
-        (*vec)[i] = list.data[i];
+inline void setFromIntList(hidl_vec<uint32_t>* vec, uint32_t count, const uint32_t* data) {
+    vec->resize(count);
+    for (uint32_t i = 0; i < count; i++) {
+        (*vec)[i] = data[i];
     }
 }
 
-inline void setFromIntList(std::vector<uint32_t>* vec, const ANeuralNetworksIntList& list) {
-    vec->resize(list.count);
-    for (uint32_t i = 0; i < list.count; i++) {
-        (*vec)[i] = list.data[i];
+inline void setFromIntList(std::vector<uint32_t>* vec, uint32_t count, const uint32_t* data) {
+    vec->resize(count);
+    for (uint32_t i = 0; i < count; i++) {
+        (*vec)[i] = data[i];
     }
 }
 
@@ -92,10 +112,17 @@ std::string toString(const std::vector<Type>& range) {
     return os += "]";
 }
 
+inline bool validCode(uint32_t codeCount, uint32_t codeCountOEM, uint32_t code) {
+    return (code < codeCount) || (code >= kOEMCodeBase && (code - kOEMCodeBase) < codeCountOEM);
+}
+
 bool validateModel(const Model& model);
 bool validateRequest(const Request& request, const Model& model);
 
-} // namespace nn
-} // namespace android
+inline size_t getSizeFromInts(int lower, int higher) {
+    return (uint32_t)(lower) + ((uint64_t)(uint32_t)(higher) << 32);
+}
+}  // namespace nn
+}  // namespace android
 
-#endif // ANDROID_ML_NN_COMMON_UTILS_H
+#endif  // ANDROID_ML_NN_COMMON_UTILS_H

@@ -48,7 +48,9 @@ bool RunTimePoolInfo::set(const hidl_memory& hidlMemory) {
         size_t size = hidlMemory.size();
         int fd = hidlMemory.handle()->data[0];
         int prot = hidlMemory.handle()->data[1];
-        buffer = static_cast<uint8_t*>(mmap(nullptr, size, prot, MAP_SHARED, fd, 0));
+        size_t offset = getSizeFromInts(hidlMemory.handle()->data[2],
+                                        hidlMemory.handle()->data[3]);
+        buffer = static_cast<uint8_t*>(mmap(nullptr, size, prot, MAP_SHARED, fd, offset));
         if (buffer == MAP_FAILED) {
             LOG(ERROR) << "Can't mmap the file descriptor.";
             return false;
@@ -82,7 +84,7 @@ static bool allocateIfNeeded(RunTimeOperandInfo* info, const Shape& shape) {
     info->type = shape.type;
     info->dimensions = shape.dimensions;
     info->scale = shape.scale;
-    info->offset = shape.offset;
+    info->zeroPoint = shape.offset;
     if (info->buffer == nullptr) {
         uint32_t length = sizeOfData(info->type, info->dimensions);
         info->buffer = new uint8_t[length];
@@ -138,7 +140,7 @@ bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runT
         to.type = from.type;
         to.dimensions = from.dimensions;
         to.scale = from.scale;
-        to.offset = from.location.offset;
+        to.zeroPoint = from.zeroPoint;
         to.length = from.location.length;
         switch (from.lifetime) {
             case OperandLifeTime::TEMPORARY_VARIABLE:
@@ -315,25 +317,52 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                           dequantizeQuant8ToFloat32(
                                   reinterpret_cast<const uint8_t*>(input.buffer),
                                   reinterpret_cast<float*>(output.buffer),
-                                  outShape);
+                                  input.shape());
             }
         } break;
         case OperationType::DEPTHWISE_CONV_2D: {
-            if (!parameterCountIs(11, 1)) {
+            if (!parameterCountIs(11, 1) && !parameterCountIs(8, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input  = mOperands[ins[0]];
             const RunTimeOperandInfo& filter = mOperands[ins[1]];
             const RunTimeOperandInfo& bias   = mOperands[ins[2]];
 
-            int32_t padding_left     = getScalarData<int32_t>(mOperands[ins[3]]);
-            int32_t padding_right    = getScalarData<int32_t>(mOperands[ins[4]]);
-            int32_t padding_top      = getScalarData<int32_t>(mOperands[ins[5]]);
-            int32_t padding_bottom   = getScalarData<int32_t>(mOperands[ins[6]]);
-            int32_t stride_width     = getScalarData<int32_t>(mOperands[ins[7]]);
-            int32_t stride_height    = getScalarData<int32_t>(mOperands[ins[8]]);
-            int32_t depth_multiplier = getScalarData<int32_t>(mOperands[ins[9]]);
-            int32_t activation       = getScalarData<int32_t>(mOperands[ins[10]]);
+            int32_t padding_left, padding_right;
+            int32_t padding_top, padding_bottom;
+            int32_t stride_width, stride_height;
+            int32_t depth_multiplier;
+            int32_t activation;
+
+            if (parameterCountIs(11, 1)) {
+                padding_left     = getScalarData<int32_t>(mOperands[ins[3]]);
+                padding_right    = getScalarData<int32_t>(mOperands[ins[4]]);
+                padding_top      = getScalarData<int32_t>(mOperands[ins[5]]);
+                padding_bottom   = getScalarData<int32_t>(mOperands[ins[6]]);
+                stride_width     = getScalarData<int32_t>(mOperands[ins[7]]);
+                stride_height    = getScalarData<int32_t>(mOperands[ins[8]]);
+                depth_multiplier = getScalarData<int32_t>(mOperands[ins[9]]);
+                activation       = getScalarData<int32_t>(mOperands[ins[10]]);
+            } else {
+                int32_t padding_implicit = getScalarData<int32_t>(mOperands[ins[3]]);
+                stride_width     = getScalarData<int32_t>(mOperands[ins[4]]);
+                stride_height    = getScalarData<int32_t>(mOperands[ins[5]]);
+                depth_multiplier = getScalarData<int32_t>(mOperands[ins[6]]);
+                activation       = getScalarData<int32_t>(mOperands[ins[7]]);
+
+                Shape inputShape = input.shape();
+                Shape filterShape = filter.shape();
+                int32_t input_width  = getSizeOfDimension(inputShape, 2);
+                int32_t input_height = getSizeOfDimension(inputShape, 1);
+                int32_t filter_width  = getSizeOfDimension(filterShape, 2);
+                int32_t filter_height = getSizeOfDimension(filterShape, 1);
+                calculateExplicitPadding(input_width, stride_width,
+                                         filter_width, padding_implicit,
+                                         &padding_left, &padding_right);
+                calculateExplicitPadding(input_height, stride_height,
+                                         filter_height, padding_implicit,
+                                         &padding_top, &padding_bottom);
+            }
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -380,20 +409,45 @@ int CpuExecutor::executeOperation(const Operation& operation) {
 
         } break;
         case OperationType::CONV_2D: {
-            if (!parameterCountIs(10, 1)) {
+            if (!parameterCountIs(10, 1) && !parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input  = mOperands[ins[0]];
             const RunTimeOperandInfo& filter = mOperands[ins[1]];
             const RunTimeOperandInfo& bias   = mOperands[ins[2]];
 
-            int32_t padding_left     = getScalarData<int32_t>(mOperands[ins[3]]);
-            int32_t padding_right    = getScalarData<int32_t>(mOperands[ins[4]]);
-            int32_t padding_top      = getScalarData<int32_t>(mOperands[ins[5]]);
-            int32_t padding_bottom   = getScalarData<int32_t>(mOperands[ins[6]]);
-            int32_t stride_width     = getScalarData<int32_t>(mOperands[ins[7]]);
-            int32_t stride_height    = getScalarData<int32_t>(mOperands[ins[8]]);
-            int32_t activation       = getScalarData<int32_t>(mOperands[ins[9]]);
+            int32_t padding_left, padding_right;
+            int32_t padding_top, padding_bottom;
+            int32_t stride_width, stride_height;
+            int32_t activation;
+
+            if (parameterCountIs(10, 1)) {
+                padding_left     = getScalarData<int32_t>(mOperands[ins[3]]);
+                padding_right    = getScalarData<int32_t>(mOperands[ins[4]]);
+                padding_top      = getScalarData<int32_t>(mOperands[ins[5]]);
+                padding_bottom   = getScalarData<int32_t>(mOperands[ins[6]]);
+                stride_width     = getScalarData<int32_t>(mOperands[ins[7]]);
+                stride_height    = getScalarData<int32_t>(mOperands[ins[8]]);
+                activation       = getScalarData<int32_t>(mOperands[ins[9]]);
+            } else {
+                int32_t padding_implicit = getScalarData<int32_t>(mOperands[ins[3]]);
+                stride_width     = getScalarData<int32_t>(mOperands[ins[4]]);
+                stride_height    = getScalarData<int32_t>(mOperands[ins[5]]);
+                activation       = getScalarData<int32_t>(mOperands[ins[6]]);
+
+                Shape inputShape = input.shape();
+                Shape filterShape = filter.shape();
+                int32_t input_width  = getSizeOfDimension(inputShape, 2);
+                int32_t input_height = getSizeOfDimension(inputShape, 1);
+                int32_t filter_width  = getSizeOfDimension(filterShape, 2);
+                int32_t filter_height = getSizeOfDimension(filterShape, 1);
+                calculateExplicitPadding(input_width, stride_width,
+                                         filter_width, padding_implicit,
+                                         &padding_left, &padding_right);
+                calculateExplicitPadding(input_height, stride_height,
+                                         filter_height, padding_implicit,
+                                         &padding_top, &padding_bottom);
+            }
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -433,20 +487,44 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
         } break;
         case OperationType::AVERAGE_POOL_2D: {
-            if (!parameterCountIs(10, 1)) {
+            if (!parameterCountIs(10, 1) && !parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
+            int32_t padding_left, padding_right;
+            int32_t padding_top, padding_bottom;
+            int32_t stride_width, stride_height;
+            int32_t filter_width, filter_height;
+            int32_t activation;
 
-            int32_t padding_left     = getScalarData<int32_t>(mOperands[ins[1]]);
-            int32_t padding_right    = getScalarData<int32_t>(mOperands[ins[2]]);
-            int32_t padding_top      = getScalarData<int32_t>(mOperands[ins[3]]);
-            int32_t padding_bottom   = getScalarData<int32_t>(mOperands[ins[4]]);
-            int32_t stride_width     = getScalarData<int32_t>(mOperands[ins[5]]);
-            int32_t stride_height    = getScalarData<int32_t>(mOperands[ins[6]]);
-            int32_t filter_width     = getScalarData<int32_t>(mOperands[ins[7]]);
-            int32_t filter_height    = getScalarData<int32_t>(mOperands[ins[8]]);
-            int32_t activation       = getScalarData<int32_t>(mOperands[ins[9]]);
+            if (parameterCountIs(10, 1)) {
+                padding_left     = getScalarData<int32_t>(mOperands[ins[1]]);
+                padding_right    = getScalarData<int32_t>(mOperands[ins[2]]);
+                padding_top      = getScalarData<int32_t>(mOperands[ins[3]]);
+                padding_bottom   = getScalarData<int32_t>(mOperands[ins[4]]);
+                stride_width     = getScalarData<int32_t>(mOperands[ins[5]]);
+                stride_height    = getScalarData<int32_t>(mOperands[ins[6]]);
+                filter_width     = getScalarData<int32_t>(mOperands[ins[7]]);
+                filter_height    = getScalarData<int32_t>(mOperands[ins[8]]);
+                activation       = getScalarData<int32_t>(mOperands[ins[9]]);
+            } else {
+                int32_t padding_implicit = getScalarData<int32_t>(mOperands[ins[1]]);
+                stride_width     = getScalarData<int32_t>(mOperands[ins[2]]);
+                stride_height    = getScalarData<int32_t>(mOperands[ins[3]]);
+                filter_width     = getScalarData<int32_t>(mOperands[ins[4]]);
+                filter_height    = getScalarData<int32_t>(mOperands[ins[5]]);
+                activation       = getScalarData<int32_t>(mOperands[ins[6]]);
+
+                Shape inputShape = input.shape();
+                int32_t input_width  = getSizeOfDimension(inputShape, 2);
+                int32_t input_height = getSizeOfDimension(inputShape, 1);
+                calculateExplicitPadding(input_width, stride_width,
+                                         filter_width, padding_implicit,
+                                         &padding_left, &padding_right);
+                calculateExplicitPadding(input_height, stride_height,
+                                         filter_height, padding_implicit,
+                                         &padding_top, &padding_bottom);
+            }
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -486,20 +564,44 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
         } break;
         case OperationType::L2_POOL_2D: {
-            if (!parameterCountIs(10, 1)) {
+            if (!parameterCountIs(10, 1) && !parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
+            int32_t padding_left, padding_right;
+            int32_t padding_top, padding_bottom;
+            int32_t stride_width, stride_height;
+            int32_t filter_width, filter_height;
+            int32_t activation;
 
-            int32_t padding_left     = getScalarData<int32_t>(mOperands[ins[1]]);
-            int32_t padding_right    = getScalarData<int32_t>(mOperands[ins[2]]);
-            int32_t padding_top      = getScalarData<int32_t>(mOperands[ins[3]]);
-            int32_t padding_bottom   = getScalarData<int32_t>(mOperands[ins[4]]);
-            int32_t stride_width     = getScalarData<int32_t>(mOperands[ins[5]]);
-            int32_t stride_height    = getScalarData<int32_t>(mOperands[ins[6]]);
-            int32_t filter_width     = getScalarData<int32_t>(mOperands[ins[7]]);
-            int32_t filter_height    = getScalarData<int32_t>(mOperands[ins[8]]);
-            int32_t activation       = getScalarData<int32_t>(mOperands[ins[9]]);
+            if (parameterCountIs(10, 1)) {
+                padding_left     = getScalarData<int32_t>(mOperands[ins[1]]);
+                padding_right    = getScalarData<int32_t>(mOperands[ins[2]]);
+                padding_top      = getScalarData<int32_t>(mOperands[ins[3]]);
+                padding_bottom   = getScalarData<int32_t>(mOperands[ins[4]]);
+                stride_width     = getScalarData<int32_t>(mOperands[ins[5]]);
+                stride_height    = getScalarData<int32_t>(mOperands[ins[6]]);
+                filter_width     = getScalarData<int32_t>(mOperands[ins[7]]);
+                filter_height    = getScalarData<int32_t>(mOperands[ins[8]]);
+                activation       = getScalarData<int32_t>(mOperands[ins[9]]);
+            } else {
+                int32_t padding_implicit = getScalarData<int32_t>(mOperands[ins[1]]);
+                stride_width     = getScalarData<int32_t>(mOperands[ins[2]]);
+                stride_height    = getScalarData<int32_t>(mOperands[ins[3]]);
+                filter_width     = getScalarData<int32_t>(mOperands[ins[4]]);
+                filter_height    = getScalarData<int32_t>(mOperands[ins[5]]);
+                activation       = getScalarData<int32_t>(mOperands[ins[6]]);
+
+                Shape inputShape = input.shape();
+                int32_t input_width  = getSizeOfDimension(inputShape, 2);
+                int32_t input_height = getSizeOfDimension(inputShape, 1);
+                calculateExplicitPadding(input_width, stride_width,
+                                         filter_width, padding_implicit,
+                                         &padding_left, &padding_right);
+                calculateExplicitPadding(input_height, stride_height,
+                                         filter_height, padding_implicit,
+                                         &padding_top, &padding_bottom);
+            }
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -523,20 +625,44 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
         } break;
         case OperationType::MAX_POOL_2D: {
-            if (!parameterCountIs(10, 1)) {
+            if (!parameterCountIs(10, 1) && !parameterCountIs(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
+            int32_t padding_left, padding_right;
+            int32_t padding_top, padding_bottom;
+            int32_t stride_width, stride_height;
+            int32_t filter_width, filter_height;
+            int32_t activation;
 
-            int32_t padding_left     = getScalarData<int32_t>(mOperands[ins[1]]);
-            int32_t padding_right    = getScalarData<int32_t>(mOperands[ins[2]]);
-            int32_t padding_top      = getScalarData<int32_t>(mOperands[ins[3]]);
-            int32_t padding_bottom   = getScalarData<int32_t>(mOperands[ins[4]]);
-            int32_t stride_width     = getScalarData<int32_t>(mOperands[ins[5]]);
-            int32_t stride_height    = getScalarData<int32_t>(mOperands[ins[6]]);
-            int32_t filter_width     = getScalarData<int32_t>(mOperands[ins[7]]);
-            int32_t filter_height    = getScalarData<int32_t>(mOperands[ins[8]]);
-            int32_t activation       = getScalarData<int32_t>(mOperands[ins[9]]);
+            if (parameterCountIs(10, 1)) {
+                padding_left     = getScalarData<int32_t>(mOperands[ins[1]]);
+                padding_right    = getScalarData<int32_t>(mOperands[ins[2]]);
+                padding_top      = getScalarData<int32_t>(mOperands[ins[3]]);
+                padding_bottom   = getScalarData<int32_t>(mOperands[ins[4]]);
+                stride_width     = getScalarData<int32_t>(mOperands[ins[5]]);
+                stride_height    = getScalarData<int32_t>(mOperands[ins[6]]);
+                filter_width     = getScalarData<int32_t>(mOperands[ins[7]]);
+                filter_height    = getScalarData<int32_t>(mOperands[ins[8]]);
+                activation       = getScalarData<int32_t>(mOperands[ins[9]]);
+            } else {
+                int32_t padding_implicit = getScalarData<int32_t>(mOperands[ins[1]]);
+                stride_width     = getScalarData<int32_t>(mOperands[ins[2]]);
+                stride_height    = getScalarData<int32_t>(mOperands[ins[3]]);
+                filter_width     = getScalarData<int32_t>(mOperands[ins[4]]);
+                filter_height    = getScalarData<int32_t>(mOperands[ins[5]]);
+                activation       = getScalarData<int32_t>(mOperands[ins[6]]);
+
+                Shape inputShape = input.shape();
+                int32_t input_width  = getSizeOfDimension(inputShape, 2);
+                int32_t input_height = getSizeOfDimension(inputShape, 1);
+                calculateExplicitPadding(input_width, stride_width,
+                                         filter_width, padding_implicit,
+                                         &padding_left, &padding_right);
+                calculateExplicitPadding(input_height, stride_height,
+                                         filter_height, padding_implicit,
+                                         &padding_top, &padding_bottom);
+            }
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -872,15 +998,15 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
-            int32_t height = getScalarData<int32_t>(mOperands[ins[1]]);
-            int32_t width = getScalarData<int32_t>(mOperands[ins[2]]);
+            int32_t width = getScalarData<int32_t>(mOperands[ins[1]]);
+            int32_t height = getScalarData<int32_t>(mOperands[ins[2]]);
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
 
             if (operation.opTuple.operandType == OperandType::TENSOR_FLOAT32) {
                 success = resizeBilinearPrepare(input.shape(),
-                                                height, width,
+                                                width, height,
                                                 &outShape) &&
                           allocateIfNeeded(&output, outShape) &&
                           resizeBilinearFloat32(reinterpret_cast<const float*>(input.buffer),

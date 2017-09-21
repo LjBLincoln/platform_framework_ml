@@ -9,9 +9,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0,
-                         .offset = 0,
-                         .length = 0},
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
@@ -20,9 +18,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0,
-                         .offset = 0,
-                         .length = 0},
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
@@ -31,9 +27,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0,
-                         .offset = 0,
-                         .length = 0},
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
         },
         {
             .type = OperandType::TENSOR_QUANT8_ASYMM,
@@ -42,9 +36,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
-            .location = {.poolIndex = 0,
-                         .offset = 0,
-                         .length = 6},
+            .location = {.poolIndex = 0, .offset = 0, .length = 6},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
@@ -53,9 +45,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
-            .location = {.poolIndex = 0,
-                         .offset = 6,
-                         .length = 4},
+            .location = {.poolIndex = 0, .offset = 6, .length = 4},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
@@ -64,9 +54,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::MODEL_OUTPUT,
-            .location = {.poolIndex = 0,
-                         .offset = 0,
-                         .length = 0},
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
@@ -75,23 +63,23 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::TEMPORARY_VARIABLE,
-            .location = {.poolIndex = 0,
-                         .offset = 0,
-                         .length = 0},
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
         }
     };
 
     const std::vector<Operation> operations = {
-    {
-        .opTuple = {OperationType::ADD, OperandType::TENSOR_FLOAT32},
-        .inputs = {0, 1},
-        .outputs = {6},
-    },
-    {
-        .opTuple = {OperationType::ADD, OperandType::TENSOR_FLOAT32},
-        .inputs = {2, 6},
-        .outputs = {5},
-    }
+        {
+            .opTuple = {OperationType::ADD,
+                        OperandType::TENSOR_FLOAT32},
+            .inputs = {0, 1},
+            .outputs = {6},
+        },
+        {
+            .opTuple = {OperationType::ADD,
+                        OperandType::TENSOR_FLOAT32},
+            .inputs = {2, 6},
+            .outputs = {5},
+        }
     };
 
     const std::vector<uint32_t> inputIndexes = {0, 1, 2};
@@ -109,4 +97,9 @@ Model createTestModel() {
         .operandValues = operandValues,
         .pools = pools,
     };
+}
+
+bool is_ignored(int i) {
+  static std::set<int> ignore = {};
+  return ignore.find(i) != ignore.end();
 }

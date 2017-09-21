@@ -30,10 +30,11 @@ namespace sample_driver {
 class SampleDriver : public IDevice {
 public:
     ~SampleDriver() override;
-    Return<void> initialize(initialize_cb _hidl_cb) override;
-    Return<void> getSupportedSubgraph(const Model& model,
-                                      getSupportedSubgraph_cb _hidl_cb) override;
-    Return<sp<IPreparedModel>> prepareModel(const Model& model) override;
+    Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override;
+    Return<void> getSupportedOperations(const Model& model,
+                                        getSupportedOperations_cb _hidl_cb) override;
+    Return<void> prepareModel(const Model& model, const sp<IEvent>& event,
+                              prepareModel_cb _hidl_cb) override;
     Return<DeviceStatus> getStatus() override;
 };
 
@@ -41,7 +42,7 @@ class SamplePreparedModel : public IPreparedModel {
 public:
     SamplePreparedModel(const Model& model);
     ~SamplePreparedModel() override;
-    Return<bool> execute(const Request& request, const sp<IEvent>& event) override;
+    Return<ErrorStatus> execute(const Request& request, const sp<IEvent>& event) override;
 
 private:
     void asyncExecute(const Request& request, const sp<IEvent>& event);

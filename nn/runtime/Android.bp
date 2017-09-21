@@ -33,12 +33,14 @@ cc_library {
     host_supported: false,
 
     srcs: [
+        "CompilationBuilder.cpp",
         "Event.cpp",
+        "ExecutionBuilder.cpp",
+        "ExecutionPlan.cpp",
         "Manager.cpp",
         "Memory.cpp",
         "ModelBuilder.cpp",
         "NeuralNetworks.cpp",
-        "RequestBuilder.cpp",
     ],
 
     target: {
@@ -78,6 +80,21 @@ cc_library {
     export_header_lib_headers: [
         "libneuralnetworks_headers",
     ],
+}
+
+ndk_headers {
+    name: "libneuralnetworks_ndk_headers",
+    from: "include",
+    to: "android",
+    srcs: ["include/NeuralNetworks.h"],
+    license: "NOTICE",
+}
+
+ndk_library {
+    name: "libneuralnetworks",
+    symbol_file: "libneuralnetworks.map.txt",
+    // Android O-MR1
+    first_version: "27",
 }
 
 subdirs = ["test"]

@@ -29,20 +29,42 @@ namespace nn {
 #define COUNT(X) (sizeof(X) / sizeof(X[0]))
 
 const char* kTypeNames[kNumberOfDataTypes] = {
-        "FLOAT16",        "FLOAT32",        "INT8",         "UINT8",
-        "INT16",          "UINT16",         "INT32",        "UINT32",
-        "TENSOR_FLOAT16", "TENSOR_FLOAT32", "TENSOR_INT32", "TENSOR_QUANT8_ASYMM",
+        "FLOAT32",        "INT32",        "UINT32",
+        "TENSOR_FLOAT32", "TENSOR_INT32", "TENSOR_QUANT8_ASYMM",
 };
 
 static_assert(COUNT(kTypeNames) == kNumberOfDataTypes, "kTypeNames is incorrect");
+
+const char* kTypeNamesOEM[kNumberOfDataTypesOEM] = {
+        "OEM",            "TENSOR_OEM_BYTE",
+};
+
+static_assert(COUNT(kTypeNamesOEM) == kNumberOfDataTypesOEM, "kTypeNamesOEM is incorrect");
 
 // TODO Check if this useful
 const char* kErrorNames[] = {
         "NO_ERROR", "OUT_OF_MEMORY", "INCOMPLETE", "NULL", "BAD_DATA",
 };
 
+namespace {
+
+template <typename EntryType, uint32_t entryCount, uint32_t entryCountOEM>
+EntryType tableLookup(const EntryType (&table)[entryCount],
+                      const EntryType (&tableOEM)[entryCountOEM],
+                      uint32_t code) {
+    if (code < entryCount) {
+        return table[code];
+    } else if (code >= kOEMCodeBase && (code - kOEMCodeBase) < entryCountOEM) {
+        return tableOEM[code - kOEMCodeBase];
+    } else {
+        nnAssert(!"tableLookup: bad code");
+        return EntryType();
+    }
+}
+
+};  // anonymous namespace
+
 const char* kOperationNames[kNumberOfOperationTypes] = {
-        "OEM_OPERATION",
         "ADD",
         "AVERAGE_POOL",
         "CONCATENATION",
@@ -51,7 +73,6 @@ const char* kOperationNames[kNumberOfOperationTypes] = {
         "DEPTH_TO_SPACE",
         "DEQUANTIZE",
         "EMBEDDING_LOOKUP",
-        "FAKE_QUANT",
         "FLOOR",
         "FULLY_CONNECTED",
         "HASHTABLE_LOOKUP",
@@ -77,38 +98,60 @@ const char* kOperationNames[kNumberOfOperationTypes] = {
 
 static_assert(COUNT(kOperationNames) == kNumberOfOperationTypes, "kOperationNames is incorrect");
 
+const char* kOperationNamesOEM[kNumberOfOperationTypesOEM] = {
+        "OEM_OPERATION",
+};
+
+static_assert(COUNT(kOperationNamesOEM) == kNumberOfOperationTypesOEM,
+              "kOperationNamesOEM is incorrect");
+
 const char* getOperationName(OperationType type) {
     uint32_t n = static_cast<uint32_t>(type);
-    nnAssert(n < kNumberOfOperationTypes);
-    return kOperationNames[n];
+    return tableLookup(kOperationNames, kOperationNamesOEM, n);
 }
 
 const uint32_t kSizeOfDataType[]{
-        2, // ANEURALNETWORKS_FLOAT16
         4, // ANEURALNETWORKS_FLOAT32
-        1, // ANEURALNETWORKS_INT8
-        1, // ANEURALNETWORKS_UINT8
-        2, // ANEURALNETWORKS_INT16
-        2, // ANEURALNETWORKS_UINT16
         4, // ANEURALNETWORKS_INT32
         4, // ANEURALNETWORKS_UINT32
-        2, // ANEURALNETWORKS_TENSOR_FLOAT16
         4, // ANEURALNETWORKS_TENSOR_FLOAT32
         4, // ANEURALNETWORKS_TENSOR_INT32
-        1  // ANEURALNETWORKS_TENSOR_SIMMETRICAL_QUANT8
+        1  // ANEURALNETWORKS_TENSOR_SYMMETRICAL_QUANT8
 };
 
 static_assert(COUNT(kSizeOfDataType) == kNumberOfDataTypes, "kSizeOfDataType is incorrect");
 
+const uint32_t kSizeOfDataTypeOEM[]{
+        0, // ANEURALNETWORKS_OEM
+        1, // ANEURALNETWORKS_TENSOR_OEM_BYTE
+};
+
+static_assert(COUNT(kSizeOfDataTypeOEM) == kNumberOfDataTypesOEM,
+              "kSizeOfDataTypeOEM is incorrect");
+
 uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions) {
     int n = static_cast<int>(type);
-    nnAssert(n < kNumberOfDataTypes);
 
-    uint32_t size = kSizeOfDataType[n];
+    uint32_t size = tableLookup(kSizeOfDataType, kSizeOfDataTypeOEM, n);
+
     for (auto d : dimensions) {
         size *= d;
     }
     return size;
+}
+
+OperandTypePerformanceKind getPerformanceKind(OperandType type) {
+    switch (type) {
+        // TODO: What about OEM types?
+        case OperandType::FLOAT32:
+        case OperandType::TENSOR_FLOAT32:
+            return OperandTypePerformanceKind::Float32;
+        case OperandType::TENSOR_QUANT8_ASYMM:
+            return OperandTypePerformanceKind::Quantized8;
+        default:
+            nnAssert(!"Unexpected OperandType");
+            return OperandTypePerformanceKind::Bad;
+    }
 }
 
 hidl_memory allocateSharedMemory(int64_t size) {
@@ -154,7 +197,8 @@ static bool validOperandIndexes(const hidl_vec<uint32_t> indexes, size_t operand
 static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint8_t>& operandValues,
                           size_t poolCount) {
     for (auto& operand : operands) {
-        if (static_cast<uint32_t>(operand.type) >= kNumberOfDataTypes) {
+        if (!validCode(kNumberOfDataTypes, kNumberOfDataTypesOEM,
+                       static_cast<uint32_t>(operand.type))) {
             LOG(ERROR) << "Invalid operand type " << toString(operand.type);
             return false;
         }
@@ -195,7 +239,8 @@ static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint
 
 static bool validOperations(const hidl_vec<Operation>& operations, size_t operandCount) {
     for (auto& op : operations) {
-        if (static_cast<uint32_t>(op.opTuple.operationType) >= kNumberOfOperationTypes) {
+        if (!validCode(kNumberOfOperationTypes, kNumberOfOperationTypesOEM,
+                       static_cast<uint32_t>(op.opTuple.operationType))) {
             LOG(ERROR) << "Invalid operation type " << toString(op.opTuple.operationType);
             return false;
         }

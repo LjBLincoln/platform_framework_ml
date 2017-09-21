@@ -28,8 +28,11 @@
 namespace android {
 namespace nn {
 
+class CompilationBuilder;
+class Device;
+class ExecutionPlan;
+class ExecutionStep;
 class Memory;
-class RequestBuilder;
 
 class ModelBuilder {
 public:
@@ -40,12 +43,15 @@ public:
     int setOperandValueFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
                                   size_t length);
 
-    int addOperation(ANeuralNetworksOperationType type, const ANeuralNetworksIntList* inputs,
-                     const ANeuralNetworksIntList* outputs);
-    int setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
-                            const ANeuralNetworksIntList* outputs);
+    int addOperation(ANeuralNetworksOperationType type, uint32_t inputCount, const uint32_t* inputs,
+                     uint32_t outputCount, const uint32_t* outputs);
+    int setInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs, uint32_t outputCount,
+                            const uint32_t* outputs);
 
-    RequestBuilder* createRequest();
+    int finish();
+    bool isFinished() const { return mCompletedModel; }
+
+    int createCompilation(CompilationBuilder** compilation);
 
     void setHidlModel(Model* model) const;
 
@@ -62,9 +68,21 @@ public:
     const Operand& getInputOperand(uint32_t i) const { return mOperands[mInputIndexes[i]]; }
     const Operand& getOutputOperand(uint32_t i) const { return mOperands[mOutputIndexes[i]]; }
     const Operand& getOperand(uint32_t index) const { return mOperands[index]; }
+    const Operation& getOperation(uint32_t index) const { return mOperations[index]; }
     const MemoryTracker& getMemories() const { return mMemories; }
+    const std::vector<Operation>& getOperations() const { return mOperations; }
+    const uint8_t* getPointerToOperandValue(uint32_t offset) const {
+        return mOperandValues.data() + offset;
+    }
 
 private:
+    int partitionTheWork(uint32_t preference, ExecutionPlan* plan);
+    int findBestDeviceForEachOperation(uint32_t preference,
+                                       const std::vector<std::shared_ptr<Device>>& devices,
+                                       const size_t operationCount,
+                                       const size_t deviceCount,
+                                       std::vector<int>* bestDeviceForOperation);
+
     // Sorts the operations to be in the correct order for single threaded
     // node-at-a-time execution.
     void sortIntoRunOrder();
@@ -74,7 +92,6 @@ private:
         return mOperandIndexes[info.offset + listIndex];
     }
     */
-    void finishTheModel();
 
     // The operations of the graph.
     std::vector<Operation> mOperations;
@@ -94,12 +111,12 @@ private:
     // pools, revisit.
     std::vector<uint8_t> mOperandValues;
 
-    // Once the request has been created, we should not allow further
+    // Once the model has been finished, we should not allow further
     // modifications to the model.
     mutable bool mCompletedModel = false;
 };
 
-} // namespace nn
-} // namespace android
+}  // namespace nn
+}  // namespace android
 
-#endif // ANDROID_ML_NN_RUNTIME_MODEL_BUILDER_H
+#endif  // ANDROID_ML_NN_RUNTIME_MODEL_BUILDER_H

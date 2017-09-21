@@ -21,6 +21,8 @@
 #include "CpuExecutor.h"
 #include "HalInterfaces.h"
 
+#include <android-base/logging.h>
+#include <hidl/LegacySupport.h>
 #include <thread>
 
 namespace android {
@@ -29,9 +31,9 @@ namespace sample_driver {
 
 SampleDriver::~SampleDriver() {}
 
-Return<void> SampleDriver::initialize(initialize_cb cb) {
+Return<void> SampleDriver::getCapabilities(getCapabilities_cb cb) {
     SetMinimumLogSeverity(base::VERBOSE);
-    LOG(DEBUG) << "SampleDriver::initialize()";
+    LOG(DEBUG) << "SampleDriver::getCapabilities()";
 
     // Our driver supports every op.
     static hidl_vec<OperationTuple> supportedOperationTuples{
@@ -43,7 +45,6 @@ Return<void> SampleDriver::initialize(initialize_cb cb) {
             {OperationType::DEPTH_TO_SPACE, OperandType::TENSOR_FLOAT32},
             {OperationType::DEQUANTIZE, OperandType::TENSOR_FLOAT32},
             {OperationType::EMBEDDING_LOOKUP, OperandType::TENSOR_FLOAT32},
-            {OperationType::FAKE_QUANT, OperandType::TENSOR_FLOAT32},
             {OperationType::FLOOR, OperandType::TENSOR_FLOAT32},
             {OperationType::FULLY_CONNECTED, OperandType::TENSOR_FLOAT32},
             {OperationType::HASHTABLE_LOOKUP, OperandType::TENSOR_FLOAT32},
@@ -74,7 +75,6 @@ Return<void> SampleDriver::initialize(initialize_cb cb) {
             {OperationType::DEPTH_TO_SPACE, OperandType::TENSOR_QUANT8_ASYMM},
             {OperationType::DEQUANTIZE, OperandType::TENSOR_QUANT8_ASYMM},
             {OperationType::EMBEDDING_LOOKUP, OperandType::TENSOR_QUANT8_ASYMM},
-            {OperationType::FAKE_QUANT, OperandType::TENSOR_QUANT8_ASYMM},
             {OperationType::FLOOR, OperandType::TENSOR_QUANT8_ASYMM},
             {OperationType::FULLY_CONNECTED, OperandType::TENSOR_QUANT8_ASYMM},
             {OperationType::HASHTABLE_LOOKUP, OperandType::TENSOR_QUANT8_ASYMM},
@@ -99,11 +99,6 @@ Return<void> SampleDriver::initialize(initialize_cb cb) {
     };
 
     // TODO: These numbers are completely arbitrary.  To be revised.
-    PerformanceInfo float16Performance = {
-            .execTime = 116.0f, // nanoseconds?
-            .powerUsage = 1.0f, // picoJoules
-    };
-
     PerformanceInfo float32Performance = {
             .execTime = 132.0f, // nanoseconds?
             .powerUsage = 1.0f, // picoJoules
@@ -117,34 +112,43 @@ Return<void> SampleDriver::initialize(initialize_cb cb) {
     Capabilities capabilities = {
             .supportedOperationTuples = supportedOperationTuples,
             .cachesCompilation = false,
-            .bootupTime = 1e-3f,
-            .float16Performance = float16Performance,
             .float32Performance = float32Performance,
             .quantized8Performance = quantized8Performance,
     };
 
     // return
-    cb(capabilities);
+    cb(ErrorStatus::NONE, capabilities);
     return Void();
 }
 
-Return<void> SampleDriver::getSupportedSubgraph([[maybe_unused]] const Model& model,
-                                                getSupportedSubgraph_cb cb) {
-    LOG(DEBUG) << "SampleDriver::getSupportedSubgraph()";
-    std::vector<bool> canDo; // TODO implement
+Return<void> SampleDriver::getSupportedOperations(const Model& model,
+                                                  getSupportedOperations_cb cb) {
+    LOG(DEBUG) << "SampleDriver::getSupportedOperations()";
     if (validateModel(model)) {
-        // TODO
+        std::vector<bool> supported(model.operations.size(), true);
+        cb(ErrorStatus::NONE, supported);
     }
-    cb(canDo);
+    else {
+        std::vector<bool> supported;
+        cb(ErrorStatus::INVALID_ARGUMENT, supported);
+    }
     return Void();
 }
 
-Return<sp<IPreparedModel>> SampleDriver::prepareModel(const Model& model) {
+Return<void> SampleDriver::prepareModel(const Model& model, const sp<IEvent>& event,
+                                        prepareModel_cb cb) {
     LOG(DEBUG) << "SampleDriver::prepareModel(" << toString(model) << ")"; // TODO errror
-    if (!validateModel(model)) {
-        return nullptr;
+    if (validateModel(model)) {
+        // TODO: make asynchronous later
+        cb(ErrorStatus::NONE, new SamplePreparedModel(model));
     }
-    return new SamplePreparedModel(model);
+    else {
+        cb(ErrorStatus::INVALID_ARGUMENT, nullptr);
+    }
+
+    // TODO: notify errors if they occur
+    event->notify(ErrorStatus::NONE);
+    return Void();
 }
 
 Return<DeviceStatus> SampleDriver::getStatus() {
@@ -178,33 +182,48 @@ void SamplePreparedModel::asyncExecute(const Request& request, const sp<IEvent>&
 
     std::vector<RunTimePoolInfo> poolInfo;
     if (!mapPools(&poolInfo, request.pools)) {
-        event->notify(Status::ERROR);
+        event->notify(ErrorStatus::GENERAL_FAILURE);
         return;
     }
 
     CpuExecutor executor;
     int n = executor.run(mModel, request, poolInfo);
     LOG(DEBUG) << "executor.run returned " << n;
-    Status executionStatus = n == ANEURALNETWORKS_NO_ERROR ? Status::SUCCESS : Status::ERROR;
+    ErrorStatus executionStatus = n == ANEURALNETWORKS_NO_ERROR ?
+            ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
     Return<void> returned = event->notify(executionStatus);
     if (!returned.isOk()) {
         LOG(ERROR) << "hidl callback failed to return properly: " << returned.description();
     }
 }
 
-Return<bool> SamplePreparedModel::execute(const Request& request, const sp<IEvent>& event) {
+Return<ErrorStatus> SamplePreparedModel::execute(const Request& request, const sp<IEvent>& event) {
     LOG(DEBUG) << "SampleDriver::execute(" << toString(request) << ")";
     if (!validateRequest(request, mModel)) {
-        return false;
+        return ErrorStatus::INVALID_ARGUMENT;
     }
 
     // This thread is intentionally detached because the sample driver service
     // is expected to live forever.
     std::thread([this, request, event]{ asyncExecute(request, event); }).detach();
 
-    return true;
+    return ErrorStatus::NONE;
 }
 
 } // namespace sample_driver
 } // namespace nn
 } // namespace android
+
+using android::nn::sample_driver::SampleDriver;
+
+int main() {
+    android::sp<SampleDriver> driver = new SampleDriver();
+    android::hardware::configureRpcThreadpool(4, true /* will join */);
+    if (driver->registerAsService("sample") != android::OK) {
+        ALOGE("Could not register service");
+        return 1;
+    }
+    android::hardware::joinRpcThreadpool();
+    ALOGE("Service exited!");
+    return 1;
+}

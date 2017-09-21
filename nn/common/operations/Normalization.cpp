@@ -22,11 +22,6 @@
 namespace android {
 namespace nn {
 
-bool genericNormalizationPrepare(const Shape& input, Shape* output) {
-    DCHECK_EQ(getNumberOfDimensions(input), 4);
-    return SetShape(input, output);
-}
-
 bool l2normFloat32(const float* inputData, const Shape& inputShape,
                    float* outputData, const Shape& outputShape) {
     optimized_ops::L2Normalization<FusedActivationFunctionType::kNone>(

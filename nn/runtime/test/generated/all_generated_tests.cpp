@@ -10,7 +10,9 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/add.model.cpp"
 } // namespace add
 TEST_F(GeneratedTests, add) {
-    Execute(add::CreateModel, add::examples);
+    Execute(add::CreateModel,
+            add::is_ignored,
+            add::examples);
 }
 
 namespace avg_pool_float {
@@ -22,7 +24,9 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/avg_pool_float.model.cpp"
 } // namespace avg_pool_float
 TEST_F(GeneratedTests, avg_pool_float) {
-    Execute(avg_pool_float::CreateModel, avg_pool_float::examples);
+    Execute(avg_pool_float::CreateModel,
+            avg_pool_float::is_ignored,
+            avg_pool_float::examples);
 }
 
 namespace avg_pool_quant8 {
@@ -34,7 +38,261 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/avg_pool_quant8.model.cpp"
 } // namespace avg_pool_quant8
 TEST_F(GeneratedTests, avg_pool_quant8) {
-    Execute(avg_pool_quant8::CreateModel, avg_pool_quant8::examples);
+    Execute(avg_pool_quant8::CreateModel,
+            avg_pool_quant8::is_ignored,
+            avg_pool_quant8::examples);
+}
+
+namespace concat_float {
+std::vector<MixedTypedExample> examples = {
+// Generated concat_float test
+#include "generated/examples/concat_float.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/concat_float.model.cpp"
+} // namespace concat_float
+TEST_F(GeneratedTests, concat_float) {
+    Execute(concat_float::CreateModel,
+            concat_float::is_ignored,
+            concat_float::examples);
+}
+
+namespace concat_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated concat_quant8 test
+#include "generated/examples/concat_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/concat_quant8.model.cpp"
+} // namespace concat_quant8
+TEST_F(GeneratedTests, concat_quant8) {
+    Execute(concat_quant8::CreateModel,
+            concat_quant8::is_ignored,
+            concat_quant8::examples);
+}
+
+namespace conv_float {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_float test
+#include "generated/examples/conv_float.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_float.model.cpp"
+} // namespace conv_float
+TEST_F(GeneratedTests, conv_float) {
+    Execute(conv_float::CreateModel,
+            conv_float::is_ignored,
+            conv_float::examples);
+}
+
+namespace conv_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_quant8 test
+#include "generated/examples/conv_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_quant8.model.cpp"
+} // namespace conv_quant8
+TEST_F(GeneratedTests, conv_quant8) {
+    Execute(conv_quant8::CreateModel,
+            conv_quant8::is_ignored,
+            conv_quant8::examples);
+}
+
+namespace depth_to_space_float_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated depth_to_space_float_1 test
+#include "generated/examples/depth_to_space_float_1.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depth_to_space_float_1.model.cpp"
+} // namespace depth_to_space_float_1
+TEST_F(GeneratedTests, depth_to_space_float_1) {
+    Execute(depth_to_space_float_1::CreateModel,
+            depth_to_space_float_1::is_ignored,
+            depth_to_space_float_1::examples);
+}
+
+namespace depth_to_space_float_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated depth_to_space_float_2 test
+#include "generated/examples/depth_to_space_float_2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depth_to_space_float_2.model.cpp"
+} // namespace depth_to_space_float_2
+TEST_F(GeneratedTests, depth_to_space_float_2) {
+    Execute(depth_to_space_float_2::CreateModel,
+            depth_to_space_float_2::is_ignored,
+            depth_to_space_float_2::examples);
+}
+
+namespace depth_to_space_quant8_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated depth_to_space_quant8_1 test
+#include "generated/examples/depth_to_space_quant8_1.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depth_to_space_quant8_1.model.cpp"
+} // namespace depth_to_space_quant8_1
+TEST_F(GeneratedTests, depth_to_space_quant8_1) {
+    Execute(depth_to_space_quant8_1::CreateModel,
+            depth_to_space_quant8_1::is_ignored,
+            depth_to_space_quant8_1::examples);
+}
+
+namespace depth_to_space_quant8_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated depth_to_space_quant8_2 test
+#include "generated/examples/depth_to_space_quant8_2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depth_to_space_quant8_2.model.cpp"
+} // namespace depth_to_space_quant8_2
+TEST_F(GeneratedTests, depth_to_space_quant8_2) {
+    Execute(depth_to_space_quant8_2::CreateModel,
+            depth_to_space_quant8_2::is_ignored,
+            depth_to_space_quant8_2::examples);
+}
+
+namespace depthwise_conv_2d {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv_2d test
+#include "generated/examples/depthwise_conv_2d.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv_2d.model.cpp"
+} // namespace depthwise_conv_2d
+TEST_F(GeneratedTests, depthwise_conv_2d) {
+    Execute(depthwise_conv_2d::CreateModel,
+            depthwise_conv_2d::is_ignored,
+            depthwise_conv_2d::examples);
+}
+
+namespace depthwise_conv_2d_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv_2d_quant8 test
+#include "generated/examples/depthwise_conv_2d_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv_2d_quant8.model.cpp"
+} // namespace depthwise_conv_2d_quant8
+TEST_F(GeneratedTests, depthwise_conv_2d_quant8) {
+    Execute(depthwise_conv_2d_quant8::CreateModel,
+            depthwise_conv_2d_quant8::is_ignored,
+            depthwise_conv_2d_quant8::examples);
+}
+
+namespace dequantize {
+std::vector<MixedTypedExample> examples = {
+// Generated dequantize test
+#include "generated/examples/dequantize.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/dequantize.model.cpp"
+} // namespace dequantize
+TEST_F(GeneratedTests, dequantize) {
+    Execute(dequantize::CreateModel,
+            dequantize::is_ignored,
+            dequantize::examples);
+}
+
+namespace embedding_lookup {
+std::vector<MixedTypedExample> examples = {
+// Generated embedding_lookup test
+#include "generated/examples/embedding_lookup.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/embedding_lookup.model.cpp"
+} // namespace embedding_lookup
+TEST_F(GeneratedTests, embedding_lookup) {
+    Execute(embedding_lookup::CreateModel,
+            embedding_lookup::is_ignored,
+            embedding_lookup::examples);
+}
+
+namespace floor {
+std::vector<MixedTypedExample> examples = {
+// Generated floor test
+#include "generated/examples/floor.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/floor.model.cpp"
+} // namespace floor
+TEST_F(GeneratedTests, floor) {
+    Execute(floor::CreateModel,
+            floor::is_ignored,
+            floor::examples);
+}
+
+namespace fully_connected_float {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float test
+#include "generated/examples/fully_connected_float.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_float.model.cpp"
+} // namespace fully_connected_float
+TEST_F(GeneratedTests, fully_connected_float) {
+    Execute(fully_connected_float::CreateModel,
+            fully_connected_float::is_ignored,
+            fully_connected_float::examples);
+}
+
+namespace fully_connected_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_quant8 test
+#include "generated/examples/fully_connected_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_quant8.model.cpp"
+} // namespace fully_connected_quant8
+TEST_F(GeneratedTests, fully_connected_quant8) {
+    Execute(fully_connected_quant8::CreateModel,
+            fully_connected_quant8::is_ignored,
+            fully_connected_quant8::examples);
+}
+
+namespace hashtable_lookup_float {
+std::vector<MixedTypedExample> examples = {
+// Generated hashtable_lookup_float test
+#include "generated/examples/hashtable_lookup_float.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/hashtable_lookup_float.model.cpp"
+} // namespace hashtable_lookup_float
+TEST_F(GeneratedTests, hashtable_lookup_float) {
+    Execute(hashtable_lookup_float::CreateModel,
+            hashtable_lookup_float::is_ignored,
+            hashtable_lookup_float::examples);
+}
+
+namespace hashtable_lookup_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated hashtable_lookup_quant8 test
+#include "generated/examples/hashtable_lookup_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/hashtable_lookup_quant8.model.cpp"
+} // namespace hashtable_lookup_quant8
+TEST_F(GeneratedTests, hashtable_lookup_quant8) {
+    Execute(hashtable_lookup_quant8::CreateModel,
+            hashtable_lookup_quant8::is_ignored,
+            hashtable_lookup_quant8::examples);
+}
+
+namespace l2_normalization {
+std::vector<MixedTypedExample> examples = {
+// Generated l2_normalization test
+#include "generated/examples/l2_normalization.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/l2_normalization.model.cpp"
+} // namespace l2_normalization
+TEST_F(GeneratedTests, l2_normalization) {
+    Execute(l2_normalization::CreateModel,
+            l2_normalization::is_ignored,
+            l2_normalization::examples);
 }
 
 namespace l2_pool_float {
@@ -46,7 +304,121 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/l2_pool_float.model.cpp"
 } // namespace l2_pool_float
 TEST_F(GeneratedTests, l2_pool_float) {
-    Execute(l2_pool_float::CreateModel, l2_pool_float::examples);
+    Execute(l2_pool_float::CreateModel,
+            l2_pool_float::is_ignored,
+            l2_pool_float::examples);
+}
+
+namespace local_response_norm_float_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated local_response_norm_float_1 test
+#include "generated/examples/local_response_norm_float_1.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/local_response_norm_float_1.model.cpp"
+} // namespace local_response_norm_float_1
+TEST_F(GeneratedTests, local_response_norm_float_1) {
+    Execute(local_response_norm_float_1::CreateModel,
+            local_response_norm_float_1::is_ignored,
+            local_response_norm_float_1::examples);
+}
+
+namespace local_response_norm_float_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated local_response_norm_float_2 test
+#include "generated/examples/local_response_norm_float_2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/local_response_norm_float_2.model.cpp"
+} // namespace local_response_norm_float_2
+TEST_F(GeneratedTests, local_response_norm_float_2) {
+    Execute(local_response_norm_float_2::CreateModel,
+            local_response_norm_float_2::is_ignored,
+            local_response_norm_float_2::examples);
+}
+
+namespace local_response_norm_float_3 {
+std::vector<MixedTypedExample> examples = {
+// Generated local_response_norm_float_3 test
+#include "generated/examples/local_response_norm_float_3.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/local_response_norm_float_3.model.cpp"
+} // namespace local_response_norm_float_3
+TEST_F(GeneratedTests, local_response_norm_float_3) {
+    Execute(local_response_norm_float_3::CreateModel,
+            local_response_norm_float_3::is_ignored,
+            local_response_norm_float_3::examples);
+}
+
+namespace local_response_norm_float_4 {
+std::vector<MixedTypedExample> examples = {
+// Generated local_response_norm_float_4 test
+#include "generated/examples/local_response_norm_float_4.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/local_response_norm_float_4.model.cpp"
+} // namespace local_response_norm_float_4
+TEST_F(GeneratedTests, local_response_norm_float_4) {
+    Execute(local_response_norm_float_4::CreateModel,
+            local_response_norm_float_4::is_ignored,
+            local_response_norm_float_4::examples);
+}
+
+namespace lsh_projection {
+std::vector<MixedTypedExample> examples = {
+// Generated lsh_projection test
+#include "generated/examples/lsh_projection.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lsh_projection.model.cpp"
+} // namespace lsh_projection
+TEST_F(GeneratedTests, lsh_projection) {
+    Execute(lsh_projection::CreateModel,
+            lsh_projection::is_ignored,
+            lsh_projection::examples);
+}
+
+namespace lstm2 {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm2 test
+#include "generated/examples/lstm2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lstm2.model.cpp"
+} // namespace lstm2
+TEST_F(GeneratedTests, lstm2) {
+    Execute(lstm2::CreateModel,
+            lstm2::is_ignored,
+            lstm2::examples);
+}
+
+namespace lstm3 {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm3 test
+#include "generated/examples/lstm3.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lstm3.model.cpp"
+} // namespace lstm3
+TEST_F(GeneratedTests, lstm3) {
+    Execute(lstm3::CreateModel,
+            lstm3::is_ignored,
+            lstm3::examples);
+}
+
+namespace lstm {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm test
+#include "generated/examples/lstm.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lstm.model.cpp"
+} // namespace lstm
+TEST_F(GeneratedTests, lstm) {
+    Execute(lstm::CreateModel,
+            lstm::is_ignored,
+            lstm::examples);
 }
 
 namespace max_pool_float {
@@ -58,7 +430,51 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/max_pool_float.model.cpp"
 } // namespace max_pool_float
 TEST_F(GeneratedTests, max_pool_float) {
-    Execute(max_pool_float::CreateModel, max_pool_float::examples);
+    Execute(max_pool_float::CreateModel,
+            max_pool_float::is_ignored,
+            max_pool_float::examples);
+}
+
+namespace max_pool_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated max_pool_quant8 test
+#include "generated/examples/max_pool_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/max_pool_quant8.model.cpp"
+} // namespace max_pool_quant8
+TEST_F(GeneratedTests, max_pool_quant8) {
+    Execute(max_pool_quant8::CreateModel,
+            max_pool_quant8::is_ignored,
+            max_pool_quant8::examples);
+}
+
+namespace mul {
+std::vector<MixedTypedExample> examples = {
+// Generated mul test
+#include "generated/examples/mul.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/mul.model.cpp"
+} // namespace mul
+TEST_F(GeneratedTests, mul) {
+    Execute(mul::CreateModel,
+            mul::is_ignored,
+            mul::examples);
+}
+
+namespace mul_relu {
+std::vector<MixedTypedExample> examples = {
+// Generated mul_relu test
+#include "generated/examples/mul_relu.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/mul_relu.model.cpp"
+} // namespace mul_relu
+TEST_F(GeneratedTests, mul_relu) {
+    Execute(mul_relu::CreateModel,
+            mul_relu::is_ignored,
+            mul_relu::examples);
 }
 
 namespace relu1_float {
@@ -70,7 +486,23 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu1_float.model.cpp"
 } // namespace relu1_float
 TEST_F(GeneratedTests, relu1_float) {
-    Execute(relu1_float::CreateModel, relu1_float::examples);
+    Execute(relu1_float::CreateModel,
+            relu1_float::is_ignored,
+            relu1_float::examples);
+}
+
+namespace relu1_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated relu1_quant8 test
+#include "generated/examples/relu1_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/relu1_quant8.model.cpp"
+} // namespace relu1_quant8
+TEST_F(GeneratedTests, relu1_quant8) {
+    Execute(relu1_quant8::CreateModel,
+            relu1_quant8::is_ignored,
+            relu1_quant8::examples);
 }
 
 namespace relu6_float {
@@ -82,7 +514,23 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu6_float.model.cpp"
 } // namespace relu6_float
 TEST_F(GeneratedTests, relu6_float) {
-    Execute(relu6_float::CreateModel, relu6_float::examples);
+    Execute(relu6_float::CreateModel,
+            relu6_float::is_ignored,
+            relu6_float::examples);
+}
+
+namespace relu6_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated relu6_quant8 test
+#include "generated/examples/relu6_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/relu6_quant8.model.cpp"
+} // namespace relu6_quant8
+TEST_F(GeneratedTests, relu6_quant8) {
+    Execute(relu6_quant8::CreateModel,
+            relu6_quant8::is_ignored,
+            relu6_quant8::examples);
 }
 
 namespace relu_float {
@@ -94,5 +542,245 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu_float.model.cpp"
 } // namespace relu_float
 TEST_F(GeneratedTests, relu_float) {
-    Execute(relu_float::CreateModel, relu_float::examples);
+    Execute(relu_float::CreateModel,
+            relu_float::is_ignored,
+            relu_float::examples);
+}
+
+namespace relu_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated relu_quant8 test
+#include "generated/examples/relu_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/relu_quant8.model.cpp"
+} // namespace relu_quant8
+TEST_F(GeneratedTests, relu_quant8) {
+    Execute(relu_quant8::CreateModel,
+            relu_quant8::is_ignored,
+            relu_quant8::examples);
+}
+
+namespace reshape {
+std::vector<MixedTypedExample> examples = {
+// Generated reshape test
+#include "generated/examples/reshape.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/reshape.model.cpp"
+} // namespace reshape
+TEST_F(GeneratedTests, reshape) {
+    Execute(reshape::CreateModel,
+            reshape::is_ignored,
+            reshape::examples);
+}
+
+namespace reshape_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated reshape_quant8 test
+#include "generated/examples/reshape_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/reshape_quant8.model.cpp"
+} // namespace reshape_quant8
+TEST_F(GeneratedTests, reshape_quant8) {
+    Execute(reshape_quant8::CreateModel,
+            reshape_quant8::is_ignored,
+            reshape_quant8::examples);
+}
+
+namespace resize_bilinear {
+std::vector<MixedTypedExample> examples = {
+// Generated resize_bilinear test
+#include "generated/examples/resize_bilinear.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/resize_bilinear.model.cpp"
+} // namespace resize_bilinear
+TEST_F(GeneratedTests, resize_bilinear) {
+    Execute(resize_bilinear::CreateModel,
+            resize_bilinear::is_ignored,
+            resize_bilinear::examples);
+}
+
+namespace rnn {
+std::vector<MixedTypedExample> examples = {
+// Generated rnn test
+#include "generated/examples/rnn.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/rnn.model.cpp"
+} // namespace rnn
+TEST_F(GeneratedTests, rnn) {
+    Execute(rnn::CreateModel,
+            rnn::is_ignored,
+            rnn::examples);
+}
+
+namespace sigmoid_float {
+std::vector<MixedTypedExample> examples = {
+// Generated sigmoid_float test
+#include "generated/examples/sigmoid_float.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/sigmoid_float.model.cpp"
+} // namespace sigmoid_float
+TEST_F(GeneratedTests, sigmoid_float) {
+    Execute(sigmoid_float::CreateModel,
+            sigmoid_float::is_ignored,
+            sigmoid_float::examples);
+}
+
+namespace sigmoid_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated sigmoid_quant8 test
+#include "generated/examples/sigmoid_quant8.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/sigmoid_quant8.model.cpp"
+} // namespace sigmoid_quant8
+TEST_F(GeneratedTests, sigmoid_quant8) {
+    Execute(sigmoid_quant8::CreateModel,
+            sigmoid_quant8::is_ignored,
+            sigmoid_quant8::examples);
+}
+
+namespace softmax_float_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated softmax_float_1 test
+#include "generated/examples/softmax_float_1.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/softmax_float_1.model.cpp"
+} // namespace softmax_float_1
+TEST_F(GeneratedTests, softmax_float_1) {
+    Execute(softmax_float_1::CreateModel,
+            softmax_float_1::is_ignored,
+            softmax_float_1::examples);
+}
+
+namespace softmax_float_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated softmax_float_2 test
+#include "generated/examples/softmax_float_2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/softmax_float_2.model.cpp"
+} // namespace softmax_float_2
+TEST_F(GeneratedTests, softmax_float_2) {
+    Execute(softmax_float_2::CreateModel,
+            softmax_float_2::is_ignored,
+            softmax_float_2::examples);
+}
+
+namespace softmax_quant8_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated softmax_quant8_1 test
+#include "generated/examples/softmax_quant8_1.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/softmax_quant8_1.model.cpp"
+} // namespace softmax_quant8_1
+TEST_F(GeneratedTests, softmax_quant8_1) {
+    Execute(softmax_quant8_1::CreateModel,
+            softmax_quant8_1::is_ignored,
+            softmax_quant8_1::examples);
+}
+
+namespace softmax_quant8_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated softmax_quant8_2 test
+#include "generated/examples/softmax_quant8_2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/softmax_quant8_2.model.cpp"
+} // namespace softmax_quant8_2
+TEST_F(GeneratedTests, softmax_quant8_2) {
+    Execute(softmax_quant8_2::CreateModel,
+            softmax_quant8_2::is_ignored,
+            softmax_quant8_2::examples);
+}
+
+namespace space_to_depth_float_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_float_1 test
+#include "generated/examples/space_to_depth_float_1.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/space_to_depth_float_1.model.cpp"
+} // namespace space_to_depth_float_1
+TEST_F(GeneratedTests, space_to_depth_float_1) {
+    Execute(space_to_depth_float_1::CreateModel,
+            space_to_depth_float_1::is_ignored,
+            space_to_depth_float_1::examples);
+}
+
+namespace space_to_depth_float_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_float_2 test
+#include "generated/examples/space_to_depth_float_2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/space_to_depth_float_2.model.cpp"
+} // namespace space_to_depth_float_2
+TEST_F(GeneratedTests, space_to_depth_float_2) {
+    Execute(space_to_depth_float_2::CreateModel,
+            space_to_depth_float_2::is_ignored,
+            space_to_depth_float_2::examples);
+}
+
+namespace space_to_depth_quant8_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_quant8_1 test
+#include "generated/examples/space_to_depth_quant8_1.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/space_to_depth_quant8_1.model.cpp"
+} // namespace space_to_depth_quant8_1
+TEST_F(GeneratedTests, space_to_depth_quant8_1) {
+    Execute(space_to_depth_quant8_1::CreateModel,
+            space_to_depth_quant8_1::is_ignored,
+            space_to_depth_quant8_1::examples);
+}
+
+namespace space_to_depth_quant8_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_quant8_2 test
+#include "generated/examples/space_to_depth_quant8_2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/space_to_depth_quant8_2.model.cpp"
+} // namespace space_to_depth_quant8_2
+TEST_F(GeneratedTests, space_to_depth_quant8_2) {
+    Execute(space_to_depth_quant8_2::CreateModel,
+            space_to_depth_quant8_2::is_ignored,
+            space_to_depth_quant8_2::examples);
+}
+
+namespace svdf {
+std::vector<MixedTypedExample> examples = {
+// Generated svdf test
+#include "generated/examples/svdf.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/svdf.model.cpp"
+} // namespace svdf
+TEST_F(GeneratedTests, svdf) {
+    Execute(svdf::CreateModel,
+            svdf::is_ignored,
+            svdf::examples);
+}
+
+namespace tanh {
+std::vector<MixedTypedExample> examples = {
+// Generated tanh test
+#include "generated/examples/tanh.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/tanh.model.cpp"
+} // namespace tanh
+TEST_F(GeneratedTests, tanh) {
+    Execute(tanh::CreateModel,
+            tanh::is_ignored,
+            tanh::examples);
 }
