@@ -273,23 +273,61 @@ static PerformanceInfo getPerformanceInfo(const std::shared_ptr<Device> device, 
     }
 }
 
+namespace {
+// This class determines whether a given device can execute a given operation
+class CanDo {
+public:
+    CanDo() {}
+
+    void initialize(const ModelBuilder* model, std::shared_ptr<Device> device) {
+        mModel = model;
+        mDevice = device;
+
+        if (device->hasSupportedOperationTuples()) {
+            return;
+        }
+
+        Model hidlModel;
+        model->setHidlModel(&hidlModel);
+        device->getSupportedOperations(hidlModel, &mSupportsOperationByIndex);
+    }
+
+    bool check(size_t operationIndex) {
+        if (mDevice->hasSupportedOperationTuples()) {
+            return mDevice->canDo(mModel->getOperation(operationIndex).opTuple);
+        }
+        return mSupportsOperationByIndex[operationIndex];
+    }
+private:
+    const ModelBuilder *mModel;
+    std::shared_ptr<Device> mDevice;
+    hidl_vec<bool> mSupportsOperationByIndex;
+};
+};  // anonymous namespace
+
 int ModelBuilder::findBestDeviceForEachOperation(
         [[maybe_unused]] uint32_t preference,
         [[maybe_unused]] const std::vector<std::shared_ptr<Device>>& devices,
         [[maybe_unused]] const size_t operationCount, [[maybe_unused]] const size_t deviceCount,
         [[maybe_unused]] std::vector<int>* bestDeviceForOperation) {
-    // TODO query the capabilities of each driver
-    // TODO Send model if needed,
+
+    // Note that deviceCount includes CPU, which has no entry in devices[]
+    const size_t nonCpuDeviceCount = deviceCount - 1;
+
+    std::vector<CanDo> canDo(nonCpuDeviceCount);
+    for (size_t deviceIndex = 0; deviceIndex < nonCpuDeviceCount; deviceIndex++) {
+        canDo[deviceIndex].initialize(this, devices[deviceIndex]);
+    }
+
     // Figure out the best driver for each operation.
     for (size_t operationIndex = 0; operationIndex < operationCount; operationIndex++) {
         int bestChoice = -1;
         float bestPerfVal = 0.0;  // do not check bestPerfVal unless we have bestChoice >= 0
-        const OperationTuple tuple = mOperations[operationIndex].opTuple;
-        // note that deviceCount includes CPU, which has no entry in devices[]
-        for (size_t deviceIndex = 0; deviceIndex < deviceCount-1; deviceIndex++) {
-            const auto& device = devices[deviceIndex];
-            if (device->canDo(tuple)) {
-                const PerformanceInfo perf = getPerformanceInfo(device, tuple.operandType);
+        for (size_t deviceIndex = 0; deviceIndex < nonCpuDeviceCount; deviceIndex++) {
+            if (canDo[deviceIndex].check(operationIndex)) {
+                const auto& device = devices[deviceIndex];
+                const PerformanceInfo perf =
+                    getPerformanceInfo(device, getOperation(operationIndex).opTuple.operandType);
                 const float perfVal =
                         (preference == ANEURALNETWORKS_PREFER_LOW_POWER
                          ? perf.powerUsage : perf.execTime);
@@ -301,7 +339,7 @@ int ModelBuilder::findBestDeviceForEachOperation(
             }
         }
         (*bestDeviceForOperation)[operationIndex] =
-                bestChoice >= 0 ? bestChoice : (int)deviceCount;
+                bestChoice >= 0 ? bestChoice : static_cast<int>(deviceCount);
     }
     return ANEURALNETWORKS_NO_ERROR;
 }
