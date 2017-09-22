@@ -27,6 +27,11 @@ cc_defaults {
         "-Wextra",
         "-Werror",
     ],
+    product_variables: {
+        debuggable: {  // eng and userdebug builds
+            cflags: ["-DNN_DEBUGGABLE"],
+        },
+    },
 }
 
 cc_library_headers {

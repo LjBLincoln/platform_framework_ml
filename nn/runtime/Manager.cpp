@@ -27,22 +27,26 @@
 
 #include <functional>
 
+#ifdef NN_DEBUGGABLE
 static uint32_t getProp(const char *str) {
     char buf[PROPERTY_VALUE_MAX];
     property_get(str, buf, "0");
     return atoi(buf);
 }
+#endif  // NN_DEBUGGABLE
 
 namespace android {
 namespace nn {
 
 // TODO: handle errors from initialize correctly
 void Device::initialize() {
+#ifdef NN_DEBUGGABLE
     static const char samplePrefix[] = "sample";
 
     mSupported =
             (mName.substr(0, sizeof(samplePrefix) - 1)  == samplePrefix)
             ? getProp("debug.nn.sample.supported") : 0;
+#endif  // NN_DEBUGGABLE
 
     mInterface->getCapabilities([&](ErrorStatus status, const Capabilities& capabilities) {
         if (status != ErrorStatus::NONE) {
@@ -68,6 +72,7 @@ void Device::getSupportedOperations(const Model& hidlModel,
             *outSupportedOperations = supportedOperations;
         });
 
+#ifdef NN_DEBUGGABLE
     if (mSupported != 1) {
         return;
     }
@@ -102,6 +107,7 @@ void Device::getSupportedOperations(const Model& hidlModel,
             (*outSupportedOperations)[operationIndex] = false;
         }
     }
+#endif  // NN_DEBUGGABLE
 }
 
 DeviceManager* DeviceManager::get() {
