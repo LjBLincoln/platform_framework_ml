@@ -821,6 +821,10 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
             RunTimeOperandInfo& input = mOperands[ins[0]];
             float beta = getScalarData<float>(mOperands[ins[1]]);
+            if (beta <= 0.0f) {
+                LOG(ERROR) << "beta must be positive for softmax";
+                return ANEURALNETWORKS_BAD_DATA;
+            }
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
