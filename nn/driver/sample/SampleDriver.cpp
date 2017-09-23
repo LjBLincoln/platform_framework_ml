@@ -200,6 +200,7 @@ void SamplePreparedModel::asyncExecute(const Request& request, const sp<IEvent>&
 Return<ErrorStatus> SamplePreparedModel::execute(const Request& request, const sp<IEvent>& event) {
     LOG(DEBUG) << "SampleDriver::execute(" << toString(request) << ")";
     if (!validateRequest(request, mModel)) {
+        event->notify(ErrorStatus::INVALID_ARGUMENT);
         return ErrorStatus::INVALID_ARGUMENT;
     }
 
