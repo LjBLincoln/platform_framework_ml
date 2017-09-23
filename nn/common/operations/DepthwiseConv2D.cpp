@@ -77,10 +77,13 @@ bool depthwiseConvQuant8(const uint8_t* inputData, const Shape& inputShape,
     int32_t output_activation_min = 0;
     int32_t output_activation_max = 0;
 
-    GetQuantizedConvolutionMultipler(inputShape, filterShape, biasShape,
-                                     outputShape, &real_multiplier);
-    QuantizeMultiplierSmallerThanOne(real_multiplier, &output_multiplier,
-                                     &output_shift);
+
+    if (!GetQuantizedConvolutionMultipler(inputShape, filterShape, biasShape,
+                                          outputShape, &real_multiplier) ||
+            !QuantizeMultiplierSmallerThanOne(real_multiplier, &output_multiplier,
+                                              &output_shift)) {
+        return false;
+    }
     CalculateActivationRangeUint8(activation, outputShape,
                                   &output_activation_min,
                                   &output_activation_max);

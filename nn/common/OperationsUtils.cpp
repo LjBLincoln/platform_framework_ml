@@ -66,47 +66,56 @@ uint32_t getSizeOfDimension(const Shape& shape, uint32_t dimensionIdx) {
 }
 
 
-void QuantizeMultiplierSmallerThanOne(double double_multiplier,
+// Macro to check if the input parameters for operation are valid or not.
+#define NN_OPS_CHECK(v)                                                  \
+    if (!(v)) {                                                          \
+        LOG(ERROR) << "NN_OPS_CHECK failed: "  << #v << "'\n";           \
+        return false;                                                    \
+    }
+
+bool QuantizeMultiplierSmallerThanOne(double double_multiplier,
                                       int32_t* quantized_multiplier,
                                       int32_t* right_shift) {
-    CHECK(double_multiplier >= 0.);
-    CHECK(double_multiplier < 1.);
+    NN_OPS_CHECK(double_multiplier >= 0.);
+    NN_OPS_CHECK(double_multiplier < 1.);
     if (double_multiplier == 0.) {
         *quantized_multiplier = 0;
         *right_shift = 0;
-        return;
+        return true;
     }
-    CHECK(double_multiplier > 0.);
+    NN_OPS_CHECK(double_multiplier > 0.);
     const double q = std::frexp(double_multiplier, right_shift);
     *right_shift *= -1;
     int64_t q_fixed = static_cast<int64_t>(std::round(q * (1ll << 31)));
-    CHECK(q_fixed <= (1ll << 31));
+    NN_OPS_CHECK(q_fixed <= (1ll << 31));
     if (q_fixed == (1ll << 31)) {
         q_fixed /= 2;
         --*right_shift;
     }
-    CHECK_GE(*right_shift, 0);
-    CHECK_LE(q_fixed, std::numeric_limits<int32_t>::max());
+    NN_OPS_CHECK(*right_shift >= 0);
+    NN_OPS_CHECK(q_fixed <= std::numeric_limits<int32_t>::max());
     *quantized_multiplier = static_cast<int32_t>(q_fixed);
+    return true;
 }
 
-void QuantizeMultiplierGreaterThanOne(double double_multiplier,
+bool QuantizeMultiplierGreaterThanOne(double double_multiplier,
                                       int32_t* quantized_multiplier,
                                       int* left_shift) {
-    CHECK(double_multiplier > 1.);
+    NN_OPS_CHECK(double_multiplier > 1.);
     const double q = std::frexp(double_multiplier, left_shift);
     int64_t q_fixed = static_cast<int64_t>(std::round(q * (1ll << 31)));
-    CHECK(q_fixed <= (1ll << 31));
+    NN_OPS_CHECK(q_fixed <= (1ll << 31));
     if (q_fixed == (1ll << 31)) {
         q_fixed /= 2;
         ++*left_shift;
     }
-    CHECK_GE(*left_shift, 0);
-    CHECK_LE(q_fixed, std::numeric_limits<int32_t>::max());
+    NN_OPS_CHECK(*left_shift >= 0);
+    NN_OPS_CHECK(q_fixed <= std::numeric_limits<int32_t>::max());
     *quantized_multiplier = static_cast<int32_t>(q_fixed);
+    return true;
 }
 
-void GetQuantizedConvolutionMultipler(const Shape& inputShape,
+bool GetQuantizedConvolutionMultipler(const Shape& inputShape,
                                       const Shape& filterShape,
                                       const Shape& biasShape,
                                       const Shape& outputShape,
@@ -116,11 +125,12 @@ void GetQuantizedConvolutionMultipler(const Shape& inputShape,
     const float output_scale = outputShape.scale;
 
     // The following conditions must be guaranteed by the training pipeline.
-    CHECK(std::abs(input_product_scale - bias_scale) <=
+    NN_OPS_CHECK(std::abs(input_product_scale - bias_scale) <=
               1e-6 * std::min(input_product_scale, bias_scale));
-    CHECK(input_product_scale >= 0);
-    CHECK(input_product_scale < output_scale);
+    NN_OPS_CHECK(input_product_scale >= 0);
+    NN_OPS_CHECK(input_product_scale < output_scale);
     *multiplier = input_product_scale / output_scale;
+    return true;
 }
 
 void CalculateActivationRangeUint8(int32_t activation,
@@ -162,16 +172,8 @@ int32_t CalculateInputRadius(int input_integer_bits, int input_left_shift) {
     return static_cast<int32_t>(std::floor(max_input_rescaled));
 }
 
-
-// Macro to check if the input parameters for operation are valid or not.
-#define nnOpsCheck(v)                                                                      \
-    if (!(v)) {                                                                            \
-        LOG(ERROR) << "nnOpsCheck failed: "  << #v << "'\n";                               \
-        return false;                                                                      \
-    }
-
 bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out) {
-    nnOpsCheck(getNumberOfDimensions(in1) <= 4 && getNumberOfDimensions(in2) <= 4);
+    NN_OPS_CHECK(getNumberOfDimensions(in1) <= 4 && getNumberOfDimensions(in2) <= 4);
     if (SameShape(in1, in2)) {
         return SetShape(in1, out);
     } else {
@@ -224,14 +226,14 @@ bool convPrepare(const Shape& input,
                  int32_t padding_top, int32_t padding_bottom,
                  int32_t stride_width, int32_t stride_height,
                  Shape* output) {
-    nnOpsCheck(getNumberOfDimensions(input) == 4);
-    nnOpsCheck(getNumberOfDimensions(filter) == 4);
-    nnOpsCheck(getNumberOfDimensions(bias) == 1);
+    NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
+    NN_OPS_CHECK(getNumberOfDimensions(filter) == 4);
+    NN_OPS_CHECK(getNumberOfDimensions(bias) == 1);
 
-    nnOpsCheck(getSizeOfDimension(filter, 0) == getSizeOfDimension(bias, 0));
-    nnOpsCheck(getSizeOfDimension(filter, 3) == getSizeOfDimension(input, 3));
+    NN_OPS_CHECK(getSizeOfDimension(filter, 0) == getSizeOfDimension(bias, 0));
+    NN_OPS_CHECK(getSizeOfDimension(filter, 3) == getSizeOfDimension(input, 3));
 
-    nnOpsCheck(stride_width == stride_height);
+    NN_OPS_CHECK(stride_width == stride_height);
 
     uint32_t channels_out = getSizeOfDimension(filter, 0);
     uint32_t width        = getSizeOfDimension(input, 2);
@@ -257,13 +259,13 @@ bool depthwiseConvPrepare(const Shape& input,
                           int32_t padding_top, int32_t padding_bottom,
                           int32_t stride_width, int32_t stride_height,
                           Shape* output) {
-    nnOpsCheck(getNumberOfDimensions(input) == 4);
-    nnOpsCheck(getNumberOfDimensions(filter) == 4);
-    nnOpsCheck(getNumberOfDimensions(bias) == 1);
+    NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
+    NN_OPS_CHECK(getNumberOfDimensions(filter) == 4);
+    NN_OPS_CHECK(getNumberOfDimensions(bias) == 1);
 
-    nnOpsCheck(getSizeOfDimension(filter, 3) == getSizeOfDimension(bias, 0));
+    NN_OPS_CHECK(getSizeOfDimension(filter, 3) == getSizeOfDimension(bias, 0));
 
-    nnOpsCheck(stride_width == stride_height);
+    NN_OPS_CHECK(stride_width == stride_height);
 
     uint32_t channels_out = getSizeOfDimension(filter, 3);
     uint32_t width        = getSizeOfDimension(input, 2);
@@ -289,8 +291,8 @@ bool genericPoolingPrepare(const Shape& input,
                            int32_t stride_width, int32_t stride_height,
                            int32_t filter_width, int32_t filter_height,
                            Shape* output) {
-    nnOpsCheck(getNumberOfDimensions(input) == 4);
-    nnOpsCheck(stride_width == stride_height);
+    NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
+    NN_OPS_CHECK(stride_width == stride_height);
 
     uint32_t batches      = getSizeOfDimension(input, 0);
     uint32_t width        = getSizeOfDimension(input, 2);
@@ -310,7 +312,7 @@ bool genericPoolingPrepare(const Shape& input,
 
 bool genericActivationPrepare(const Shape& input,
                               Shape* output) {
-    nnOpsCheck(getNumberOfDimensions(input) <= 4);
+    NN_OPS_CHECK(getNumberOfDimensions(input) <= 4);
     return SetShape(input, output);
 }
 
@@ -324,9 +326,9 @@ bool fullyConnectedPrepare(const Shape& input,
     uint32_t num_units  = getSizeOfDimension(weights, 0);
     uint32_t batch_size = input_size / getSizeOfDimension(weights, 1);
 
-    nnOpsCheck(getSizeOfDimension(bias, 0) == num_units);
-    nnOpsCheck(getSizeOfDimension(weights, 1) * batch_size == input_size);
-    nnOpsCheck(getNumberOfDimensions(weights) == 2);
+    NN_OPS_CHECK(getSizeOfDimension(bias, 0) == num_units);
+    NN_OPS_CHECK(getSizeOfDimension(weights, 1) * batch_size == input_size);
+    NN_OPS_CHECK(getNumberOfDimensions(weights) == 2);
 
     output->type = input.type;
     output->dimensions = {batch_size, num_units};
@@ -342,22 +344,22 @@ bool concatenationPrepare(const std::vector<Shape>& inputShapes,
     OperandType input_type = inputShapes[0].type;
     uint32_t num_dimensions = getNumberOfDimensions(inputShapes[0]);
 
-    nnOpsCheck(axis >= 0);
-    nnOpsCheck(axis < (int32_t)num_dimensions);
+    NN_OPS_CHECK(axis >= 0);
+    NN_OPS_CHECK(axis < (int32_t)num_dimensions);
 
     int sum_axis = getSizeOfDimension(inputShapes[0], axis);
     for (int i = 1; i < num_inputs; ++i) {
-        nnOpsCheck(getNumberOfDimensions(inputShapes[i]) == num_dimensions);
-        nnOpsCheck(inputShapes[i].type == inputShapes[0].type);
+        NN_OPS_CHECK(getNumberOfDimensions(inputShapes[i]) == num_dimensions);
+        NN_OPS_CHECK(inputShapes[i].type == inputShapes[0].type);
         if (input_type == OperandType::TENSOR_QUANT8_ASYMM) {
-            nnOpsCheck(inputShapes[0].offset == inputShapes[i].offset);
-            nnOpsCheck(inputShapes[0].scale == inputShapes[i].scale);
+            NN_OPS_CHECK(inputShapes[0].offset == inputShapes[i].offset);
+            NN_OPS_CHECK(inputShapes[0].scale == inputShapes[i].scale);
         }
         for (int d = 0; d < (int32_t)num_dimensions; ++d) {
             if (d == axis) {
                 sum_axis += getSizeOfDimension(inputShapes[i], axis);
             } else {
-                nnOpsCheck(getSizeOfDimension(inputShapes[0], d) ==
+                NN_OPS_CHECK(getSizeOfDimension(inputShapes[0], d) ==
                            getSizeOfDimension(inputShapes[i], d));
             }
         }
@@ -368,8 +370,8 @@ bool concatenationPrepare(const std::vector<Shape>& inputShapes,
     output->dimensions[axis] = sum_axis;
 
     if (input_type == OperandType::TENSOR_QUANT8_ASYMM) {
-        nnOpsCheck(inputShapes[0].offset == output->offset);
-        nnOpsCheck(inputShapes[0].scale == output->scale);
+        NN_OPS_CHECK(inputShapes[0].offset == output->offset);
+        NN_OPS_CHECK(inputShapes[0].scale == output->scale);
     }
 
     return true;
@@ -377,7 +379,7 @@ bool concatenationPrepare(const std::vector<Shape>& inputShapes,
 
 
 bool genericNormalizationPrepare(const Shape& input, Shape* output) {
-    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
     return SetShape(input, output);
 }
 
@@ -397,7 +399,7 @@ bool reshapePrepare(const Shape& input,
     for (int32_t i = 0; i < targetDimsSize; ++i) {
         int32_t value = targetDims[i];
         if (value == -1) {
-            nnOpsCheck(strechDim == -1);
+            NN_OPS_CHECK(strechDim == -1);
             strechDim = i;
         } else {
             numOutputElements *= value;
@@ -410,7 +412,7 @@ bool reshapePrepare(const Shape& input,
         numOutputElements *= strechValue;
     }
 
-    nnOpsCheck(numInputElements == numOutputElements);
+    NN_OPS_CHECK(numInputElements == numOutputElements);
 
     output->type = input.type;
     output->dimensions = outDims;
@@ -424,7 +426,7 @@ bool resizeBilinearPrepare(const Shape& input,
                            int32_t width,
                            int32_t height,
                            Shape* output) {
-    nnOpsCheck(getNumberOfDimensions(input) == 4);
+    NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
     uint32_t batches  = getSizeOfDimension(input, 0);
     uint32_t channels = getSizeOfDimension(input, 3);
 
@@ -437,15 +439,15 @@ bool resizeBilinearPrepare(const Shape& input,
 bool depthToSpacePrepare(const Shape& input,
                          int32_t blockSize,
                          Shape* output) {
-    nnOpsCheck(getNumberOfDimensions(input) == 4);
-    nnOpsCheck(blockSize > 0);
+    NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
+    NN_OPS_CHECK(blockSize > 0);
 
     uint32_t batches  = getSizeOfDimension(input, 0);
     uint32_t height   = getSizeOfDimension(input, 1);
     uint32_t width    = getSizeOfDimension(input, 2);
     uint32_t channels = getSizeOfDimension(input, 3);
 
-    nnOpsCheck(channels % (blockSize * blockSize) == 0);
+    NN_OPS_CHECK(channels % (blockSize * blockSize) == 0);
     output->type = input.type;
     output->dimensions = {batches,
                           height * blockSize,
@@ -460,16 +462,16 @@ bool depthToSpacePrepare(const Shape& input,
 bool spaceToDepthPrepare(const Shape& input,
                          int32_t blockSize,
                          Shape* output) {
-    nnOpsCheck(getNumberOfDimensions(input) == 4);
-    nnOpsCheck(blockSize > 0);
+    NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
+    NN_OPS_CHECK(blockSize > 0);
 
     uint32_t batches  = getSizeOfDimension(input, 0);
     uint32_t height   = getSizeOfDimension(input, 1);
     uint32_t width    = getSizeOfDimension(input, 2);
     uint32_t channels = getSizeOfDimension(input, 3);
 
-    nnOpsCheck(height % blockSize == 0);
-    nnOpsCheck(width % blockSize == 0);
+    NN_OPS_CHECK(height % blockSize == 0);
+    NN_OPS_CHECK(width % blockSize == 0);
 
     output->type = input.type;
     output->dimensions = {batches,
