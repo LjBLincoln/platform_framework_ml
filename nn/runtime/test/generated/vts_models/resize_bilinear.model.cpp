@@ -42,8 +42,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::RESIZE_BILINEAR,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::RESIZE_BILINEAR,
             .inputs = {0, 2, 3},
             .outputs = {1},
         }

@@ -51,8 +51,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::FULLY_CONNECTED,
-                        OperandType::TENSOR_QUANT8_ASYMM},
+            .type = OperationType::FULLY_CONNECTED,
             .inputs = {0, 1, 2, 4},
             .outputs = {3},
         }

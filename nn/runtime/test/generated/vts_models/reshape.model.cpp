@@ -33,8 +33,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::RESHAPE,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::RESHAPE,
             .inputs = {0, 1},
             .outputs = {2},
         }

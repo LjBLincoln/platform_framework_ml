@@ -174,8 +174,8 @@ int ExecutionStep::addOperation(int operationIndex, const ModelBuilder& fromMode
         outputs[i] = mOperandMap[operation.outputs[i]];
     }
 
-    return mSubModel->addOperation(static_cast<uint32_t>(operation.opTuple.operationType),
-                                   inputCount, inputs.data(), outputCount, outputs.data());
+    return mSubModel->addOperation(static_cast<uint32_t>(operation.type), inputCount, inputs.data(),
+                                   outputCount, outputs.data());
 }
 
 int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) {
@@ -262,15 +262,27 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) {
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-static PerformanceInfo getPerformanceInfo(const std::shared_ptr<Device> device, OperandType type) {
-    switch (getPerformanceKind(type)) {
-        case OperandTypePerformanceKind::Float32:
+PerformanceInfo ModelBuilder::getPerformanceInfo(const std::shared_ptr<Device> device,
+                                                 uint32_t operationIndex) {
+    const Operation& operation = getOperation(operationIndex);
+    // TODO This assumes that the type is dictated by the first operand. This is
+    // currently the case but is not a safe assumption to make in the long term.
+    const uint32_t operandIndex = operation.inputs[0];
+    const OperandType operandType = mOperands[operandIndex].type;
+    switch(operandType) {
+        case OperandType::FLOAT32:
+        case OperandType::TENSOR_FLOAT32:
             return device->getFloat32Performance();
-        case OperandTypePerformanceKind::Quantized8:
+        case OperandType::INT32:
+        case OperandType::UINT32:
+        case OperandType::TENSOR_QUANT8_ASYMM:
+            // For OEM, the real selection will be made from who can run the operand.
+        case OperandType::OEM:
+        case OperandType::TENSOR_OEM_BYTE:
             return device->getQuantized8Performance();
         default:
-            nnAssert(!"Unexpected OperandTypePerformanceKind");
-            return PerformanceInfo();
+            nnAssert(false);
+            return device->getQuantized8Performance();
     }
 }
 
@@ -281,36 +293,23 @@ public:
     CanDo() {}
 
     void initialize(const ModelBuilder* model, std::shared_ptr<Device> device) {
-        mModel = model;
-        mDevice = device;
-
-        if (device->hasSupportedOperationTuples()) {
-            return;
-        }
-
         Model hidlModel;
         model->setHidlModel(&hidlModel);
         device->getSupportedOperations(hidlModel, &mSupportsOperationByIndex);
     }
 
-    bool check(size_t operationIndex) {
-        if (mDevice->hasSupportedOperationTuples()) {
-            return mDevice->canDo(mModel->getOperation(operationIndex).opTuple);
-        }
-        return mSupportsOperationByIndex[operationIndex];
-    }
+    bool check(size_t operationIndex) const { return mSupportsOperationByIndex[operationIndex]; }
+
 private:
-    const ModelBuilder *mModel;
-    std::shared_ptr<Device> mDevice;
     hidl_vec<bool> mSupportsOperationByIndex;
 };
 };  // anonymous namespace
 
 int ModelBuilder::findBestDeviceForEachOperation(
-        [[maybe_unused]] uint32_t preference,
-        [[maybe_unused]] const std::vector<std::shared_ptr<Device>>& devices,
-        [[maybe_unused]] const size_t operationCount, [[maybe_unused]] const size_t deviceCount,
-        [[maybe_unused]] std::vector<int>* bestDeviceForOperation) {
+        uint32_t preference,
+        const std::vector<std::shared_ptr<Device>>& devices,
+        const size_t operationCount, [[maybe_unused]] const size_t deviceCount,
+        std::vector<int>* bestDeviceForOperation) {
 
     // Note that deviceCount includes CPU, which has no entry in devices[]
     const size_t nonCpuDeviceCount = deviceCount - 1;
@@ -337,11 +336,10 @@ int ModelBuilder::findBestDeviceForEachOperation(
         for (size_t deviceIndex = 0; deviceIndex < nonCpuDeviceCount; deviceIndex++) {
             if (canDo[deviceIndex].check(operationIndex)) {
                 const auto& device = devices[deviceIndex];
-                const PerformanceInfo perf =
-                    getPerformanceInfo(device, getOperation(operationIndex).opTuple.operandType);
+                const PerformanceInfo perf = getPerformanceInfo(device, operationIndex);
                 const float perfVal =
-                        (preference == ANEURALNETWORKS_PREFER_LOW_POWER
-                         ? perf.powerUsage : perf.execTime);
+                            (preference == ANEURALNETWORKS_PREFER_LOW_POWER ? perf.powerUsage
+                                                                            : perf.execTime);
                 if ((bestChoice >= 0) && (bestPerfVal <= perfVal)) {
                     continue;
                 }
@@ -350,6 +348,7 @@ int ModelBuilder::findBestDeviceForEachOperation(
             }
         }
         // No drivers are available for this operation, so choose the CPU.
+        // TODO What if it is an OEM op?
         (*bestDeviceForOperation)[operationIndex] =
                 bestChoice >= 0 ? bestChoice : static_cast<int>(nonCpuDeviceCount);
     }

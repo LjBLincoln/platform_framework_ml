@@ -111,8 +111,7 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type, uint32_t input
     }
     mOperations.resize(operationIndex + 1);
     auto& entry = mOperations[operationIndex];
-    entry.opTuple = {static_cast<OperationType>(type),
-                     static_cast<OperandType>(mOperands[inputs[0]].type)};
+    entry.type = static_cast<OperationType>(type);
 
     setFromIntList(&entry.inputs, inputCount, inputs);
     setFromIntList(&entry.outputs, outputCount, outputs);

@@ -78,8 +78,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::SVDF,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::SVDF,
             .inputs = {0, 1, 2, 3, 4, 5},
             .outputs = {6, 7},
         }

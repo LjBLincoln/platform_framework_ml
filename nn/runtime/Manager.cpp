@@ -50,19 +50,6 @@ void Device::initialize() {
         }
         LOG(DEBUG) << "Capab " << capabilities.float32Performance.execTime;
         LOG(DEBUG) << "Capab " << capabilities.quantized8Performance.execTime;
-        if (mSupported == 0 || mSupported == 1) {
-            const size_t base = std::hash<std::string>{}(mName);
-            for (auto& t : capabilities.supportedOperationTuples) {
-                if (mSupported == 1 &&
-                    ((static_cast<int32_t>(t.operationType) ^
-                      static_cast<int32_t>(t.operandType) ^
-                      base) & 1)) {
-                    continue;
-                }
-                mSupportedOperationTuples.insert(t);
-            }
-        }
-        mCachesCompilation = capabilities.cachesCompilation;
         mFloat32Performance = capabilities.float32Performance;
         mQuantized8Performance = capabilities.quantized8Performance;
     });
@@ -70,7 +57,6 @@ void Device::initialize() {
 
 void Device::getSupportedOperations(const Model& hidlModel,
                                     hidl_vec<bool>* outSupportedOperations) const {
-    nnAssert(!hasSupportedOperationTuples());
     mInterface->getSupportedOperations(
         hidlModel,
         [outSupportedOperations](ErrorStatus status, const hidl_vec<bool>& supportedOperations) {
@@ -82,7 +68,7 @@ void Device::getSupportedOperations(const Model& hidlModel,
             *outSupportedOperations = supportedOperations;
         });
 
-    if (mSupported != 3) {
+    if (mSupported != 1) {
         return;
     }
 
@@ -95,8 +81,7 @@ void Device::getSupportedOperations(const Model& hidlModel,
 
         uint32_t accumulator = baseAccumulator;
         const Operation &operation = hidlModel.operations[operationIndex];
-        accumulator ^= static_cast<uint32_t>(operation.opTuple.operationType);
-        accumulator ^= static_cast<uint32_t>(operation.opTuple.operandType);
+        accumulator ^= static_cast<uint32_t>(operation.type);
         auto accumulateOperands = [&hidlModel, &accumulator](const hidl_vec<uint32_t>& operands) {
             for (uint32_t operandIndex : operands) {
                 const Operand& operand = hidlModel.operands[operandIndex];

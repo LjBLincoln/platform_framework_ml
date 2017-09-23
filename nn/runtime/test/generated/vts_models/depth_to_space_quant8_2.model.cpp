@@ -33,8 +33,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::DEPTH_TO_SPACE,
-                        OperandType::TENSOR_QUANT8_ASYMM},
+            .type = OperationType::DEPTH_TO_SPACE,
             .inputs = {0, 1},
             .outputs = {2},
         }
