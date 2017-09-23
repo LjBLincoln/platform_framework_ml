@@ -136,9 +136,11 @@ bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
 
     int32_t input_multiplier = 0;
     int32_t input_left_shift = 0;
-    QuantizeMultiplierGreaterThanOne(input_real_multiplier,
-                                     &input_multiplier,
-                                     &input_left_shift);
+    if (!QuantizeMultiplierGreaterThanOne(input_real_multiplier,
+                                          &input_multiplier,
+                                          &input_left_shift)) {
+        return false;
+    }
     int32_t input_range_radius =
             CalculateInputRadius(kInputIntegerBits, input_left_shift);
 
@@ -180,9 +182,11 @@ bool softmaxQuant8(const uint8_t* inputData, const Shape& inputShape,
 
     int32_t input_multiplier = 0;
     int32_t input_left_shift = 0;
-    QuantizeMultiplierGreaterThanOne(input_beta_real_multiplier,
-                                     &input_multiplier,
-                                     &input_left_shift);
+    if (!QuantizeMultiplierGreaterThanOne(input_beta_real_multiplier,
+                                          &input_multiplier,
+                                          &input_left_shift)) {
+        return false;
+    }
     float diff_min = -1.0f * CalculateInputRadius(kScaledDiffIntegerBits,
                                                   input_left_shift);
 

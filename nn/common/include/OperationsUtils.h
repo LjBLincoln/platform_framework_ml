@@ -78,15 +78,18 @@ inline uint32_t computeOutSize(uint32_t imageSize, uint32_t filterSize, uint32_t
     return (imageSize - filterSize + stride + paddingHead + paddingTail) / stride;
 }
 
-void QuantizeMultiplierSmallerThanOne(double double_multiplier,
+__wur
+bool QuantizeMultiplierSmallerThanOne(double double_multiplier,
                                       int32_t* quantized_multiplier,
                                       int32_t* right_shift);
 
-void QuantizeMultiplierGreaterThanOne(double double_multiplier,
+__wur
+bool QuantizeMultiplierGreaterThanOne(double double_multiplier,
                                       int32_t* quantized_multiplier,
                                       int* left_shift);
 
-void GetQuantizedConvolutionMultipler(const Shape& inputShape,
+__wur
+bool GetQuantizedConvolutionMultipler(const Shape& inputShape,
                                       const Shape& filterShape,
                                       const Shape& biasShape,
                                       const Shape& outputShape,
