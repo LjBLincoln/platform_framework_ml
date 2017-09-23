@@ -19,7 +19,6 @@
 #include "NeuralNetworksWrapper.h"
 #include "TestHarness.h"
 
-//#include <android-base/logging.h>
 #include <gtest/gtest.h>
 #include <cassert>
 #include <cmath>
@@ -106,23 +105,21 @@ class Example {
         for (auto& example : examples) {
             SCOPED_TRACE(example_no++);
             MixedTyped inputs = example.first;
-            const MixedTyped &golden = example.second;
+            const MixedTyped& golden = example.second;
 
             Compilation compilation(&model);
             compilation.finish();
             Execution execution(&compilation);
 
-            // Go through all ty-typed inputs
-            for_all(inputs, [&execution](int idx, auto p, auto s) {
+            // Set all inputs
+            for_all(inputs, [&execution](int idx, const void* p, size_t s) {
                 ASSERT_EQ(Result::NO_ERROR, execution.setInput(idx, p, s));
             });
 
             MixedTyped test;
             // Go through all typed outputs
-            resize_accordingly<float>(golden, test);
-            resize_accordingly<int32_t>(golden, test);
-            resize_accordingly<uint8_t>(golden, test);
-            for_all(test, [&execution](int idx, void* p, auto s) {
+            resize_accordingly(golden, test);
+            for_all(test, [&execution](int idx, void* p, size_t s) {
                 ASSERT_EQ(Result::NO_ERROR, execution.setOutput(idx, p, s));
             });
 
@@ -131,33 +128,10 @@ class Example {
             // Filter out don't cares
             MixedTyped filtered_golden;
             MixedTyped filtered_test;
-            filter<float>(golden, &filtered_golden, is_ignored);
-            filter<float>(test, &filtered_test, is_ignored);
-            filter<int32_t>(golden, &filtered_golden, is_ignored);
-            filter<int32_t>(test, &filtered_test, is_ignored);
-            filter<uint8_t>(golden, &filtered_golden, is_ignored);
-            filter<uint8_t>(test, &filtered_test, is_ignored);
-#define USE_EXPECT_FLOAT_EQ 1
-#ifdef USE_EXPECT_FLOAT_EQ
+            filter(golden, &filtered_golden, is_ignored);
+            filter(test, &filtered_test, is_ignored);
             // We want "close-enough" results for float
-            for_each<float>(filtered_golden,
-                            [&filtered_test](int index, auto& m) {
-                auto& test_float_operands =
-                    std::get<Float32Operands>(filtered_test);
-                auto& test_float = test_float_operands[index];
-                for (unsigned int i = 0; i < m.size(); i++) {
-                    SCOPED_TRACE(i);
-                    EXPECT_NEAR(m[i], test_float[i], 1.e-5);
-                }
-            });
-#else  // Use EXPECT_EQ instead; nicer error reporting
-            EXPECT_EQ(std::get<Float32Operands>(filtered_golden),
-                      std::get<Float32Operands>(filtered_test));
-#endif
-            EXPECT_EQ(std::get<Int32Operands>(filtered_golden),
-                      std::get<Int32Operands>(filtered_test));
-            EXPECT_EQ(std::get<Quant8Operands>(filtered_golden),
-                      std::get<Quant8Operands>(filtered_test));
+            compare(filtered_golden, filtered_test);
         }
     }
 };
@@ -172,8 +146,8 @@ typedef generated_tests::MixedTypedExampleType MixedTypedExample;
 void Execute(std::function<void(Model*)> create_model,
              std::function<bool(int)> is_ignored,
              std::vector<MixedTypedExample>& examples) {
-    generated_tests::Example<float>::Execute(create_model,
-                                             is_ignored, examples);
+    generated_tests::Example<float>::Execute(create_model, is_ignored,
+                                             examples);
 }
 
 class GeneratedTests : public ::testing::Test {
