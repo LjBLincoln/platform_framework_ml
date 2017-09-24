@@ -43,7 +43,7 @@ bool averagePoolFloat32(const float* inputData, const Shape& inputShape,
     #define ANDROID_NN_AVERAGE_POOL(activation)                                \
         optimized_ops::AveragePool<FusedActivationFunctionType::activation>(   \
             inputData, convertShapeToDims(inputShape),                         \
-            stride_width, paddingWidth, paddingHeight,                         \
+            stride_width, stride_height, paddingWidth, paddingHeight,          \
             filter_width, filter_height,                                       \
             outputData, convertShapeToDims(outputShape))
 
@@ -72,7 +72,7 @@ bool averagePoolQuant8(const uint8_t* inputData, const Shape& inputShape,
     #define ANDROID_NN_AVERAGE_POOL(activation)                                \
         optimized_ops::AveragePool<FusedActivationFunctionType::activation>(   \
             inputData, convertShapeToDims(inputShape),                         \
-            stride_width, paddingWidth, paddingHeight,                         \
+            stride_width, stride_height, paddingWidth, paddingHeight,          \
             filter_width, filter_height,                                       \
             output_activation_min, output_activation_max,                      \
             outputData, convertShapeToDims(outputShape))
@@ -95,7 +95,7 @@ bool l2PoolFloat32(const float* inputData, const Shape& inputShape,
     #define ANDROID_NN_L2_POOL(activation)                                     \
         optimized_ops::L2Pool<FusedActivationFunctionType::activation>(        \
             inputData, convertShapeToDims(inputShape),                         \
-            stride_width, paddingWidth, paddingHeight,                         \
+            stride_width, stride_height, paddingWidth, paddingHeight,          \
             filter_width, filter_height,                                       \
             outputData, convertShapeToDims(outputShape))
 
@@ -117,7 +117,7 @@ bool maxPoolFloat32(const float* inputData, const Shape& inputShape,
     #define ANDROID_NN_MAX_POOL(activation)                                    \
         optimized_ops::MaxPool<FusedActivationFunctionType::activation>(       \
             inputData, convertShapeToDims(inputShape),                         \
-            stride_width, paddingWidth, paddingHeight,                         \
+            stride_width, stride_height, paddingWidth, paddingHeight,          \
             filter_width, filter_height,                                       \
             outputData, convertShapeToDims(outputShape))
 
@@ -146,7 +146,7 @@ bool maxPoolQuant8(const uint8_t* inputData, const Shape& inputShape,
     #define ANDROID_NN_MAX_POOL(activation)                                    \
         optimized_ops::MaxPool<FusedActivationFunctionType::activation>(       \
             inputData, convertShapeToDims(inputShape),                         \
-            stride_width, paddingWidth, paddingHeight,                         \
+            stride_width, stride_height, paddingWidth, paddingHeight,          \
             filter_width, filter_height,                                       \
             output_activation_min, output_activation_max,                      \
             outputData, convertShapeToDims(outputShape))
