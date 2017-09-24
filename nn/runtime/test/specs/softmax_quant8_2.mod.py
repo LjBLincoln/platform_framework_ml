@@ -3,7 +3,7 @@ model = Model()
 
 i1 = Input("input", "TENSOR_QUANT8_ASYMM", "0.0f, 127.5f, {2, 5}") # batch = 2, depth = 5
 beta = Float32Scalar("beta", 1.)
-output = Output("output", "TENSOR_QUANT8_ASYMM", "0.0f, 127.5f, {2, 5}")
+output = Output("output", "TENSOR_QUANT8_ASYMM", "0.0f, 1.0f, {2, 5}")
 
 # model 1
 model = model.Operation("SOFTMAX", i1, beta).To(output)
@@ -14,8 +14,8 @@ input0 = {i1:
            255, 254, 253, 252, 251]}
 
 output0 = {output:
-           [0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0]}
+           [15, 24, 40, 67, 110,
+            110, 67, 40, 24, 15]}
 
 # Instantiate an example
 Example((input0, output0))
