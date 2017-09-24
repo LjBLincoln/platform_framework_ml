@@ -7,7 +7,7 @@ void CreateModel(Model *model) {
   auto beta = model->addOperand(&type1);
   auto output = model->addOperand(&type0);
   // Phase 2, operations
-  static float beta_init[] = {0.0f};
+  static float beta_init[] = {1e-06f};
   model->setOperandValue(beta, beta_init, sizeof(float) * 1);
   model->addOperation(ANEURALNETWORKS_SOFTMAX, {input, beta}, {output});
   // Phase 3, inputs and outputs
