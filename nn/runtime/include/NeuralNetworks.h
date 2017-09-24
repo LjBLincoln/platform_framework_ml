@@ -506,7 +506,7 @@ typedef enum {
      * * 0: A tensor, specifying the input.
      *
      * Outputs:
-     * * 0: The output tensor of same shape as input0.
+     * * 0: The output tensor of same shape as input0, with range [0.0, 1.0].
      */
     ANEURALNETWORKS_LOGISTIC = 14,
 
@@ -869,10 +869,10 @@ typedef enum {
      *
      * Inputs:
      * * 0: A 2-D or 4-D tensor, specifying the tensor to be reshaped.
-     * * 1: A FLOAT32 value, specifying the scaling factor for the exponent, beta.
+     * * 1: A FLOAT32 value, specifying the positive scaling factor for the exponent, beta.
      *
      * Outputs:
-     * * 0: The output tensor of same shape as input0.
+     * * 0: The output tensor of same shape as input0, with range [0.0, 1.0].
      */
     ANEURALNETWORKS_SOFTMAX = 25,
 
