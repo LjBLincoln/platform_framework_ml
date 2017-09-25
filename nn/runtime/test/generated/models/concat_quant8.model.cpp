@@ -1,8 +1,8 @@
 // Generated file (from: concat_quant8.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type1(Type::INT32, {});
-  OperandType type0(Type::TENSOR_QUANT8_ASYMM, 0.0f, 127.5f, {2, 3});
-  OperandType type2(Type::TENSOR_QUANT8_ASYMM, 0.0f, 127.5f, {2, 6});
+  OperandType type0(Type::TENSOR_QUANT8_ASYMM, {2, 3}, 0.5f, 0);
+  OperandType type2(Type::TENSOR_QUANT8_ASYMM, {2, 6}, 0.5f, 0);
   // Phase 1, operands
   auto op1 = model->addOperand(&type0);
   auto op2 = model->addOperand(&type0);

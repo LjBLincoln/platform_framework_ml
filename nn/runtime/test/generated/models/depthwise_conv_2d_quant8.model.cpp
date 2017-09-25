@@ -1,9 +1,9 @@
 // Generated file (from: depthwise_conv_2d_quant8.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type2(Type::INT32, {});
-  OperandType type1(Type::TENSOR_INT32, 0.0f, 63.75f, {2});
-  OperandType type0(Type::TENSOR_QUANT8_ASYMM, 0.0f, 127.5f, {1, 2, 2, 2});
-  OperandType type3(Type::TENSOR_QUANT8_ASYMM, 0.0f, 255.0f, {2});
+  OperandType type1(Type::TENSOR_INT32, {2}, 0.25f, 0);
+  OperandType type0(Type::TENSOR_QUANT8_ASYMM, {1, 2, 2, 2}, 0.5f, 0);
+  OperandType type3(Type::TENSOR_QUANT8_ASYMM, {2}, 1.f, 0);
   // Phase 1, operands
   auto op1 = model->addOperand(&type0);
   auto op2 = model->addOperand(&type0);

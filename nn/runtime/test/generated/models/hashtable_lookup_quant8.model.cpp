@@ -2,8 +2,8 @@
 void CreateModel(Model *model) {
   OperandType type1(Type::TENSOR_FLOAT32, {3});
   OperandType type0(Type::TENSOR_FLOAT32, {4});
-  OperandType type2(Type::TENSOR_QUANT8_ASYMM, 0.0f, 127.5f, {3, 2});
-  OperandType type3(Type::TENSOR_QUANT8_ASYMM, 0.0f, 127.5f, {4, 2});
+  OperandType type2(Type::TENSOR_QUANT8_ASYMM, {3, 2}, 0.5f, 0);
+  OperandType type3(Type::TENSOR_QUANT8_ASYMM, {4, 2}, 0.5f, 0);
   // Phase 1, operands
   auto lookup = model->addOperand(&type0);
   auto key = model->addOperand(&type1);

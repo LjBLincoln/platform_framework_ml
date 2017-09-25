@@ -1,9 +1,9 @@
 # model
 model = Model()
 
-i1 = Input("input", "TENSOR_QUANT8_ASYMM", "0.0f, 127.5f, {1, 4}") # batch = 1, depth = 1
+i1 = Input("input", "TENSOR_QUANT8_ASYMM", "{1, 4}, 0.5f, 0") # batch = 1, depth = 1
 beta = Float32Scalar("beta", 0.00001) # close to 0
-output = Output("output", "TENSOR_QUANT8_ASYMM", "0.0f, 1.0f, {1, 4}")
+output = Output("output", "TENSOR_QUANT8_ASYMM", "{1, 4}, 1.f / 256, 0")
 
 # model 1
 model = model.Operation("SOFTMAX", i1, beta).To(output)

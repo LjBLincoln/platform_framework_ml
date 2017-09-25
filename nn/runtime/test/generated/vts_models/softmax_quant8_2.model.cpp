@@ -24,7 +24,7 @@ Model createTestModel() {
             .type = OperandType::TENSOR_QUANT8_ASYMM,
             .dimensions = {2, 5},
             .numberOfConsumers = 0,
-            .scale = 0.5f,
+            .scale = 1.f / 256,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::MODEL_OUTPUT,
             .location = {.poolIndex = 0, .offset = 0, .length = 0},
