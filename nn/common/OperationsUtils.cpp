@@ -233,8 +233,6 @@ bool convPrepare(const Shape& input,
     NN_OPS_CHECK(getSizeOfDimension(filter, 0) == getSizeOfDimension(bias, 0));
     NN_OPS_CHECK(getSizeOfDimension(filter, 3) == getSizeOfDimension(input, 3));
 
-    NN_OPS_CHECK(stride_width == stride_height);
-
     uint32_t channels_out = getSizeOfDimension(filter, 0);
     uint32_t width        = getSizeOfDimension(input, 2);
     uint32_t height       = getSizeOfDimension(input, 1);
@@ -265,8 +263,6 @@ bool depthwiseConvPrepare(const Shape& input,
 
     NN_OPS_CHECK(getSizeOfDimension(filter, 3) == getSizeOfDimension(bias, 0));
 
-    NN_OPS_CHECK(stride_width == stride_height);
-
     uint32_t channels_out = getSizeOfDimension(filter, 3);
     uint32_t width        = getSizeOfDimension(input, 2);
     uint32_t height       = getSizeOfDimension(input, 1);
@@ -292,7 +288,6 @@ bool genericPoolingPrepare(const Shape& input,
                            int32_t filter_width, int32_t filter_height,
                            Shape* output) {
     NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
-    NN_OPS_CHECK(stride_width == stride_height);
 
     uint32_t batches      = getSizeOfDimension(input, 0);
     uint32_t width        = getSizeOfDimension(input, 2);
