@@ -50,7 +50,8 @@ bool depthwiseConvFloat32(const float* inputData, const Shape& inputShape,
             inputData, convertShapeToDims(inputShape),                         \
             filterData, convertShapeToDims(filterShape),                       \
             biasData, convertShapeToDims(biasShape),                           \
-            stride_width, paddingWidth, paddingHeight, depth_multiplier,       \
+            stride_width, stride_height,                                       \
+            paddingWidth, paddingHeight, depth_multiplier,                     \
             outputData, convertShapeToDims(outputShape))
 
     ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_DEPTHWISE_CONV)
@@ -96,7 +97,8 @@ bool depthwiseConvQuant8(const uint8_t* inputData, const Shape& inputShape,
             inputData, convertShapeToDims(inputShape), inputOffset,            \
             filterData, convertShapeToDims(filterShape), filterOffset,         \
             biasData, convertShapeToDims(biasShape),                           \
-            stride_width, paddingWidth, paddingHeight, depth_multiplier,       \
+            stride_width, stride_height,                                       \
+            paddingWidth, paddingHeight, depth_multiplier,                     \
             outputOffset, output_multiplier, output_shift,                     \
             output_activation_min, output_activation_max,                      \
             outputData, convertShapeToDims(outputShape))
