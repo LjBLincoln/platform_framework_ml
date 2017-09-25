@@ -95,13 +95,15 @@ ExecutionStep::ExecutionStep(std::shared_ptr<ModelBuilder> model, std::shared_pt
 // Adds an operand if it has not been added already.
 // Sets the index in the submodel for the corresponding operand.
 int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandIndex,
-                              const ModelBuilder& fromModel) {
+                              const ModelBuilder& fromModel, OperandKind kind) {
     // Have we added this operand already?
     auto i = mOperandMap.find(fromOperandIndex);
     if (i != mOperandMap.end()) {
+        nnAssert(kind == INPUT);
         *toOperandIndex = i->second;
         return ANEURALNETWORKS_NO_ERROR;
     }
+
     // First time we add this operand.
     *toOperandIndex = mSubModel->operandCount();
     mOperandMap.insert(std::pair<uint32_t, uint32_t>(fromOperandIndex, *toOperandIndex));
@@ -141,12 +143,18 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
             }
         } break;
         case OperandLifeTime::TEMPORARY_VARIABLE:
-        case OperandLifeTime::MODEL_INPUT:
-        case OperandLifeTime::MODEL_OUTPUT:
-            if (true) { // TODO *toOperandIndex >= lastOperandIndexOfPreviousRound
-                mModelInputsFrom.push_back(fromOperandIndex);
-                mModelInputsTo.push_back(*toOperandIndex);
+            if (kind == INPUT) {
+                // The first time we've seen this operand is as an
+                // input.  That means it must be defined by a
+                // different partition, and is an input to this one.
+                mSubModelInputs.push_back(std::make_pair(fromOperandIndex, *toOperandIndex));
             }
+            break;
+        case OperandLifeTime::MODEL_INPUT:
+            mModelInputs.push_back(std::make_pair(fromOperandIndex, *toOperandIndex));
+            break;
+        case OperandLifeTime::MODEL_OUTPUT:
+            mModelOutputs.push_back(std::make_pair(fromOperandIndex, *toOperandIndex));
             break;
         default:
             nnAssert(false);
@@ -160,19 +168,36 @@ int ExecutionStep::addOperation(int operationIndex, const ModelBuilder& fromMode
     const Operation& operation = fromModel.getOperation(operationIndex);
 
     // Convert the input and output operand indexes.
-    uint32_t inputCount = static_cast<uint32_t>(operation.inputs.size());
-    uint32_t outputCount = static_cast<uint32_t>(operation.outputs.size());
+    //
+    // We expect operations to be added in topological order.  Therefore:
+    //
+    // - We may not have seen an input if it is a model input, a
+    //   constant, or an operand written by a different partition.
+    //
+    // - We should not have seen any outputs.
+    const uint32_t inputCount = static_cast<uint32_t>(operation.inputs.size());
+    const uint32_t outputCount = static_cast<uint32_t>(operation.outputs.size());
     std::vector<uint32_t> inputs(inputCount);
     std::vector<uint32_t> outputs(outputCount);
 
-    // All the inputs should have been added already.
-    for (uint32_t i = 0; i < inputCount; i++) {
-        inputs[i] = mOperandMap[operation.inputs[i]];
-    }
+    auto addOperands = [this, &fromModel](const hidl_vec<uint32_t>& globalOperands,
+                                          std::vector<uint32_t>& localOperands,
+                                          OperandKind kind) -> int {
+        const uint32_t operandCount = static_cast<uint32_t>(globalOperands.size());
+        for (uint32_t i = 0; i < operandCount; i++) {
+            uint32_t localOperand = ~0U;
+            int n = addOperand(globalOperands[i], &localOperand, fromModel, kind);
+            if (n != ANEURALNETWORKS_NO_ERROR)
+                return n;
+            localOperands[i] = localOperand;
+        }
+        return ANEURALNETWORKS_NO_ERROR;
+    };
 
-    // For the output, we may have values not seen yet.
-    for (uint32_t i = 0; i < outputCount; i++) {
-        outputs[i] = mOperandMap[operation.outputs[i]];
+    int n;
+    if ((n = addOperands(operation.inputs, inputs, INPUT)) != ANEURALNETWORKS_NO_ERROR ||
+        (n = addOperands(operation.outputs, outputs, OUTPUT)) != ANEURALNETWORKS_NO_ERROR) {
+        return n;
     }
 
     return mSubModel->addOperation(static_cast<uint32_t>(operation.type), inputCount, inputs.data(),
@@ -190,7 +215,8 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) con
     const size_t deviceCount = devices.size() + 1;
     const size_t operationCount = mOperations.size();
 
-    LOG(DEBUG) << "ModelBuilder::partitionTheWork: deviceCount = " << deviceCount;
+    LOG(DEBUG) << "ModelBuilder::partitionTheWork: deviceCount = " << deviceCount
+               << ", operationCount = " << operationCount;
 
     // If we only have the CPU, or if the graph has no operations, no
     // need to try to partition.
@@ -270,6 +296,10 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) con
             tracker.markProcessed(operationIndex, enqueueOnAppropriateDevice);
         }
     }
+
+    // TODO: Visit every step's mSubModelInputs to discover operands
+    // in other steps that must become submodel outputs.
+
     return ANEURALNETWORKS_NO_ERROR;
 }
 
@@ -362,6 +392,10 @@ int ModelBuilder::findBestDeviceForEachOperation(
         // TODO What if it is an OEM op?
         (*bestDeviceForOperation)[operationIndex] =
                 bestChoice >= 0 ? bestChoice : static_cast<int>(nonCpuDeviceCount);
+        LOG(VERBOSE) << "ModelBuilder::findBestDeviceForEachOperation("
+                     << toString(getOperation(operationIndex).type)
+                     << ") = "
+                     << (*bestDeviceForOperation)[operationIndex];
     }
     return ANEURALNETWORKS_NO_ERROR;
 }
