@@ -81,10 +81,10 @@ typedef enum {
      * Attached to this tensor are two numbers that can be used to convert
      * the 8 bit integer to the real value and vice versa.  These two numbers are:
      * - scale: a 32 bit floating point value
-     * - zero_value: an 32 bit integer
+     * - zeroPoint: an 32 bit integer
      *
      * The formula is:
-     * real_value = (integer_value - zero_value) * scale.
+     * real_value = (integer_value - zeroPoint) * scale.
      */
     ANEURALNETWORKS_TENSOR_QUANT8_ASYMM = 5,
 } OperandCode;
@@ -307,7 +307,7 @@ typedef enum {
      *
      * The formula is:
      *
-     *     output = (input - zero_value) * scale.
+     *     output = (input - zeroPoint) * scale.
      *
      * Supported tensor types:
      * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
@@ -1174,7 +1174,7 @@ typedef struct ANeuralNetworksOperandType {
     const uint32_t* dimensions;
     /** These two fields are only used for quantized tensors.
      * They should be zero for scalars and non-fixed point tensors.
-     * The dequantized value of each entry is (value - offset) * scale.
+     * The dequantized value of each entry is (value - zeroPoint) * scale.
      */
     float scale;
     int32_t zeroPoint;
