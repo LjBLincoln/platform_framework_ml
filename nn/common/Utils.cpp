@@ -140,20 +140,6 @@ uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions) {
     return size;
 }
 
-OperandTypePerformanceKind getPerformanceKind(OperandType type) {
-    switch (type) {
-        // TODO: What about OEM types?
-        case OperandType::FLOAT32:
-        case OperandType::TENSOR_FLOAT32:
-            return OperandTypePerformanceKind::Float32;
-        case OperandType::TENSOR_QUANT8_ASYMM:
-            return OperandTypePerformanceKind::Quantized8;
-        default:
-            nnAssert(!"Unexpected OperandType");
-            return OperandTypePerformanceKind::Bad;
-    }
-}
-
 hidl_memory allocateSharedMemory(int64_t size) {
     hidl_memory memory;
 
@@ -240,8 +226,8 @@ static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint
 static bool validOperations(const hidl_vec<Operation>& operations, size_t operandCount) {
     for (auto& op : operations) {
         if (!validCode(kNumberOfOperationTypes, kNumberOfOperationTypesOEM,
-                       static_cast<uint32_t>(op.opTuple.operationType))) {
-            LOG(ERROR) << "Invalid operation type " << toString(op.opTuple.operationType);
+                       static_cast<uint32_t>(op.type))) {
+            LOG(ERROR) << "Invalid operation type " << toString(op.type);
             return false;
         }
         if (!validOperandIndexes(op.inputs, operandCount) ||

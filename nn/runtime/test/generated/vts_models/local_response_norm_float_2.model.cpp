@@ -60,8 +60,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::LOCAL_RESPONSE_NORMALIZATION,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::LOCAL_RESPONSE_NORMALIZATION,
             .inputs = {0, 1, 2, 3, 4},
             .outputs = {5},
         }

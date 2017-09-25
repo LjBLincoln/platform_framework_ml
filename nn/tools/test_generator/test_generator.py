@@ -710,8 +710,7 @@ class VTSOps(object):
       return
     op_fmt = """\
         {{
-            .opTuple = {{OperationType::{op_code},
-                        OperandType::{op_type}}},
+            .type = OperationType::{op_code},
             .inputs = {{{ins}}},
             .outputs = {{{outs}}},
         }}"""
