@@ -21,19 +21,10 @@
 #include "Utils.h"
 
 #include <android/hidl/manager/1.0/IServiceManager.h>
-#include <cutils/properties.h>
 #include <hidl/HidlTransportSupport.h>
 #include <hidl/ServiceManagement.h>
 
 #include <functional>
-
-#ifdef NN_DEBUGGABLE
-static uint32_t getProp(const char *str) {
-    char buf[PROPERTY_VALUE_MAX];
-    property_get(str, buf, "0");
-    return atoi(buf);
-}
-#endif  // NN_DEBUGGABLE
 
 namespace android {
 namespace nn {

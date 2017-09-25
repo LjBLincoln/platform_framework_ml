@@ -19,6 +19,9 @@
 #include "CompilationBuilder.h"
 
 #include "ExecutionBuilder.h"
+#include "ExecutionPlan.h"
+#include "ModelBuilder.h"
+#include "Utils.h"
 
 namespace android {
 namespace nn {
@@ -35,6 +38,14 @@ int CompilationBuilder::finish() {
     }
 
     mFinished = true;
+
+#ifdef NN_DEBUGGABLE
+    if (getProp("debug.nn.partition.test")) {
+        ExecutionPlan plan;
+        mModel->partitionTheWork(mPreference, &plan);
+    }
+#endif  // NN_DEBUGGABLE
+
     return ANEURALNETWORKS_NO_ERROR;
 }
 
