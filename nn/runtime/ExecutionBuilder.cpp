@@ -162,11 +162,12 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
             return ANEURALNETWORKS_BAD_DATA;
         }
     }
-    LOG(DEBUG) << "ExecutionBuilder::startCompute";
 
     std::shared_ptr<Device> device = DeviceManager::get()->getAvailableDriver();
     Model model;
     mModel->setHidlModel(&model);
+
+    LOG(DEBUG) << "ExecutionBuilder::startCompute " << device;
 
     return device == nullptr ? startComputeOnCpu(model, event)
                              : startComputeOnDevice(device->getInterface(), model, event);

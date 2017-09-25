@@ -35,7 +35,6 @@ class ModelBuilder;
 
 class ExecutionStep {
 public:
-    ExecutionStep() {}
     ExecutionStep(std::shared_ptr<ModelBuilder> model, std::shared_ptr<Device> device);
     int addOperation(int operationIndex, const ModelBuilder& fromModel);
     int addOperand(uint32_t fromOperandIndex, uint32_t* toOperandIndex,
