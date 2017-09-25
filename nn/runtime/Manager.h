@@ -27,17 +27,6 @@
 namespace android {
 namespace nn {
 
-// These two functions are used to enable OperationTuple to be a key in an unordered_set.
-inline bool operator==(const OperationTuple& o1, const OperationTuple& o2) {
-    return o1.operationType == o2.operationType && o1.operandType == o2.operandType;
-}
-
-struct hashOperationTuple {
-    inline size_t operator()(const OperationTuple& tuple) const {
-        return static_cast<int>(tuple.operationType) * 100 + static_cast<int>(tuple.operandType);
-    }
-};
-
 class ModelBuilder;
 
 class Device {
@@ -47,34 +36,19 @@ public:
     const std::string& getName() { return mName; }
     void initialize();
 
-    bool hasSupportedOperationTuples() const {
-        return mSupportedOperationTuples.size() != 0;
-    }
-
     void getSupportedOperations(const Model& hidlModel, hidl_vec<bool>* supportedOperations) const;
-
-    bool canDo(OperationTuple tuple) const {
-        nnAssert(hasSupportedOperationTuples());
-        return mSupportedOperationTuples.count(tuple) != 0;
-    }
 
     PerformanceInfo getFloat32Performance() const { return mFloat32Performance; }
     PerformanceInfo getQuantized8Performance() const { return mQuantized8Performance; }
 private:
     std::string mName;
     sp<IDevice> mInterface;
-    std::unordered_set<OperationTuple, hashOperationTuple> mSupportedOperationTuples;
-    bool mCachesCompilation;
     PerformanceInfo mFloat32Performance;
     PerformanceInfo mQuantized8Performance;
 
-    // For debugging: behavior of
-    // Capabilities::supportedOperationTuples and of
-    // IDevice::getSupportedOperations for SampleDriver.
-    // 0 - all tuples reported by IDevice::getCapabilities() supported
-    // 1 - some tuples reported by IDevice::getCapabilities() supported
-    // 2 - all operations reported by IDevice::getSupportedOperations() supported
-    // 3 - some operations reported by IDevice::getSupportedOperations() supported
+    // For debugging: behavior of IDevice::getSupportedOperations for SampleDriver.
+    // 0 - all operations reported by IDevice::getSupportedOperations() supported
+    // 1 - some operations reported by IDevice::getSupportedOperations() supported
     uint32_t mSupported;
 };
 

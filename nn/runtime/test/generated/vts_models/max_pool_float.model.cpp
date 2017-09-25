@@ -51,8 +51,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::MAX_POOL_2D,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::MAX_POOL_2D,
             .inputs = {0, 2, 2, 2, 2, 1, 1, 1, 1, 3},
             .outputs = {4},
         }

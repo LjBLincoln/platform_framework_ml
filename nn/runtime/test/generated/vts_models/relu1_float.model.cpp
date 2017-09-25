@@ -24,8 +24,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::RELU1,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::RELU1,
             .inputs = {0},
             .outputs = {1},
         }

@@ -33,8 +33,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::SOFTMAX,
-                        OperandType::TENSOR_QUANT8_ASYMM},
+            .type = OperationType::SOFTMAX,
             .inputs = {0, 1},
             .outputs = {2},
         }
