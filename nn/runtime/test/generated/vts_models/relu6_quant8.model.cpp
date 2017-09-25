@@ -24,8 +24,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::RELU6,
-                        OperandType::TENSOR_QUANT8_ASYMM},
+            .type = OperationType::RELU6,
             .inputs = {0},
             .outputs = {1},
         }

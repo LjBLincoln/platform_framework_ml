@@ -30,7 +30,8 @@ template <FusedActivationFunctionType Ac>
 void DepthwiseConv(const uint8* input_data, const Dims<4>& input_dims,
                    int32 input_offset, const uint8* filter_data,
                    const Dims<4>& filter_dims, int32 filter_offset,
-                   const int32* bias_data, const Dims<4>& bias_dims, int stride,
+                   const int32* bias_data, const Dims<4>& bias_dims,
+                   int stride_width, int stride_height,
                    int pad_width, int pad_height, int depth_multiplier,
                    int32 output_offset, int32 output_multiplier,
                    int output_shift, int32 output_activation_min,
@@ -63,8 +64,8 @@ void DepthwiseConv(const uint8* input_data, const Dims<4>& input_dims,
         for (int ic = 0; ic < input_depth; ++ic) {
           for (int m = 0; m < depth_multiplier; m++) {
             const int oc = m + ic * depth_multiplier;
-            const int in_x_origin = (out_x * stride) - pad_width;
-            const int in_y_origin = (out_y * stride) - pad_height;
+            const int in_x_origin = (out_x * stride_width) - pad_width;
+            const int in_y_origin = (out_y * stride_height) - pad_height;
             int32 acc = 0;
             for (int filter_y = 0; filter_y < filter_height; ++filter_y) {
               for (int filter_x = 0; filter_x < filter_width; ++filter_x) {

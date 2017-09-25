@@ -647,18 +647,18 @@ void FullyConnected(const uint8* input_data, const Dims<4>& input_dims,
 template <typename T>
 inline void ExtractPatchIntoBufferColumn(
     const Dims<4>& input_dims, int w, int h, int b, int kheight, int kwidth,
-    int stride, int pad_width, int pad_height, int in_width, int in_height,
-    int in_depth, int single_buffer_length, int buffer_id, const T* in_data,
-    T* conv_buffer_data, uint8 byte_zero) {
+    int stride_width, int stride_height, int pad_width, int pad_height,
+    int in_width, int in_height, int in_depth, int single_buffer_length,
+    int buffer_id, const T* in_data, T* conv_buffer_data, uint8 byte_zero) {
   gemmlowp::ScopedProfilingLabel label("ExtractPatchIntoBufferColumn");
   // This chunk of code reshapes all the inputs corresponding to
   // output (b, h, w) to a column vector in conv_buffer(:, buffer_id).
   const int kwidth_times_indepth = kwidth * in_depth;
   const int inwidth_times_indepth = in_width * in_depth;
-  const int ih_ungated_start = h * stride - pad_height;
+  const int ih_ungated_start = h * stride_height - pad_height;
   const int ih_ungated_end = (ih_ungated_start + kheight);
   const int ih_end = std::min(ih_ungated_end, in_height);
-  const int iw_ungated_start = w * stride - pad_width;
+  const int iw_ungated_start = w * stride_width - pad_width;
   const int iw_ungated_end = (iw_ungated_start + kwidth);
   const int iw_end = std::min(iw_ungated_end, in_width);
   // If the patch is off the edge of the input image, skip writing those rows
@@ -731,9 +731,10 @@ inline void ExtractPatchIntoBufferColumn(
 }
 
 template <typename T>
-void Im2col(const T* input_data, const Dims<4>& input_dims, int stride,
-            int pad_width, int pad_height, int kheight, int kwidth,
-            uint8 byte_zero, T* output_data, const Dims<4>& output_dims) {
+void Im2col(const T* input_data, const Dims<4>& input_dims, int stride_width,
+            int stride_height, int pad_width, int pad_height, int kheight,
+            int kwidth, uint8 byte_zero, T* output_data,
+            const Dims<4>& output_dims) {
   gemmlowp::ScopedProfilingLabel label("Im2col");
   DCHECK(IsPackedWithoutStrides(input_dims));
   DCHECK(IsPackedWithoutStrides(output_dims));
@@ -751,9 +752,9 @@ void Im2col(const T* input_data, const Dims<4>& input_dims, int stride,
     for (int h = 0; h < output_height; ++h) {
       for (int w = 0; w < output_width; ++w) {
         ExtractPatchIntoBufferColumn(
-            input_dims, w, h, b, kheight, kwidth, stride, pad_width, pad_height,
-            input_width, input_height, input_depth, output_depth, buffer_id,
-            input_data, output_data, byte_zero);
+            input_dims, w, h, b, kheight, kwidth, stride_width, stride_height,
+            pad_width, pad_height, input_width, input_height, input_depth,
+            output_depth, buffer_id, input_data, output_data, byte_zero);
         ++buffer_id;
       }
     }
@@ -763,8 +764,8 @@ void Im2col(const T* input_data, const Dims<4>& input_dims, int stride,
 template <FusedActivationFunctionType Ac>
 void Conv(const float* input_data, const Dims<4>& input_dims,
           const float* filter_data, const Dims<4>& filter_dims,
-          const float* bias_data, const Dims<4>& bias_dims, int stride,
-          int pad_width, int pad_height, float* output_data,
+          const float* bias_data, const Dims<4>& bias_dims, int stride_width,
+          int stride_height, int pad_width, int pad_height, float* output_data,
           const Dims<4>& output_dims, float* im2col_data,
           const Dims<4>& im2col_dims) {
   (void)im2col_data;
@@ -775,12 +776,13 @@ void Conv(const float* input_data, const Dims<4>& input_dims,
   const Dims<4>* gemm_input_dims = nullptr;
   const int filter_width = ArraySize(filter_dims, 1);
   const int filter_height = ArraySize(filter_dims, 2);
-  const bool need_im2col =
-      stride != 1 || filter_width != 1 || filter_height != 1;
+  const bool need_im2col = stride_width != 1 || stride_height != 1 ||
+                           filter_width != 1 || filter_height != 1;
   if (need_im2col) {
     DCHECK(im2col_data);
-    Im2col(input_data, input_dims, stride, pad_width, pad_height, filter_height,
-           filter_width, 0, im2col_data, im2col_dims);
+    Im2col(input_data, input_dims, stride_width, stride_height, pad_width,
+           pad_height, filter_height, filter_width, 0, im2col_data,
+           im2col_dims);
     gemm_input_data = im2col_data;
     gemm_input_dims = &im2col_dims;
   } else {
@@ -806,8 +808,8 @@ template <FusedActivationFunctionType Ac>
 void Conv(const uint8* input_data, const Dims<4>& input_dims,
           int32 input_offset, const uint8* filter_data,
           const Dims<4>& filter_dims, int32 filter_offset,
-          const int32* bias_data, const Dims<4>& bias_dims, int stride,
-          int pad_width, int pad_height, int32 output_offset,
+          const int32* bias_data, const Dims<4>& bias_dims, int stride_width,
+          int stride_height, int pad_width, int pad_height, int32 output_offset,
           int32 output_multiplier, int output_shift,
           int32 output_activation_min, int32 output_activation_max,
           uint8* output_data, const Dims<4>& output_dims, uint8* im2col_data,
@@ -828,15 +830,16 @@ void Conv(const uint8* input_data, const Dims<4>& input_dims,
   const Dims<4>* gemm_input_dims = nullptr;
   const int filter_width = ArraySize(filter_dims, 1);
   const int filter_height = ArraySize(filter_dims, 2);
-  const bool need_im2col =
-      stride != 1 || filter_width != 1 || filter_height != 1;
+  const bool need_im2col = stride_width != 1 || stride_height != 1 ||
+                           filter_width != 1 || filter_height != 1;
   if (need_im2col) {
     DCHECK(im2col_data);
     const int input_zero_point = -input_offset;
     DCHECK_GE(input_zero_point, 0);
     DCHECK_LE(input_zero_point, 255);
-    Im2col(input_data, input_dims, stride, pad_width, pad_height, filter_height,
-           filter_width, input_zero_point, im2col_data, im2col_dims);
+    Im2col(input_data, input_dims, stride_width, stride_height, pad_width,
+           pad_height, filter_height, filter_width, input_zero_point,
+           im2col_data, im2col_dims);
     gemm_input_data = im2col_data;
     gemm_input_dims = &im2col_dims;
   } else {
@@ -914,8 +917,8 @@ template <FusedActivationFunctionType Ac, typename T>
 void Im2col(const T* input_data, const Dims<4>& input_dims, int stride,
             int pad_width, int pad_height, int kheight, int kwidth,
             uint8 byte_zero, T* output_data, const Dims<4>& output_dims) {
-  Im2col(input_data, input_dims, stride, pad_width, pad_height, kheight, kwidth,
-         byte_zero, output_data, output_dims);
+  Im2col(input_data, input_dims, stride, stride, pad_width, pad_height, kheight,
+         kwidth, byte_zero, output_data, output_dims);
 }
 
 // legacy, for compatibility with old checked-in code
@@ -1868,7 +1871,8 @@ inline int NodeOffset(int b, int h, int w, int height, int width) {
 }
 
 template <FusedActivationFunctionType Ac>
-void AveragePool(const float* input_data, const Dims<4>& input_dims, int stride,
+void AveragePool(const float* input_data, const Dims<4>& input_dims,
+                 int stride_width, int stride_height,
                  int pad_width, int pad_height, int kwidth, int kheight,
                  float* output_data, const Dims<4>& output_dims) {
   gemmlowp::ScopedProfilingLabel label("AveragePool");
@@ -1893,10 +1897,10 @@ void AveragePool(const float* input_data, const Dims<4>& input_dims, int stride,
         // vector projects to.
         int hpad = h + pad_height;
         int wpad = w + pad_width;
-        int h_start = (hpad < kheight) ? 0 : (hpad - kheight) / stride + 1;
-        int h_end = std::min(hpad / stride + 1, output_height);
-        int w_start = (wpad < kwidth) ? 0 : (wpad - kwidth) / stride + 1;
-        int w_end = std::min(wpad / stride + 1, output_width);
+        int h_start = (hpad < kheight) ? 0 : (hpad - kheight) / stride_height + 1;
+        int h_end = std::min(hpad / stride_height + 1, output_height);
+        int w_start = (wpad < kwidth) ? 0 : (wpad - kwidth) / stride_width + 1;
+        int w_end = std::min(wpad / stride_width + 1, output_width);
         // compute elementwise sum
         for (int ph = h_start; ph < h_end; ++ph) {
           for (int pw = w_start; pw < w_end; ++pw) {
@@ -1926,7 +1930,8 @@ void AveragePool(const float* input_data, const Dims<4>& input_dims, int stride,
 }
 
 template <FusedActivationFunctionType Ac>
-void AveragePool(const uint8* input_data, const Dims<4>& input_dims, int stride,
+void AveragePool(const uint8* input_data, const Dims<4>& input_dims,
+                 int stride_width, int stride_height,
                  int pad_width, int pad_height, int filter_width,
                  int filter_height, int32 output_activation_min,
                  int32 output_activation_max, uint8* output_data,
@@ -1951,8 +1956,8 @@ void AveragePool(const uint8* input_data, const Dims<4>& input_dims, int stride,
   for (int batch = 0; batch < batches; ++batch) {
     for (int out_y = 0; out_y < output_height; ++out_y) {
       for (int out_x = 0; out_x < output_width; ++out_x) {
-        const int in_x_origin = (out_x * stride) - pad_width;
-        const int in_y_origin = (out_y * stride) - pad_height;
+        const int in_x_origin = (out_x * stride_width) - pad_width;
+        const int in_y_origin = (out_y * stride_height) - pad_height;
         const int filter_x_start = std::max(0, -in_x_origin);
         const int filter_x_end =
             std::min(filter_width, input_width - in_x_origin);
@@ -2044,7 +2049,8 @@ void AveragePool(const uint8* input_data, const Dims<4>& input_dims, int stride,
 }
 
 template <FusedActivationFunctionType Ac>
-void MaxPool(const float* input_data, const Dims<4>& input_dims, int stride,
+void MaxPool(const float* input_data, const Dims<4>& input_dims,
+             int stride_width, int stride_height,
              int pad_width, int pad_height, int kwidth, int kheight,
              float* output_data, const Dims<4>& output_dims) {
   gemmlowp::ScopedProfilingLabel label("MaxPool");
@@ -2066,10 +2072,10 @@ void MaxPool(const float* input_data, const Dims<4>& input_dims, int stride,
         // vector projects to.
         int hpad = h + pad_height;
         int wpad = w + pad_width;
-        int h_start = (hpad < kheight) ? 0 : (hpad - kheight) / stride + 1;
-        int h_end = std::min(hpad / stride + 1, output_height);
-        int w_start = (wpad < kwidth) ? 0 : (wpad - kwidth) / stride + 1;
-        int w_end = std::min(wpad / stride + 1, output_width);
+        int h_start = (hpad < kheight) ? 0 : (hpad - kheight) / stride_height + 1;
+        int h_end = std::min(hpad / stride_height + 1, output_height);
+        int w_start = (wpad < kwidth) ? 0 : (wpad - kwidth) / stride_width + 1;
+        int w_end = std::min(wpad / stride_width + 1, output_width);
         // compute elementwise sum
         for (int ph = h_start; ph < h_end; ++ph) {
           for (int pw = w_start; pw < w_end; ++pw) {
@@ -2097,7 +2103,8 @@ void MaxPool(const float* input_data, const Dims<4>& input_dims, int stride,
 }
 
 template <FusedActivationFunctionType Ac>
-void MaxPool(const uint8* input_data, const Dims<4>& input_dims, int stride,
+void MaxPool(const uint8* input_data, const Dims<4>& input_dims,
+             int stride_width, int stride_height,
              int pad_width, int pad_height, int filter_width, int filter_height,
              int32 output_activation_min, int32 output_activation_max,
              uint8* output_data, const Dims<4>& output_dims) {
@@ -2121,8 +2128,8 @@ void MaxPool(const uint8* input_data, const Dims<4>& input_dims, int stride,
   for (int batch = 0; batch < batches; ++batch) {
     for (int out_y = 0; out_y < output_height; ++out_y) {
       for (int out_x = 0; out_x < output_width; ++out_x) {
-        const int in_x_origin = (out_x * stride) - pad_width;
-        const int in_y_origin = (out_y * stride) - pad_height;
+        const int in_x_origin = (out_x * stride_width) - pad_width;
+        const int in_y_origin = (out_y * stride_height) - pad_height;
         const int filter_x_start = std::max(0, -in_x_origin);
         const int filter_x_end =
             std::min(filter_width, input_width - in_x_origin);
@@ -2193,7 +2200,8 @@ void MaxPool(const uint8* input_data, const Dims<4>& input_dims, int stride,
 }
 
 template <FusedActivationFunctionType Ac>
-void L2Pool(const float* input_data, const Dims<4>& input_dims, int stride,
+void L2Pool(const float* input_data, const Dims<4>& input_dims,
+            int stride_width, int stride_height,
             int pad_width, int pad_height, int filter_width, int filter_height,
             float* output_data, const Dims<4>& output_dims) {
   gemmlowp::ScopedProfilingLabel label("L2Pool");
@@ -2219,11 +2227,11 @@ void L2Pool(const float* input_data, const Dims<4>& input_dims, int stride,
         const int hpad = h + pad_height;
         const int wpad = w + pad_width;
         const int h_start =
-            (hpad < filter_height) ? 0 : (hpad - filter_height) / stride + 1;
-        const int h_end = std::min(hpad / stride + 1, output_height);
+            (hpad < filter_height) ? 0 : (hpad - filter_height) / stride_height + 1;
+        const int h_end = std::min(hpad / stride_height + 1, output_height);
         const int w_start =
-            (wpad < filter_width) ? 0 : (wpad - filter_width) / stride + 1;
-        const int w_end = std::min(wpad / stride + 1, output_width);
+            (wpad < filter_width) ? 0 : (wpad - filter_width) / stride_width + 1;
+        const int w_end = std::min(wpad / stride_width + 1, output_width);
         // pre-compute square
         const int in_offset = w + input_width * (h + input_height * b);
         in_square =
