@@ -46,10 +46,12 @@ private:
     PerformanceInfo mFloat32Performance;
     PerformanceInfo mQuantized8Performance;
 
+#ifdef NN_DEBUGGABLE
     // For debugging: behavior of IDevice::getSupportedOperations for SampleDriver.
     // 0 - all operations reported by IDevice::getSupportedOperations() supported
     // 1 - some operations reported by IDevice::getSupportedOperations() supported
-    uint32_t mSupported;
+    uint32_t mSupported = 0;
+#endif  // NN_DEBUGGABLE
 };
 
 // Manages the NN HAL devices.  Only one instance of this class will exist.
