@@ -2,7 +2,7 @@
 model = Model()
 
 i1 = Input("input", "TENSOR_FLOAT32", "{1, 4}") # batch = 1, depth = 1
-beta = Float32Scalar("beta", 0.)
+beta = Float32Scalar("beta", 0.000001)
 output = Output("output", "TENSOR_FLOAT32", "{1, 4}")
 
 # model 1
