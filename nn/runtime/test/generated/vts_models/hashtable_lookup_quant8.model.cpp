@@ -51,8 +51,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::HASHTABLE_LOOKUP,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::HASHTABLE_LOOKUP,
             .inputs = {0, 1, 2},
             .outputs = {3},
         }

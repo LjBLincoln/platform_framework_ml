@@ -42,8 +42,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::MUL,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::MUL,
             .inputs = {0, 1, 2},
             .outputs = {3},
         }

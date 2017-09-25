@@ -82,6 +82,8 @@ private:
                                        const size_t operationCount,
                                        const size_t deviceCount,
                                        std::vector<int>* bestDeviceForOperation);
+    PerformanceInfo getPerformanceInfo(const std::shared_ptr<Device> device,
+                                       uint32_t operationIndex);
 
     // Sorts the operations to be in the correct order for single threaded
     // node-at-a-time execution.
