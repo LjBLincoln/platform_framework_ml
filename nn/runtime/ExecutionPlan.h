@@ -35,18 +35,30 @@ class ModelBuilder;
 
 class ExecutionStep {
 public:
-    ExecutionStep() {}
+    enum OperandKind { INPUT, OUTPUT };
+
     ExecutionStep(std::shared_ptr<ModelBuilder> model, std::shared_ptr<Device> device);
     int addOperation(int operationIndex, const ModelBuilder& fromModel);
     int addOperand(uint32_t fromOperandIndex, uint32_t* toOperandIndex,
-                   const ModelBuilder& fromModel);
+                   const ModelBuilder& fromModel, OperandKind kind);
 
 private:
+    // TODO: Some of the data is working state information that
+    // shouldn't be needed after we've constructed but not executed
+    // the step.
+
     std::shared_ptr<ModelBuilder> mSubModel;
     std::shared_ptr<Device> mDevice;
-    // Result
-    std::vector<uint32_t> mModelInputsFrom;
-    std::vector<uint32_t> mModelInputsTo;
+
+    // Inputs of original model that are also inputs of this submodel:
+    //     (fromModel index, subModel index)
+    std::vector<std::pair<uint32_t, uint32_t>> mModelInputs;
+    // Outputs of original model that are also outputs of this submodel:
+    //     (fromModel index, subModel index)
+    std::vector<std::pair<uint32_t, uint32_t>> mModelOutputs;
+    // Temporaries of original model that are inputs of this submodel:
+    //     (fromModel index, subModel index)
+    std::vector<std::pair<uint32_t, uint32_t>> mSubModelInputs;
     // Converts operand indexes from the main model to the submodel.
     std::unordered_map<uint32_t, uint32_t> mOperandMap;
 };

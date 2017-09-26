@@ -20,6 +20,7 @@
 #include "NeuralNetworks.h"
 
 #include <android-base/logging.h>
+#include <sys/system_properties.h>
 
 using ::android::hidl::allocator::V1_0::IAllocator;
 
@@ -302,6 +303,31 @@ bool validateRequest(const Request& request, const Model& model) {
             validRequestArguments(request.outputs, model.outputIndexes, model.operands, poolCount,
                                   "output"));
 }
+
+#ifdef NN_DEBUGGABLE
+
+// Implementation of property_get from libcutils
+static int property_get(const char *key, char *value, const char *default_value) {
+    int len;
+    len = __system_property_get(key, value);
+    if (len > 0) {
+        return len;
+    }
+
+    if (default_value) {
+        len = strlen(default_value);
+        memcpy(value, default_value, len + 1);
+    }
+    return len;
+}
+
+uint32_t getProp(const char *str) {
+    char buf[256];
+    property_get(str, buf, "0");
+    return atoi(buf);
+}
+
+#endif  // NN_DEBUGGABLE
 
 } // namespace nn
 } // namespace android
