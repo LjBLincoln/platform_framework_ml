@@ -127,7 +127,7 @@ bool relu6Quant8(const uint8_t* inputData, const Shape& inputShape,
 
 bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
                     uint8_t* outputData, const Shape& outputShape) {
-    if (outputShape.offset != 0 || outputShape.scale != 1.f / 255) {
+    if (outputShape.offset != 0 || outputShape.scale != 1.f / 256) {
         LOG(ERROR) << "incorrect scale / offset for output";
         return false;
     }
@@ -176,7 +176,7 @@ bool softmaxQuant8(const uint8_t* inputData, const Shape& inputShape,
         return false;
     }
 
-    if (outputShape.offset != 0 || outputShape.scale != 1.f / 255) {
+    if (outputShape.offset != 0 || outputShape.scale != 1.f / 256) {
         LOG(ERROR) << "incorrect scale / offset for output";
         return false;
     }

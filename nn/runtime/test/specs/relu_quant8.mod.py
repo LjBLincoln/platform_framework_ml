@@ -1,9 +1,9 @@
 # model
 model = Model()
 # input 0
-i1 = Input("op1", "TENSOR_QUANT8_ASYMM", "-127.5f, 127.5f, {1, 2, 2, 1}")
+i1 = Input("op1", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 1}, 1.f, 128")
 # output 0
-o = Output("op2", "TENSOR_QUANT8_ASYMM", "-127.5f, 127.5f, {1, 2, 2, 1}")
+o = Output("op2", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 1}, 1.f, 128")
 model = model.Operation("RELU", i1).To(o)
 
 # Example 1. Input in operand 0,

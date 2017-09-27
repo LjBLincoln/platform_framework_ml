@@ -1,6 +1,6 @@
 # model
 model = Model()
-i1 = Input("op1",  "TENSOR_QUANT8_ASYMM", "0.0f, 255.0f, {1, 2, 2, 1}")
+i1 = Input("op1",  "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 1}, 1.f, 0")
 i2 = Output("op2", "TENSOR_FLOAT32", "{1, 2, 2, 1}")
 model = model.Operation("DEQUANTIZE", i1).To(i2)
 
