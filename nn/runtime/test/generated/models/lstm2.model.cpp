@@ -21,8 +21,8 @@ void CreateModel(Model *model) {
   auto recurrent_to_cell_weights = model->addOperand(&type2);
   auto recurrent_to_output_weights = model->addOperand(&type2);
   auto cell_to_input_weights = model->addOperand(&type3);
-  auto cell_to_forget_weights = model->addOperand(&type3);
-  auto cell_to_output_weights = model->addOperand(&type3);
+  auto cell_to_forget_weights = model->addOperand(&type4);
+  auto cell_to_output_weights = model->addOperand(&type4);
   auto input_gate_bias = model->addOperand(&type4);
   auto forget_gate_bias = model->addOperand(&type4);
   auto cell_gate_bias = model->addOperand(&type4);

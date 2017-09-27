@@ -95,12 +95,6 @@ static bool allocateIfNeeded(RunTimeOperandInfo* info, const Shape& shape) {
     return true;
 }
 
-template <typename T>
-static T getScalarData(RunTimeOperandInfo& info) {
-    T* data = reinterpret_cast<T*>(info.buffer);
-    return data[0];
-}
-
 // Ignore the .pools entry in model and request.  This will have been taken care of
 // by the caller.
 int CpuExecutor::run(const Model& model, const Request& request,
@@ -1086,28 +1080,105 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                           outShape);
         } break;
         case OperationType::EMBEDDING_LOOKUP: {
+            const RunTimeOperandInfo &values =
+                mOperands[ins[EmbeddingLookup::kValueTensor]];
+            const RunTimeOperandInfo &lookups =
+                mOperands[ins[EmbeddingLookup::kLookupTensor]];
+            RunTimeOperandInfo &output =
+                mOperands[outs[EmbeddingLookup::kOutputTensor]];
+
+            Shape outputShape;
             EmbeddingLookup lookup(operation, mOperands);
-            success = lookup.Eval();
+
+            success = embeddingLookupPrepare(values.shape(), lookups.shape(), &outputShape) &&
+                allocateIfNeeded(&output, outputShape) &&
+                lookup.Eval();
         } break;
         case OperationType::HASHTABLE_LOOKUP: {
+            const RunTimeOperandInfo &lookups =
+                mOperands[ins[HashtableLookup::kLookupTensor]];
+            const RunTimeOperandInfo &keys =
+                mOperands[ins[HashtableLookup::kKeyTensor]];
+            const RunTimeOperandInfo &values =
+                mOperands[ins[HashtableLookup::kValueTensor]];
+
+            RunTimeOperandInfo &output =
+                mOperands[outs[HashtableLookup::kOutputTensor]];
+            RunTimeOperandInfo &hits =
+                mOperands[outs[HashtableLookup::kHitsTensor]];
+
+            Shape outputShape, hitShape;
             HashtableLookup lookup(operation, mOperands);
-            success = lookup.Eval();
+
+            success = hashtableLookupPrepare(lookups.shape(), keys.shape(), values.shape(),
+                                             &outputShape, &hitShape) &&
+                allocateIfNeeded(&output, outputShape) &&
+                allocateIfNeeded(&hits, hitShape) &&
+                lookup.Eval();
         } break;
         case OperationType::LSH_PROJECTION: {
+            RunTimeOperandInfo &output =
+                mOperands[outs[LSHProjection::kOutputTensor]];
+
+            Shape outputShape;
             LSHProjection lsh(operation, mOperands);
-            success = lsh.Eval();
+
+            success = LSHProjection::Prepare(operation, mOperands,
+                                             &outputShape) &&
+                allocateIfNeeded(&output, outputShape) &&
+                lsh.Eval();
         } break;
         case OperationType::LSTM: {
+            RunTimeOperandInfo &scratch =
+                mOperands[outs[LSTMCell::kScratchBufferTensor]];
+            RunTimeOperandInfo &outputState =
+                mOperands[outs[LSTMCell::kOutputStateTensor]];
+            RunTimeOperandInfo &cellState =
+                mOperands[outs[LSTMCell::kCellStateTensor]];
+            RunTimeOperandInfo &output =
+                mOperands[outs[LSTMCell::kOutputTensor]];
+
+            Shape scratchShape, outputStateShape, cellStateShape, outputShape;
             LSTMCell lstm_cell(operation, mOperands);
-            success = lstm_cell.Eval();
+
+            success = LSTMCell::Prepare(operation, mOperands,
+                                        &scratchShape, &outputStateShape,
+                                        &cellStateShape, &outputShape) &&
+                allocateIfNeeded(&scratch, scratchShape) &&
+                allocateIfNeeded(&outputState, outputStateShape) &&
+                allocateIfNeeded(&cellState, cellStateShape) &&
+                allocateIfNeeded(&output, outputShape) &&
+                lstm_cell.Eval();
         } break;
         case OperationType::RNN: {
+            RunTimeOperandInfo &hiddenState =
+                mOperands[outs[RNN::kHiddenStateTensor]];
+            RunTimeOperandInfo &output =
+                mOperands[outs[RNN::kOutputTensor]];
+
+            Shape hiddenStateShape, outputShape;
             RNN rnn_cell(operation, mOperands);
-            success = rnn_cell.Eval();
+
+            success = RNN::Prepare(operation, mOperands,
+                                   &hiddenStateShape, &outputShape) &&
+                allocateIfNeeded(&hiddenState, hiddenStateShape) &&
+                allocateIfNeeded(&output, outputShape) &&
+                rnn_cell.Eval();
         } break;
         case OperationType::SVDF: {
+            RunTimeOperandInfo &state =
+                mOperands[outs[SVDF::kStateTensor]];
+            RunTimeOperandInfo &output =
+                mOperands[outs[SVDF::kOutputTensor]];
+
+            Shape stateShape, outputShape;
             SVDF svdf(operation, mOperands);
-            success = svdf.Eval();
+
+            success = SVDF::Prepare(operation, mOperands,
+                                    &stateShape, &outputShape) &&
+                allocateIfNeeded(&state, stateShape) &&
+                allocateIfNeeded(&output, outputShape) &&
+                svdf.Eval();
         } break;
         default:
             nnAssert(false);

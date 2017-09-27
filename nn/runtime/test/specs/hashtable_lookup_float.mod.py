@@ -31,7 +31,7 @@ key = Input("key", "TENSOR_INT32", "{%d}" % (keys))
 value = Input("value", "TENSOR_FLOAT32", "{%d, %d}" % (rows, features))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (lookups, features))
 hits = Output("hits", "TENSOR_QUANT8_ASYMM", "{%d}, 1.f, 0" % (lookups))
-model = model.Operation("HASHTABLE_LOOKUP", lookup, key, value).To(output)
+model = model.Operation("HASHTABLE_LOOKUP", lookup, key, value).To([output, hits])
 
 input0 = {lookup:  [1234, -292, -11, 0],
           key: [-11, 0, 1234],

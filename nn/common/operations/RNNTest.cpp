@@ -140,10 +140,11 @@ static float rnn_golden_output[] = {
   ACTION(Weights)                                \
   ACTION(RecurrentWeights)                       \
   ACTION(Bias)                                   \
-  ACTION(HiddenState)
 
 // For all output and intermediate states
-#define FOR_ALL_OUTPUT_TENSORS(ACTION) ACTION(Output)
+#define FOR_ALL_OUTPUT_TENSORS(ACTION) \
+  ACTION(HiddenState)                  \
+  ACTION(Output)
 
 class BasicRNNOpModel {
  public:
@@ -162,13 +163,13 @@ class BasicRNNOpModel {
     inputs.push_back(model_.addOperand(&RecurrentWeightTy));
     OperandType BiasTy(Type::TENSOR_FLOAT32, {units_});
     inputs.push_back(model_.addOperand(&BiasTy));
-    OperandType HiddenStateTy(Type::TENSOR_FLOAT32, {batches_, units_});
-    inputs.push_back(model_.addOperand(&HiddenStateTy));
     OperandType ActionParamTy(Type::INT32, {});
     inputs.push_back(model_.addOperand(&ActionParamTy));
 
     std::vector<uint32_t> outputs;
 
+    OperandType HiddenStateTy(Type::TENSOR_FLOAT32, {batches_, units_});
+    outputs.push_back(model_.addOperand(&HiddenStateTy));
     OperandType OutputTy(Type::TENSOR_FLOAT32, {batches_, units_});
     outputs.push_back(model_.addOperand(&OutputTy));
 

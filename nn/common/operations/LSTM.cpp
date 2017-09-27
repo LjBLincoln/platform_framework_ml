@@ -26,12 +26,6 @@ namespace nn {
 // optimized version ready.
 namespace {
 
-template <typename T>
-T getScalarData(RunTimeOperandInfo& info) {
-    T * data = reinterpret_cast<T*>(info.buffer);
-    return data[0];
-}
-
 // Limit a float input f between +abs_limit and -abs_limit.
 inline float Clip(float f, float abs_limit) {
   float result = (abs_limit < f) ? abs_limit : f;
@@ -152,58 +146,261 @@ inline const T *GetBuffer(const RunTimeOperandInfo* operand) {
 
 LSTMCell::LSTMCell(const Operation& operation,
                    std::vector<RunTimeOperandInfo>& operands) {
-  auto GetInput = [&operation,
-                   &operands](uint32_t index) -> const RunTimeOperandInfo* {
-    const std::vector<uint32_t>& inputs = operation.inputs;
-    const int index_of_operand = inputs[index];
-    if (index_of_operand < 0) {
-      return nullptr;
-    }
-    return &operands[index_of_operand];
-  };
+  input_ = GetInput(operation, operands, kInputTensor);
 
-  auto GetOutput = [&operation,
-                    &operands](uint32_t index) -> RunTimeOperandInfo* {
-    const std::vector<uint32_t>& outputs = operation.outputs;
-    const int index_of_operand = outputs[index];
-    // Expects index of operand in range.
-    return &operands[index_of_operand];
-  };
-
-  input_ = GetInput(kInputTensor);
-
-  input_to_input_weights_ = GetInput(kInputToInputWeightsTensor);  // optional
-  input_to_forget_weights_ = GetInput(kInputToForgetWeightsTensor);
-  input_to_cell_weights_ = GetInput(kInputToCellWeightsTensor);
-  input_to_output_weights_ = GetInput(kInputToOutputWeightsTensor);
+  input_to_input_weights_ = GetInput(operation, operands, kInputToInputWeightsTensor);  // optional
+  input_to_forget_weights_ = GetInput(operation, operands, kInputToForgetWeightsTensor);
+  input_to_cell_weights_ = GetInput(operation, operands, kInputToCellWeightsTensor);
+  input_to_output_weights_ = GetInput(operation, operands, kInputToOutputWeightsTensor);
 
   recurrent_to_input_weights_ =
-      GetInput(kRecurrentToInputWeightsTensor);  // optional
-  recurrent_to_forget_weights_ = GetInput(kRecurrentToForgetWeightsTensor);
-  recurrent_to_cell_weights_ = GetInput(kRecurrentToCellWeightsTensor);
-  recurrent_to_output_weights_ = GetInput(kRecurrentToOutputWeightsTensor);
+      GetInput(operation, operands, kRecurrentToInputWeightsTensor);  // optional
+  recurrent_to_forget_weights_ = GetInput(operation, operands, kRecurrentToForgetWeightsTensor);
+  recurrent_to_cell_weights_ = GetInput(operation, operands, kRecurrentToCellWeightsTensor);
+  recurrent_to_output_weights_ = GetInput(operation, operands, kRecurrentToOutputWeightsTensor);
 
-  cell_to_input_weights_ = GetInput(kCellToInputWeightsTensor);    // optional
-  cell_to_forget_weights_ = GetInput(kCellToForgetWeightsTensor);  // optional
-  cell_to_output_weights_ = GetInput(kCellToOutputWeightsTensor);  // optional
+  cell_to_input_weights_ = GetInput(operation, operands, kCellToInputWeightsTensor);    // optional
+  cell_to_forget_weights_ = GetInput(operation, operands, kCellToForgetWeightsTensor);  // optional
+  cell_to_output_weights_ = GetInput(operation, operands, kCellToOutputWeightsTensor);  // optional
 
-  input_gate_bias_ = GetInput(kInputGateBiasTensor);
-  forget_gate_bias_ = GetInput(kForgetGateBiasTensor);
-  cell_bias_ = GetInput(kCellGateBiasTensor);
-  output_gate_bias_ = GetInput(kOutputGateBiasTensor);
+  input_gate_bias_ = GetInput(operation, operands, kInputGateBiasTensor);
+  forget_gate_bias_ = GetInput(operation, operands, kForgetGateBiasTensor);
+  cell_bias_ = GetInput(operation, operands, kCellGateBiasTensor);
+  output_gate_bias_ = GetInput(operation, operands, kOutputGateBiasTensor);
 
-  projection_weights_ = GetInput(kProjectionWeightsTensor);  // optional
-  projection_bias_ = GetInput(kProjectionBiasTensor);        // optional
+  projection_weights_ = GetInput(operation, operands, kProjectionWeightsTensor);  // optional
+  projection_bias_ = GetInput(operation, operands, kProjectionBiasTensor);        // optional
 
-  params_.activation_ = static_cast<ActivationFn>(getScalarData<int32_t>(operands[operation.inputs[kActivationParam]]));
-  params_.cell_clip_ = getScalarData<float>(operands[operation.inputs[kCellClipParam]]);
-  params_.proj_clip_ = getScalarData<float>(operands[operation.inputs[kProjClipParam]]);
+  params_.activation_ = static_cast<ActivationFn>(getScalarData<int32_t>(
+      *GetInput(operation, operands, kActivationParam)));
+  params_.cell_clip_ = getScalarData<float>(*GetInput(operation, operands, kCellClipParam));
+  params_.proj_clip_ = getScalarData<float>(*GetInput(operation, operands, kProjClipParam));
 
-  output_state_ = GetOutput(kOutputStateTensor);
-  cell_state_ = GetOutput(kCellStateTensor);
-  output_ = GetOutput(kOutputTensor);
+  output_state_ = GetOutput(operation, operands, kOutputStateTensor);
+  cell_state_ = GetOutput(operation, operands, kCellStateTensor);
+  output_ = GetOutput(operation, operands, kOutputTensor);
 
-  scratch_buffer_ = GetOutput(kScratchBufferTensor);
+  scratch_buffer_ = GetOutput(operation, operands, kScratchBufferTensor);
+}
+
+bool LSTMCell::CheckInputTensorDimensions(
+    const Operation &operation, std::vector<RunTimeOperandInfo> &operands,
+    uint32_t n_input, uint32_t n_output, uint32_t n_cell) {
+  LSTMParams params = {
+    .activation_ = static_cast<ActivationFn>(getScalarData<int32_t>(*GetInput(operation, operands, LSTMCell::kActivationParam))),
+    .cell_clip_  = getScalarData<float>(*GetInput(operation, operands, LSTMCell::kCellClipParam)),
+    .proj_clip_  = getScalarData<float>(*GetInput(operation, operands, LSTMCell::kProjClipParam))
+  };
+
+  // Making sure clipping parameters have valid values.
+  // == 0 means no clipping
+  //  > 0 means clipping
+  NN_CHECK(params.cell_clip_ >= 0);
+  NN_CHECK(params.proj_clip_ >= 0);
+
+  const RunTimeOperandInfo *input_to_input_weights =
+      GetInput(operation, operands, LSTMCell::kInputToInputWeightsTensor);
+  if (!IsNullInput(input_to_input_weights)) {
+    NN_CHECK_EQ(NumDimensions(input_to_input_weights), 2);
+    NN_CHECK_EQ(SizeOfDimension(input_to_input_weights, 0), n_cell);
+    NN_CHECK_EQ(SizeOfDimension(input_to_input_weights, 1), n_input);
+  }
+
+  const RunTimeOperandInfo *input_to_forget_weights =
+      GetInput(operation, operands, LSTMCell::kInputToForgetWeightsTensor);
+  NN_CHECK_EQ(NumDimensions(input_to_forget_weights), 2);
+  NN_CHECK_EQ(SizeOfDimension(input_to_forget_weights, 0), n_cell);
+  NN_CHECK_EQ(SizeOfDimension(input_to_forget_weights, 1), n_input);
+
+  const RunTimeOperandInfo *input_to_cell_weights =
+      GetInput(operation, operands, LSTMCell::kInputToCellWeightsTensor);
+  NN_CHECK_EQ(NumDimensions(input_to_cell_weights), 2);
+  NN_CHECK_EQ(SizeOfDimension(input_to_cell_weights, 0), n_cell);
+  NN_CHECK_EQ(SizeOfDimension(input_to_cell_weights, 1), n_input);
+
+  const RunTimeOperandInfo *recurrent_to_input_weights =
+      GetInput(operation, operands, LSTMCell::kRecurrentToInputWeightsTensor);
+  if (!IsNullInput(recurrent_to_input_weights)) {
+    NN_CHECK_EQ(NumDimensions(recurrent_to_input_weights), 2);
+    NN_CHECK_EQ(SizeOfDimension(recurrent_to_input_weights, 0), n_cell);
+    NN_CHECK_EQ(SizeOfDimension(recurrent_to_input_weights, 1), n_output);
+  }
+
+  const RunTimeOperandInfo *recurrent_to_forget_weights =
+      GetInput(operation, operands, LSTMCell::kRecurrentToForgetWeightsTensor);
+  NN_CHECK_EQ(NumDimensions(recurrent_to_forget_weights), 2);
+  NN_CHECK_EQ(SizeOfDimension(recurrent_to_forget_weights, 0), n_cell);
+  NN_CHECK_EQ(SizeOfDimension(recurrent_to_forget_weights, 1), n_output);
+
+  const RunTimeOperandInfo *recurrent_to_cell_weights =
+      GetInput(operation, operands, LSTMCell::kRecurrentToCellWeightsTensor);
+  NN_CHECK_EQ(NumDimensions(recurrent_to_cell_weights), 2);
+  NN_CHECK_EQ(SizeOfDimension(recurrent_to_cell_weights, 0), n_cell);
+  NN_CHECK_EQ(SizeOfDimension(recurrent_to_cell_weights, 1), n_output);
+
+  // We make sure the input-gate's parameters are either both present (regular
+  // LSTM) or not at all (CIFG-LSTM).
+  const bool cifg_weights_all_or_none =
+      (!IsNullInput(input_to_input_weights) &&
+       !IsNullInput(recurrent_to_input_weights)) ||
+      (IsNullInput(input_to_input_weights) &&
+       IsNullInput(recurrent_to_input_weights));
+  NN_CHECK(cifg_weights_all_or_none);
+
+  const RunTimeOperandInfo *cell_to_input_weights =
+      GetInput(operation, operands, LSTMCell::kCellToInputWeightsTensor);
+  if (!IsNullInput(cell_to_input_weights)) {
+    NN_CHECK_EQ(NumDimensions(cell_to_input_weights), 1);
+    NN_CHECK_EQ(SizeOfDimension(cell_to_input_weights, 0), n_cell);
+  }
+
+  const RunTimeOperandInfo *cell_to_forget_weights =
+      GetInput(operation, operands, LSTMCell::kCellToForgetWeightsTensor);
+  if (!IsNullInput(cell_to_forget_weights)) {
+    NN_CHECK_EQ(NumDimensions(cell_to_forget_weights), 1);
+    NN_CHECK_EQ(SizeOfDimension(cell_to_forget_weights, 0), n_cell);
+  }
+
+  const RunTimeOperandInfo *cell_to_output_weights =
+      GetInput(operation, operands, LSTMCell::kCellToOutputWeightsTensor);
+  if (!IsNullInput(cell_to_output_weights)) {
+    NN_CHECK_EQ(NumDimensions(cell_to_output_weights), 1);
+    NN_CHECK_EQ(SizeOfDimension(cell_to_output_weights, 0), n_cell);
+  }
+
+  // Making sure the peephole weights are there all or none.
+  const bool use_cifg = IsNullInput(input_to_input_weights);
+  const bool peephole_weights_all_or_none =
+      ((!IsNullInput(cell_to_input_weights) || use_cifg) &&
+       !IsNullInput(cell_to_forget_weights) &&
+       !IsNullInput(cell_to_output_weights)) ||
+      (IsNullInput(cell_to_input_weights) &&
+       IsNullInput(cell_to_forget_weights) &&
+       IsNullInput(cell_to_output_weights));
+  NN_CHECK(peephole_weights_all_or_none);
+
+  // Make sure the input gate bias is present only when not a CIFG-LSTM.
+  const RunTimeOperandInfo* input_gate_bias =
+      GetInput(operation, operands, LSTMCell::kInputGateBiasTensor);
+  if (use_cifg) {
+    NN_CHECK(IsNullInput(input_gate_bias));
+  } else {
+    NN_CHECK_EQ(NumDimensions(input_gate_bias), 1);
+    NN_CHECK_EQ(SizeOfDimension(input_gate_bias, 0), n_cell);
+  }
+
+  const RunTimeOperandInfo *forget_gate_bias =
+      GetInput(operation, operands, LSTMCell::kForgetGateBiasTensor);
+  NN_CHECK_EQ(NumDimensions(forget_gate_bias), 1);
+  NN_CHECK_EQ(SizeOfDimension(forget_gate_bias, 0), n_cell);
+
+  const RunTimeOperandInfo *cell_bias =
+      GetInput(operation, operands, LSTMCell::kCellGateBiasTensor);
+  NN_CHECK_EQ(NumDimensions(cell_bias), 1);
+  NN_CHECK_EQ(SizeOfDimension(cell_bias, 0), n_cell);
+
+  const RunTimeOperandInfo *output_gate_bias =
+      GetInput(operation, operands, LSTMCell::kOutputGateBiasTensor);
+  NN_CHECK_EQ(NumDimensions(output_gate_bias), 1);
+  NN_CHECK_EQ(SizeOfDimension(output_gate_bias, 0), n_cell);
+
+  const RunTimeOperandInfo *projection_weights =
+      GetInput(operation, operands, LSTMCell::kProjectionWeightsTensor);
+  if (!IsNullInput(projection_weights)) {
+    NN_CHECK_EQ(NumDimensions(projection_weights), 2);
+    NN_CHECK_EQ(SizeOfDimension(projection_weights, 0), n_output);
+    NN_CHECK_EQ(SizeOfDimension(projection_weights, 1), n_cell);
+  }
+
+  const RunTimeOperandInfo *projection_bias =
+      GetInput(operation, operands, LSTMCell::kProjectionBiasTensor);
+  if (!IsNullInput(projection_bias)) {
+    NN_CHECK_EQ(NumDimensions(projection_bias), 1);
+    NN_CHECK_EQ(SizeOfDimension(projection_bias, 0), n_output);
+  }
+
+  // Making sure the projection tensors are consistent:
+  // 1) If projection weight is not present, then projection bias should not be
+  // present.
+  // 2) If projection weight is present, then projection bias is optional.
+  // TODO: make sure this is correct.
+  const bool projecton_tensors_consistent =
+      (!IsNullInput(projection_weights) || IsNullInput(projection_bias));
+  NN_CHECK(projecton_tensors_consistent == true);
+
+  return true;
+}
+
+bool LSTMCell::Prepare(const Operation &operation,
+                       std::vector<RunTimeOperandInfo> &operands,
+                       Shape *scratchShape,
+                       Shape *outputStateShape,
+                       Shape *cellStateShape,
+                       Shape *outputShape) {
+  // Check we have all the inputs and outputs we need.
+  NN_CHECK(NumInputsWithValues(operation, operands) >= 13 &&
+           NumInputsWithValues(operation, operands) <= 21);
+  NN_CHECK_EQ(NumOutputs(operation), 4);
+
+  // Inferring batch size, number of outputs and number of cells from the
+  // input tensors.
+  const RunTimeOperandInfo *input =
+      GetInput(operation, operands, LSTMCell::kInputTensor);
+  NN_CHECK(NumDimensions(input) > 1);
+  const uint32_t n_batch = SizeOfDimension(input, 0);
+  const uint32_t n_input = SizeOfDimension(input, 1);
+
+  const RunTimeOperandInfo *input_to_output_weights =
+      GetInput(operation, operands, LSTMCell::kInputToOutputWeightsTensor);
+  const uint32_t n_cell = SizeOfDimension(input_to_output_weights, 0);
+  NN_CHECK_EQ(NumDimensions(input_to_output_weights), 2);
+  NN_CHECK_EQ(SizeOfDimension(input_to_output_weights, 1), n_input);
+
+  const RunTimeOperandInfo *recurrent_to_output_weights =
+      GetInput(operation, operands, LSTMCell::kRecurrentToOutputWeightsTensor);
+  NN_CHECK_EQ(NumDimensions(recurrent_to_output_weights), 2);
+  NN_CHECK_EQ(SizeOfDimension(recurrent_to_output_weights, 0),
+                    n_cell);
+  const uint32_t n_output = SizeOfDimension(recurrent_to_output_weights, 1);
+
+  // Check that input tensor dimensions matches with each other.
+  if (!CheckInputTensorDimensions(operation, operands, n_input, n_output, n_cell)) {
+    return false;
+  }
+
+  // Resize the output and output_state tensors.
+  const Shape &inputShape = input->shape();
+
+  outputShape->type = inputShape.type;
+  outputShape->dimensions = { n_batch, n_output };
+  outputShape->offset = inputShape.offset;
+  outputShape->scale = inputShape.scale;
+
+  outputStateShape->type = inputShape.type;
+  outputStateShape->dimensions = { n_batch, n_output };
+  outputStateShape->offset = inputShape.offset;
+  outputStateShape->scale = inputShape.scale;
+
+  cellStateShape->type = inputShape.type;
+  cellStateShape->dimensions = { n_batch, n_cell };
+  cellStateShape->offset = inputShape.offset;
+  cellStateShape->scale = inputShape.scale;
+
+  const RunTimeOperandInfo *input_to_input_weights =
+      GetInput(operation, operands, LSTMCell::kInputToInputWeightsTensor);
+  const bool use_cifg = IsNullInput(input_to_input_weights);
+  if (use_cifg) {
+    // Reserving space for Cell, Forget, Output gates
+    scratchShape->dimensions = { n_batch, n_cell * 3 };
+  } else {
+    // Reserving space for Input, Cell, Forget, Output gates
+    scratchShape->dimensions = { n_batch, n_cell * 4 };
+  }
+  scratchShape->type = inputShape.type;
+  scratchShape->offset = inputShape.offset;
+  scratchShape->scale = inputShape.scale;
+
+  return true;
 }
 
 bool LSTMCell::Eval() {
