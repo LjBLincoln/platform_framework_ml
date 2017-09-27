@@ -19,15 +19,18 @@
 #include "ExecutionPlan.h"
 
 #include "CompilationBuilder.h"
+#include "Event.h"
 #include "Manager.h"
 #include "ModelBuilder.h"
 #include "Utils.h"
 
-#include <forward_list>
 #include <map>
+#include <queue>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+using ::android::hardware::neuralnetworks::V1_0::implementation::Event;
 
 namespace android {
 namespace nn {
@@ -89,8 +92,11 @@ void OperandTracker::markProcessed(uint32_t operationIndex, OperationReadyCallba
     }
 }
 
-ExecutionStep::ExecutionStep(std::shared_ptr<ModelBuilder> model, std::shared_ptr<Device> device)
-      : mSubModel(model), mDevice(device) {}
+ExecutionStep::ExecutionStep(ExecutionPlan* plan,
+                             uint32_t stepIndex,
+                             std::shared_ptr<ModelBuilder> model,
+                             std::shared_ptr<Device> device)
+        : mPlan(plan), mIndex(stepIndex), mSubModel(model), mDevice(device) {}
 
 // Adds an operand if it has not been added already.
 // Sets the index in the submodel for the corresponding operand.
@@ -148,6 +154,11 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
                 // input.  That means it must be defined by a
                 // different partition, and is an input to this one.
                 mSubModelInputs.push_back(std::make_pair(fromOperandIndex, *toOperandIndex));
+            } else {
+                // The first time we've seen this operand is as an
+                // output.  It may be an input to a different
+                // partition, so keep track of it.
+                mPlan->recordTemporaryDef(fromOperandIndex, mIndex);
             }
             break;
         case OperandLifeTime::MODEL_INPUT:
@@ -204,6 +215,94 @@ int ExecutionStep::addOperation(int operationIndex, const ModelBuilder& fromMode
                                    outputCount, outputs.data());
 }
 
+void ExecutionPlan::findSubModelOutputs() {
+    for (const auto& step : mSteps) {
+        for (const auto& input : step->getSubModelInputs()) {
+            const uint32_t fromModelIndex = input.first;
+            const auto it = mTemporaryToDefiningStep.find(fromModelIndex);
+            nnAssert(it != mTemporaryToDefiningStep.end());
+            const uint32_t stepIndex = it->second;
+            nnAssert(stepIndex < mSteps.size());
+            mSteps[stepIndex]->recordSubModelOutput(fromModelIndex);
+        }
+    }
+}
+
+void ExecutionStep::finishSubModel() {
+    LOG(DEBUG) << "ExecutionStep::finishSubModel, step " << mIndex;
+
+    std::vector<uint32_t> inputs;
+    for (const auto& modelInput : mModelInputs) {
+        inputs.push_back(modelInput.second);
+    }
+    for (const auto& subModelInput : mSubModelInputs) {
+        inputs.push_back(subModelInput.second);
+    }
+
+    std::vector<uint32_t> outputs;
+    for (const auto& modelOutput : mModelOutputs) {
+        outputs.push_back(modelOutput.second);
+    }
+    for (const auto& subModelOutput : mSubModelOutputs) {
+        outputs.push_back(subModelOutput.second);
+    }
+
+    mSubModel->setInputsAndOutputs(inputs.size(), &inputs[0], outputs.size(), &outputs[0]);
+    mSubModel->finish();
+
+    // TODO: Move compilation elsewhere.  For now, it's just for testing.
+
+    if (mDevice == nullptr) {
+        return;
+    }
+
+    // Compilation logic copied from ExecutionBuilder::startComputeOnDevice().
+    LOG(DEBUG) << "ExecutionStep::finishSubModel, compilation";
+    sp<Event> preparationEvent = new Event();
+    ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
+    Model model;
+    mSubModel->setHidlModel(&model);
+    mDevice->getInterface()->prepareModel(
+        model, preparationEvent,
+        [&prepareStatus](ErrorStatus status, [[maybe_unused]] const sp<IPreparedModel>& prepared) {
+            prepareStatus = status;
+        });
+    Event::Status eventStatus = preparationEvent->wait();
+    if (prepareStatus != ErrorStatus::NONE || eventStatus != Event::Status::SUCCESS) {
+        LOG(ERROR) << "ExecutionStep::finishSubModel compilation failed:"
+                   << " prepareStatus=" << toString(prepareStatus)
+                   << " eventStatus=" << static_cast<int>(eventStatus);
+    }
+}
+
+void ExecutionStep::dump() const {
+    Model model;
+    mSubModel->setHidlModel(&model);
+    LOG(DEBUG) << "ExecutionStep#" << mIndex
+               << " for " << (mDevice == nullptr ? "CPU" : mDevice->getName())
+               << " submodel: " << toString(model);
+}
+
+void ExecutionPlan::finishSubModels() {
+    findSubModelOutputs();
+    for (const auto& step : mSteps) {
+        step->finishSubModel();
+    }
+}
+
+std::shared_ptr<ExecutionStep> ExecutionPlan::newStep(const std::shared_ptr<Device> device) {
+    auto step = std::make_shared<ExecutionStep>(
+        this, mSteps.size(), std::make_shared<ModelBuilder>(), device);
+    mSteps.push_back(step);
+    return step;
+}
+
+void ExecutionPlan::dump() const {
+    for (const auto& step : mSteps) {
+        step->dump();
+    }
+}
+
 int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) const {
     // This function uses a heuristic approach to partitioning the graph.
     // It should be good enough for the first release.
@@ -211,8 +310,10 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) con
     // Get the list of HAL devices.
     const std::vector<std::shared_ptr<Device>>& devices = DeviceManager::get()->getDrivers();
 
+    const size_t nonCpuDeviceCount = devices.size();
     // The device count is the number of HAL devices + 1. The +1 is for the CPU.
-    const size_t deviceCount = devices.size() + 1;
+    // Note that deviceCount includes CPU, which has no entry in devices[].
+    const size_t deviceCount = nonCpuDeviceCount + 1;
     const size_t operationCount = mOperations.size();
 
     LOG(DEBUG) << "ModelBuilder::partitionTheWork: deviceCount = " << deviceCount
@@ -250,12 +351,13 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) con
     // No easy solution, we need to split the work.
 
     // We keep track of the operations that are ready to run for each device.
-    std::vector<std::forward_list<uint32_t>> perDeviceQueue(deviceCount);
+    std::vector<std::queue<uint32_t>> perDeviceQueue(deviceCount);
 
     // This helper function enqueues the operation on the appropriate queue.
     auto enqueueOnAppropriateDevice = [&](uint32_t operationIndex) {
         int deviceIndex = bestDeviceForOperation[operationIndex];
-        perDeviceQueue[deviceIndex].push_front(operationIndex);
+        perDeviceQueue[deviceIndex].push(operationIndex);
+        LOG(DEBUG) << "enqueueOnAppropriateDevice " << operationIndex << " onto " << deviceIndex;
     };
 
     // This helper function finds a device that has operations ready to process.
@@ -264,7 +366,7 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) con
     // it will have the chance to prepare more of the inputs required by the
     // other devices. This function returns -1 if all queues are empty.
     auto findNextDeviceToProcess = [&]() -> int {
-        for (int i = deviceCount - 1; i-- > 0;) {
+        for (int i = deviceCount - 1; i >= 0; i--) {
             if (!perDeviceQueue[i].empty()) {
                 return i;
             }
@@ -277,28 +379,33 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) con
     while (true) {
         // Find the device we'll do this step for.
         int deviceIndex = findNextDeviceToProcess();
+        LOG(DEBUG) << "findNextDeviceToProcess: " << deviceIndex;
         if (deviceIndex < 0) {
             break;
         }
         // nullptr represents the CPU.
         std::shared_ptr<Device> device =
-                static_cast<size_t>(deviceIndex) < deviceCount ? devices[deviceIndex] : nullptr;
+                static_cast<size_t>(deviceIndex) < nonCpuDeviceCount
+                        ? devices[deviceIndex] : nullptr;
 
         // Assign as much as possible to this device.
-        std::shared_ptr<ExecutionStep> step(
-            new ExecutionStep(std::shared_ptr<ModelBuilder>(new ModelBuilder()), device));
-        plan->addStep(step);
+        std::shared_ptr<ExecutionStep> step = plan->newStep(device);
         auto& queue = perDeviceQueue[deviceIndex];
         while (!queue.empty()) {
             uint32_t operationIndex = queue.front();
-            queue.pop_front();
+            queue.pop();
             step->addOperation(operationIndex, *this);
             tracker.markProcessed(operationIndex, enqueueOnAppropriateDevice);
         }
     }
 
-    // TODO: Visit every step's mSubModelInputs to discover operands
-    // in other steps that must become submodel outputs.
+    plan->finishSubModels();
+    if (WOULD_LOG(DEBUG)) {
+        Model model;
+        setHidlModel(&model);
+        LOG(DEBUG) << "ModelBuilder::partitionTheWork: original model: " << toString(model);
+        plan->dump();
+    }
 
     return ANEURALNETWORKS_NO_ERROR;
 }
