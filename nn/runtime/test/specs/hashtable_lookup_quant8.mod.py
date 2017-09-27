@@ -29,8 +29,8 @@ model = Model()
 # lookup, key, and hits are all int32 stored as float32.
 lookup = Input("lookup", "TENSOR_FLOAT32", "{%d}" % (lookups))
 key = Input("key", "TENSOR_FLOAT32", "{%d}" % (keys))
-value = Input("value", "TENSOR_QUANT8_ASYMM", "0.0f, 127.5f, {%d, %d}" % (rows, features))
-output = Output("output", "TENSOR_QUANT8_ASYMM", "0.0f, 127.5f, {%d, %d}" % (lookups, features))
+value = Input("value", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (rows, features))
+output = Output("output", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (lookups, features))
 hits = Output("hits", "TENSOR_FLOAT32", "{%d}" % (lookups))
 model = model.Operation("HASHTABLE_LOOKUP", lookup, key, value).To(output)
 

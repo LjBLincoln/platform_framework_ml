@@ -1,12 +1,12 @@
 model = Model()
-i1 = Input("op1", "TENSOR_QUANT8_ASYMM", "0.0f, 127.5f, {1, 2, 2, 2}")
-f1 = Input("op2", "TENSOR_QUANT8_ASYMM", "0.0f, 127.5f, {1, 2, 2, 2}")
-b1 = Input("op3", "TENSOR_INT32", "0.0f, 63.75f, {2}")
+i1 = Input("op1", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 2}, 0.5f, 0")
+f1 = Input("op2", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 2}, 0.5f, 0")
+b1 = Input("op3", "TENSOR_INT32", "{2}, 0.25f, 0")
 pad0 = Int32Scalar("pad0", 0)
 act = Int32Scalar("act", 0)
 stride = Int32Scalar("stride", 1)
 cm = Int32Scalar("channelMultiplier", 1)
-output = Output("op4", "TENSOR_QUANT8_ASYMM", "0.0f, 255.0f, {2}")
+output = Output("op4", "TENSOR_QUANT8_ASYMM", "{2}, 1.f, 0")
 
 model = model.Operation("DEPTHWISE_CONV_2D",
                         i1, f1, b1,

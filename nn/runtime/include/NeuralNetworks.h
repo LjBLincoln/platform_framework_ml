@@ -172,10 +172,12 @@ typedef enum {
      * Supported tensor rank: up to 4
      *
      * Inputs:
-     * 0 ~ n: The list on n input tensors, of shape [D0, D1, ..., Daxis(i), ..., Dm]
-     * n+1: An INT32 value, specifying the concatenation axis.
-     * n+2: An INT32 value, and has to be one of the {@link FuseCode} values.
-     *      Specifies the activation to invoke on the result of each addition.
+     * * 0 ~ n: The list on n input tensors, of shape [D0, D1, ..., Daxis(i), ..., Dm].
+     *          For inputs of type {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, all
+     *          input tensors must have the same scale and zeroPoint.
+     * * n+1: An INT32 value, specifying the concatenation axis.
+     * * n+2: An INT32 value, and has to be one of the {@link FuseCode} values.
+     *        Specifies the activation to invoke on the result of each addition.
      *
      * Outputs:
      * * 0: The output, a tensor of the same type as the input tensors.
@@ -506,7 +508,9 @@ typedef enum {
      * * 0: A tensor, specifying the input.
      *
      * Outputs:
-     * * 0: The output tensor of same shape as input0, with range [0.0, 1.0].
+     * * 0: The output tensor of same shape as input0.
+     *      For {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type,
+     *      the scale must be 1.f / 256 and the zeroPoint must be 0.
      */
     ANEURALNETWORKS_LOGISTIC = 14,
 
@@ -872,7 +876,9 @@ typedef enum {
      * * 1: A FLOAT32 value, specifying the positive scaling factor for the exponent, beta.
      *
      * Outputs:
-     * * 0: The output tensor of same shape as input0, with range [0.0, 1.0].
+     * * 0: The output tensor of same shape as input0.
+     *      For {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type,
+     *      the scale must be 1.f / 256 and the zeroPoint must be 0.
      */
     ANEURALNETWORKS_SOFTMAX = 25,
 
