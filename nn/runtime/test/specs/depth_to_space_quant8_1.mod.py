@@ -1,5 +1,5 @@
 model = Model()
-i1 = Input("input", "TENSOR_QUANT8_ASYMM", "0.0f, 127.5f, {1, 1, 1, 8}")
+i1 = Input("input", "TENSOR_QUANT8_ASYMM", "{1, 1, 1, 8}, 0.5f, 0")
 block = Int32Scalar("radius", 2)
 output = Output("output", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 2}")
 

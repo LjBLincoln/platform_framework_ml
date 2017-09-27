@@ -24,7 +24,7 @@ Model createTestModel() {
             .type = OperandType::TENSOR_QUANT8_ASYMM,
             .dimensions = {1, 4},
             .numberOfConsumers = 0,
-            .scale = 0.5f,
+            .scale = 1.f / 256,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::MODEL_OUTPUT,
             .location = {.poolIndex = 0, .offset = 0, .length = 0},
@@ -42,7 +42,7 @@ Model createTestModel() {
     const std::vector<uint32_t> inputIndexes = {0};
     const std::vector<uint32_t> outputIndexes = {2};
     std::vector<uint8_t> operandValues = {
-      0, 0, 0, 0
+      172, 197, 39, 55
     };
     const std::vector<hidl_memory> pools = {};
 
