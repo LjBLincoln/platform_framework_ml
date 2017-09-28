@@ -1442,6 +1442,9 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
  * be copied during processing, modifying the data after this call yields
  * undefined results.
  *
+ * To indicate that an optional operand should be considered missing,
+ * pass nullptr for buffer and 0 for length.
+ *
  * Attempting to modify a model once {@link ANeuralNetworksModel_finish} has been
  * called will return an error.
  *
@@ -1465,6 +1468,9 @@ int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t in
  * of the memory region until all executions using this model have completed.
  * As the data may be copied during processing, modifying the data after this call
  * yields undefined results.
+ *
+ * To indicate that an optional operand should be considered missing,
+ * use {@link ANeuralNetworksModel_setOperandValue} instead, passing nullptr for buffer.
  *
  * Attempting to modify a model once {@link ANeuralNetworksModel_finish} has been
  * called will return an error.
@@ -1651,6 +1657,9 @@ void ANeuralNetworksExecution_free(ANeuralNetworksExecution* execution);
  *
  * <p>The provided buffer must outlive the execution.</p>
  *
+ * If the input is optional, you can indicate that it is omitted by
+ * passing nullptr for buffer and 0 for length.
+ *
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
  * @param execution The execution to be modified.
@@ -1678,6 +1687,10 @@ int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32
  * {@link ANeuralNetworksExecution}.
  *
  * <p>The provided memory must outlive the execution.</p>
+ *
+ * If the input is optional, you can indicate that it is omitted by
+ * using @{Link ANeuralNetworks_setInput} instead, passing nullptr for buffer
+ * and 0 for length.
  *
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
  *
@@ -1708,6 +1721,9 @@ int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execut
  * Associate a user buffer with an output of the model of the
  * {@link ANeuralNetworksExecution}.
  *
+ * If the output is optional, you can indicate that it is omitted by
+ * passing nullptr for buffer and 0 for length.
+ *
  * <p>The provided buffer must outlive the execution.</p>
  *
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
@@ -1735,6 +1751,10 @@ int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int3
 /**
  * Associate part of a memory object with an output of the model of the
  * {@link ANeuralNetworksExecution}.
+ *
+ * If the output is optional, you can indicate that it is omitted by
+ * using @{Link ANeuralNetworks_setOutput} instead, passing nullptr for buffer
+ * and 0 for length.
  *
  * <p>The provided memory must outlive the execution.</p>
  *

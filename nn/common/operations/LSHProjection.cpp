@@ -100,7 +100,7 @@ int running_sign_bit(const RunTimeOperandInfo* input,
     int64_t hash_signature = farmhash::Fingerprint64(key.get(), key_bytes);
     double running_value = static_cast<double>(hash_signature);
     input_ptr += input_item_bytes;
-    if (weight->buffer == nullptr) {
+    if (weight->lifetime == OperandLifeTime::NO_VALUE) {
       score += running_value;
     } else {
       score += reinterpret_cast<float*>(weight->buffer)[i] * running_value;

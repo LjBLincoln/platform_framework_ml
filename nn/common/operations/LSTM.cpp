@@ -412,8 +412,8 @@ bool LSTMCell::Eval() {
 
   // Since we have already checked that weights are all there or none, we can
   // check the existence of only one to the get the condition.
-  const bool use_cifg = (input_to_input_weights_->buffer == nullptr);
-  const bool use_peephole = (cell_to_output_weights_->buffer != nullptr);
+  const bool use_cifg = (input_to_input_weights_->lifetime == OperandLifeTime::NO_VALUE);
+  const bool use_peephole = (cell_to_output_weights_->lifetime != OperandLifeTime::NO_VALUE);
 
   // Index the scratch buffers pointers to the global scratch buffer.
   float* input_gate_scratch = nullptr;
@@ -529,8 +529,9 @@ bool LSTMCell::Eval() {
                            output_gate_scratch);
 
   // For each batch: update the projection and output_state.
-  const bool use_projection_weight = (projection_weights_->buffer != nullptr);
-  const bool use_projection_bias = (projection_bias_->buffer != nullptr);
+  const bool use_projection_weight =
+          (projection_weights_->lifetime != OperandLifeTime::NO_VALUE);
+  const bool use_projection_bias = (projection_bias_->lifetime != OperandLifeTime::NO_VALUE);
   if (use_projection_weight) {
     if (use_projection_bias) {
       VectorBatchVectorAssign(GetBuffer<float>(projection_bias_), n_output,

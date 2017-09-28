@@ -38,9 +38,17 @@ int ModelArgumentInfo::setFromPointer(const Operand& operand,
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
-    state = ModelArgumentInfo::POINTER;
-    locationAndDimension.location = {.poolIndex = 0, .offset = 0, .length = length};
+    if (data == nullptr) {
+        if (length) {
+            LOG(ERROR) << "Setting argument as having no value but non-zero length passed.";
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+        state = ModelArgumentInfo::HAS_NO_VALUE;
+    } else {
+        state = ModelArgumentInfo::POINTER;
+    }
     buffer = data;
+    locationAndLength = {.poolIndex = 0, .offset = 0, .length = length};
     return ANEURALNETWORKS_NO_ERROR;
 }
 
@@ -51,7 +59,7 @@ int ModelArgumentInfo::setFromMemory(const Operand& operand, const ANeuralNetwor
         return n;
     }
     state = ModelArgumentInfo::MEMORY;
-    locationAndDimension.location = {.poolIndex = poolIndex, .offset = offset, .length = length};
+    locationAndLength = {.poolIndex = poolIndex, .offset = offset, .length = length};
     buffer = nullptr;
     return ANEURALNETWORKS_NO_ERROR;
 }
@@ -59,7 +67,7 @@ int ModelArgumentInfo::setFromMemory(const Operand& operand, const ANeuralNetwor
 int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
                                            const ANeuralNetworksOperandType* newType) {
     if (newType == nullptr) {
-        locationAndDimension.dimensions = hidl_vec<uint32_t>();
+        dimensions = hidl_vec<uint32_t>();
     } else {
         uint32_t count = newType->dimensionCount;
         if (static_cast<OperandType>(newType->type) != operand.type ||
@@ -68,7 +76,7 @@ int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
             return ANEURALNETWORKS_BAD_DATA;
         }
         for (uint32_t i = 0; i < count; i++) {
-            locationAndDimension.dimensions[i] = newType->dimensions[i];
+            dimensions[i] = newType->dimensions[i];
         }
     }
     return ANEURALNETWORKS_NO_ERROR;
@@ -165,8 +173,6 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
 
     // TODO validate that we have full types for all inputs and outputs,
     // that the graph is not cyclic,
-    /*
-       TODO: For non-optional inputs, also verify that buffers are not null.
 
     for (auto& p : mInputs) {
         if (p.state == ModelArgumentInfo::UNSPECIFIED) {
@@ -174,7 +180,6 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
             return ANEURALNETWORKS_BAD_DATA;
         }
     }
-    */
     for (auto& p : mOutputs) {
         if (p.state == ModelArgumentInfo::UNSPECIFIED) {
             LOG(ERROR) << "ANeuralNetworksExecution_startCompute not all outputs specified";
@@ -262,7 +267,7 @@ int StepExecutor::allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>*
     int64_t total = 0;
     for (auto& info : *args) {
         if (info.state == ModelArgumentInfo::POINTER) {
-            DataLocation& loc = info.locationAndDimension.location;
+            DataLocation& loc = info.locationAndLength;
             // TODO Good enough alignment?
             total += alignBytesNeeded(static_cast<uint32_t>(total), loc.length);
             loc.poolIndex = nextPoolIndex;
@@ -283,12 +288,16 @@ int StepExecutor::allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>*
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-static void copyLocationAndDimension(const std::vector<ModelArgumentInfo>& argumentInfos,
+static void setRequestArgumentArray(const std::vector<ModelArgumentInfo>& argumentInfos,
                                      hidl_vec<RequestArgument>* ioInfos) {
     size_t count = argumentInfos.size();
     ioInfos->resize(count);
     for (size_t i = 0; i < count; i++) {
-        (*ioInfos)[i] = argumentInfos[i].locationAndDimension;
+        const auto& info = argumentInfos[i];
+        (*ioInfos)[i] = { .hasNoValue = info.state == ModelArgumentInfo::HAS_NO_VALUE,
+                          .location = info.locationAndLength,
+                          .dimensions = info.dimensions,
+                        };
     }
 }
 
@@ -316,10 +325,10 @@ void StepExecutor::mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutpu
             break;
         case ModelArgumentInfo::MEMORY: {
             const uint32_t builderPoolIndex =
-                    builderInputOrOutput.locationAndDimension.location.poolIndex;
+                    builderInputOrOutput.locationAndLength.poolIndex;
             const Memory* memory = mExecutionBuilder->mMemories[builderPoolIndex];
             const uint32_t executorPoolIndex = mMemories.add(memory);
-            executorInputOrOutput->locationAndDimension.location.poolIndex =
+            executorInputOrOutput->locationAndLength.poolIndex =
                     executorPoolIndex;
             break;
         }
@@ -386,7 +395,7 @@ int StepExecutor::startComputeOnDevice(sp<Event>* event) {
     // inputPointerArguments.update();
     for (auto& info : mInputs) {
         if (info.state == ModelArgumentInfo::POINTER) {
-            DataLocation& loc = info.locationAndDimension.location;
+            DataLocation& loc = info.locationAndLength;
             uint8_t* data = nullptr;
             int n = inputPointerArguments.getPointer(&data);
             if (n != ANEURALNETWORKS_NO_ERROR) {
@@ -398,8 +407,8 @@ int StepExecutor::startComputeOnDevice(sp<Event>* event) {
     // TODO: Add inputPointerArguments.commit() and .update() at all the right places
 
     Request request;
-    copyLocationAndDimension(mInputs, &request.inputs);
-    copyLocationAndDimension(mOutputs, &request.outputs);
+    setRequestArgumentArray(mInputs, &request.inputs);
+    setRequestArgumentArray(mOutputs, &request.outputs);
     uint32_t count = mMemories.size();
     request.pools.resize(count);
     for (uint32_t i = 0; i < count; i++) {
@@ -443,7 +452,7 @@ int StepExecutor::startComputeOnDevice(sp<Event>* event) {
     // TODO: outputMemory->update(); outputMemory->commit()
     for (auto& info : mOutputs) {
         if (info.state == ModelArgumentInfo::POINTER) {
-            DataLocation& loc = info.locationAndDimension.location;
+            DataLocation& loc = info.locationAndLength;
             uint8_t* data = nullptr;
             int n = outputPointerArguments.getPointer(&data);
             if (n != ANEURALNETWORKS_NO_ERROR) {
@@ -493,9 +502,9 @@ int StepExecutor::startComputeOnCpu(sp<Event>* event) {
             if (argumentInfo.state == ModelArgumentInfo::POINTER) {
                 RunTimePoolInfo runTimeInfo = {
                             .buffer = static_cast<uint8_t*>(argumentInfo.buffer)};
-                argumentInfo.locationAndDimension.location.poolIndex =
+                argumentInfo.locationAndLength.poolIndex =
                             static_cast<uint32_t>(runTimePoolInfos.size());
-                argumentInfo.locationAndDimension.location.offset = 0;
+                argumentInfo.locationAndLength.offset = 0;
                 runTimePoolInfos.push_back(runTimeInfo);
             }
         }
@@ -504,8 +513,8 @@ int StepExecutor::startComputeOnCpu(sp<Event>* event) {
     fixPointerArguments(mOutputs);
 
     Request request;
-    copyLocationAndDimension(mInputs, &request.inputs);
-    copyLocationAndDimension(mOutputs, &request.outputs);
+    setRequestArgumentArray(mInputs, &request.inputs);
+    setRequestArgumentArray(mOutputs, &request.outputs);
 
     // TODO: should model be moved with a std::cref?
     std::thread thread(asyncStartComputeOnCpu, model, std::move(request),
