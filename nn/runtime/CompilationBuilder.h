@@ -17,6 +17,7 @@
 #ifndef ANDROID_ML_NN_RUNTIME_COMPILATION_BUILDER_H
 #define ANDROID_ML_NN_RUNTIME_COMPILATION_BUILDER_H
 
+#include "ExecutionPlan.h"
 #include "NeuralNetworks.h"
 
 namespace android {
@@ -38,9 +39,9 @@ public:
     int createExecution(ExecutionBuilder** execution);
 
 private:
-    // int startComputeOnCpu(const Model& model, sp<Event>* event);
-
     const ModelBuilder* mModel;
+
+    ExecutionPlan mPlan;
 
     // Whether the application prefers to go fast or use low power for this execution.
     int32_t mPreference = ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER;

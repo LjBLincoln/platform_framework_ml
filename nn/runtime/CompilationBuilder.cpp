@@ -20,6 +20,7 @@
 
 #include "ExecutionBuilder.h"
 #include "ExecutionPlan.h"
+#include "Manager.h"
 #include "ModelBuilder.h"
 #include "Utils.h"
 
@@ -40,9 +41,12 @@ int CompilationBuilder::finish() {
     mFinished = true;
 
 #ifdef NN_DEBUGGABLE
-    if (getProp("debug.nn.partition.test")) {
-        ExecutionPlan plan;
-        mModel->partitionTheWork(mPreference, &plan);
+    if (uint32_t p = DeviceManager::get()->getPartitioning()) {
+        int n = mModel->partitionTheWork(mPreference, &mPlan);
+        if ((p > 1) && (mPlan.getSimplePlan() == ANEURALNETWORKS_OP_FAILED)) {
+            nnAssert(n != ANEURALNETWORKS_NO_ERROR);
+            return n;
+        }
     }
 #endif  // NN_DEBUGGABLE
 
