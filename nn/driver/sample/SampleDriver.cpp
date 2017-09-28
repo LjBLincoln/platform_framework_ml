@@ -29,49 +29,13 @@ namespace android {
 namespace nn {
 namespace sample_driver {
 
-SampleDriver::~SampleDriver() {}
-
-Return<void> SampleDriver::getCapabilities(getCapabilities_cb cb) {
-    SetMinimumLogSeverity(base::VERBOSE);
-    LOG(DEBUG) << "SampleDriver::getCapabilities()";
-
-    Capabilities capabilities = {
-        .float32Performance = {
-            .execTime = 132.0f, // nanoseconds?
-            .powerUsage = 1.0f  // picoJoules
-        },
-        .quantized8Performance = {
-            .execTime = 100.0f, // nanoseconds?
-            .powerUsage = 1.0f  // picoJoules
-        }
-    };
-
-    cb(ErrorStatus::NONE, capabilities);
-    return Void();
-}
-
-Return<void> SampleDriver::getSupportedOperations(const Model& model,
-                                                  getSupportedOperations_cb cb) {
-    LOG(DEBUG) << "SampleDriver::getSupportedOperations()";
-    if (validateModel(model)) {
-        std::vector<bool> supported(model.operations.size(), true);
-        cb(ErrorStatus::NONE, supported);
-    }
-    else {
-        std::vector<bool> supported;
-        cb(ErrorStatus::INVALID_ARGUMENT, supported);
-    }
-    return Void();
-}
-
 Return<void> SampleDriver::prepareModel(const Model& model, const sp<IEvent>& event,
                                         prepareModel_cb cb) {
-    LOG(DEBUG) << "SampleDriver::prepareModel(" << toString(model) << ")"; // TODO errror
+    LOG(DEBUG) << "prepareModel(" << toString(model) << ")"; // TODO errror
     if (validateModel(model)) {
         // TODO: make asynchronous later
         cb(ErrorStatus::NONE, new SamplePreparedModel(model));
-    }
-    else {
+    } else {
         cb(ErrorStatus::INVALID_ARGUMENT, nullptr);
     }
 
@@ -81,16 +45,20 @@ Return<void> SampleDriver::prepareModel(const Model& model, const sp<IEvent>& ev
 }
 
 Return<DeviceStatus> SampleDriver::getStatus() {
-    LOG(DEBUG) << "SampleDriver::getStatus()";
+    LOG(DEBUG) << "getStatus()";
     return DeviceStatus::AVAILABLE;
 }
 
-SamplePreparedModel::SamplePreparedModel(const Model& model) {
-    // Make a copy of the model, as we need to preserve it.
-    mModel = model;
+int SampleDriver::run() {
+    android::hardware::configureRpcThreadpool(4, true);
+    if (registerAsService(mName) != android::OK) {
+        LOG(ERROR) << "Could not register service";
+        return 1;
+    }
+    android::hardware::joinRpcThreadpool();
+    LOG(ERROR) << "Service exited!";
+    return 1;
 }
-
-SamplePreparedModel::~SamplePreparedModel() {}
 
 static bool mapPools(std::vector<RunTimePoolInfo>* poolInfos, const hidl_vec<hidl_memory>& pools) {
     poolInfos->resize(pools.size());
@@ -118,16 +86,16 @@ void SamplePreparedModel::asyncExecute(const Request& request, const sp<IEvent>&
     CpuExecutor executor;
     int n = executor.run(mModel, request, poolInfo);
     LOG(DEBUG) << "executor.run returned " << n;
-    ErrorStatus executionStatus = n == ANEURALNETWORKS_NO_ERROR ?
-            ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
+    ErrorStatus executionStatus =
+            n == ANEURALNETWORKS_NO_ERROR ? ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
     Return<void> returned = event->notify(executionStatus);
     if (!returned.isOk()) {
-        LOG(ERROR) << "hidl callback failed to return properly: " << returned.description();
+        LOG(ERROR) << " hidl callback failed to return properly: " << returned.description();
     }
 }
 
 Return<ErrorStatus> SamplePreparedModel::execute(const Request& request, const sp<IEvent>& event) {
-    LOG(DEBUG) << "SampleDriver::execute(" << toString(request) << ")";
+    LOG(DEBUG) << "execute(" << toString(request) << ")";
     if (!validateRequest(request, mModel)) {
         event->notify(ErrorStatus::INVALID_ARGUMENT);
         return ErrorStatus::INVALID_ARGUMENT;
@@ -135,7 +103,7 @@ Return<ErrorStatus> SamplePreparedModel::execute(const Request& request, const s
 
     // This thread is intentionally detached because the sample driver service
     // is expected to live forever.
-    std::thread([this, request, event]{ asyncExecute(request, event); }).detach();
+    std::thread([this, request, event] { asyncExecute(request, event); }).detach();
 
     return ErrorStatus::NONE;
 }
@@ -143,17 +111,3 @@ Return<ErrorStatus> SamplePreparedModel::execute(const Request& request, const s
 } // namespace sample_driver
 } // namespace nn
 } // namespace android
-
-using android::nn::sample_driver::SampleDriver;
-
-int main() {
-    android::sp<SampleDriver> driver = new SampleDriver();
-    android::hardware::configureRpcThreadpool(4, true /* will join */);
-    if (driver->registerAsService("sample") != android::OK) {
-        ALOGE("Could not register service");
-        return 1;
-    }
-    android::hardware::joinRpcThreadpool();
-    ALOGE("Service exited!");
-    return 1;
-}

@@ -58,12 +58,6 @@ private:
 // Use get() to retrieve it.
 class DeviceManager {
 public:
-    // TODO For now, just return the first one.
-    // TODO deprecate
-    std::shared_ptr<Device> getAvailableDriver() const {
-        return mUseCpuOnly || mDevices.empty() ? nullptr : mDevices[0];
-    }
-
     const std::vector<std::shared_ptr<Device>>& getDrivers() const {
         if (mUseCpuOnly) {
             return mNoDevices;
