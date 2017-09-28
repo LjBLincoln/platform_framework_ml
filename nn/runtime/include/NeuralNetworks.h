@@ -217,7 +217,8 @@ typedef enum {
      *      For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
      *      also be of {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
      *      For input tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the bias
-     *      should be of {@link ANEURALNETWORKS_TENSOR_INT32}.
+     *      should be of {@link ANEURALNETWORKS_TENSOR_INT32}, with zeroPoint of 0 and
+     *      bias_scale == input_scale * filter_scale.
      * * 3: An INT32 value, specifying the padding on the left, in the ‘width’ dimension.
      * * 4: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
      * * 5: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
@@ -229,14 +230,16 @@ typedef enum {
      *
      * Outputs:
      * * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth_out].
+     *      For output tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the following
+     *      condition must be satisfied: output_scale > input_scale * filter_scale.
      */
     ANEURALNETWORKS_CONV_2D = 3,
 
     /** Performs a depthwise 2-D convolution operation.
      *
      * Given an input tensor of shape [batches, height, width, depth_in] and a filter
-     * tensor of shape [depth_out, filter_height, filter_width, depth_in] containing
-     * in_channels convolutional filters of depth 1, DEPTHWISE_CONV applies a different
+     * tensor of shape [1, filter_height, filter_width, depth_out] containing
+     * depth_out convolutional filters of depth 1, DEPTHWISE_CONV applies a different
      * filter to each input channel (expanding from 1 channel to channel_multiplier channels
      * for each), then concatenates the results together.
      *
@@ -248,7 +251,7 @@ typedef enum {
      *     output[b, i, j, k * channel_multiplier + q] =
      *         sum_{di, dj} (
      *             input[b, strides[1] * i + di, strides[2] * j + dj, k] *
-     *             filter[di, dj, k, q]
+     *             filter[1, di, dj, k * channel_multiplier + q]
      *         )
      *
      * Supported tensor types:
@@ -265,7 +268,8 @@ typedef enum {
      *      For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
      *      also be of {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
      *      For input tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the bias
-     *      should be of {@link ANEURALNETWORKS_TENSOR_INT32}.
+     *      should be of {@link ANEURALNETWORKS_TENSOR_INT32}, with zeroPoint of 0 and
+     *      bias_scale == input_scale * filter_scale.
      * * 3: An INT32 value, specifying the padding on the left, in the ‘width’ dimension.
      * * 4: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
      * * 5: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
@@ -278,6 +282,8 @@ typedef enum {
      *
      * Outputs:
      * * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth_out].
+     *      For output tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the following
+     *      condition must be satisfied: output_scale > input_scale * filter_scale.
      */
     ANEURALNETWORKS_DEPTHWISE_CONV_2D = 4,
 
@@ -388,16 +394,19 @@ typedef enum {
      *      and “input_size” is the size of the input.
      * * 1: A 2-D tensor, specifying the weights, of shape [num_units, input_size], where
      *      "num_units" corresponds to the number of output nodes.
-     * * 2: A 1-D tensor, of shape [num_units], specifying the bias.
+     * * 2: A 1-D tensor, of shape [depth_out], specifying the bias.
      *      For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
      *      also be of {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
      *      For input tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the bias
-     *      should be of {@link ANEURALNETWORKS_TENSOR_INT32}.
+     *      should be of {@link ANEURALNETWORKS_TENSOR_INT32}, with zeroPoint of 0 and
+     *      bias_scale == input_scale * filter_scale.
      * * 3: An INT32 value, and has to be one of the {@link FuseCode} values.
      *      Specifies the activation to invoke on the result of each addition.
      *
      * Outputs:
      * * 0: The output tensor, of shape [batch_size, num_units].
+     *      For output tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the following
+     *      condition must be satisfied: output_scale > input_scale * filter_scale.
      */
     ANEURALNETWORKS_FULLY_CONNECTED = 9,
 
