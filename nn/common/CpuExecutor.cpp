@@ -262,6 +262,16 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                      activation,
                                      reinterpret_cast<float*>(out.buffer),
                                      outShape);
+            } else if (in1.type == OperandType::TENSOR_QUANT8_ASYMM) {
+                success = addMulPrepare(in1.shape(), in2.shape(), &outShape) &&
+                          allocateIfNeeded(&out, outShape) &&
+                          addQuant8(reinterpret_cast<const uint8_t*>(in1.buffer),
+                                    in1.shape(),
+                                    reinterpret_cast<const uint8_t*>(in2.buffer),
+                                    in2.shape(),
+                                    activation,
+                                    reinterpret_cast<uint8_t*>(out.buffer),
+                                    outShape);
             }
         } break;
         case OperationType::MUL: {
@@ -285,6 +295,16 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                      activation,
                                      reinterpret_cast<float*>(out.buffer),
                                      outShape);
+            } else if (in1.type == OperandType::TENSOR_QUANT8_ASYMM) {
+                success = addMulPrepare(in1.shape(), in2.shape(), &outShape) &&
+                          allocateIfNeeded(&out, outShape) &&
+                          mulQuant8(reinterpret_cast<const uint8_t*>(in1.buffer),
+                                    in1.shape(),
+                                    reinterpret_cast<const uint8_t*>(in2.buffer),
+                                    in2.shape(),
+                                    activation,
+                                    reinterpret_cast<uint8_t*>(out.buffer),
+                                    outShape);
             }
         } break;
         case OperationType::FLOOR: {

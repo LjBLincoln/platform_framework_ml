@@ -187,17 +187,16 @@ int validateOperandType(const ANeuralNetworksOperandType& type, const char* tag,
         LOG(ERROR) << tag << " OperandType invalid type " << type.type;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    /* TODO validate the quantization info.
-    if (type.offset != 0.f && type.scale == 0.f) {
-        LOG(ERROR) << ("%s OperandType invalid offset %f and scale %f", tag, type.offset,
-    type.scale); return ANEURALNETWORKS_BAD_DATA;
-    }
-    if (type.scale != 0.f &&
-        (type.type != ANEURALNETWORKS_FLOAT32)) {
-            LOG(ERROR) << ("%s OperandType scale %f with float type %u", tag, type.scale,
-    type.type); return ANEURALNETWORKS_BAD_DATA;
+    if (type.type == ANEURALNETWORKS_TENSOR_QUANT8_ASYMM) {
+        if (type.zeroPoint < 0 || type.zeroPoint > 255) {
+            LOG(ERROR) << tag << " OperandType invalid zeroPoint " << type.zeroPoint;
+            return ANEURALNETWORKS_BAD_DATA;
         }
-     */
+        if (type.scale < 0.f) {
+            LOG(ERROR) << tag << " OperandType invalid scale " << type.scale;
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+    }
     return ANEURALNETWORKS_NO_ERROR;
 }
 

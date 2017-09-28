@@ -80,8 +80,8 @@ typedef enum {
      *
      * Attached to this tensor are two numbers that can be used to convert
      * the 8 bit integer to the real value and vice versa.  These two numbers are:
-     * - scale: a 32 bit floating point value
-     * - zeroPoint: an 32 bit integer
+     * - scale: a 32 bit non-negative floating point value.
+     * - zeroPoint: an 32 bit integer, in range [0, 255].
      *
      * The formula is:
      * real_value = (integer_value - zeroPoint) * scale.
@@ -115,6 +115,7 @@ typedef enum {
      *
      * Supported tensor types:
      * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
      *
      * Supported tensor rank: up to 4
      *
@@ -713,6 +714,7 @@ typedef enum {
      *
      * Supported tensor types:
      * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
      *
      * Supported tensor rank: up to 4
      *
@@ -724,6 +726,8 @@ typedef enum {
      *
      * Outputs:
      * * 0: The product, a tensor of the same type as input0.
+     *      For output tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the following
+     *      condition must be satisfied: output_scale > input1_scale * input2_scale.
      */
     ANEURALNETWORKS_MUL = 18,
 
