@@ -171,6 +171,48 @@ uint32_t alignBytesNeeded(uint32_t index, size_t length) {
     return extra;
 }
 
+// Validates the type. The used dimensions can be underspecified.
+int validateOperandType(const ANeuralNetworksOperandType& type, const char* tag,
+                        bool allowPartial) {
+    if (!allowPartial) {
+        for (uint32_t i = 0; i < type.dimensionCount; i++) {
+            if (type.dimensions[i] == 0) {
+                LOG(ERROR) << tag << " OperandType invalid dimensions[" << i
+                           << "] = " << type.dimensions[i];
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+        }
+    }
+    if (!validCode(kNumberOfDataTypes, kNumberOfDataTypesOEM, type.type)) {
+        LOG(ERROR) << tag << " OperandType invalid type " << type.type;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    /* TODO validate the quantization info.
+    if (type.offset != 0.f && type.scale == 0.f) {
+        LOG(ERROR) << ("%s OperandType invalid offset %f and scale %f", tag, type.offset,
+    type.scale); return ANEURALNETWORKS_BAD_DATA;
+    }
+    if (type.scale != 0.f &&
+        (type.type != ANEURALNETWORKS_FLOAT32)) {
+            LOG(ERROR) << ("%s OperandType scale %f with float type %u", tag, type.scale,
+    type.type); return ANEURALNETWORKS_BAD_DATA;
+        }
+     */
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int validateOperandList(uint32_t count, const uint32_t* list, uint32_t operandCount,
+                        const char* tag) {
+    for (uint32_t i = 0; i < count; i++) {
+        if (list[i] >= operandCount) {
+            LOG(ERROR) << tag << " invalid operand index at " << i << " = " << list[i]
+                       << ", operandCount " << operandCount;
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+    }
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
 static bool validOperandIndexes(const hidl_vec<uint32_t> indexes, size_t operandCount) {
     for (uint32_t i : indexes) {
         if (i >= operandCount) {
