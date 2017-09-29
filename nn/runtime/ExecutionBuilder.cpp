@@ -89,18 +89,29 @@ ExecutionBuilder::ExecutionBuilder(const CompilationBuilder* compilation) :
 }
 
 int ExecutionBuilder::setInput(uint32_t index, const ANeuralNetworksOperandType* type,
-                               const void* buffer, uint32_t length) {
+                               const void* buffer, size_t length) {
     uint32_t count = static_cast<uint32_t>(mInputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setInput bad index " << index << " " << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
+    if (type != nullptr) {
+        int n = validateOperandType(*type, "ANeuralNetworksExecution_setInput", false);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+    }
+    if (length > 0xFFFFFFFF) {
+        LOG(ERROR) << "ANeuralNetworksExecution_setInput input exceeds max length " << length;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    uint32_t l = static_cast<uint32_t>(length);
     return mInputs[index].setFromPointer(mModel->getInputOperand(index), type,
-                                         const_cast<void*>(buffer), length);
+                                         const_cast<void*>(buffer), l);
 }
 
 int ExecutionBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
-                                         const Memory* memory, uint32_t offset, uint32_t length) {
+                                         const Memory* memory, size_t offset, size_t length) {
     uint32_t count = static_cast<uint32_t>(mInputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setInputFromMemory bad index " << index << " "
@@ -110,23 +121,35 @@ int ExecutionBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOp
     if (!memory->validateSize(offset, length)) {
         return ANEURALNETWORKS_BAD_DATA;
     }
+    // TODO validate the rest
     uint32_t poolIndex = mMemories.add(memory);
     return mInputs[index].setFromMemory(mModel->getInputOperand(index), type, poolIndex, offset,
                                         length);
 }
 
 int ExecutionBuilder::setOutput(uint32_t index, const ANeuralNetworksOperandType* type, void* buffer,
-                                uint32_t length) {
+                                size_t length) {
     uint32_t count = static_cast<uint32_t>(mOutputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setOutput bad index " << index << " " << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    return mOutputs[index].setFromPointer(mModel->getOutputOperand(index), type, buffer, length);
+    if (type != nullptr) {
+        int n = validateOperandType(*type, "ANeuralNetworksExecution_setOutput", false);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+    }
+    if (length > 0xFFFFFFFF) {
+        LOG(ERROR) << "ANeuralNetworksExecution_setOutput input exceeds max length " << length;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    uint32_t l = static_cast<uint32_t>(length);
+    return mOutputs[index].setFromPointer(mModel->getOutputOperand(index), type, buffer, l);
 }
 
 int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
-                                          const Memory* memory, uint32_t offset, uint32_t length) {
+                                          const Memory* memory, size_t offset, size_t length) {
     uint32_t count = static_cast<uint32_t>(mOutputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setOutputFromMemory bad index " << index << " "
@@ -136,6 +159,7 @@ int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksO
     if (!memory->validateSize(offset, length)) {
         return ANEURALNETWORKS_BAD_DATA;
     }
+    // TODO validate the rest
     uint32_t poolIndex = mMemories.add(memory);
     return mOutputs[index].setFromMemory(mModel->getOutputOperand(index), type, poolIndex, offset,
                                          length);

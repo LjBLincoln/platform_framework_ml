@@ -36,6 +36,10 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperand can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
+    int n = validateOperandType(type, "ANeuralNetworksModel_addOperand", true);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
     size_t idx = mOperands.size();
     if (idx >= MAX_NUMBER_OF_OPERANDS) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperand exceed max operands";
@@ -104,6 +108,21 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type, uint32_t input
         LOG(ERROR) << "ANeuralNetworksModel_addOperation can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
+    if (!validCode(kNumberOfOperationTypes, kNumberOfOperationTypesOEM, type)) {
+        LOG(ERROR) << "ANeuralNetworksModel_addOperation invalid operations type " << type;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    int n = validateOperandList(inputCount, inputs, operandCount(),
+                                "ANeuralNetworksModel_addOperation inputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    n = validateOperandList(outputCount, outputs, operandCount(),
+                            "ANeuralNetworksModel_addOperation outputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+
     uint32_t operationIndex = operationCount();
     if (operationIndex >= MAX_NUMBER_OF_OPERATIONS) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperation exceed max operations";
@@ -127,6 +146,16 @@ int ModelBuilder::setInputsAndOutputs(uint32_t inputCount, const uint32_t* input
     if (mCompletedModel) {
         LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
+    }
+    int n = validateOperandList(inputCount, inputs, operandCount(),
+                                "ANeuralNetworksModel_setInputsAndOutputs inputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    n = validateOperandList(outputCount, outputs, operandCount(),
+                            "ANeuralNetworksModel_setInputsAndOutputs outputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
     }
 
     // Makes a copy of the index list, validates the arguments, and changes
