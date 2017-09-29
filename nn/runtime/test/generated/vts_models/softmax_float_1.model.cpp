@@ -42,7 +42,7 @@ Model createTestModel() {
     const std::vector<uint32_t> inputIndexes = {0};
     const std::vector<uint32_t> outputIndexes = {2};
     std::vector<uint8_t> operandValues = {
-      0, 0, 0, 0
+      189, 55, 134, 53
     };
     const std::vector<hidl_memory> pools = {};
 
