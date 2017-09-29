@@ -51,8 +51,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::LSH_PROJECTION,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::LSH_PROJECTION,
             .inputs = {0, 1, 2, 3},
             .outputs = {4},
         }

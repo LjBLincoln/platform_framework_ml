@@ -42,8 +42,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::ADD,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::ADD,
             .inputs = {0, 2, 1},
             .outputs = {3},
         }

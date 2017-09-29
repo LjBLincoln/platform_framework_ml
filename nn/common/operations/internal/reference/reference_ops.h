@@ -159,8 +159,8 @@ inline void NdArrayDescsForElementwiseBroadcast(const Dims<N>& input0_dims,
 template <FusedActivationFunctionType Ac>
 void Conv(const float* input_data, const Dims<4>& input_dims,
           const float* filter_data, const Dims<4>& filter_dims,
-          const float* bias_data, const Dims<4>& bias_dims, int stride,
-          int pad_width, int pad_height, float* output_data,
+          const float* bias_data, const Dims<4>& bias_dims, int stride_width,
+          int stride_height, int pad_width, int pad_height, float* output_data,
           const Dims<4>& output_dims, float* im2col_data,
           const Dims<4>& im2col_dims) {
   (void)im2col_data;  // only used in optimized code.
@@ -181,8 +181,8 @@ void Conv(const float* input_data, const Dims<4>& input_dims,
     for (int out_y = 0; out_y < output_height; ++out_y) {
       for (int out_x = 0; out_x < output_width; ++out_x) {
         for (int out_channel = 0; out_channel < output_depth; ++out_channel) {
-          const int in_x_origin = (out_x * stride) - pad_width;
-          const int in_y_origin = (out_y * stride) - pad_height;
+          const int in_x_origin = (out_x * stride_width) - pad_width;
+          const int in_y_origin = (out_y * stride_height) - pad_height;
           float total = 0.f;
           for (int filter_y = 0; filter_y < filter_height; ++filter_y) {
             for (int filter_x = 0; filter_x < filter_width; ++filter_x) {
@@ -219,8 +219,8 @@ template <FusedActivationFunctionType Ac>
 void Conv(const uint8* input_data, const Dims<4>& input_dims,
           int32 input_offset, const uint8* filter_data,
           const Dims<4>& filter_dims, int32 filter_offset,
-          const int32* bias_data, const Dims<4>& bias_dims, int stride,
-          int pad_width, int pad_height, int32 output_offset,
+          const int32* bias_data, const Dims<4>& bias_dims, int stride_width,
+          int stride_height, int pad_width, int pad_height, int32 output_offset,
           int32 output_multiplier, int output_shift,
           int32 output_activation_min, int32 output_activation_max,
           uint8* output_data, const Dims<4>& output_dims, uint8* im2col_data,
@@ -252,8 +252,8 @@ void Conv(const uint8* input_data, const Dims<4>& input_dims,
     for (int out_y = 0; out_y < output_height; ++out_y) {
       for (int out_x = 0; out_x < output_width; ++out_x) {
         for (int out_channel = 0; out_channel < output_depth; ++out_channel) {
-          const int in_x_origin = (out_x * stride) - pad_width;
-          const int in_y_origin = (out_y * stride) - pad_height;
+          const int in_x_origin = (out_x * stride_width) - pad_width;
+          const int in_y_origin = (out_y * stride_height) - pad_height;
           int32 acc = 0;
           for (int filter_y = 0; filter_y < filter_height; ++filter_y) {
             for (int filter_x = 0; filter_x < filter_width; ++filter_x) {
@@ -1154,7 +1154,8 @@ inline int NodeOffset(int b, int h, int w, int height, int width) {
 }
 
 template <FusedActivationFunctionType Ac>
-void AveragePool(const float* input_data, const Dims<4>& input_dims, int stride,
+void AveragePool(const float* input_data, const Dims<4>& input_dims,
+                 int stride_width, int stride_height,
                  int pad_width, int pad_height, int filter_width,
                  int filter_height, float* output_data,
                  const Dims<4>& output_dims) {
@@ -1168,8 +1169,8 @@ void AveragePool(const float* input_data, const Dims<4>& input_dims, int stride,
     for (int out_y = 0; out_y < output_height; ++out_y) {
       for (int out_x = 0; out_x < output_width; ++out_x) {
         for (int channel = 0; channel < depth; ++channel) {
-          const int in_x_origin = (out_x * stride) - pad_width;
-          const int in_y_origin = (out_y * stride) - pad_height;
+          const int in_x_origin = (out_x * stride_width) - pad_width;
+          const int in_y_origin = (out_y * stride_height) - pad_height;
           // Compute the boundaries of the filter region clamped so as to
           // ensure that the filter window fits in the input array.
           const int filter_x_start = std::max(0, -in_x_origin);
@@ -1201,7 +1202,8 @@ void AveragePool(const float* input_data, const Dims<4>& input_dims, int stride,
 }
 
 template <FusedActivationFunctionType Ac>
-void AveragePool(const uint8* input_data, const Dims<4>& input_dims, int stride,
+void AveragePool(const uint8* input_data, const Dims<4>& input_dims,
+                 int stride_width, int stride_height,
                  int pad_width, int pad_height, int filter_width,
                  int filter_height, int32 output_activation_min,
                  int32 output_activation_max, uint8* output_data,
@@ -1226,8 +1228,8 @@ void AveragePool(const uint8* input_data, const Dims<4>& input_dims, int stride,
     for (int out_y = 0; out_y < output_height; ++out_y) {
       for (int out_x = 0; out_x < output_width; ++out_x) {
         for (int channel = 0; channel < depth; ++channel) {
-          const int in_x_origin = (out_x * stride) - pad_width;
-          const int in_y_origin = (out_y * stride) - pad_height;
+          const int in_x_origin = (out_x * stride_width) - pad_width;
+          const int in_y_origin = (out_y * stride_height) - pad_height;
           // Compute the boundaries of the filter region clamped so as to
           // ensure that the filter window fits in the input array.
           const int filter_x_start = std::max(0, -in_x_origin);
@@ -1260,7 +1262,8 @@ void AveragePool(const uint8* input_data, const Dims<4>& input_dims, int stride,
 }
 
 template <FusedActivationFunctionType Ac>
-void L2Pool(const float* input_data, const Dims<4>& input_dims, int stride,
+void L2Pool(const float* input_data, const Dims<4>& input_dims,
+            int stride_width, int stride_height,
             int pad_width, int pad_height, int filter_width, int filter_height,
             float* output_data, const Dims<4>& output_dims) {
   const int batches = MatchingArraySize(input_dims, 3, output_dims, 3);
@@ -1273,8 +1276,8 @@ void L2Pool(const float* input_data, const Dims<4>& input_dims, int stride,
     for (int out_y = 0; out_y < output_height; ++out_y) {
       for (int out_x = 0; out_x < output_width; ++out_x) {
         for (int channel = 0; channel < depth; ++channel) {
-          const int in_x_origin = (out_x * stride) - pad_width;
-          const int in_y_origin = (out_y * stride) - pad_height;
+          const int in_x_origin = (out_x * stride_width) - pad_width;
+          const int in_y_origin = (out_y * stride_height) - pad_height;
           // Compute the boundaries of the filter region clamped so as to
           // ensure that the filter window fits in the input array.
           const int filter_x_start = std::max(0, -in_x_origin);
@@ -1307,7 +1310,8 @@ void L2Pool(const float* input_data, const Dims<4>& input_dims, int stride,
 }
 
 template <FusedActivationFunctionType Ac>
-void MaxPool(const float* input_data, const Dims<4>& input_dims, int stride,
+void MaxPool(const float* input_data, const Dims<4>& input_dims,
+             int stride_width, int stride_height,
              int pad_width, int pad_height, int filter_width, int filter_height,
              float* output_data, const Dims<4>& output_dims) {
   const int batches = MatchingArraySize(input_dims, 3, output_dims, 3);
@@ -1320,8 +1324,8 @@ void MaxPool(const float* input_data, const Dims<4>& input_dims, int stride,
     for (int out_y = 0; out_y < output_height; ++out_y) {
       for (int out_x = 0; out_x < output_width; ++out_x) {
         for (int channel = 0; channel < depth; ++channel) {
-          const int in_x_origin = (out_x * stride) - pad_width;
-          const int in_y_origin = (out_y * stride) - pad_height;
+          const int in_x_origin = (out_x * stride_width) - pad_width;
+          const int in_y_origin = (out_y * stride_height) - pad_height;
           // Compute the boundaries of the filter region clamped so as to
           // ensure that the filter window fits in the input array.
           const int filter_x_start = std::max(0, -in_x_origin);
@@ -1351,7 +1355,8 @@ void MaxPool(const float* input_data, const Dims<4>& input_dims, int stride,
 }
 
 template <FusedActivationFunctionType Ac>
-void MaxPool(const uint8* input_data, const Dims<4>& input_dims, int stride,
+void MaxPool(const uint8* input_data, const Dims<4>& input_dims,
+             int stride_width, int stride_height,
              int pad_width, int pad_height, int filter_width, int filter_height,
              int32 output_activation_min, int32 output_activation_max,
              uint8* output_data, const Dims<4>& output_dims) {
@@ -1377,8 +1382,8 @@ void MaxPool(const uint8* input_data, const Dims<4>& input_dims, int stride,
     for (int out_y = 0; out_y < output_height; ++out_y) {
       for (int out_x = 0; out_x < output_width; ++out_x) {
         for (int channel = 0; channel < depth; ++channel) {
-          const int in_x_origin = (out_x * stride) - pad_width;
-          const int in_y_origin = (out_y * stride) - pad_height;
+          const int in_x_origin = (out_x * stride_width) - pad_width;
+          const int in_y_origin = (out_y * stride_height) - pad_height;
           // Compute the boundaries of the filter region clamped so as to
           // ensure that the filter window fits in the input array.
           const int filter_x_start = std::max(0, -in_x_origin);

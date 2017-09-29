@@ -81,10 +81,10 @@ typedef enum {
      * Attached to this tensor are two numbers that can be used to convert
      * the 8 bit integer to the real value and vice versa.  These two numbers are:
      * - scale: a 32 bit floating point value
-     * - zero_value: an 32 bit integer
+     * - zeroPoint: an 32 bit integer
      *
      * The formula is:
-     * real_value = (integer_value - zero_value) * scale.
+     * real_value = (integer_value - zeroPoint) * scale.
      */
     ANEURALNETWORKS_TENSOR_QUANT8_ASYMM = 5,
 } OperandCode;
@@ -95,7 +95,7 @@ typedef enum {
  * The type of operations that can be added to a model.
  */
 typedef enum {
-    /** Adds two tensors, elment-wise.
+    /** Adds two tensors, element-wise.
      *
      * Takes two input tensors of identical type and compatible dimensions. The output
      * is the sum of both input tensors, optionally modified by an activation function.
@@ -128,6 +128,7 @@ typedef enum {
      * * 0: The sum, a tensor of the same type as input0.
      */
     ANEURALNETWORKS_ADD = 0,
+
     /** Performs a 2-D average pooling operation.
      *
      * The output dimensions are functions of the filter dimensions, stride, and padding.
@@ -160,6 +161,7 @@ typedef enum {
      * * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth].
      */
     ANEURALNETWORKS_AVERAGE_POOL_2D = 1,
+
     /** Concatenates the input tensors along the given dimension.
      *
      * The input tensors must have identical type and the same dimensions except the
@@ -172,16 +174,19 @@ typedef enum {
      * Supported tensor rank: up to 4
      *
      * Inputs:
-     * 0 ~ n: The list on n input tensors, of shape [D0, D1, ..., Daxis(i), ..., Dm]
-     * n+1: An INT32 value, specifying the concatenation axis.
-     * n+2: An INT32 value, and has to be one of the {@link FuseCode} values.
-     *      Specifies the activation to invoke on the result of each addition.
+     * * 0 ~ n: The list on n input tensors, of shape [D0, D1, ..., Daxis(i), ..., Dm].
+     *          For inputs of type {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, all
+     *          input tensors must have the same scale and zeroPoint.
+     * * n+1: An INT32 value, specifying the concatenation axis.
+     * * n+2: An INT32 value, and has to be one of the {@link FuseCode} values.
+     *        Specifies the activation to invoke on the result of each addition.
      *
      * Outputs:
      * * 0: The output, a tensor of the same type as the input tensors.
      *      The output shape is [D0, D1, ..., sum(Daxis(i)), ..., Dm].
      */
     ANEURALNETWORKS_CONCATENATION = 2,
+
     /** Performs an 2-D convolution operation.
      *
      * The CONV_2D op sweeps a 2-D filter that can mix channels together over a batch of
@@ -226,6 +231,7 @@ typedef enum {
      * * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth_out].
      */
     ANEURALNETWORKS_CONV_2D = 3,
+
     /** Performs a depthwise 2-D convolution operation.
      *
      * Given an input tensor of shape [batches, height, width, depth_in] and a filter
@@ -274,6 +280,7 @@ typedef enum {
      * * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth_out].
      */
     ANEURALNETWORKS_DEPTHWISE_CONV_2D = 4,
+
     /** Rearranges data from depth into blocks of spatial data.
      *
      * More specifically, this op outputs a copy of the input tensor where values from
@@ -303,11 +310,12 @@ typedef enum {
      *      depth/(block_size*block_size)].
      */
     ANEURALNETWORKS_DEPTH_TO_SPACE = 5,
+
     /** Dequantizes the input tensor.
      *
      * The formula is:
      *
-     *     output = (input - zero_value) * scale.
+     *     output = (input - zeroPoint) * scale.
      *
      * Supported tensor types:
      * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
@@ -327,7 +335,7 @@ typedef enum {
      * Looks up items from a given tensor.
      *
      * Each item in the output is a raw copy of the corresponding item in
-     * the input “values”. If the the given “lookup” indices are out of bounds,
+     * the input “values”. If the given “lookup” indices are out of bounds,
      * the op will fail and an error will be reported.
      *
      * Inputs:
@@ -359,6 +367,7 @@ typedef enum {
      * * 0: The output, a tensor of the same type and dimensions as input0.
      */
     ANEURALNETWORKS_FLOOR = 8,
+
     /** Denotes a fully (densely) connected layer, which connects all elements in the input
      * tensor with each element in the output tensor.
      *
@@ -462,6 +471,7 @@ typedef enum {
      * * 0: The output 4-D tensor, of shape [batches, out_height, out_width, depth].
      */
     ANEURALNETWORKS_L2_POOL_2D = 12,
+
     /** Applies Local Response Normalization along the depth dimension.
      *
      * The 4-D input tensor is treated as a 3-D array of 1-D vectors (along the last
@@ -490,6 +500,7 @@ typedef enum {
      * * 0: The output tensor of same shape as input0.
      */
     ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION = 13,
+
     /** Computes sigmoid activation on the input tensor element-wise.
      *
      * The output is calculated using this formula:
@@ -507,6 +518,8 @@ typedef enum {
      *
      * Outputs:
      * * 0: The output tensor of same shape as input0.
+     *      For {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type,
+     *      the scale must be 1.f / 256 and the zeroPoint must be 0.
      */
     ANEURALNETWORKS_LOGISTIC = 14,
 
@@ -677,7 +690,7 @@ typedef enum {
      */
     ANEURALNETWORKS_MAX_POOL_2D = 17,
 
-    /** Multiplies two tensors, elment-wise.
+    /** Multiplies two tensors, element-wise.
      *
      * Takes two input tensors of identical type and compatible dimensions. The output
      * is the product of both input tensors, optionally modified by an activation function.
@@ -704,6 +717,7 @@ typedef enum {
      * * 0: The product, a tensor of the same type as input0.
      */
     ANEURALNETWORKS_MUL = 18,
+
     /** Computes rectified linear activation on the input tensor element-wise.
      *
      * The output is calculated using this formula:
@@ -723,6 +737,7 @@ typedef enum {
      * * 0: The output tensor of same shape as input0.
      */
     ANEURALNETWORKS_RELU = 19,
+
     /** Computes rectified linear 1 activation on the input tensor element-wise.
      *
      * The output is calculated using this formula:
@@ -742,6 +757,7 @@ typedef enum {
      * * 0: The output tensor of same shape as input0.
      */
     ANEURALNETWORKS_RELU1 = 20,
+
     /** Computes rectified linear 6 activation on the input tensor element-wise.
      *
      * The output is calculated using this formula:
@@ -761,6 +777,7 @@ typedef enum {
      * * 0: The output tensor of same shape as input0.
      */
     ANEURALNETWORKS_RELU6 = 21,
+
     /** Reshapes a tensor.
      *
      * Given tensor, this operation returns a tensor that has the same values as tensor,
@@ -782,6 +799,7 @@ typedef enum {
      * * 0: The output tensor, of shape specified by the input shape.
      */
     ANEURALNETWORKS_RESHAPE = 22,
+
     /** Resizes images to given size using the bilinear interpretation.
      *
      * Resized images will be distorted if their original aspect ratio is not the same as input.
@@ -869,10 +887,12 @@ typedef enum {
      *
      * Inputs:
      * * 0: A 2-D or 4-D tensor, specifying the tensor to be reshaped.
-     * * 1: A FLOAT32 value, specifying the scaling factor for the exponent, beta.
+     * * 1: A FLOAT32 value, specifying the positive scaling factor for the exponent, beta.
      *
      * Outputs:
      * * 0: The output tensor of same shape as input0.
+     *      For {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type,
+     *      the scale must be 1.f / 256 and the zeroPoint must be 0.
      */
     ANEURALNETWORKS_SOFTMAX = 25,
 
@@ -1174,7 +1194,7 @@ typedef struct ANeuralNetworksOperandType {
     const uint32_t* dimensions;
     /** These two fields are only used for quantized tensors.
      * They should be zero for scalars and non-fixed point tensors.
-     * The dequantized value of each entry is (value - offset) * scale.
+     * The dequantized value of each entry is (value - zeroPoint) * scale.
      */
     float scale;
     int32_t zeroPoint;

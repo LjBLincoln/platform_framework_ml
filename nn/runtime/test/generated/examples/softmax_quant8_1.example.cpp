@@ -17,6 +17,6 @@
   // int -> INT32 map
   {},
   // int -> QUANT8_ASYMM map
-  {{0, {0, 0, 0, 0}}}
+  {{0, {64, 64, 64, 64}}}
 }
 }, // End of an example

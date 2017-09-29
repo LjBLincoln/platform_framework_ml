@@ -1,11 +1,12 @@
 // Generated file (from: softmax_quant8_2.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type1(Type::FLOAT32, {});
-  OperandType type0(Type::TENSOR_QUANT8_ASYMM, 0.0f, 127.5f, {2, 5});
+  OperandType type0(Type::TENSOR_QUANT8_ASYMM, {2, 5}, 0.5f, 0);
+  OperandType type2(Type::TENSOR_QUANT8_ASYMM, {2, 5}, 1.f / 256, 0);
   // Phase 1, operands
   auto input = model->addOperand(&type0);
   auto beta = model->addOperand(&type1);
-  auto output = model->addOperand(&type0);
+  auto output = model->addOperand(&type2);
   // Phase 2, operations
   static float beta_init[] = {1.0f};
   model->setOperandValue(beta, beta_init, sizeof(float) * 1);

@@ -51,8 +51,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::CONCATENATION,
-                        OperandType::TENSOR_QUANT8_ASYMM},
+            .type = OperationType::CONCATENATION,
             .inputs = {0, 1, 2, 3},
             .outputs = {4},
         }

@@ -127,6 +127,11 @@ bool relu6Quant8(const uint8_t* inputData, const Shape& inputShape,
 
 bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
                     uint8_t* outputData, const Shape& outputShape) {
+    if (outputShape.offset != 0 || outputShape.scale != 1.f / 256) {
+        LOG(ERROR) << "incorrect scale / offset for output";
+        return false;
+    }
+
     int numElements = getNumberOfElements(inputShape);
     static constexpr int kInputIntegerBits = 4;
 
@@ -136,9 +141,11 @@ bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
 
     int32_t input_multiplier = 0;
     int32_t input_left_shift = 0;
-    QuantizeMultiplierGreaterThanOne(input_real_multiplier,
-                                     &input_multiplier,
-                                     &input_left_shift);
+    if (!QuantizeMultiplierGreaterThanOne(input_real_multiplier,
+                                          &input_multiplier,
+                                          &input_left_shift)) {
+        return false;
+    }
     int32_t input_range_radius =
             CalculateInputRadius(kInputIntegerBits, input_left_shift);
 
@@ -169,10 +176,11 @@ bool softmaxQuant8(const uint8_t* inputData, const Shape& inputShape,
         return false;
     }
 
-    if (outputShape.scale != 1.f / 256) {
-        LOG(ERROR) << "incorrect scale for output";
+    if (outputShape.offset != 0 || outputShape.scale != 1.f / 256) {
+        LOG(ERROR) << "incorrect scale / offset for output";
         return false;
     }
+
     static const int32_t kScaledDiffIntegerBits = 5;
     const double input_beta_real_multiplier = std::min(
             1.0 * beta * inputShape.scale * (1 << (31 - kScaledDiffIntegerBits)),
@@ -180,9 +188,11 @@ bool softmaxQuant8(const uint8_t* inputData, const Shape& inputShape,
 
     int32_t input_multiplier = 0;
     int32_t input_left_shift = 0;
-    QuantizeMultiplierGreaterThanOne(input_beta_real_multiplier,
-                                     &input_multiplier,
-                                     &input_left_shift);
+    if (!QuantizeMultiplierGreaterThanOne(input_beta_real_multiplier,
+                                          &input_multiplier,
+                                          &input_left_shift)) {
+        return false;
+    }
     float diff_min = -1.0f * CalculateInputRadius(kScaledDiffIntegerBits,
                                                   input_left_shift);
 

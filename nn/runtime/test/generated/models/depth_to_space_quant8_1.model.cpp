@@ -1,7 +1,7 @@
 // Generated file (from: depth_to_space_quant8_1.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type1(Type::INT32, {});
-  OperandType type0(Type::TENSOR_QUANT8_ASYMM, 0.0f, 127.5f, {1, 1, 1, 8});
+  OperandType type0(Type::TENSOR_QUANT8_ASYMM, {1, 1, 1, 8}, 0.5f, 0);
   OperandType type2(Type::TENSOR_QUANT8_ASYMM, {1, 2, 2, 2});
   // Phase 1, operands
   auto input = model->addOperand(&type0);

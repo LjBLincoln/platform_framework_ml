@@ -33,8 +33,7 @@ Model createTestModel() {
 
     const std::vector<Operation> operations = {
         {
-            .opTuple = {OperationType::EMBEDDING_LOOKUP,
-                        OperandType::TENSOR_FLOAT32},
+            .type = OperationType::EMBEDDING_LOOKUP,
             .inputs = {0, 1},
             .outputs = {2},
         }

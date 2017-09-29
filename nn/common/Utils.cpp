@@ -20,6 +20,7 @@
 #include "NeuralNetworks.h"
 
 #include <android-base/logging.h>
+#include <sys/system_properties.h>
 
 using ::android::hidl::allocator::V1_0::IAllocator;
 
@@ -140,20 +141,6 @@ uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions) {
     return size;
 }
 
-OperandTypePerformanceKind getPerformanceKind(OperandType type) {
-    switch (type) {
-        // TODO: What about OEM types?
-        case OperandType::FLOAT32:
-        case OperandType::TENSOR_FLOAT32:
-            return OperandTypePerformanceKind::Float32;
-        case OperandType::TENSOR_QUANT8_ASYMM:
-            return OperandTypePerformanceKind::Quantized8;
-        default:
-            nnAssert(!"Unexpected OperandType");
-            return OperandTypePerformanceKind::Bad;
-    }
-}
-
 hidl_memory allocateSharedMemory(int64_t size) {
     hidl_memory memory;
 
@@ -240,8 +227,8 @@ static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint
 static bool validOperations(const hidl_vec<Operation>& operations, size_t operandCount) {
     for (auto& op : operations) {
         if (!validCode(kNumberOfOperationTypes, kNumberOfOperationTypesOEM,
-                       static_cast<uint32_t>(op.opTuple.operationType))) {
-            LOG(ERROR) << "Invalid operation type " << toString(op.opTuple.operationType);
+                       static_cast<uint32_t>(op.type))) {
+            LOG(ERROR) << "Invalid operation type " << toString(op.type);
             return false;
         }
         if (!validOperandIndexes(op.inputs, operandCount) ||
@@ -316,6 +303,31 @@ bool validateRequest(const Request& request, const Model& model) {
             validRequestArguments(request.outputs, model.outputIndexes, model.operands, poolCount,
                                   "output"));
 }
+
+#ifdef NN_DEBUGGABLE
+
+// Implementation of property_get from libcutils
+static int property_get(const char *key, char *value, const char *default_value) {
+    int len;
+    len = __system_property_get(key, value);
+    if (len > 0) {
+        return len;
+    }
+
+    if (default_value) {
+        len = strlen(default_value);
+        memcpy(value, default_value, len + 1);
+    }
+    return len;
+}
+
+uint32_t getProp(const char *str) {
+    char buf[256];
+    property_get(str, buf, "0");
+    return atoi(buf);
+}
+
+#endif  // NN_DEBUGGABLE
 
 } // namespace nn
 } // namespace android

@@ -1,7 +1,7 @@
 # model
 model = Model()
-i1 = Input("op1", "TENSOR_QUANT8_ASYMM", "0.0f, 127.5f, {1, 2, 2, 1}") # input 0
-i2 = Output("op2", "TENSOR_QUANT8_ASYMM", "0.0f, 127.5f, {1, 2, 2, 1}") # output 0
+i1 = Input("op1", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 1}, 0.5f, 0") # input 0
+i2 = Output("op2", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 1}, 0.5f, 0") # output 0
 model = model.Operation("RELU6", i1).To(i2)
 
 # Example 1. Input in operand 0,

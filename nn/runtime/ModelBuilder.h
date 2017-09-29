@@ -35,6 +35,7 @@ class ExecutionStep;
 class Memory;
 
 class ModelBuilder {
+    friend class CompilationBuilder;  // TODO remove this
 public:
     virtual ~ModelBuilder() {}
     // Adds an operand to the model.
@@ -76,12 +77,17 @@ public:
     }
 
 private:
-    int partitionTheWork(uint32_t preference, ExecutionPlan* plan);
+    // TODO: move partitionTheWork, findBestDeviceForEachOperation,
+    // sortIntoRunOrder to CompilationBuilder?
+
+    int partitionTheWork(uint32_t preference, ExecutionPlan* plan) const;
     int findBestDeviceForEachOperation(uint32_t preference,
                                        const std::vector<std::shared_ptr<Device>>& devices,
                                        const size_t operationCount,
                                        const size_t deviceCount,
-                                       std::vector<int>* bestDeviceForOperation);
+                                       std::vector<int>* bestDeviceForOperation) const;
+    PerformanceInfo getPerformanceInfo(const std::shared_ptr<Device> device,
+                                       uint32_t operationIndex) const;
 
     // Sorts the operations to be in the correct order for single threaded
     // node-at-a-time execution.

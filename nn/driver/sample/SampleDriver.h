@@ -20,28 +20,38 @@
 #include "HalInterfaces.h"
 #include "NeuralNetworks.h"
 
+#include <string>
+
 namespace android {
 namespace nn {
 namespace sample_driver {
 
-// This class provides an example of how to implement a driver for the NN HAL.
-// Since it's a simulated driver, it must run the computations on the CPU.
-// An actual driver would not do that.
+// Base class used to create sample drivers for the NN HAL.  This class
+// provides some implementation of the more common functions.
+//
+// Since these drivers simulate hardware, they must run the computations
+// on the CPU.  An actual driver would not do that.
 class SampleDriver : public IDevice {
 public:
-    ~SampleDriver() override;
-    Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override;
-    Return<void> getSupportedOperations(const Model& model,
-                                        getSupportedOperations_cb _hidl_cb) override;
+    SampleDriver(const char* name) : mName(name) {}
+    ~SampleDriver() override {}
     Return<void> prepareModel(const Model& model, const sp<IEvent>& event,
                               prepareModel_cb _hidl_cb) override;
     Return<DeviceStatus> getStatus() override;
+
+    // Starts and runs the driver service.  Typically called from main().
+    // This will return only once the service shuts down.
+    int run();
+protected:
+    std::string mName;
 };
 
 class SamplePreparedModel : public IPreparedModel {
 public:
-    SamplePreparedModel(const Model& model);
-    ~SamplePreparedModel() override;
+    SamplePreparedModel(const Model& model)
+          : // Make a copy of the model, as we need to preserve it.
+            mModel(model) {}
+    ~SamplePreparedModel() override {}
     Return<ErrorStatus> execute(const Request& request, const sp<IEvent>& event) override;
 
 private:
