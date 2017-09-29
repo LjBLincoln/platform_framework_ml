@@ -449,6 +449,20 @@ TEST_F(GeneratedTests, max_pool_quant8) {
             max_pool_quant8::examples);
 }
 
+namespace mobilenet_quantized {
+std::vector<MixedTypedExample> examples = {
+// Generated mobilenet_quantized test
+#include "generated/examples/mobilenet_quantized.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/mobilenet_quantized.model.cpp"
+} // namespace mobilenet_quantized
+TEST_F(GeneratedTests, mobilenet_quantized) {
+    Execute(mobilenet_quantized::CreateModel,
+            mobilenet_quantized::is_ignored,
+            mobilenet_quantized::examples);
+}
+
 namespace mul {
 std::vector<MixedTypedExample> examples = {
 // Generated mul test
