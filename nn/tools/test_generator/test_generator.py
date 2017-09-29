@@ -490,6 +490,13 @@ class Model(object):
     self.__currentOp = op
     return self
 
+  def Reshape(self, input, shape):
+    ins = [input, shape]
+    outs = []
+    op = Operation("RESHAPE", ins, outs)
+    self.__currentOp = op
+    return self
+
   def Out(self, o):
     if (type(o) is list or type(o) is tuple):
       for i in o:
