@@ -36,6 +36,7 @@ int CompilationBuilder::finish() {
         LOG(ERROR) << "ANeuralNetworksCompilation_finish called more than once";
         return ANEURALNETWORKS_BAD_STATE;
     }
+    // TODO validate the rest
 
     mFinished = true;
 
@@ -55,6 +56,11 @@ int CompilationBuilder::setPreference(int32_t preference) {
                 "ANeuralNetworksCompilation_setPreference can't modify after compilation finished";
         return ANEURALNETWORKS_BAD_STATE;
     }
+    if (preference >= kNumberOfPreferences) {
+        LOG(ERROR) << "ANeuralNetworksCompilation_setPreference invalid preference " << preference;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+
     mPreference = preference;
     return ANEURALNETWORKS_NO_ERROR;
 }

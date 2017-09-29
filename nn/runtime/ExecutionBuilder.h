@@ -61,13 +61,13 @@ public:
     ExecutionBuilder(const CompilationBuilder* compilation);
 
     int setInput(uint32_t index, const ANeuralNetworksOperandType* type, const void* buffer,
-                 uint32_t length);
+                 size_t length);
     int setInputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
-                           const Memory* memory, uint32_t offset, uint32_t length);
+                           const Memory* memory, size_t offset, size_t length);
     int setOutput(uint32_t index, const ANeuralNetworksOperandType* type, void* buffer,
-                  uint32_t length);
+                  size_t length);
     int setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
-                            const Memory* memory, uint32_t offset, uint32_t length);
+                            const Memory* memory, size_t offset, size_t length);
     int startCompute(sp<Event>* event);
 
 private:

@@ -105,6 +105,9 @@ inline bool validCode(uint32_t codeCount, uint32_t codeCountOEM, uint32_t code) 
     return (code < codeCount) || (code >= kOEMCodeBase && (code - kOEMCodeBase) < codeCountOEM);
 }
 
+int validateOperandType(const ANeuralNetworksOperandType& type, const char* tag, bool allowPartial);
+int validateOperandList(uint32_t count, const uint32_t* list, uint32_t operandCount,
+                        const char* tag);
 bool validateModel(const Model& model);
 bool validateRequest(const Request& request, const Model& model);
 

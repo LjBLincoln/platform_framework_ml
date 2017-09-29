@@ -52,14 +52,7 @@ public:
         return ANEURALNETWORKS_NO_ERROR;
     }
 
-    virtual bool validateSize(uint32_t offset, uint32_t length) const {
-        if (offset + length > mHidlMemory.size()) {
-            LOG(ERROR) << "Request size larger than the memory size.";
-            return false;
-        } else {
-            return true;
-        }
-    }
+    virtual bool validateSize(uint32_t offset, uint32_t length) const;
 protected:
     // The hidl_memory handle for this shared memory.  We will pass this value when
     // communicating with the drivers.
@@ -70,16 +63,7 @@ protected:
 class MemoryFd : public Memory {
 public:
     MemoryFd() {}
-    ~MemoryFd() {
-        // Delete the native_handle.
-        if (mHandle) {
-            int fd = mHandle->data[0];
-            if (fd != -1) {
-                close(fd);
-            }
-            native_handle_delete(mHandle);
-        }
-    }
+    ~MemoryFd();
 
     // Disallow copy semantics to ensure the runtime object can only be freed
     // once. Copy semantics could be enabled if some sort of reference counting
@@ -90,55 +74,9 @@ public:
     // Create the native_handle based on input size, prot, and fd.
     // Existing native_handle will be deleted, and mHidlMemory will wrap
     // the newly created native_handle.
-    int set(size_t size, int prot, int fd, size_t offset) {
-        if (size == 0 || fd < 0) {
-            LOG(ERROR) << "Invalid size or fd";
-            return ANEURALNETWORKS_BAD_DATA;
-        }
-        int dupfd = dup(fd);
-        if (dupfd == -1) {
-            LOG(ERROR) << "Failed to dup the fd";
-            return ANEURALNETWORKS_UNEXPECTED_NULL;
-        }
+    int set(size_t size, int prot, int fd, size_t offset);
 
-        if (mHandle) {
-            native_handle_delete(mHandle);
-        }
-        mHandle = native_handle_create(1, 3);
-        if (mHandle == nullptr) {
-            LOG(ERROR) << "Failed to create native_handle";
-            return ANEURALNETWORKS_UNEXPECTED_NULL;
-        }
-        mHandle->data[0] = dupfd;
-        mHandle->data[1] = prot;
-        mHandle->data[2] = (int32_t)(uint32_t)(offset & 0xffffffff);
-#if defined(__LP64__)
-        mHandle->data[3] = (int32_t)(uint32_t)(offset >> 32);
-#else
-        mHandle->data[3] = 0;
-#endif
-        mHidlMemory = hidl_memory("mmap_fd", mHandle, size);
-        return ANEURALNETWORKS_NO_ERROR;
-    }
-
-    int getPointer(uint8_t** buffer) const override {
-        if (mHandle == nullptr) {
-            LOG(ERROR) << "Memory not initialized";
-            return ANEURALNETWORKS_UNEXPECTED_NULL;
-        }
-
-        int fd = mHandle->data[0];
-        int prot = mHandle->data[1];
-        size_t offset = getSizeFromInts(mHandle->data[2], mHandle->data[3]);
-        void* data = mmap(nullptr, mHidlMemory.size(), prot, MAP_SHARED, fd, offset);
-        if (data == MAP_FAILED) {
-            LOG(ERROR) << "Can't mmap the file descriptor.";
-            return ANEURALNETWORKS_UNMAPPABLE;
-        } else {
-            *buffer = static_cast<uint8_t*>(data);
-            return ANEURALNETWORKS_NO_ERROR;
-        }
-    }
+    int getPointer(uint8_t** buffer) const override;
 
 private:
     native_handle_t* mHandle = nullptr;
