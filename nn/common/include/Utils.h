@@ -63,6 +63,9 @@ uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions);
 // Returns the name of the operation in ASCII.
 const char* getOperationName(OperationType opCode);
 
+// Memory is unmapped.
+// Memory is reference counted by hidl_memory instances, and is deallocated
+// once there are no more references.
 hidl_memory allocateSharedMemory(int64_t size);
 
 // Returns the number of padding bytes needed to align data of the

@@ -46,7 +46,7 @@ struct ModelArgumentInfo {
     // If MEMORY then:
     //   locationAndDimension.location.{poolIndex, offset, length} is valid.
     //   locationAndDimension.dimension is valid.
-    enum { POINTER, MEMORY, UNSPECIFIED } state;
+    enum { POINTER, MEMORY, UNSPECIFIED } state = UNSPECIFIED;
     RequestArgument locationAndDimension;
     void* buffer;
 
@@ -73,8 +73,6 @@ public:
 
 private:
     int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
-    int updateDimensionInfo(ModelArgumentInfo* info, const ANeuralNetworksOperandType* newType,
-                            const Operand& operand);
     int startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
                              sp<IPreparedModel> preparedModel = nullptr);
     int startComputeOnCpu(sp<Event>* event);
@@ -94,11 +92,6 @@ private:
     // some of the nodes will interpreted on the CPU anyway.
     std::vector<ModelArgumentInfo> mInputs;
     std::vector<ModelArgumentInfo> mOutputs;
-    // We separate the input & output pools so that we reduce the copying done if we
-    // do an eventual remoting (hidl_memory->update()).  We could also use it to set
-    // protection on read only memory but that's not currently done.
-    Memory mInputPointerArguments;
-    Memory mOutputPointerArguments;
     MemoryTracker mMemories;
 };
 
