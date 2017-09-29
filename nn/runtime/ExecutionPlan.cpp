@@ -35,6 +35,31 @@ using ::android::hardware::neuralnetworks::V1_0::implementation::Event;
 namespace android {
 namespace nn {
 
+static int compile(std::shared_ptr<Device> device,
+                   const ModelBuilder* model,
+                   sp<IPreparedModel>* preparedModel) {
+    nnAssert(device != nullptr);  // nullptr indicates CPU
+    // Compilation logic copied from ExecutionBuilder::startComputeOnDevice().
+    sp<Event> preparationEvent = new Event();
+    ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
+    Model hidlModel;
+    model->setHidlModel(&hidlModel);
+    device->getInterface()->prepareModel(
+        hidlModel, preparationEvent,
+        [&prepareStatus, preparedModel](ErrorStatus status, const sp<IPreparedModel>& prepared) {
+            prepareStatus = status;
+            *preparedModel = prepared;
+        });
+    Event::Status eventStatus = preparationEvent->wait();
+    if (prepareStatus != ErrorStatus::NONE || eventStatus != Event::Status::SUCCESS) {
+        LOG(ERROR) << "ExecutionPlan compilation on " << device->getName() << " failed:"
+                   << " prepareStatus=" << toString(prepareStatus)
+                   << " eventStatus=" << static_cast<int>(eventStatus);
+        return ANEURALNETWORKS_OP_FAILED;
+    }
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
 typedef std::function<void(uint32_t)> OperationReadyCallback;
 
 // This class tracks whether we know the value of an operand as operations
@@ -215,7 +240,7 @@ int ExecutionStep::addOperation(int operationIndex, const ModelBuilder& fromMode
                                    outputCount, outputs.data());
 }
 
-void ExecutionPlan::findSubModelOutputs() {
+void ExecutionPlan::CompoundBody::findSubModelOutputs() {
     for (const auto& step : mSteps) {
         for (const auto& input : step->getSubModelInputs()) {
             const uint32_t fromModelIndex = input.first;
@@ -228,7 +253,7 @@ void ExecutionPlan::findSubModelOutputs() {
     }
 }
 
-void ExecutionStep::finishSubModel() {
+int ExecutionStep::finishSubModel() {
     LOG(DEBUG) << "ExecutionStep::finishSubModel, step " << mIndex;
 
     std::vector<uint32_t> inputs;
@@ -247,32 +272,24 @@ void ExecutionStep::finishSubModel() {
         outputs.push_back(subModelOutput.second);
     }
 
-    mSubModel->setInputsAndOutputs(inputs.size(), &inputs[0], outputs.size(), &outputs[0]);
-    mSubModel->finish();
+    {
+      int n = mSubModel->setInputsAndOutputs(inputs.size(), &inputs[0], outputs.size(), &outputs[0]);
+      if (n == ANEURALNETWORKS_NO_ERROR) {
+          n = mSubModel->finish();
+      }
+      if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+      }
+    }
 
-    // TODO: Move compilation elsewhere.  For now, it's just for testing.
+    // TODO: Move compilation elsewhere?
 
     if (mDevice == nullptr) {
-        return;
+        return ANEURALNETWORKS_NO_ERROR;
     }
 
-    // Compilation logic copied from ExecutionBuilder::startComputeOnDevice().
     LOG(DEBUG) << "ExecutionStep::finishSubModel, compilation";
-    sp<Event> preparationEvent = new Event();
-    ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
-    Model model;
-    mSubModel->setHidlModel(&model);
-    mDevice->getInterface()->prepareModel(
-        model, preparationEvent,
-        [&prepareStatus](ErrorStatus status, [[maybe_unused]] const sp<IPreparedModel>& prepared) {
-            prepareStatus = status;
-        });
-    Event::Status eventStatus = preparationEvent->wait();
-    if (prepareStatus != ErrorStatus::NONE || eventStatus != Event::Status::SUCCESS) {
-        LOG(ERROR) << "ExecutionStep::finishSubModel compilation failed:"
-                   << " prepareStatus=" << toString(prepareStatus)
-                   << " eventStatus=" << static_cast<int>(eventStatus);
-    }
+    return compile(mDevice, mSubModel.get(), &mPreparedSubModel);
 }
 
 void ExecutionStep::dump() const {
@@ -283,21 +300,84 @@ void ExecutionStep::dump() const {
                << " submodel: " << toString(model);
 }
 
-void ExecutionPlan::finishSubModels() {
+int ExecutionPlan::CompoundBody::finish() {
     findSubModelOutputs();
     for (const auto& step : mSteps) {
-        step->finishSubModel();
+        int n = step->finishSubModel();
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
     }
+    return ANEURALNETWORKS_NO_ERROR;
 }
 
-std::shared_ptr<ExecutionStep> ExecutionPlan::newStep(const std::shared_ptr<Device> device) {
+int ExecutionPlan::SimpleBody::finish() {
+    if (mDevice == nullptr) {
+        mSuccessfulFinish = true;
+        return ANEURALNETWORKS_NO_ERROR;
+    }
+
+    LOG(DEBUG) << "ExecutionPlan::SimpleBody::finish, compilation";
+    const int n = compile(mDevice, mModel, &mPreparedModel);
+    mSuccessfulFinish = (n == ANEURALNETWORKS_NO_ERROR);
+    return n;
+}
+
+int ExecutionPlan::finish() {
+    nnAssert(mBody != nullptr);
+    return mBody->finish();
+}
+
+int ExecutionPlan::getSimplePlan(std::shared_ptr<Device>* device, sp<IPreparedModel>* preparedModel) const {
+    if (mState != SIMPLE) {
+        return ANEURALNETWORKS_BAD_STATE;
+    }
+    auto simpleBody = static_cast<const SimpleBody*>(mBody);
+    if (simpleBody->mSuccessfulFinish) {
+        if (preparedModel != nullptr) {
+            *preparedModel = simpleBody->mPreparedModel;
+        }
+        if (device != nullptr) {
+            *device = simpleBody->mDevice;
+        }
+        return ANEURALNETWORKS_NO_ERROR;
+    }
+    return ANEURALNETWORKS_OP_FAILED;
+}
+
+std::shared_ptr<ExecutionStep> ExecutionPlan::createNewStep(const std::shared_ptr<Device> device) {
+    nnAssert(mState != SIMPLE);
+    if (mState == EMPTY) {
+        mBody = new CompoundBody();
+        mState = COMPOUND;
+    }
+    auto& steps = compound()->mSteps;
     auto step = std::make_shared<ExecutionStep>(
-        this, mSteps.size(), std::make_shared<ModelBuilder>(), device);
-    mSteps.push_back(step);
+        this, steps.size(), std::make_shared<ModelBuilder>(), device);
+    steps.push_back(step);
     return step;
 }
 
+void ExecutionPlan::becomeSingleStep(const std::shared_ptr<Device> device,
+                                     const ModelBuilder* model) {
+    nnAssert(mState == EMPTY);
+    mBody = new SimpleBody(device, model);
+    mState = SIMPLE;
+}
+
 void ExecutionPlan::dump() const {
+    if (mBody) {
+        mBody->dump();
+    } else {
+        LOG(DEBUG) << "EMPTY";
+    }
+}
+
+void ExecutionPlan::SimpleBody::dump() const {
+    LOG(DEBUG) << "SIMPLE for " << (mDevice == nullptr ? "CPU" : mDevice->getName());
+}
+
+void ExecutionPlan::CompoundBody::dump() const {
     for (const auto& step : mSteps) {
         step->dump();
     }
@@ -322,8 +402,8 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) con
     // If we only have the CPU, or if the graph has no operations, no
     // need to try to partition.
     if (deviceCount == 1 || operationCount == 0) {
-        // TODO plan->addStep(new ExecutionStep(this));
-        return ANEURALNETWORKS_NO_ERROR;
+        plan->becomeSingleStep(nullptr /* CPU */, this);
+        return plan->finish();
     }
 
     // Figure out where each operation will best execute.
@@ -336,16 +416,15 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) con
     // If one device will run all the operations, we don't need to split the work.
     if (std::adjacent_find(bestDeviceForOperation.begin(), bestDeviceForOperation.end(),
                            std::not_equal_to<int>()) == bestDeviceForOperation.end()) {
+        const int bestDeviceIndex = bestDeviceForOperation[0];
+        const bool cpu = (size_t(bestDeviceIndex) == deviceCount - 1);
         if (WOULD_LOG(DEBUG)) {
-            const int bestDeviceIndex = bestDeviceForOperation[0];
-            const bool cpu = (size_t(bestDeviceIndex) == deviceCount - 1);
             LOG(DEBUG) << "ModelBuilder::partitionTheWork: only one best device: "
                        << bestDeviceIndex << " = "
                        << (cpu ? "CPU" : devices[bestDeviceIndex]->getName());
         }
-        // TODO int index = bestDeviceForOperation[0];
-        // TODO plan->addStep(new ExecutionStep(this, devices[index]));
-        return ANEURALNETWORKS_NO_ERROR;
+        plan->becomeSingleStep(cpu ? nullptr : devices[bestDeviceIndex], this);
+        return plan->finish();
     }
 
     // No easy solution, we need to split the work.
@@ -389,7 +468,7 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) con
                         ? devices[deviceIndex] : nullptr;
 
         // Assign as much as possible to this device.
-        std::shared_ptr<ExecutionStep> step = plan->newStep(device);
+        std::shared_ptr<ExecutionStep> step = plan->createNewStep(device);
         auto& queue = perDeviceQueue[deviceIndex];
         while (!queue.empty()) {
             uint32_t operationIndex = queue.front();
@@ -399,15 +478,14 @@ int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) con
         }
     }
 
-    plan->finishSubModels();
+    int n = plan->finish();
     if (WOULD_LOG(DEBUG)) {
         Model model;
         setHidlModel(&model);
         LOG(DEBUG) << "ModelBuilder::partitionTheWork: original model: " << toString(model);
         plan->dump();
     }
-
-    return ANEURALNETWORKS_NO_ERROR;
+    return n;
 }
 
 PerformanceInfo ModelBuilder::getPerformanceInfo(const std::shared_ptr<Device> device,

@@ -40,6 +40,7 @@ public:
 
     PerformanceInfo getFloat32Performance() const { return mFloat32Performance; }
     PerformanceInfo getQuantized8Performance() const { return mQuantized8Performance; }
+
 private:
     std::string mName;
     sp<IDevice> mInterface;
@@ -68,6 +69,10 @@ public:
     // For testing only:
     void setUseCpuOnly(bool useCpuOnly) { mUseCpuOnly = useCpuOnly; }
 
+#ifdef NN_DEBUGGABLE
+    uint32_t getPartitioning() const { return mPartitioning; }
+#endif
+
     // Returns the singleton manager.
     static DeviceManager* get();
 
@@ -93,6 +98,16 @@ private:
     // If true, we'll ignore the drivers that are on the device and run everything
     // on the CPU.
     bool mUseCpuOnly = false;
+
+#ifdef NN_DEBUGGABLE
+    // For debugging: what to do about graph partitioning
+    // 0 - don't do graph partitioning
+    // 1 - do graph partitioning, but only to test it -- do not rely on
+    //     compilation performed by graph partitioning
+    // 2 - do graph partitioning, and rely on compilation performed by it
+    //     when there is a single partition
+    uint32_t mPartitioning = 0;
+#endif  // NN_DEBUGGABLE
 };
 
 } // namespace nn
