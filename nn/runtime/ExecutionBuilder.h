@@ -31,6 +31,7 @@ namespace android {
 namespace nn {
 
 class CompilationBuilder;
+class ExecutionPlan;
 class Memory;
 class ModelBuilder;
 
@@ -74,10 +75,12 @@ private:
     int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
     int updateDimensionInfo(ModelArgumentInfo* info, const ANeuralNetworksOperandType* newType,
                             const Operand& operand);
-    int startComputeOnDevice(sp<IDevice> driver, const Model& model, sp<Event>* event);
-    int startComputeOnCpu(const Model& model, sp<Event>* event);
+    int startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
+                             sp<IPreparedModel> preparedModel = nullptr);
+    int startComputeOnCpu(sp<Event>* event);
 
     const ModelBuilder* mModel;
+    const ExecutionPlan* mPlan;
 
     // The information we'll send to the driver about the inputs and outputs.
     // Note that we build this in two steps:

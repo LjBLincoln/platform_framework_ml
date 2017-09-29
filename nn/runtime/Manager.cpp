@@ -133,6 +133,9 @@ void DeviceManager::findAvailableDevices() {
 DeviceManager::DeviceManager() {
     LOG(VERBOSE) << "DeviceManager::DeviceManager";
     findAvailableDevices();
+#ifdef NN_DEBUGGABLE
+    mPartitioning = getProp("debug.nn.partition.test");
+#endif  // NN_DEBUGGABLE
 }
 
 }  // namespace nn
