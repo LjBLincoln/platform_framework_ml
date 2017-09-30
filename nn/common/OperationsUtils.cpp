@@ -65,14 +65,6 @@ uint32_t getSizeOfDimension(const Shape& shape, uint32_t dimensionIdx) {
     return shape.dimensions[dimensionIdx];
 }
 
-
-// Macro to check if the input parameters for operation are valid or not.
-#define NN_OPS_CHECK(v)                                                  \
-    if (!(v)) {                                                          \
-        LOG(ERROR) << "NN_OPS_CHECK failed: "  << #v << "'\n";           \
-        return false;                                                    \
-    }
-
 bool QuantizeMultiplierSmallerThanOne(double double_multiplier,
                                       int32_t* quantized_multiplier,
                                       int32_t* right_shift) {

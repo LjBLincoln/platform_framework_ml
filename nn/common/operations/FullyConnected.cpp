@@ -45,8 +45,6 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
                           const int32_t* biasData, const Shape& biasShape,
                           int32_t activation,
                           uint8_t* outputData, const Shape& outputShape) {
-    gemmlowp::GemmContext gemm_context;
-
     int32_t inputOffset = -inputShape.offset;
     int32_t weightsOffset = -weightsShape.offset;
     int32_t outputOffset = outputShape.offset;
@@ -66,6 +64,10 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
     CalculateActivationRangeUint8(activation, outputShape,
                                   &output_activation_min,
                                   &output_activation_max);
+
+    static gemmlowp::GemmContext gemm_context;
+    // Alow gemmlowp automatcally decide how many threads to use.
+    gemm_context.set_max_num_threads(0);
 
     #define ANDROID_NN_FULLY_CONNECTED(activation)                              \
         optimized_ops::FullyConnected<FusedActivationFunctionType::activation>( \
