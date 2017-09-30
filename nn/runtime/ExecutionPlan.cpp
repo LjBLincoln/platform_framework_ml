@@ -274,11 +274,12 @@ int ExecutionStep::finishSubModel() {
 
     {
       int n = mSubModel->setInputsAndOutputs(inputs.size(), &inputs[0], outputs.size(), &outputs[0]);
-      if (n == ANEURALNETWORKS_NO_ERROR) {
-          n = mSubModel->finish();
-      }
       if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
+          return n;
+      }
+      n = mSubModel->finish();
+      if (n != ANEURALNETWORKS_NO_ERROR) {
+          return n;
       }
     }
 
