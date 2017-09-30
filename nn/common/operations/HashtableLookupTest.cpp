@@ -43,15 +43,15 @@ std::vector<Matcher<float>> ArrayFloatNear(const std::vector<float>& values,
 
 using ::testing::ElementsAreArray;
 
-#define FOR_ALL_INPUT_AND_WEIGHT_TENSORS(ACTION) \
-  ACTION(Lookup)                                 \
-  ACTION(Key)                                    \
-  ACTION(Value)
+#define FOR_ALL_INPUT_AND_WEIGHT_TENSORS(ACTION)     \
+  ACTION(Lookup, int)                                \
+  ACTION(Key, int)                                   \
+  ACTION(Value, float)
 
 // For all output and intermediate states
 #define FOR_ALL_OUTPUT_TENSORS(ACTION) \
-  ACTION(Output)                       \
-  ACTION(Hits)
+  ACTION(Output, float)                \
+  ACTION(Hits, uint8_t)
 
 class HashtableLookupOpModel {
  public:
@@ -109,7 +109,7 @@ class HashtableLookupOpModel {
     compilation.finish();
     Execution execution(&compilation);
 
-#define SetInputOrWeight(X)                                                  \
+#define SetInputOrWeight(X, T)                                          \
   ASSERT_EQ(execution.setInput(HashtableLookup::k##X##Tensor, X##_.data(), sizeof(X##_)), \
             Result::NO_ERROR);
 
@@ -117,7 +117,7 @@ class HashtableLookupOpModel {
 
 #undef SetInputOrWeight
 
-#define SetOutput(X)                                                          \
+#define SetOutput(X, T)                                                 \
   ASSERT_EQ(execution.setOutput(HashtableLookup::k##X##Tensor, X##_.data(), sizeof(X##_)), \
             Result::NO_ERROR);
 
@@ -128,8 +128,8 @@ class HashtableLookupOpModel {
     ASSERT_EQ(execution.compute(), Result::NO_ERROR);
   }
 
-#define DefineSetter(X)                          \
-  void Set##X(const std::vector<float>& f) {     \
+#define DefineSetter(X, T)                       \
+  void Set##X(const std::vector<T>& f) {         \
     X##_.insert(X##_.end(), f.begin(), f.end()); \
   }
 
@@ -146,14 +146,14 @@ class HashtableLookupOpModel {
   }
 
   const std::vector<float>& GetOutput() const { return Output_; }
-  const std::vector<float>& GetHits() const { return Hits_; }
+  const std::vector<uint8_t>& GetHits() const { return Hits_; }
 
  private:
   Model model_;
   uint32_t rows_;
   uint32_t features_;
 
-#define DefineTensor(X) std::vector<float> X##_;
+#define DefineTensor(X, T) std::vector<T> X##_;
 
   FOR_ALL_INPUT_AND_WEIGHT_TENSORS(DefineTensor);
   FOR_ALL_OUTPUT_TENSORS(DefineTensor);
@@ -176,7 +176,7 @@ TEST(HashtableLookupOpTest, BlackBoxTest) {
                                  0.0, 0.1,  // 0-th item
                                  1.0, 1.1,  // 1-st item
                              })));
-  EXPECT_THAT(m.GetHits(), ElementsAreArray({
+  EXPECT_EQ(m.GetHits(), std::vector<uint8_t>({
                                1, 0, 1, 1,
                            }));
 
