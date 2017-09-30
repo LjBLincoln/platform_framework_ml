@@ -262,6 +262,16 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                      activation,
                                      reinterpret_cast<float*>(out.buffer),
                                      outShape);
+            } else if (in1.type == OperandType::TENSOR_QUANT8_ASYMM) {
+                success = addMulPrepare(in1.shape(), in2.shape(), &outShape) &&
+                          allocateIfNeeded(&out, outShape) &&
+                          addQuant8(reinterpret_cast<const uint8_t*>(in1.buffer),
+                                    in1.shape(),
+                                    reinterpret_cast<const uint8_t*>(in2.buffer),
+                                    in2.shape(),
+                                    activation,
+                                    reinterpret_cast<uint8_t*>(out.buffer),
+                                    outShape);
             }
         } break;
         case OperationType::MUL: {
@@ -285,6 +295,16 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                      activation,
                                      reinterpret_cast<float*>(out.buffer),
                                      outShape);
+            } else if (in1.type == OperandType::TENSOR_QUANT8_ASYMM) {
+                success = addMulPrepare(in1.shape(), in2.shape(), &outShape) &&
+                          allocateIfNeeded(&out, outShape) &&
+                          mulQuant8(reinterpret_cast<const uint8_t*>(in1.buffer),
+                                    in1.shape(),
+                                    reinterpret_cast<const uint8_t*>(in2.buffer),
+                                    in2.shape(),
+                                    activation,
+                                    reinterpret_cast<uint8_t*>(out.buffer),
+                                    outShape);
             }
         } break;
         case OperationType::FLOOR: {
@@ -321,7 +341,8 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
         } break;
         case OperationType::DEPTHWISE_CONV_2D: {
-            if (!parameterCountIs(11, 1) && !parameterCountIs(8, 1)) {
+            if ((ins.size() != 11 && ins.size() != 8) ||
+                    !parameterCountIs(ins.size(), 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input  = mOperands[ins[0]];
@@ -334,7 +355,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             int32_t depth_multiplier;
             int32_t activation;
 
-            if (parameterCountIs(11, 1)) {
+            if (ins.size() == 11) {
                 padding_left     = getScalarData<int32_t>(mOperands[ins[3]]);
                 padding_right    = getScalarData<int32_t>(mOperands[ins[4]]);
                 padding_top      = getScalarData<int32_t>(mOperands[ins[5]]);
@@ -409,7 +430,8 @@ int CpuExecutor::executeOperation(const Operation& operation) {
 
         } break;
         case OperationType::CONV_2D: {
-            if (!parameterCountIs(10, 1) && !parameterCountIs(7, 1)) {
+            if ((ins.size() != 10 && ins.size() != 7) ||
+                    !parameterCountIs(ins.size(), 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input  = mOperands[ins[0]];
@@ -421,7 +443,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             int32_t stride_width, stride_height;
             int32_t activation;
 
-            if (parameterCountIs(10, 1)) {
+            if (ins.size() == 10) {
                 padding_left     = getScalarData<int32_t>(mOperands[ins[3]]);
                 padding_right    = getScalarData<int32_t>(mOperands[ins[4]]);
                 padding_top      = getScalarData<int32_t>(mOperands[ins[5]]);
@@ -487,7 +509,8 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
         } break;
         case OperationType::AVERAGE_POOL_2D: {
-            if (!parameterCountIs(10, 1) && !parameterCountIs(7, 1)) {
+            if ((ins.size() != 10 && ins.size() != 7) ||
+                    !parameterCountIs(ins.size(), 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
@@ -497,7 +520,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             int32_t filter_width, filter_height;
             int32_t activation;
 
-            if (parameterCountIs(10, 1)) {
+            if (ins.size() == 10) {
                 padding_left     = getScalarData<int32_t>(mOperands[ins[1]]);
                 padding_right    = getScalarData<int32_t>(mOperands[ins[2]]);
                 padding_top      = getScalarData<int32_t>(mOperands[ins[3]]);
@@ -564,7 +587,8 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
         } break;
         case OperationType::L2_POOL_2D: {
-            if (!parameterCountIs(10, 1) && !parameterCountIs(7, 1)) {
+            if ((ins.size() != 10 && ins.size() != 7) ||
+                    !parameterCountIs(ins.size(), 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
@@ -574,7 +598,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             int32_t filter_width, filter_height;
             int32_t activation;
 
-            if (parameterCountIs(10, 1)) {
+            if (ins.size() == 10) {
                 padding_left     = getScalarData<int32_t>(mOperands[ins[1]]);
                 padding_right    = getScalarData<int32_t>(mOperands[ins[2]]);
                 padding_top      = getScalarData<int32_t>(mOperands[ins[3]]);
@@ -625,7 +649,8 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
         } break;
         case OperationType::MAX_POOL_2D: {
-            if (!parameterCountIs(10, 1) && !parameterCountIs(7, 1)) {
+            if ((ins.size() != 10 && ins.size() != 7) ||
+                    !parameterCountIs(ins.size(), 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
@@ -635,7 +660,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             int32_t filter_width, filter_height;
             int32_t activation;
 
-            if (parameterCountIs(10, 1)) {
+            if (ins.size() == 10) {
                 padding_left     = getScalarData<int32_t>(mOperands[ins[1]]);
                 padding_right    = getScalarData<int32_t>(mOperands[ins[2]]);
                 padding_top      = getScalarData<int32_t>(mOperands[ins[3]]);

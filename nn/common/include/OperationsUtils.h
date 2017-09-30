@@ -179,6 +179,13 @@ bool spaceToDepthPrepare(const Shape& input,
                          int32_t blockSize,
                          Shape* output);
 
+// Macro to check if the input parameters for operation are valid or not.
+#define NN_OPS_CHECK(v)                                                  \
+    if (!(v)) {                                                          \
+        LOG(ERROR) << "NN_OPS_CHECK failed: "  << #v << "'\n";           \
+        return false;                                                    \
+    }
+
 #define ANDROID_NN_MACRO_DISPATCH(macro)                                    \
     switch (activation) {                                                   \
         case (int32_t) FusedActivationFunc::NONE:                           \

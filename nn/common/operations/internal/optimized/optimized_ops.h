@@ -1345,13 +1345,25 @@ void Add(const float* input1_data, const Dims<4>& input1_dims,
   }
 }
 
+template <FusedActivationFunctionType Ac>
 inline void Add(int left_shift, const uint8* input1_data,
                 const Dims<4>& input1_dims, int32 input1_offset,
                 int32 input1_multiplier, int input1_shift,
                 const uint8* input2_data, const Dims<4>& input2_dims,
                 int32 input2_offset, int32 input2_multiplier, int input2_shift,
                 int32 output_offset, int32 output_multiplier, int output_shift,
+                int32 output_activation_min, int32 output_activation_max,
                 uint8* output_data, const Dims<4>& output_dims) {
+  static_assert(Ac == FusedActivationFunctionType::kNone ||
+                    Ac == FusedActivationFunctionType::kRelu ||
+                    Ac == FusedActivationFunctionType::kRelu6 ||
+                    Ac == FusedActivationFunctionType::kRelu1,
+                "");
+  DCHECK_LE(output_activation_min, output_activation_max);
+  if (Ac == FusedActivationFunctionType::kNone) {
+    DCHECK_EQ(output_activation_min, 0);
+    DCHECK_EQ(output_activation_max, 255);
+  }
   gemmlowp::ScopedProfilingLabel label("Add/8bit");
   /* const int batches = */ MatchingArraySize(input1_dims, 3, input2_dims, 3,
                                               output_dims, 3);
@@ -1434,10 +1446,12 @@ inline void Add(int left_shift, const uint8* input1_data,
     const int32 raw_output = MultiplyByQuantizedMultiplierSmallerThanOne(
                                  raw_sum, output_multiplier, output_shift) +
                              output_offset;
-    const int32 clamped_output = std::min(255, std::max(0, raw_output));
-    output_data[i] = clamped_output;
+    const int32 clamped_output = std::min(
+        output_activation_max, std::max(output_activation_min, raw_output));
+    output_data[i] = static_cast<uint8>(clamped_output);
   }
 }
+
 
 // TODO: We can implement BroadcastAdd on buffers of arbitrary
 // dimensionality if the runtime code does a single loop over one dimension
@@ -1481,6 +1495,7 @@ void BroadcastAdd(const float* input1_data, const Dims<4>& input1_dims,
   }
 }
 
+template <FusedActivationFunctionType Ac>
 inline void BroadcastAdd(int left_shift, const uint8* input1_data,
                          const Dims<4>& input1_dims, int32 input1_offset,
                          int32 input1_multiplier, int input1_shift,
@@ -1488,7 +1503,19 @@ inline void BroadcastAdd(int left_shift, const uint8* input1_data,
                          int32 input2_offset, int32 input2_multiplier,
                          int input2_shift, int32 output_offset,
                          int32 output_multiplier, int output_shift,
-                         uint8* output_data, const Dims<4>& output_dims) {
+                         int32 output_activation_min,
+                         int32 output_activation_max, uint8* output_data,
+                         const Dims<4>& output_dims) {
+  static_assert(Ac == FusedActivationFunctionType::kNone ||
+                    Ac == FusedActivationFunctionType::kRelu ||
+                    Ac == FusedActivationFunctionType::kRelu6 ||
+                    Ac == FusedActivationFunctionType::kRelu1,
+                "");
+  DCHECK_LE(output_activation_min, output_activation_max);
+  if (Ac == FusedActivationFunctionType::kNone) {
+    DCHECK_EQ(output_activation_min, 0);
+    DCHECK_EQ(output_activation_max, 255);
+  }
   gemmlowp::ScopedProfilingLabel label("BroadcastAdd/8bit");
 
   NdArrayDesc<4> desc1;
@@ -1500,7 +1527,7 @@ inline void BroadcastAdd(int left_shift, const uint8* input1_data,
   // trailing dimension changing most rapidly (channels has the smallest stride,
   // typically 1 element).
   //
-  // In generated C code, we store arrays with the dimensions are reversed. The
+  // In generated C code, we store arrays with the dimensions reversed. The
   // first dimension has smallest stride.
   //
   // We name our variables by their Tensorflow convention, but generate C code
@@ -1527,8 +1554,11 @@ inline void BroadcastAdd(int left_shift, const uint8* input1_data,
               MultiplyByQuantizedMultiplierSmallerThanOne(
                   raw_sum, output_multiplier, output_shift) +
               output_offset;
-          const int32 clamped_output = std::min(255, std::max(0, raw_output));
-          output_data[Offset(output_dims, c, x, y, b)] = clamped_output;
+          const int32 clamped_output =
+              std::min(output_activation_max,
+                       std::max(output_activation_min, raw_output));
+          output_data[Offset(output_dims, c, x, y, b)] =
+              static_cast<uint8>(clamped_output);
         }
       }
     }
@@ -1665,12 +1695,24 @@ void BroadcastMul(const float* input1_data, const Dims<4>& input1_dims,
   }
 }
 
+template <FusedActivationFunctionType Ac>
 inline void BroadcastMul(const uint8* input1_data, const Dims<4>& input1_dims,
                          int32 input1_offset, const uint8* input2_data,
                          const Dims<4>& input2_dims, int32 input2_offset,
-                         uint8* output_data, const Dims<4>& output_dims,
                          int32 output_offset, int32 output_multiplier,
-                         int output_shift) {
+                         int output_shift, int32 output_activation_min,
+                         int32 output_activation_max, uint8* output_data,
+                         const Dims<4>& output_dims) {
+  static_assert(Ac == FusedActivationFunctionType::kNone ||
+                    Ac == FusedActivationFunctionType::kRelu ||
+                    Ac == FusedActivationFunctionType::kRelu6 ||
+                    Ac == FusedActivationFunctionType::kRelu1,
+                "");
+  DCHECK_LE(output_activation_min, output_activation_max);
+  if (Ac == FusedActivationFunctionType::kNone) {
+    DCHECK_EQ(output_activation_min, 0);
+    DCHECK_EQ(output_activation_max, 255);
+  }
   gemmlowp::ScopedProfilingLabel label("BroadcastMul/8bit");
 
   NdArrayDesc<4> desc1;
@@ -1700,8 +1742,11 @@ inline void BroadcastMul(const uint8* input1_data, const Dims<4>& input1_dims,
               output_offset +
               MultiplyByQuantizedMultiplierSmallerThanOne(
                   input1_val * input2_val, output_multiplier, output_shift);
+          const int32 clamped_output =
+              std::min(output_activation_max,
+                       std::max(output_activation_min, unclamped_result));
           output_data[Offset(output_dims, c, x, y, b)] =
-              std::min(255, std::max(0, unclamped_result));
+              static_cast<uint8>(clamped_output);
         }
       }
     }
