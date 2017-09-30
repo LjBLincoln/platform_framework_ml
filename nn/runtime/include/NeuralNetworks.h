@@ -80,8 +80,8 @@ typedef enum {
      *
      * Attached to this tensor are two numbers that can be used to convert
      * the 8 bit integer to the real value and vice versa.  These two numbers are:
-     * - scale: a 32 bit floating point value
-     * - zeroPoint: an 32 bit integer
+     * - scale: a 32 bit non-negative floating point value.
+     * - zeroPoint: an 32 bit integer, in range [0, 255].
      *
      * The formula is:
      * real_value = (integer_value - zeroPoint) * scale.
@@ -115,6 +115,7 @@ typedef enum {
      *
      * Supported tensor types:
      * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
      *
      * Supported tensor rank: up to 4
      *
@@ -144,7 +145,9 @@ typedef enum {
      *
      * Supported tensor rank: 4, with "NHWC" data layout.
      *
-     * Inputs:
+     * Both explicit padding and implicit padding are supported.
+     *
+     * Inputs (explicit padding):
      * * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
      * * 1: An INT32 value, specifying the padding on the left, in the ‘width’ dimension.
      * * 2: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
@@ -155,6 +158,17 @@ typedef enum {
      * * 7: An INT32 value, specifying the filter width.
      * * 8: An INT32 value, specifying the filter height.
      * * 9: An INT32 value, and has to be one of the {@link FuseCode} values.
+     *      Specifies the activation to invoke on the result of each addition.
+     *
+     * Inputs (implicit padding):
+     * * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
+     * * 1: An INT32 value, specifying the implicit padding scheme, has to be one of the
+     *      {@link PaddingCode} values.
+     * * 2: An INT32 value, specifying the output stride in the ‘width’ dimension.
+     * * 3: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 4: An INT32 value, specifying the filter width.
+     * * 5: An INT32 value, specifying the filter height.
+     * * 6: An INT32 value, and has to be one of the {@link FuseCode} values.
      *      Specifies the activation to invoke on the result of each addition.
      *
      * Outputs:
@@ -209,7 +223,9 @@ typedef enum {
      *
      * Supported tensor rank: 4, with "NHWC" data layout.
      *
-     * Inputs:
+     * Both explicit padding and implicit padding are supported.
+     *
+     * Inputs (explicit padding):
      * * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
      * * 1: A 4-D tensor, of shape [depth_out, filter_height, filter_width, depth_in],
      *      specifying the filter.
@@ -226,6 +242,23 @@ typedef enum {
      * * 7: An INT32 value, specifying the output stride in the ‘width’ dimension.
      * * 8: An INT32 value, specifying the output stride in the ‘height’ dimension.
      * * 9: An INT32 value, and has to be one of the {@link FuseCode} values.
+     *      Specifies the activation to invoke on the result of each addition.
+     *
+     * Inputs (implicit padding):
+     * * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
+     * * 1: A 4-D tensor, of shape [depth_out, filter_height, filter_width, depth_in],
+     *      specifying the filter.
+     * * 2: A 1-D tensor, of shape [depth_out], specifying the bias.
+     *      For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
+     *      also be of {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
+     *      For input tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the bias
+     *      should be of {@link ANEURALNETWORKS_TENSOR_INT32}, with zeroPoint of 0 and
+     *      bias_scale == input_scale * filter_scale.
+     * * 3: An INT32 value, specifying the implicit padding scheme, has to be one of the
+     *      {@link PaddingCode} values.
+     * * 4: An INT32 value, specifying the output stride in the ‘width’ dimension.
+     * * 5: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 6: An INT32 value, and has to be one of the {@link FuseCode} values.
      *      Specifies the activation to invoke on the result of each addition.
      *
      * Outputs:
@@ -260,7 +293,9 @@ typedef enum {
      *
      * Supported tensor rank: 4, with "NHWC" data layout.
      *
-     * Inputs:
+     * Both explicit padding and implicit padding are supported.
+     *
+     * Inputs (explicit padding):
      * * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
      * * 1: A 4-D tensor, of shape [1, filter_height, filter_width, depth_out],
      *      specifying the filter.
@@ -278,6 +313,24 @@ typedef enum {
      * * 8: An INT32 value, specifying the output stride in the ‘height’ dimension.
      * * 9: An INT32 value, specifying the depthwise multiplier.
      * * 10: An INT32 value, and has to be one of the {@link FuseCode} values.
+     *       Specifies the activation to invoke on the result of each addition.
+     *
+     * Inputs (explicit padding):
+     * * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
+     * * 1: A 4-D tensor, of shape [1, filter_height, filter_width, depth_out],
+     *      specifying the filter.
+     * * 2: A 1-D tensor, of shape [depth_out], specifying the bias.
+     *      For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
+     *      also be of {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
+     *      For input tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the bias
+     *      should be of {@link ANEURALNETWORKS_TENSOR_INT32}, with zeroPoint of 0 and
+     *      bias_scale == input_scale * filter_scale.
+     * * 3: An INT32 value, specifying the implicit padding scheme, has to be one of the
+     *      {@link PaddingCode} values.
+     * * 4: An INT32 value, specifying the output stride in the ‘width’ dimension.
+     * * 5: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 6: An INT32 value, specifying the depthwise multiplier.
+     * * 7: An INT32 value, and has to be one of the {@link FuseCode} values.
      *       Specifies the activation to invoke on the result of each addition.
      *
      * Outputs:
@@ -463,7 +516,9 @@ typedef enum {
      *
      * Supported tensor rank: 4, with "NHWC" data layout.
      *
-     * Inputs:
+     * Both explicit padding and implicit padding are supported.
+     *
+     * Inputs (explicit padding):
      * * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
      * * 1: An INT32 value, specifying the padding on the left, in the ‘width’ dimension.
      * * 2: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
@@ -474,6 +529,17 @@ typedef enum {
      * * 7: An INT32 value, specifying the filter width.
      * * 8: An INT32 value, specifying the filter height.
      * * 9: An INT32 value, and has to be one of the {@link FuseCode} values.
+     *      Specifies the activation to invoke on the result of each addition.
+     *
+     * Inputs (implicit padding):
+     * * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
+     * * 1: An INT32 value, specifying the implicit padding scheme, has to be one of the
+     *      {@link PaddingCode} values.
+     * * 2: An INT32 value, specifying the output stride in the ‘width’ dimension.
+     * * 3: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 4: An INT32 value, specifying the filter width.
+     * * 5: An INT32 value, specifying the filter height.
+     * * 6: An INT32 value, and has to be one of the {@link FuseCode} values.
      *      Specifies the activation to invoke on the result of each addition.
      *
      * Outputs:
@@ -681,7 +747,9 @@ typedef enum {
      *
      * Supported tensor rank: 4, with "NHWC" data layout.
      *
-     * Inputs:
+     * Both explicit padding and implicit padding are supported.
+     *
+     * Inputs (explicit padding):
      * * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
      * * 1: An INT32 value, specifying the padding on the left, in the ‘width’ dimension.
      * * 2: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
@@ -692,6 +760,17 @@ typedef enum {
      * * 7: An INT32 value, specifying the filter width.
      * * 8: An INT32 value, specifying the filter height.
      * * 9: An INT32 value, and has to be one of the {@link FuseCode} values.
+     *      Specifies the activation to invoke on the result of each addition.
+     *
+     * Inputs (implicit padding):
+     * * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
+     * * 1: An INT32 value, specifying the implicit padding scheme, has to be one of the
+     *      {@link PaddingCode} values.
+     * * 2: An INT32 value, specifying the output stride in the ‘width’ dimension.
+     * * 3: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 4: An INT32 value, specifying the filter width.
+     * * 5: An INT32 value, specifying the filter height.
+     * * 6: An INT32 value, and has to be one of the {@link FuseCode} values.
      *      Specifies the activation to invoke on the result of each addition.
      *
      * Outputs:
@@ -713,6 +792,7 @@ typedef enum {
      *
      * Supported tensor types:
      * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
      *
      * Supported tensor rank: up to 4
      *
@@ -724,6 +804,8 @@ typedef enum {
      *
      * Outputs:
      * * 0: The product, a tensor of the same type as input0.
+     *      For output tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the following
+     *      condition must be satisfied: output_scale > input1_scale * input2_scale.
      */
     ANEURALNETWORKS_MUL = 18,
 
@@ -1041,6 +1123,17 @@ typedef enum {
     /** Fused ReLU6 activation function. */
     ANEURALNETWORKS_FUSED_RELU6 = 3,
 } FuseCode;
+
+/**
+ * Implicit padding algorithms.
+ *
+ */
+typedef enum {
+    /** SAME padding. */
+    ANEURALNETWORKS_PADDING_SAME = 1,
+    /** VALID padding. */
+    ANEURALNETWORKS_PADDING_VALID = 2,
+} PaddingCode;
 
 /**
  * Execution preferences.

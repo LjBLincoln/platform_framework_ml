@@ -38,10 +38,19 @@ bool addFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
                 float* out, const Shape& shapeOut);
+bool addQuant8(const uint8_t* in1, const Shape& shape1,
+               const uint8_t* in2, const Shape& shape2,
+               int32_t activation,
+               uint8_t* out, const Shape& shapeOut);
+
 bool mulFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
                 float* out, const Shape& shapeOut);
+bool mulQuant8(const uint8_t* in1, const Shape& shape1,
+               const uint8_t* in2, const Shape& shape2,
+               int32_t activation,
+               uint8_t* out, const Shape& shapeOut);
 
 bool floorFloat32(const float* inputData,
                   float* outputData,
