@@ -2,7 +2,7 @@
 model = Model()
 
 i1 = Input("op1", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 1}, 0.5f, 0")
-i3 = Output("op3", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 1}, 1.f/256, 0")
+i3 = Output("op3", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 1}, 0.00390625f, 0")
 model = model.Operation("LOGISTIC", i1).To(i3)
 
 # Example 1. Input in operand 0,
