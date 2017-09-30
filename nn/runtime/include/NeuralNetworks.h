@@ -474,8 +474,10 @@ typedef enum {
      *
      * Outputs:
      * * 0: Output. A tensor with shape [ k …].
-     * * 1: Hits. A uint8 tensor with shape [ k ] indicates whether the lookup
-     *      hits or not.
+     * * 1: Hits. A boolean tensor with shape [ k ] indicates whether the lookup
+     *      hits (True) or not (False).
+     *      Stored as {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} with offset 0 and scale 1.0f.
+     *      A non-zero byte represents True, a hit. A zero indicates otherwise.
      */
     ANEURALNETWORKS_HASHTABLE_LOOKUP = 10,
 
