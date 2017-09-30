@@ -81,12 +81,6 @@ ExecutionBuilder::ExecutionBuilder(const CompilationBuilder* compilation) :
         mOutputs(mModel->outputCount()),
         mMemories(mModel->getMemories()) {
     LOG(DEBUG) << "ExecutionBuilder::ExecutionBuilder";
-    for (auto& p : mInputs) {
-        p.state = ModelArgumentInfo::UNSPECIFIED;
-    }
-    for (auto& p : mOutputs) {
-        p.state = ModelArgumentInfo::UNSPECIFIED;
-    }
 }
 
 int ExecutionBuilder::setInput(uint32_t index, const ANeuralNetworksOperandType* type,
@@ -291,30 +285,36 @@ int ExecutionBuilder::startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
         }
     }
 
+    // We separate the input & output pools so that we reduce the copying done if we
+    // do an eventual remoting (hidl_memory->update()).  We could also use it to set
+    // protection on read only memory but that's not currently done.
+    Memory inputPointerArguments;
+    Memory outputPointerArguments;
+
     // Layout the input and output data
-    int n = allocatePointerArgumentsToPool(&mInputs, &mInputPointerArguments);
+    int n = allocatePointerArgumentsToPool(&mInputs, &inputPointerArguments);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
-    n = allocatePointerArgumentsToPool(&mOutputs, &mOutputPointerArguments);
+    n = allocatePointerArgumentsToPool(&mOutputs, &outputPointerArguments);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
 
     // Copy the input data that was specified via a pointer.
-    // mInputPointerArguments.update();
+    // inputPointerArguments.update();
     for (auto& info : mInputs) {
         if (info.state == ModelArgumentInfo::POINTER) {
             DataLocation& loc = info.locationAndDimension.location;
             uint8_t* data = nullptr;
-            int n = mInputPointerArguments.getPointer(&data);
+            int n = inputPointerArguments.getPointer(&data);
             if (n != ANEURALNETWORKS_NO_ERROR) {
                 return n;
             }
             memcpy(data + loc.offset, info.buffer, loc.length);
         }
     }
-    // TODO: Add mInputPointerArguments.commit() and .update() at all the right places
+    // TODO: Add inputPointerArguments.commit() and .update() at all the right places
 
     Request request;
     copyLocationAndDimension(mInputs, &request.inputs);
@@ -364,7 +364,7 @@ int ExecutionBuilder::startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
         if (info.state == ModelArgumentInfo::POINTER) {
             DataLocation& loc = info.locationAndDimension.location;
             uint8_t* data = nullptr;
-            int n = mOutputPointerArguments.getPointer(&data);
+            int n = outputPointerArguments.getPointer(&data);
             if (n != ANEURALNETWORKS_NO_ERROR) {
                 return n;
             }
