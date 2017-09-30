@@ -78,7 +78,7 @@ private:
     int startComputeOnCpu(sp<Event>* event);
 
     const ModelBuilder* mModel;
-    const ExecutionPlan* mPlan;
+    [[maybe_unused]] const ExecutionPlan* mPlan;
 
     // The information we'll send to the driver about the inputs and outputs.
     // Note that we build this in two steps:
