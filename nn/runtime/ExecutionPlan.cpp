@@ -20,6 +20,7 @@
 
 #include "CompilationBuilder.h"
 #include "Event.h"
+#include "ExecutionBuilder.h"
 #include "Manager.h"
 #include "ModelBuilder.h"
 #include "Utils.h"
@@ -240,6 +241,10 @@ int ExecutionStep::addOperation(int operationIndex, const ModelBuilder& fromMode
                                    outputCount, outputs.data());
 }
 
+size_t ExecutionStep::countSubModelOutputs() const {
+    return mSubModelOutputs.size();
+}
+
 void ExecutionPlan::CompoundBody::findSubModelOutputs() {
     for (const auto& step : mSteps) {
         for (const auto& input : step->getSubModelInputs()) {
@@ -251,9 +256,12 @@ void ExecutionPlan::CompoundBody::findSubModelOutputs() {
             mSteps[stepIndex]->recordSubModelOutput(fromModelIndex);
         }
     }
+    for (const auto& step : mSteps) {
+        mSubModelOutputCount += step->countSubModelOutputs();
+    }
 }
 
-int ExecutionStep::finishSubModel() {
+int ExecutionStep::finishSubModel(bool* hasOutputOfUnknownSize) {
     LOG(DEBUG) << "ExecutionStep::finishSubModel, step " << mIndex;
 
     std::vector<uint32_t> inputs;
@@ -270,6 +278,15 @@ int ExecutionStep::finishSubModel() {
     }
     for (const auto& subModelOutput : mSubModelOutputs) {
         outputs.push_back(subModelOutput.second);
+        const Operand& operand = mSubModel->getOperand(subModelOutput.second);
+        for (uint32_t dimension : operand.dimensions) {
+            if (dimension == 0) {
+                *hasOutputOfUnknownSize = true;
+                LOG(DEBUG) << "SubModelOutput (operand#" << subModelOutput.first << " of original graph)"
+                           << " has unknown size: " << toString(operand);
+                break;
+            }
+        }
     }
 
     {
@@ -304,12 +321,12 @@ void ExecutionStep::dump() const {
 int ExecutionPlan::CompoundBody::finish() {
     findSubModelOutputs();
     for (const auto& step : mSteps) {
-        int n = step->finishSubModel();
+        int n = step->finishSubModel(&mHasSubModelOutputOfUnknownSize);
         if (n != ANEURALNETWORKS_NO_ERROR) {
             return n;
         }
     }
-    return ANEURALNETWORKS_NO_ERROR;
+    return (mHasSubModelOutputOfUnknownSize ? ANEURALNETWORKS_BAD_STATE : ANEURALNETWORKS_NO_ERROR);
 }
 
 int ExecutionPlan::SimpleBody::finish() {
@@ -329,21 +346,47 @@ int ExecutionPlan::finish() {
     return mBody->finish();
 }
 
-int ExecutionPlan::getSimplePlan(std::shared_ptr<Device>* device, sp<IPreparedModel>* preparedModel) const {
+bool ExecutionPlan::shouldBeExecutable() const {
+    return mState == SIMPLE;
+}
+
+ExecutionPlan::Controller ExecutionPlan::makeController(
+    const ExecutionBuilder* executionBuilder) const {
     if (mState != SIMPLE) {
-        return ANEURALNETWORKS_BAD_STATE;
+        return Controller();
     }
     auto simpleBody = static_cast<const SimpleBody*>(mBody);
-    if (simpleBody->mSuccessfulFinish) {
-        if (preparedModel != nullptr) {
-            *preparedModel = simpleBody->mPreparedModel;
-        }
-        if (device != nullptr) {
-            *device = simpleBody->mDevice;
-        }
+    if (!simpleBody->mSuccessfulFinish) {
+        return Controller();
+    }
+
+    return Controller(this, executionBuilder);
+}
+
+int ExecutionPlan::next(Controller* controller, std::shared_ptr<StepExecutor>* executor) const {
+    *executor = nullptr;
+
+    if (controller->mNextStepIndex == Controller::kBadStepIndex) {
+        return ANEURALNETWORKS_OP_FAILED;
+    }
+
+    nnAssert(mState == SIMPLE);
+    if (controller->mNextStepIndex == 0) {
+        // First (and only) step.
+        auto simpleBody = static_cast<const SimpleBody*>(mBody);
+        *executor = std::make_shared<StepExecutor>(
+            controller->mExecutionBuilder,
+            simpleBody->mModel,
+            (simpleBody->mDevice == nullptr ? sp<IDevice>() : simpleBody->mDevice->getInterface()),
+            simpleBody->mPreparedModel);
+        (*executor)->mapInputsAndOutputsTrivially();
+        controller->mNextStepIndex = 1;
         return ANEURALNETWORKS_NO_ERROR;
     }
-    return ANEURALNETWORKS_OP_FAILED;
+
+    nnAssert(controller->mNextStepIndex == 1);  // end
+    controller->mNextStepIndex = Controller::kBadStepIndex;
+    return ANEURALNETWORKS_NO_ERROR;
 }
 
 std::shared_ptr<ExecutionStep> ExecutionPlan::createNewStep(const std::shared_ptr<Device> device) {
@@ -502,6 +545,7 @@ PerformanceInfo ModelBuilder::getPerformanceInfo(const std::shared_ptr<Device> d
             return device->getFloat32Performance();
         case OperandType::INT32:
         case OperandType::UINT32:
+        case OperandType::TENSOR_INT32:
         case OperandType::TENSOR_QUANT8_ASYMM:
             // For OEM, the real selection will be made from who can run the operand.
         case OperandType::OEM:
