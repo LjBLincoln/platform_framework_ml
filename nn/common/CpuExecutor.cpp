@@ -908,12 +908,11 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             }
         } break;
         case OperationType::CONCATENATION: {
-            if (outs.size() != 1 || ins.size() < 3) {
+            if (outs.size() != 1 || ins.size() < 2) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
-            int numInputTensors = ins.size() - 2;
+            int numInputTensors = ins.size() - 1;
             int32_t axis = getScalarData<int32_t>(mOperands[ins[numInputTensors]]);
-            int32_t activation = getScalarData<int32_t>(mOperands[ins[numInputTensors+1]]);
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -930,8 +929,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                 }
                 success = concatenationPrepare(inputShapes, axis, &outShape) &&
                           allocateIfNeeded(&output, outShape) &&
-                          concatenationFloat32(inputDataPtrs, inputShapes,
-                                               axis, activation,
+                          concatenationFloat32(inputDataPtrs, inputShapes, axis,
                                                reinterpret_cast<float*>(output.buffer), outShape);
             } else if (firstInput.type == OperandType::TENSOR_QUANT8_ASYMM) {
                 std::vector<Shape> inputShapes(numInputTensors);
@@ -944,8 +942,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                 }
                 success = concatenationPrepare(inputShapes, axis, &outShape) &&
                           allocateIfNeeded(&output, outShape) &&
-                          concatenationQuant8(inputDataPtrs, inputShapes,
-                                              axis, activation,
+                          concatenationQuant8(inputDataPtrs, inputShapes, axis,
                                               reinterpret_cast<uint8_t*>(output.buffer),
                                               outShape);
             }
