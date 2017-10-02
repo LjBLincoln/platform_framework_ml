@@ -33,7 +33,7 @@ class Device {
 public:
     Device(const std::string& name, const sp<IDevice>& device) : mName(name), mInterface(device) {}
     sp<IDevice> getInterface() { return mInterface; }
-    const std::string& getName() { return mName; }
+    const std::string& getName() const { return mName; }
     void initialize();
 
     void getSupportedOperations(const Model& hidlModel, hidl_vec<bool>* supportedOperations) const;
