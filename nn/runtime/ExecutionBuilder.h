@@ -116,9 +116,17 @@ public:
     // is executing the entire model from the ExecutionBuilder).
     void mapInputsAndOutputsTrivially();
 
-    // TODO: Implement these functions for use by multiple-step execution plans
-    // int mapInput(uint32_t builderIndex, uint32_t executorIndex);
-    // int mapOutput(uint32_t builderIndex, uint32_t executorIndex);
+    // Map inputs and outputs from ExecutionBuilder to StepExecutor,
+    // one at a time.  Note that these are input/output indexes, not
+    // operand indexes.
+    void mapInput(uint32_t builderIndex, uint32_t executorIndex) {
+        mapInputOrOutput(mExecutionBuilder->mInputs[builderIndex],
+                         &mInputs[executorIndex]);
+    }
+    void mapOutput(uint32_t builderIndex, uint32_t executorIndex) {
+        mapInputOrOutput(mExecutionBuilder->mOutputs[builderIndex],
+                         &mOutputs[executorIndex]);
+    }
 
     // TODO: inter-partition temporaries
 
@@ -128,6 +136,9 @@ private:
     int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
     int startComputeOnDevice(sp<Event>* event);
     int startComputeOnCpu(sp<Event>* event);
+
+    void mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutput,
+                          ModelArgumentInfo* executorInputOrOutput);
 
     // describes the full (possibly multiple-"step") execution
     const ExecutionBuilder* mExecutionBuilder;

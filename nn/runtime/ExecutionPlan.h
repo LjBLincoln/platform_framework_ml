@@ -69,7 +69,16 @@ public:
     // If this step has a submodel output of unknown size, sets
     // *hasOutputOfUnknownSize to true; otherwise, leaves it
     // unchanged.
-    int finishSubModel(bool* hasOutputOfUnknownSize);
+    int finishSubModel(const ModelBuilder* fromModel, bool* hasOutputOfUnknownSize);
+
+    std::shared_ptr<ModelBuilder> getSubModel() const { return mSubModel; }
+    std::shared_ptr<Device> getDevice() const { return mDevice; }
+
+    // only available after calling finishSubModel()
+    sp<IPreparedModel> getPreparedSubModel() const { return mPreparedSubModel; }
+
+    // Map inputs and outputs from ExecutionBuilder to StepExecutor.
+    void mapInputsAndOutputs(std::shared_ptr<StepExecutor> stepExecutor) const;
 
     void dump() const;
 private:
@@ -97,6 +106,16 @@ private:
     SubModelOutputSetType mSubModelOutputs;
     // Converts operand indexes from the main model to the submodel.
     std::unordered_map<uint32_t, uint32_t> mOperandMap;
+    // Converts input indexes from the submodel to the main model
+    // (these are input indexes, not operand indexes).  This vector
+    // only describes inputs of the submodel that are also inputs of
+    // the main model -- that is, mModelInputs but not mSubModelInputs.
+    std::vector<uint32_t> mInputIndexSubModelToFromModel;
+    // Converts output indexes from the submodel to the main model
+    // (these are output indexes, not operand indexes).  This vector
+    // only describes outputs of the submodel that are also outputs of
+    // the main model -- that is, mModelOutputs but not mSubModelOutputs.
+    std::vector<uint32_t> mOutputIndexSubModelToFromModel;
 };
 
 class ExecutionPlan {
@@ -141,7 +160,7 @@ public:
     void becomeSingleStep(const std::shared_ptr<Device> device,
                           const ModelBuilder* model);
 
-    int finish();
+    int finish(const ModelBuilder* fromModel);
 
     void recordTemporaryDef(uint32_t fromModelIndex, uint32_t stepIndex) {
         auto& temporaryToDefiningStep = compound()->mTemporaryToDefiningStep;
@@ -171,7 +190,8 @@ private:
     struct Body {
         virtual ~Body() {}
         virtual void dump() const = 0;
-        virtual int finish() = 0;
+        virtual int finish(const ModelBuilder* fromModel) = 0;
+        bool mSuccessfulFinish = false;
     };
 
     struct SimpleBody : Body {
@@ -179,17 +199,16 @@ private:
                 mDevice(device), mModel(model) {}
 
         void dump() const override;
-        int finish() override;
+        int finish(const ModelBuilder* fromModel) override;
 
         std::shared_ptr<Device> mDevice;  // nullptr signifies CPU
         const ModelBuilder* mModel;
         sp<IPreparedModel> mPreparedModel;  // not used for CPU
-        bool mSuccessfulFinish = false;
     };
 
     struct CompoundBody : Body {
         void dump() const override;
-        int finish() override;
+        int finish(const ModelBuilder* fromModel) override;
 
         // TODO: Some of the data is working state information that
         // shouldn't be needed after we've constructed but not
@@ -204,7 +223,7 @@ private:
         // Total number of submodel outputs across all steps.
         size_t mSubModelOutputCount = 0;
 
-        bool mHasSubModelOutputOfUnknownSize = true;
+        bool mHasSubModelOutputOfUnknownSize = false;
     private:
         void findSubModelOutputs();
     };

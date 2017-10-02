@@ -189,22 +189,41 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
     // take the asynchronous thread logic out of startComputeOnCpu() and use
     // it to wrap the plan-based-path.
 #if NN_DEBUGGABLE
-    if ((DeviceManager::get()->getPartitioning() > 1) && mPlan->shouldBeExecutable()) {
-        LOG(DEBUG) << "ExecutionBuilder::startCompute (from plan, iteratively)";
-        ExecutionPlan::Controller controller = mPlan->makeController(this);
-        while (true) {
-            std::shared_ptr<StepExecutor> executor;
-            int n = mPlan->next(&controller, &executor);
-            if (n != ANEURALNETWORKS_NO_ERROR || executor == nullptr) {
-                return n;
-            }
+    {
+        const int partitioning = DeviceManager::get()->getPartitioning();
+        if (partitioning > 0) {
+            const bool simulation = !((partitioning > 1) && mPlan->shouldBeExecutable());
+            LOG(DEBUG) << "ExecutionBuilder::startCompute"
+                       << (simulation ? " SIMULATION" : "")
+                       << " (from plan, iteratively)";
+            ExecutionPlan::Controller controller = mPlan->makeController(this);
+            while (true) {
+                LOG(DEBUG) << "looking for next StepExecutor";
+                std::shared_ptr<StepExecutor> executor;
+                int n = mPlan->next(&controller, &executor);
+                if (n != ANEURALNETWORKS_NO_ERROR || executor == nullptr) {
+                    if (!simulation) {
+                        return n;
+                    }
 
-            n = executor->startCompute(event);
-            if (n != ANEURALNETWORKS_NO_ERROR) {
-                return n;
-            }
-            if ((*event)->wait() != Event::Status::SUCCESS) {
-                return ANEURALNETWORKS_OP_FAILED;
+                    // simulation
+                    if (n != ANEURALNETWORKS_NO_ERROR) {
+                        LOG(DEBUG) << "ExecutionBuilder::startCompute SIMULATION failed "
+                                   << "with error " << n;
+                    }
+                    break;
+                }
+                if (simulation) {
+                    continue;
+                }
+
+                n = executor->startCompute(event);
+                if (n != ANEURALNETWORKS_NO_ERROR) {
+                    return n;
+                }
+                if ((*event)->wait() != Event::Status::SUCCESS) {
+                    return ANEURALNETWORKS_OP_FAILED;
+                }
             }
         }
     }
@@ -277,12 +296,34 @@ StepExecutor::StepExecutor(const ExecutionBuilder* executionBuilder,
                            const ModelBuilder* model,
                            sp<IDevice> driver, sp<IPreparedModel> preparedModel) :
     mExecutionBuilder(executionBuilder), mModel(model),
-    mDriver(driver), mPreparedModel(preparedModel) {}
+    mDriver(driver), mPreparedModel(preparedModel),
+    mInputs(model->inputCount()), mOutputs(model->outputCount()) {}
 
 void StepExecutor::mapInputsAndOutputsTrivially() {
     mInputs = mExecutionBuilder->mInputs;
     mOutputs = mExecutionBuilder->mOutputs;
     mMemories = mExecutionBuilder->mMemories;
+}
+
+void StepExecutor::mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutput,
+                                    ModelArgumentInfo* executorInputOrOutput) {
+    *executorInputOrOutput = builderInputOrOutput;
+    switch (executorInputOrOutput->state) {
+        default:
+            nnAssert(!"unexpected ModelArgumentInfo::state");
+        case ModelArgumentInfo::POINTER:
+        case ModelArgumentInfo::UNSPECIFIED:
+            break;
+        case ModelArgumentInfo::MEMORY: {
+            const uint32_t builderPoolIndex =
+                    builderInputOrOutput.locationAndDimension.location.poolIndex;
+            const Memory* memory = mExecutionBuilder->mMemories[builderPoolIndex];
+            const uint32_t executorPoolIndex = mMemories.add(memory);
+            executorInputOrOutput->locationAndDimension.location.poolIndex =
+                    executorPoolIndex;
+            break;
+        }
+    }
 }
 
 int StepExecutor::startCompute(sp<Event>* event) {
