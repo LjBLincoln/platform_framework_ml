@@ -24,6 +24,7 @@ from __future__ import division
 from __future__ import print_function
 import argparse
 from functools import reduce
+import math
 import os
 import struct
 import sys
