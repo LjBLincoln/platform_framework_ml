@@ -213,54 +213,8 @@ static_assert(static_cast<int32_t>(FusedActivationFunc::RELU6) == ANEURALNETWORK
 using android::sp;
 using namespace android::nn;
 
-// Validates the type. The used dimensions can be underspecified.
-static int ValidateOperandType(const ANeuralNetworksOperandType& type, const char* tag,
-                               bool allowPartial) {
-    if (!allowPartial) {
-        for (uint32_t i = 0; i < type.dimensionCount; i++) {
-            if (type.dimensions[i] == 0) {
-                LOG(ERROR) << tag << " OperandType invalid dimensions[" << i
-                           << "] = " << type.dimensions[i];
-                return ANEURALNETWORKS_BAD_DATA;
-            }
-        }
-    }
-    if (!validCode(kNumberOfDataTypes, kNumberOfDataTypesOEM, type.type)) {
-        LOG(ERROR) << tag << " OperandType invalid type " << type.type;
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-    /* TODO validate the quantization info.
-    if (type.offset != 0.f && type.scale == 0.f) {
-        LOG(ERROR) << ("%s OperandType invalid offset %f and scale %f", tag, type.offset,
-    type.scale); return ANEURALNETWORKS_BAD_DATA;
-    }
-    if (type.scale != 0.f &&
-        (type.type != ANEURALNETWORKS_FLOAT32)) {
-            LOG(ERROR) << ("%s OperandType scale %f with float type %u", tag, type.scale,
-    type.type); return ANEURALNETWORKS_BAD_DATA;
-        }
-     */
-    return ANEURALNETWORKS_NO_ERROR;
-}
-
-static int ValidateOperandList(uint32_t count, const uint32_t* list, uint32_t operandCount,
-                               const char* tag) {
-    for (uint32_t i = 0; i < count; i++) {
-        if (list[i] >= operandCount) {
-            LOG(ERROR) << tag << " invalid operand index at " << i << " = " << list[i]
-                       << ", operandCount " << operandCount;
-            return ANEURALNETWORKS_BAD_DATA;
-        }
-    }
-    return ANEURALNETWORKS_NO_ERROR;
-}
-
 int ANeuralNetworksMemory_createFromFd(size_t size, int prot, int fd, size_t offset,
                                        ANeuralNetworksMemory** memory) {
-    if (fd < 0) {
-        LOG(ERROR) << "ANeuralNetworksMemory_createFromFd invalid fd " << fd;
-        return ANEURALNETWORKS_UNEXPECTED_NULL;
-    }
     *memory = nullptr;
     std::unique_ptr<MemoryFd> m = std::make_unique<MemoryFd>();
     if (m == nullptr) {
@@ -316,10 +270,6 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
-    int n = ValidateOperandType(*type, "ANeuralNetworksModel_addOperand", true);
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
     return m->addOperand(*type);
 }
 
@@ -354,21 +304,6 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
-    if (!validCode(kNumberOfOperationTypes, kNumberOfOperationTypesOEM, type)) {
-        LOG(ERROR) << "ANeuralNetworksModel_addOperation invalid operations type " << type;
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-    int n = ValidateOperandList(inputCount, inputs, m->operandCount(),
-                                "ANeuralNetworksModel_addOperation inputs");
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-    n = ValidateOperandList(outputCount, outputs, m->operandCount(),
-                            "ANeuralNetworksModel_addOperation outputs");
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-
     return m->addOperation(type, inputCount, inputs, outputCount, outputs);
 }
 
@@ -380,17 +315,6 @@ int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model, uint32
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
-    int n = ValidateOperandList(inputCount, inputs, m->operandCount(),
-                                "ANeuralNetworksModel_setInputsAndOutputs inputs");
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-    n = ValidateOperandList(outputCount, outputs, m->operandCount(),
-                            "ANeuralNetworksModel_setInputsAndOutputs outputs");
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-
     return m->setInputsAndOutputs(inputCount, inputs, outputCount, outputs);
 }
 
@@ -421,11 +345,6 @@ int ANeuralNetworksCompilation_setPreference(ANeuralNetworksCompilation* compila
         LOG(ERROR) << "ANeuralNetworksCompilation_setPreference passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
-    if (preference >= kNumberOfPreferences) {
-        LOG(ERROR) << "ANeuralNetworksCompilation_setPreference invalid preference " << preference;
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-
     CompilationBuilder* c = reinterpret_cast<CompilationBuilder*>(compilation);
     return c->setPreference(preference);
 }
@@ -435,8 +354,6 @@ int ANeuralNetworksCompilation_finish(ANeuralNetworksCompilation* compilation) {
         LOG(ERROR) << "ANeuralNetworksCompilation_finish passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
-    // TODO validate the rest
-
     CompilationBuilder* c = reinterpret_cast<CompilationBuilder*>(compilation);
     return c->finish();
 }
@@ -470,19 +387,8 @@ int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32
         LOG(ERROR) << "ANeuralNetworksExecution_setInput passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
-    if (type != nullptr) {
-        int n = ValidateOperandType(*type, "ANeuralNetworksExecution_setInput", false);
-        if (n != ANEURALNETWORKS_NO_ERROR) {
-            return n;
-        }
-    }
-    if (length > 0xFFFFFFFF) {
-        LOG(ERROR) << "ANeuralNetworksExecution_setInput input exceeds max length " << length;
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-    uint32_t l = static_cast<uint32_t>(length);
     ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
-    return r->setInput(index, type, buffer, l);
+    return r->setInput(index, type, buffer, length);
 }
 
 int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execution, int32_t index,
@@ -493,7 +399,6 @@ int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execut
         LOG(ERROR) << "ANeuralNetworksExecution_setInputFromMemory passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
-    // TODO validate the rest
 
     const Memory* m = reinterpret_cast<const Memory*>(memory);
     ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
@@ -507,20 +412,8 @@ int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int3
         LOG(ERROR) << "ANeuralNetworksExecution_setOutput passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
-    if (type != nullptr) {
-        int n = ValidateOperandType(*type, "ANeuralNetworksExecution_setOutput", false);
-        if (n != ANEURALNETWORKS_NO_ERROR) {
-            return n;
-        }
-    }
-    if (length > 0xFFFFFFFF) {
-        LOG(ERROR) << "ANeuralNetworksExecution_setOutput input exceeds max length " << length;
-        return ANEURALNETWORKS_BAD_DATA;
-    }
-    uint32_t l = static_cast<uint32_t>(length);
-
     ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
-    return r->setOutput(index, type, buffer, l);
+    return r->setOutput(index, type, buffer, length);
 }
 
 int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execution, int32_t index,
@@ -531,7 +424,6 @@ int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execu
         LOG(ERROR) << "ANeuralNetworksExecution_setOutputFromMemory passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
-    // TODO validate the rest
 
     ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
     const Memory* m = reinterpret_cast<const Memory*>(memory);

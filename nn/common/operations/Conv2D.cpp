@@ -100,6 +100,10 @@ bool convQuant8(const uint8_t* inputData, const Shape& inputShape,
 
     ANDROID_NN_CONV_PARAMETERS(uint8_t)
 
+    int32_t inputOffset = -inputShape.offset;
+    int32_t filterOffset = -filterShape.offset;
+    int32_t outputOffset = outputShape.offset;
+
     float real_multiplier = 0.0;
     int32_t output_multiplier = 0;
     int32_t output_shift = 0;
@@ -117,10 +121,9 @@ bool convQuant8(const uint8_t* inputData, const Shape& inputShape,
                                   &output_activation_max);
 
     static gemmlowp::GemmContext gemm_context;
+    // Alow gemmlowp automatcally decide how many threads to use.
+    gemm_context.set_max_num_threads(0);
 
-    int32_t inputOffset = -inputShape.offset;
-    int32_t filterOffset = -filterShape.offset;
-    int32_t outputOffset = outputShape.offset;
     #define ANDROID_NN_CONV(activation)                                        \
         optimized_ops::Conv<FusedActivationFunctionType::activation>(          \
             inputData, convertShapeToDims(inputShape), inputOffset,            \

@@ -76,31 +76,37 @@ int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
 
 ExecutionBuilder::ExecutionBuilder(const CompilationBuilder* compilation) :
         mModel(compilation->mModel),
+        mPlan(&compilation->mPlan),
         mInputs(mModel->inputCount()),
         mOutputs(mModel->outputCount()),
         mMemories(mModel->getMemories()) {
     LOG(DEBUG) << "ExecutionBuilder::ExecutionBuilder";
-    for (auto& p : mInputs) {
-        p.state = ModelArgumentInfo::UNSPECIFIED;
-    }
-    for (auto& p : mOutputs) {
-        p.state = ModelArgumentInfo::UNSPECIFIED;
-    }
 }
 
 int ExecutionBuilder::setInput(uint32_t index, const ANeuralNetworksOperandType* type,
-                               const void* buffer, uint32_t length) {
+                               const void* buffer, size_t length) {
     uint32_t count = static_cast<uint32_t>(mInputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setInput bad index " << index << " " << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
+    if (type != nullptr) {
+        int n = validateOperandType(*type, "ANeuralNetworksExecution_setInput", false);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+    }
+    if (length > 0xFFFFFFFF) {
+        LOG(ERROR) << "ANeuralNetworksExecution_setInput input exceeds max length " << length;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    uint32_t l = static_cast<uint32_t>(length);
     return mInputs[index].setFromPointer(mModel->getInputOperand(index), type,
-                                         const_cast<void*>(buffer), length);
+                                         const_cast<void*>(buffer), l);
 }
 
 int ExecutionBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
-                                         const Memory* memory, uint32_t offset, uint32_t length) {
+                                         const Memory* memory, size_t offset, size_t length) {
     uint32_t count = static_cast<uint32_t>(mInputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setInputFromMemory bad index " << index << " "
@@ -110,23 +116,35 @@ int ExecutionBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOp
     if (!memory->validateSize(offset, length)) {
         return ANEURALNETWORKS_BAD_DATA;
     }
+    // TODO validate the rest
     uint32_t poolIndex = mMemories.add(memory);
     return mInputs[index].setFromMemory(mModel->getInputOperand(index), type, poolIndex, offset,
                                         length);
 }
 
 int ExecutionBuilder::setOutput(uint32_t index, const ANeuralNetworksOperandType* type, void* buffer,
-                                uint32_t length) {
+                                size_t length) {
     uint32_t count = static_cast<uint32_t>(mOutputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setOutput bad index " << index << " " << count;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    return mOutputs[index].setFromPointer(mModel->getOutputOperand(index), type, buffer, length);
+    if (type != nullptr) {
+        int n = validateOperandType(*type, "ANeuralNetworksExecution_setOutput", false);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+    }
+    if (length > 0xFFFFFFFF) {
+        LOG(ERROR) << "ANeuralNetworksExecution_setOutput input exceeds max length " << length;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    uint32_t l = static_cast<uint32_t>(length);
+    return mOutputs[index].setFromPointer(mModel->getOutputOperand(index), type, buffer, l);
 }
 
 int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
-                                          const Memory* memory, uint32_t offset, uint32_t length) {
+                                          const Memory* memory, size_t offset, size_t length) {
     uint32_t count = static_cast<uint32_t>(mOutputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setOutputFromMemory bad index " << index << " "
@@ -136,6 +154,7 @@ int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksO
     if (!memory->validateSize(offset, length)) {
         return ANEURALNETWORKS_BAD_DATA;
     }
+    // TODO validate the rest
     uint32_t poolIndex = mMemories.add(memory);
     return mOutputs[index].setFromMemory(mModel->getOutputOperand(index), type, poolIndex, offset,
                                          length);
@@ -163,23 +182,39 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
         }
     }
 
-    Model hidlModel;
-    mModel->setHidlModel(&hidlModel);
+    // TODO: Remove the non-plan-based path once we've fully integrated ExecutionPlan
+    // with the compilation and execution phases of the NN API.
+#if NN_DEBUGGABLE
+    if (DeviceManager::get()->getPartitioning() > 1) {
+        std::shared_ptr<Device> device;
+        sp<IPreparedModel> preparedModel;
+        int n = mPlan->getSimplePlan(&device, &preparedModel);
+        if (n == ANEURALNETWORKS_NO_ERROR) {
+            LOG(DEBUG) << "ExecutionBuilder::startCompute (from plan) on "
+                       << (device == nullptr ? "CPU" : device->getName());
+
+            return device == nullptr ? startComputeOnCpu(event)
+                                     : startComputeOnDevice(event, device->getInterface(), preparedModel);
+        }
+    }
+#endif  // NN_DEBUGGABLE
 
     // Find a driver that can handle all the operations.
+    Model hidlModel;
+    mModel->setHidlModel(&hidlModel);
     const std::vector<std::shared_ptr<Device>>& devices = DeviceManager::get()->getDrivers();
     for (const auto& device : devices) {
         hidl_vec<bool> supports;
-        LOG(DEBUG) << "Checking " << device;
+        LOG(DEBUG) << "Checking " << device->getName();
         device->getSupportedOperations(hidlModel, &supports);
         if (std::find(supports.begin(), supports.end(), false) == supports.end()) {
-            LOG(DEBUG) << "ExecutionBuilder::startCompute on " << device;
-            return startComputeOnDevice(device->getInterface(), hidlModel, event);
+            LOG(DEBUG) << "ExecutionBuilder::startCompute (without plan) on " << device->getName();
+            return startComputeOnDevice(event, device->getInterface());
         }
     }
     // If none can, run on the CPU.
-    LOG(DEBUG) << "ExecutionBuilder::startCompute on CPU";
-    return startComputeOnCpu(hidlModel, event);
+    LOG(DEBUG) << "ExecutionBuilder::startCompute (without plan) on CPU";
+    return startComputeOnCpu(event);
 }
 
 // Figures out how to place each of the input or outputs in a buffer. This just does the layout,
@@ -220,53 +255,66 @@ static void copyLocationAndDimension(const std::vector<ModelArgumentInfo>& argum
     }
 }
 
-int ExecutionBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& model, sp<Event>* event) {
+int ExecutionBuilder::startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
+                                           sp<IPreparedModel> preparedModel) {
     *event = nullptr;
 
-    // TODO Dangerous!  In async, the model will outlive it here. Safe for now
-    sp<Event> preparationEvent = new Event();
-    ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
-    sp<IPreparedModel> preparedModel;
+    // TODO: Remove the preparedModel == nullptr case once we've fully integrated
+    // ExecutionPlan with the compilation and execution phases of the NN API
+    if (preparedModel == nullptr) {
+        Model model;
+        mModel->setHidlModel(&model);
 
-    driver->prepareModel(model, preparationEvent,
-                         [&](ErrorStatus status, const sp<IPreparedModel>& prepared) {
-                             prepareStatus = status;
-                             preparedModel = prepared;
-                         });
+        // TODO Dangerous!  In async, the model will outlive it here. Safe for now
+        sp<Event> preparationEvent = new Event();
+        ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
 
-    // Immediately synchronize with event for now
-    // TODO: change to asynchronous later
-    Event::Status eventStatus = preparationEvent->wait();
+        driver->prepareModel(model, preparationEvent,
+                             [&](ErrorStatus status, const sp<IPreparedModel>& prepared) {
+                                 prepareStatus = status;
+                                 preparedModel = prepared;
+                             });
 
-    if (prepareStatus != ErrorStatus::NONE || preparedModel == nullptr ||
+        // Immediately synchronize with event for now
+        // TODO: change to asynchronous later
+        Event::Status eventStatus = preparationEvent->wait();
+
+        if (prepareStatus != ErrorStatus::NONE || preparedModel == nullptr ||
             eventStatus != Event::Status::SUCCESS) {
-        return ANEURALNETWORKS_OP_FAILED;
+            return ANEURALNETWORKS_OP_FAILED;
+        }
     }
 
+    // We separate the input & output pools so that we reduce the copying done if we
+    // do an eventual remoting (hidl_memory->update()).  We could also use it to set
+    // protection on read only memory but that's not currently done.
+    Memory inputPointerArguments;
+    Memory outputPointerArguments;
+
     // Layout the input and output data
-    int n = allocatePointerArgumentsToPool(&mInputs, &mInputPointerArguments);
+    int n = allocatePointerArgumentsToPool(&mInputs, &inputPointerArguments);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
-    n = allocatePointerArgumentsToPool(&mOutputs, &mOutputPointerArguments);
+    n = allocatePointerArgumentsToPool(&mOutputs, &outputPointerArguments);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
 
     // Copy the input data that was specified via a pointer.
-    // mInputPointerArguments.update();
+    // inputPointerArguments.update();
     for (auto& info : mInputs) {
         if (info.state == ModelArgumentInfo::POINTER) {
             DataLocation& loc = info.locationAndDimension.location;
             uint8_t* data = nullptr;
-            int n = mInputPointerArguments.getPointer(&data);
+            int n = inputPointerArguments.getPointer(&data);
             if (n != ANEURALNETWORKS_NO_ERROR) {
                 return n;
             }
             memcpy(data + loc.offset, info.buffer, loc.length);
         }
     }
-    // TODO: Add mInputPointerArguments.commit() and .update() at all the right places
+    // TODO: Add inputPointerArguments.commit() and .update() at all the right places
 
     Request request;
     copyLocationAndDimension(mInputs, &request.inputs);
@@ -316,7 +364,7 @@ int ExecutionBuilder::startComputeOnDevice(sp<IDevice> driver, const Model& mode
         if (info.state == ModelArgumentInfo::POINTER) {
             DataLocation& loc = info.locationAndDimension.location;
             uint8_t* data = nullptr;
-            int n = mOutputPointerArguments.getPointer(&data);
+            int n = outputPointerArguments.getPointer(&data);
             if (n != ANEURALNETWORKS_NO_ERROR) {
                 return n;
             }
@@ -339,8 +387,11 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
     event->notify(status);
 }
 
-int ExecutionBuilder::startComputeOnCpu(const Model& model, sp<Event>* event) {
+int ExecutionBuilder::startComputeOnCpu(sp<Event>* event) {
     // TODO: use a thread pool
+
+    Model model;
+    mModel->setHidlModel(&model);
 
     // Prepare the event for asynchronous execution. The sp<Event> object is
     // returned when the execution has been successfully launched, otherwise a
