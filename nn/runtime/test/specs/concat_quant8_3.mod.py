@@ -27,7 +27,7 @@ input2 = Input("input2", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (row, col2
 axis1 = Int32Scalar("axis1", 1)
 act2 = Int32Scalar("relu1_activation", 2)
 output = Output("output", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (row, output_col))
-model = model.Operation("CONCATENATION", input1, input2, axis1, act1).To(output)
+model = model.Operation("CONCATENATION", input1, input2, axis1, act2).To(output)
 
 # Example 1.
 input1_values = [(x % 128 + 128) for x in range(row * col1)]
