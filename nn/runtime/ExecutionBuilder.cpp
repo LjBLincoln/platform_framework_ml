@@ -184,17 +184,47 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
 
     // TODO: Remove the non-plan-based path once we've fully integrated ExecutionPlan
     // with the compilation and execution phases of the NN API.
+    //
+    // TODO: Entire plan-based-path should run in an asynchronous thread --
+    // take the asynchronous thread logic out of startComputeOnCpu() and use
+    // it to wrap the plan-based-path.
 #if NN_DEBUGGABLE
-    if (DeviceManager::get()->getPartitioning() > 1) {
-        std::shared_ptr<Device> device;
-        sp<IPreparedModel> preparedModel;
-        int n = mPlan->getSimplePlan(&device, &preparedModel);
-        if (n == ANEURALNETWORKS_NO_ERROR) {
-            LOG(DEBUG) << "ExecutionBuilder::startCompute (from plan) on "
-                       << (device == nullptr ? "CPU" : device->getName());
+    {
+        const int partitioning = DeviceManager::get()->getPartitioning();
+        if (partitioning > 0) {
+            const bool simulation = !((partitioning > 1) && mPlan->shouldBeExecutable());
+            LOG(DEBUG) << "ExecutionBuilder::startCompute"
+                       << (simulation ? " SIMULATION" : "")
+                       << " (from plan, iteratively)";
+            ExecutionPlan::Controller controller = mPlan->makeController(this);
+            while (true) {
+                LOG(DEBUG) << "looking for next StepExecutor";
+                std::shared_ptr<StepExecutor> executor;
+                int n = mPlan->next(&controller, &executor);
+                if (n != ANEURALNETWORKS_NO_ERROR || executor == nullptr) {
+                    if (!simulation) {
+                        return n;
+                    }
 
-            return device == nullptr ? startComputeOnCpu(event)
-                                     : startComputeOnDevice(event, device->getInterface(), preparedModel);
+                    // simulation
+                    if (n != ANEURALNETWORKS_NO_ERROR) {
+                        LOG(DEBUG) << "ExecutionBuilder::startCompute SIMULATION failed "
+                                   << "with error " << n;
+                    }
+                    break;
+                }
+                if (simulation) {
+                    continue;
+                }
+
+                n = executor->startCompute(event);
+                if (n != ANEURALNETWORKS_NO_ERROR) {
+                    return n;
+                }
+                if ((*event)->wait() != Event::Status::SUCCESS) {
+                    return ANEURALNETWORKS_OP_FAILED;
+                }
+            }
         }
     }
 #endif  // NN_DEBUGGABLE
@@ -209,18 +239,25 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
         device->getSupportedOperations(hidlModel, &supports);
         if (std::find(supports.begin(), supports.end(), false) == supports.end()) {
             LOG(DEBUG) << "ExecutionBuilder::startCompute (without plan) on " << device->getName();
-            return startComputeOnDevice(event, device->getInterface());
+            StepExecutor executor(this, mModel, device->getInterface(),
+                                  nullptr /* no IPreparedModel, so compile */);
+            executor.mapInputsAndOutputsTrivially();
+            return executor.startCompute(event);
         }
     }
     // If none can, run on the CPU.
     LOG(DEBUG) << "ExecutionBuilder::startCompute (without plan) on CPU";
-    return startComputeOnCpu(event);
+    StepExecutor executor(this, mModel,
+                          nullptr /* no IDevice, so CPU */,
+                          nullptr /* no IPreparedModel */);
+    executor.mapInputsAndOutputsTrivially();
+    return executor.startCompute(event);
 }
 
 // Figures out how to place each of the input or outputs in a buffer. This just does the layout,
 // it does not copy data.  Aligns each input a bit.
-int ExecutionBuilder::allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args,
-                                                     Memory* memory) {
+int StepExecutor::allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args,
+                                                 Memory* memory) {
     uint32_t nextPoolIndex = mMemories.size();
     int64_t total = 0;
     for (auto& info : *args) {
@@ -255,13 +292,56 @@ static void copyLocationAndDimension(const std::vector<ModelArgumentInfo>& argum
     }
 }
 
-int ExecutionBuilder::startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
-                                           sp<IPreparedModel> preparedModel) {
+StepExecutor::StepExecutor(const ExecutionBuilder* executionBuilder,
+                           const ModelBuilder* model,
+                           sp<IDevice> driver, sp<IPreparedModel> preparedModel) :
+    mExecutionBuilder(executionBuilder), mModel(model),
+    mDriver(driver), mPreparedModel(preparedModel),
+    mInputs(model->inputCount()), mOutputs(model->outputCount()) {}
+
+void StepExecutor::mapInputsAndOutputsTrivially() {
+    mInputs = mExecutionBuilder->mInputs;
+    mOutputs = mExecutionBuilder->mOutputs;
+    mMemories = mExecutionBuilder->mMemories;
+}
+
+void StepExecutor::mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutput,
+                                    ModelArgumentInfo* executorInputOrOutput) {
+    *executorInputOrOutput = builderInputOrOutput;
+    switch (executorInputOrOutput->state) {
+        default:
+            nnAssert(!"unexpected ModelArgumentInfo::state");
+        case ModelArgumentInfo::POINTER:
+        case ModelArgumentInfo::UNSPECIFIED:
+            break;
+        case ModelArgumentInfo::MEMORY: {
+            const uint32_t builderPoolIndex =
+                    builderInputOrOutput.locationAndDimension.location.poolIndex;
+            const Memory* memory = mExecutionBuilder->mMemories[builderPoolIndex];
+            const uint32_t executorPoolIndex = mMemories.add(memory);
+            executorInputOrOutput->locationAndDimension.location.poolIndex =
+                    executorPoolIndex;
+            break;
+        }
+    }
+}
+
+int StepExecutor::startCompute(sp<Event>* event) {
+    if (mDriver == nullptr) {
+        return startComputeOnCpu(event);
+    } else {
+        return startComputeOnDevice(event);
+    }
+}
+
+int StepExecutor::startComputeOnDevice(sp<Event>* event) {
+    nnAssert(mDriver != nullptr);
+
     *event = nullptr;
 
-    // TODO: Remove the preparedModel == nullptr case once we've fully integrated
+    // TODO: Remove the mPreparedModel == nullptr case once we've fully integrated
     // ExecutionPlan with the compilation and execution phases of the NN API
-    if (preparedModel == nullptr) {
+    if (mPreparedModel == nullptr) {
         Model model;
         mModel->setHidlModel(&model);
 
@@ -269,17 +349,18 @@ int ExecutionBuilder::startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
         sp<Event> preparationEvent = new Event();
         ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
 
-        driver->prepareModel(model, preparationEvent,
-                             [&](ErrorStatus status, const sp<IPreparedModel>& prepared) {
-                                 prepareStatus = status;
-                                 preparedModel = prepared;
-                             });
+        mDriver->prepareModel(model, preparationEvent,
+                              [&prepareStatus, this](ErrorStatus status,
+                                                     const sp<IPreparedModel>& prepared) {
+                                  prepareStatus = status;
+                                  mPreparedModel = prepared;
+                              });
 
         // Immediately synchronize with event for now
         // TODO: change to asynchronous later
         Event::Status eventStatus = preparationEvent->wait();
 
-        if (prepareStatus != ErrorStatus::NONE || preparedModel == nullptr ||
+        if (prepareStatus != ErrorStatus::NONE || mPreparedModel == nullptr ||
             eventStatus != Event::Status::SUCCESS) {
             return ANEURALNETWORKS_OP_FAILED;
         }
@@ -335,7 +416,7 @@ int ExecutionBuilder::startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
     // in the design document.
     sp<Event> eventSp = new Event();
 
-    LOG(DEBUG) << "Before preparedModel->execute() " << toString(request);
+    LOG(DEBUG) << "Before mPreparedModel->execute() " << toString(request);
     // Execute.
     // TODO: What happens to the Event if the service dies abnormally
     // -- won't that keep the Event live forever, because the service
@@ -343,7 +424,7 @@ int ExecutionBuilder::startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
     // maybe the HIDL infrastructure handles this magically? At worst,
     // it seems like this is a small memory leak, if the Event stays
     // alive forever.
-    if (preparedModel->execute(request, eventSp) != ErrorStatus::NONE) {
+    if (mPreparedModel->execute(request, eventSp) != ErrorStatus::NONE) {
         LOG(DEBUG) << "**Execute failed**";
         return ANEURALNETWORKS_OP_FAILED;
     }
@@ -371,7 +452,7 @@ int ExecutionBuilder::startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
             memcpy(info.buffer, data + loc.offset, loc.length);
         }
     }
-    LOG(DEBUG) << "ExecutionBuilder::startComputeOnDevice completed";
+    LOG(DEBUG) << "StepExecutor::startComputeOnDevice completed";
 
     *event = eventSp;
     return ANEURALNETWORKS_NO_ERROR;
@@ -387,7 +468,7 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
     event->notify(status);
 }
 
-int ExecutionBuilder::startComputeOnCpu(sp<Event>* event) {
+int StepExecutor::startComputeOnCpu(sp<Event>* event) {
     // TODO: use a thread pool
 
     Model model;

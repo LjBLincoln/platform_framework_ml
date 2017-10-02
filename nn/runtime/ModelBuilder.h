@@ -66,8 +66,14 @@ public:
     }
     uint32_t inputCount() const { return static_cast<uint32_t>(mInputIndexes.size()); }
     uint32_t outputCount() const { return static_cast<uint32_t>(mOutputIndexes.size()); }
-    const Operand& getInputOperand(uint32_t i) const { return mOperands[mInputIndexes[i]]; }
-    const Operand& getOutputOperand(uint32_t i) const { return mOperands[mOutputIndexes[i]]; }
+    uint32_t getInputOperandIndex(uint32_t i) const { return mInputIndexes[i]; }
+    const Operand& getInputOperand(uint32_t i) const {
+        return mOperands[getInputOperandIndex(i)];
+    }
+    uint32_t getOutputOperandIndex(uint32_t i) const { return mOutputIndexes[i]; }
+    const Operand& getOutputOperand(uint32_t i) const {
+        return mOperands[getOutputOperandIndex(i)];
+    }
     const Operand& getOperand(uint32_t index) const { return mOperands[index]; }
     const Operation& getOperation(uint32_t index) const { return mOperations[index]; }
     const MemoryTracker& getMemories() const { return mMemories; }
