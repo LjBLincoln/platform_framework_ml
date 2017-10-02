@@ -31,13 +31,16 @@ namespace nn {
 
 class CompilationBuilder;
 class Device;
+class ExecutionBuilder;
 class ExecutionPlan;
 class Memory;
 class ModelBuilder;
+class StepExecutor;
 
 class ExecutionStep {
 private:
     typedef std::vector<std::pair<uint32_t, uint32_t>> RemapVectorType;
+    typedef std::set<std::pair<uint32_t, uint32_t>> SubModelOutputSetType;
 
 public:
     enum OperandKind { INPUT, OUTPUT };
@@ -55,13 +58,27 @@ public:
         return mSubModelInputs;
     }
 
+    size_t countSubModelOutputs() const;
+
     void recordSubModelOutput(uint32_t fromModelIndex) {
         const auto it = mOperandMap.find(fromModelIndex);
         nnAssert(it != mOperandMap.end());
         mSubModelOutputs.insert(std::make_pair(fromModelIndex, it->second));
     }
 
-    int finishSubModel();
+    // If this step has a submodel output of unknown size, sets
+    // *hasOutputOfUnknownSize to true; otherwise, leaves it
+    // unchanged.
+    int finishSubModel(const ModelBuilder* fromModel, bool* hasOutputOfUnknownSize);
+
+    std::shared_ptr<ModelBuilder> getSubModel() const { return mSubModel; }
+    std::shared_ptr<Device> getDevice() const { return mDevice; }
+
+    // only available after calling finishSubModel()
+    sp<IPreparedModel> getPreparedSubModel() const { return mPreparedSubModel; }
+
+    // Map inputs and outputs from ExecutionBuilder to StepExecutor.
+    void mapInputsAndOutputs(std::shared_ptr<StepExecutor> stepExecutor) const;
 
     void dump() const;
 private:
@@ -86,9 +103,19 @@ private:
     RemapVectorType mSubModelInputs;
     // Temporaries of original model that are outputs of this submodel:
     //     (fromModel index, subModel index)
-    std::set<std::pair<uint32_t, uint32_t>> mSubModelOutputs;
+    SubModelOutputSetType mSubModelOutputs;
     // Converts operand indexes from the main model to the submodel.
     std::unordered_map<uint32_t, uint32_t> mOperandMap;
+    // Converts input indexes from the submodel to the main model
+    // (these are input indexes, not operand indexes).  This vector
+    // only describes inputs of the submodel that are also inputs of
+    // the main model -- that is, mModelInputs but not mSubModelInputs.
+    std::vector<uint32_t> mInputIndexSubModelToFromModel;
+    // Converts output indexes from the submodel to the main model
+    // (these are output indexes, not operand indexes).  This vector
+    // only describes outputs of the submodel that are also outputs of
+    // the main model -- that is, mModelOutputs but not mSubModelOutputs.
+    std::vector<uint32_t> mOutputIndexSubModelToFromModel;
 };
 
 class ExecutionPlan {
@@ -99,12 +126,41 @@ public:
     ExecutionPlan() { }
     ~ExecutionPlan() { delete mBody; }
 
+    // Controller is part of the interface to a mechanism for
+    // performing an execution in N steps.
+    //
+    // Usage pattern:
+    // - Instantiate Controller with ExecutionPlan::makeController().
+    // - Call ExecutionPlan::next() on Controller N+1 times.  The first N times,
+    //   *executor is set to point to a new StepExecutor corresponding
+    //   to that step.  The N+1st time, *executor is set to nullptr,
+    //   signifying there are no more steps.
+    // - If ExecutionPlan::next() returns anything other than ANEURALNETWORKS_NO_ERROR,
+    //   a problem has occurred.
+    class Controller {
+        friend class ExecutionPlan;
+    private:
+        static const size_t kBadStepIndex = ~size_t(0);
+
+        Controller(const ExecutionPlan* plan, const ExecutionBuilder* executionBuilder) :
+                mPlan(plan), mExecutionBuilder(executionBuilder), mNextStepIndex(0) {}
+        Controller() {}  // used for error state
+
+        const ExecutionPlan* mPlan = nullptr;
+        const ExecutionBuilder* mExecutionBuilder = nullptr;
+        size_t mNextStepIndex = kBadStepIndex;
+    };
+
+    Controller makeController(const ExecutionBuilder* executionBuilder) const;
+
+    int next(Controller* controller, std::shared_ptr<StepExecutor>* executor) const;
+
     std::shared_ptr<ExecutionStep> createNewStep(const std::shared_ptr<Device> device);
 
     void becomeSingleStep(const std::shared_ptr<Device> device,
                           const ModelBuilder* model);
 
-    int finish();
+    int finish(const ModelBuilder* fromModel);
 
     void recordTemporaryDef(uint32_t fromModelIndex, uint32_t stepIndex) {
         auto& temporaryToDefiningStep = compound()->mTemporaryToDefiningStep;
@@ -116,25 +172,17 @@ public:
 
     // TODO: This member function is only temporary, until we finish
     // fully integrating ExecutionPlan with the compilation and
-    // execution phases of the NN API.  The return value is as follows:
+    // execution phases of the NN API.
     //
-    //     NO_ERROR
-    //         There's exactly one partition, and it was successfully compiled.
+    // Returns true if the plan is "in scope for execution" -- i.e.,
+    // the structure of the plan is such that the
+    // currently-implemented execution system ought to be able to
+    // handle it.  May return true even if something went wrong with
+    // the partitioning and compilation process.
     //
-    //         If device is not nullptr, *device has been set (set to nullptr
-    //         in the case of CPU execution).
-    //
-    //         If preparedModel is not nullptr, *preparedModel has been set
-    //         (set to nullptr in the case of CPU execution).
-    //
-    //     OP_FAILED
-    //         There's exactly one partition, but it was not successfully compiled.
-    //
-    //     BAD_STATE
-    //         There are zero or multiple partitions.
-    //
-    int getSimplePlan(std::shared_ptr<Device>* device = nullptr,
-                      sp<IPreparedModel>* preparedModel = nullptr) const;
+    // true - single partition (even if compilation failed)
+    // false - multiple partitions
+    bool shouldBeExecutable() const;
 
 private:
     void findSubModelOutputs();
@@ -142,7 +190,8 @@ private:
     struct Body {
         virtual ~Body() {}
         virtual void dump() const = 0;
-        virtual int finish() = 0;
+        virtual int finish(const ModelBuilder* fromModel) = 0;
+        bool mSuccessfulFinish = false;
     };
 
     struct SimpleBody : Body {
@@ -150,17 +199,16 @@ private:
                 mDevice(device), mModel(model) {}
 
         void dump() const override;
-        int finish() override;
+        int finish(const ModelBuilder* fromModel) override;
 
         std::shared_ptr<Device> mDevice;  // nullptr signifies CPU
         const ModelBuilder* mModel;
         sp<IPreparedModel> mPreparedModel;  // not used for CPU
-        bool mSuccessfulFinish = false;
     };
 
     struct CompoundBody : Body {
         void dump() const override;
-        int finish() override;
+        int finish(const ModelBuilder* fromModel) override;
 
         // TODO: Some of the data is working state information that
         // shouldn't be needed after we've constructed but not
@@ -172,6 +220,10 @@ private:
         // Used for all (and only) TEMPORARY_VARIABLEs.
         std::unordered_map<uint32_t, uint32_t> mTemporaryToDefiningStep;
 
+        // Total number of submodel outputs across all steps.
+        size_t mSubModelOutputCount = 0;
+
+        bool mHasSubModelOutputOfUnknownSize = false;
     private:
         void findSubModelOutputs();
     };

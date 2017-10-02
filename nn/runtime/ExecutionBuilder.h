@@ -34,6 +34,7 @@ class CompilationBuilder;
 class ExecutionPlan;
 class Memory;
 class ModelBuilder;
+class StepExecutor;
 
 // TODO move length out of DataLocation
 struct ModelArgumentInfo {
@@ -58,6 +59,7 @@ struct ModelArgumentInfo {
 };
 
 class ExecutionBuilder {
+    friend class StepExecutor;
 public:
     ExecutionBuilder(const CompilationBuilder* compilation);
 
@@ -72,13 +74,80 @@ public:
     int startCompute(sp<Event>* event);
 
 private:
-    int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
-    int startComputeOnDevice(sp<Event>* event, sp<IDevice> driver,
-                             sp<IPreparedModel> preparedModel = nullptr);
-    int startComputeOnCpu(sp<Event>* event);
-
     const ModelBuilder* mModel;
     [[maybe_unused]] const ExecutionPlan* mPlan;
+
+    // The information we'll send to the driver about the inputs and outputs.
+    // Note that we build this in two steps:
+    // 1. As the arguments are specified, set the corresponding mInputs or mOutputs element.
+    //    If set from a pointer, don't set the location in the RequestArgument but store it
+    //    instead in mInputBuffers or mOutputBuffers.
+    // 2. Once we have all the inputs and outputs, if needed, allocate shared memory for
+    //    the m*Buffers entries.  Copy the input values into the shared memory.
+    // We do this to avoid creating a lot of shared memory objects if we have a lot of
+    // parameters specified via pointers.  We also avoid copying in the case where
+    // some of the nodes will interpreted on the CPU anyway.
+    std::vector<ModelArgumentInfo> mInputs;
+    std::vector<ModelArgumentInfo> mOutputs;
+    MemoryTracker mMemories;
+};
+
+// class StepExecutor is used to execute a single "step" in a
+// potentially multiple step execution process.  The graph associated
+// with that step is executed in its entirety on a single device (or
+// on the CPU).
+class StepExecutor {
+public:
+    // executionBuilder
+    //     Describes the full (possibly multiple-"step") execution.
+    // model
+    //     The model to be executed by the executor.  Possibly a
+    //     submodel of the model from executionBuilder.
+    // driver, preparedModel
+    //     The device on which to execute the "step", and the prepared
+    //     model to execute on that device.  (Both are nullptr in the
+    //     case of CPU.)
+    StepExecutor(const ExecutionBuilder* executionBuilder,
+                 const ModelBuilder* model,
+                 sp<IDevice> driver, sp<IPreparedModel> preparedModel);
+
+    // Map inputs and outputs from ExecutionBuilder to StepExecutor,
+    // in the case where we have a single-"step" execution (i.e., the executor
+    // is executing the entire model from the ExecutionBuilder).
+    void mapInputsAndOutputsTrivially();
+
+    // Map inputs and outputs from ExecutionBuilder to StepExecutor,
+    // one at a time.  Note that these are input/output indexes, not
+    // operand indexes.
+    void mapInput(uint32_t builderIndex, uint32_t executorIndex) {
+        mapInputOrOutput(mExecutionBuilder->mInputs[builderIndex],
+                         &mInputs[executorIndex]);
+    }
+    void mapOutput(uint32_t builderIndex, uint32_t executorIndex) {
+        mapInputOrOutput(mExecutionBuilder->mOutputs[builderIndex],
+                         &mOutputs[executorIndex]);
+    }
+
+    // TODO: inter-partition temporaries
+
+    int startCompute(sp<Event>* event);
+
+private:
+    int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
+    int startComputeOnDevice(sp<Event>* event);
+    int startComputeOnCpu(sp<Event>* event);
+
+    void mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutput,
+                          ModelArgumentInfo* executorInputOrOutput);
+
+    // describes the full (possibly multiple-"step") execution
+    const ExecutionBuilder* mExecutionBuilder;
+
+    // model to be executed on the executor, in both original and
+    // compiled forms; and device on which to execute it
+    const ModelBuilder* mModel;
+    sp<IDevice> mDriver;                // nullptr if CPU execution
+    sp<IPreparedModel> mPreparedModel;  // nullptr if CPU execution or if bypassing ExecutionPlan
 
     // The information we'll send to the driver about the inputs and outputs.
     // Note that we build this in two steps:
