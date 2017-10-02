@@ -56,9 +56,15 @@ const int kOEMCodeBase = 10000;
         }                                                                                      \
     } while (0)
 
-// Returns the the amount of space needed to store a tensor of the specified
+// Returns the amount of space needed to store a value of the specified
 // dimensions and type.
 uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions);
+
+// Returns the amount of space needed to store a value of the dimensions and
+// type of this operand.
+inline uint32_t sizeOfData(const Operand& operand) {
+    return sizeOfData(operand.type, operand.dimensions);
+}
 
 // Returns the name of the operation in ASCII.
 const char* getOperationName(OperationType opCode);

@@ -53,12 +53,19 @@ public:
     int addOperand(uint32_t fromOperandIndex, uint32_t* toOperandIndex,
                    const ModelBuilder& fromModel, OperandKind kind);
 
-    // Each vector entry is of the form (fromModel index, subModel index)
+    // Each container entry is of the form (fromModel index, subModel index)
+    const RemapVectorType& getModelInputs() const {
+        return mModelInputs;
+    }
+    const RemapVectorType& getModelOutputs() const {
+        return mModelOutputs;
+    }
     const RemapVectorType& getSubModelInputs() const {
         return mSubModelInputs;
     }
-
-    size_t countSubModelOutputs() const;
+    const SubModelOutputSetType& getSubModelOutputs() const {
+        return mSubModelOutputs;
+    }
 
     void recordSubModelOutput(uint32_t fromModelIndex) {
         const auto it = mOperandMap.find(fromModelIndex);
@@ -140,14 +147,22 @@ public:
     class Controller {
         friend class ExecutionPlan;
     private:
+        // Map from the operand index of a TEMPORARY in the original
+        // model to a Memory object used to represent that TEMPORARY
+        // as an inter-partition input or output.
+        typedef std::map<uint32_t, Memory> SubModelInputsAndOutputsType;
+
         static const size_t kBadStepIndex = ~size_t(0);
 
-        Controller(const ExecutionPlan* plan, const ExecutionBuilder* executionBuilder) :
-                mPlan(plan), mExecutionBuilder(executionBuilder), mNextStepIndex(0) {}
+        Controller(const ExecutionPlan* plan, const ExecutionBuilder* executionBuilder,
+                   std::shared_ptr<const SubModelInputsAndOutputsType> subModelInputsAndOutputs) :
+                mPlan(plan), mExecutionBuilder(executionBuilder),
+                mSubModelInputsAndOutputs(subModelInputsAndOutputs), mNextStepIndex(0) {}
         Controller() {}  // used for error state
 
         const ExecutionPlan* mPlan = nullptr;
         const ExecutionBuilder* mExecutionBuilder = nullptr;
+        std::shared_ptr<const SubModelInputsAndOutputsType> mSubModelInputsAndOutputs;  // may be nullptr
         size_t mNextStepIndex = kBadStepIndex;
     };
 
@@ -220,9 +235,6 @@ private:
         // Used for all (and only) TEMPORARY_VARIABLEs.
         std::unordered_map<uint32_t, uint32_t> mTemporaryToDefiningStep;
 
-        // Total number of submodel outputs across all steps.
-        size_t mSubModelOutputCount = 0;
-
         bool mHasSubModelOutputOfUnknownSize = false;
     private:
         void findSubModelOutputs();
@@ -233,6 +245,10 @@ private:
     CompoundBody* compound() {
         nnAssert(mState == COMPOUND);
         return static_cast<CompoundBody*>(mBody);
+    }
+    const CompoundBody* compound() const {
+        nnAssert(mState == COMPOUND);
+        return static_cast<const CompoundBody*>(mBody);
     }
 };
 

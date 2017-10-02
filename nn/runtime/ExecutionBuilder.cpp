@@ -56,6 +56,15 @@ int ModelArgumentInfo::setFromMemory(const Operand& operand, const ANeuralNetwor
     return ANEURALNETWORKS_NO_ERROR;
 }
 
+int ModelArgumentInfo::setFromTemporaryMemory(const Operand& operand, uint32_t poolIndex) {
+    locationAndDimension.dimensions = operand.dimensions;
+    state = ModelArgumentInfo::MEMORY;
+    locationAndDimension.location =
+            {.poolIndex = poolIndex, .offset = 0, .length = sizeOfData(operand)};
+    buffer = nullptr;
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
 int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
                                            const ANeuralNetworksOperandType* newType) {
     if (newType == nullptr) {
@@ -107,6 +116,8 @@ int ExecutionBuilder::setInput(uint32_t index, const ANeuralNetworksOperandType*
 
 int ExecutionBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
                                          const Memory* memory, size_t offset, size_t length) {
+    // Should be similar to StepExecutor::setInputOrOutputFromTemporaryMemory()
+
     uint32_t count = static_cast<uint32_t>(mInputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setInputFromMemory bad index " << index << " "
@@ -145,6 +156,8 @@ int ExecutionBuilder::setOutput(uint32_t index, const ANeuralNetworksOperandType
 
 int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
                                           const Memory* memory, size_t offset, size_t length) {
+    // Should be similar to StepExecutor::setInputOrOutputFromTemporaryMemory()
+
     uint32_t count = static_cast<uint32_t>(mOutputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setOutputFromMemory bad index " << index << " "
@@ -325,6 +338,17 @@ void StepExecutor::mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutpu
             break;
         }
     }
+}
+
+int StepExecutor::setInputOrOutputFromTemporaryMemory(const Operand& inputOrOutputOperand,
+                                                      const Memory* memory,
+                                                      ModelArgumentInfo* inputOrOutputInfo) {
+    // Should be similar to
+    //     ExecutionBuilder::setInputFromMemory()
+    //     ExecutionBuilder::setOutputFromMemory()
+
+    uint32_t poolIndex = mMemories.add(memory);
+    return inputOrOutputInfo->setFromTemporaryMemory(inputOrOutputOperand, poolIndex);
 }
 
 int StepExecutor::startCompute(sp<ExecutionCallback>* synchronizationCallback) {

@@ -252,10 +252,6 @@ int ExecutionStep::addOperation(int operationIndex, const ModelBuilder& fromMode
                                    outputCount, outputs.data());
 }
 
-size_t ExecutionStep::countSubModelOutputs() const {
-    return mSubModelOutputs.size();
-}
-
 void ExecutionStep::mapInputsAndOutputs(std::shared_ptr<StepExecutor> stepExecutor) const {
     for (uint32_t i = 0, e = mInputIndexSubModelToFromModel.size(); i < e; i++) {
         stepExecutor->mapInput(mInputIndexSubModelToFromModel[i], i);
@@ -275,9 +271,6 @@ void ExecutionPlan::CompoundBody::findSubModelOutputs() {
             nnAssert(stepIndex < mSteps.size());
             mSteps[stepIndex]->recordSubModelOutput(fromModelIndex);
         }
-    }
-    for (const auto& step : mSteps) {
-        mSubModelOutputCount += step->countSubModelOutputs();
     }
 }
 
@@ -400,7 +393,7 @@ int ExecutionPlan::finish(const ModelBuilder* fromModel) {
 }
 
 bool ExecutionPlan::shouldBeExecutable() const {
-    return mState == SIMPLE;
+    return true;
 }
 
 ExecutionPlan::Controller ExecutionPlan::makeController(
@@ -410,7 +403,36 @@ ExecutionPlan::Controller ExecutionPlan::makeController(
         LOG(DEBUG) << "ExecutionPlan::makeController -- error";
         return Controller();
     }
-    return Controller(this, executionBuilder);
+
+    // Allocate a Memory object for each TEMPORARY in the original
+    // model that is live across partition boundaries.
+    std::shared_ptr<Controller::SubModelInputsAndOutputsType> subModelInputsAndOutputs;
+    if (mState == COMPOUND) {
+        const ModelBuilder* fromModel = executionBuilder->getModel();
+        for (const auto& step : compound()->mSteps) {
+            for (const auto& output: step->getSubModelOutputs()) {
+                const uint32_t fromModelOperandIndex = output.first;
+                const Operand& fromModelOperand = fromModel->getOperand(fromModelOperandIndex);
+                if (subModelInputsAndOutputs == nullptr) {
+                    subModelInputsAndOutputs =
+                            std::make_shared<Controller::SubModelInputsAndOutputsType>();
+                }
+                auto emplaceResult =
+                    subModelInputsAndOutputs->emplace(std::piecewise_construct,
+                                                      std::forward_as_tuple(fromModelOperandIndex),
+                                                      std::forward_as_tuple());
+                nnAssert(emplaceResult.second == true);  // assert that we actually inserted
+                uint32_t size;
+                if ((size = sizeOfData(fromModelOperand)) == 0 ||
+                    emplaceResult.first->second.create(size) != ANEURALNETWORKS_NO_ERROR) {
+                    LOG(ERROR) << "ExecutionPlan::makeController -- could not allocate temporary";
+                    return Controller();
+                }
+            }
+        }
+    }
+
+    return Controller(this, executionBuilder, subModelInputsAndOutputs);
 }
 
 int ExecutionPlan::next(Controller* controller, std::shared_ptr<StepExecutor>* executor) const {
@@ -447,8 +469,7 @@ int ExecutionPlan::next(Controller* controller, std::shared_ptr<StepExecutor>* e
         return ANEURALNETWORKS_NO_ERROR;
     }
 
-    nnAssert(mState == COMPOUND);
-    auto compoundBody = static_cast<const CompoundBody*>(mBody);
+    auto compoundBody = compound();
 
     if (controller->mNextStepIndex == compoundBody->mSteps.size()) {
         // end
@@ -463,7 +484,44 @@ int ExecutionPlan::next(Controller* controller, std::shared_ptr<StepExecutor>* e
         (step->getDevice() == nullptr ? sp<IDevice>() : step->getDevice()->getInterface()),
         step->getPreparedSubModel());
     step->mapInputsAndOutputs(*executor);
-    // TODO: submodel inputs and submodel outputs
+    if (controller->mSubModelInputsAndOutputs != nullptr) {
+        {
+            // tell executor about submodel outputs
+
+            const size_t firstSubModelOutputIndex = step->getModelOutputs().size();
+            const auto& subModelOutputs = step->getSubModelOutputs();
+
+            uint32_t idx = 0;
+            for (auto I = subModelOutputs.begin(), E = subModelOutputs.end(); I != E; I++, idx++) {
+                const uint32_t fromModelOperandIndex = I->first;
+                int n = (*executor)->setOutputFromTemporaryMemory(
+                    firstSubModelOutputIndex + idx,
+                    &controller->mSubModelInputsAndOutputs->at(fromModelOperandIndex));
+                if (n != ANEURALNETWORKS_NO_ERROR) {
+                    controller->mNextStepIndex = Controller::kBadStepIndex;
+                    return n;
+                }
+            }
+        }
+        {
+            // tell executor about submodel inputs
+
+            const size_t firstSubModelInputIndex = step->getModelInputs().size();
+            const auto& subModelInputs = step->getSubModelInputs();
+
+            uint32_t idx = 0;
+            for (auto I = subModelInputs.begin(), E = subModelInputs.end(); I != E; I++, idx++) {
+                const uint32_t fromModelOperandIndex = I->first;
+                int n = (*executor)->setInputFromTemporaryMemory(
+                    firstSubModelInputIndex + idx,
+                    &controller->mSubModelInputsAndOutputs->at(fromModelOperandIndex));
+                if (n != ANEURALNETWORKS_NO_ERROR) {
+                    controller->mNextStepIndex = Controller::kBadStepIndex;
+                    return n;
+                }
+            }
+        }
+    }
     controller->mNextStepIndex++;
     return ANEURALNETWORKS_NO_ERROR;
 }

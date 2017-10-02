@@ -122,6 +122,17 @@ const uint32_t kSizeOfDataType[]{
 
 static_assert(COUNT(kSizeOfDataType) == kNumberOfDataTypes, "kSizeOfDataType is incorrect");
 
+const bool kScalarDataType[]{
+        true,  // ANEURALNETWORKS_FLOAT32
+        true,  // ANEURALNETWORKS_INT32
+        true,  // ANEURALNETWORKS_UINT32
+        false, // ANEURALNETWORKS_TENSOR_FLOAT32
+        false, // ANEURALNETWORKS_TENSOR_INT32
+        false, // ANEURALNETWORKS_TENSOR_SYMMETRICAL_QUANT8
+};
+
+static_assert(COUNT(kScalarDataType) == kNumberOfDataTypes, "kScalarDataType is incorrect");
+
 const uint32_t kSizeOfDataTypeOEM[]{
         0, // ANEURALNETWORKS_OEM
         1, // ANEURALNETWORKS_TENSOR_OEM_BYTE
@@ -130,10 +141,22 @@ const uint32_t kSizeOfDataTypeOEM[]{
 static_assert(COUNT(kSizeOfDataTypeOEM) == kNumberOfDataTypesOEM,
               "kSizeOfDataTypeOEM is incorrect");
 
+const bool kScalarDataTypeOEM[]{
+        true,  // ANEURALNETWORKS_OEM
+        false, // ANEURALNETWORKS_TENSOR_OEM_BYTE
+};
+
+static_assert(COUNT(kScalarDataTypeOEM) == kNumberOfDataTypesOEM,
+              "kScalarDataTypeOEM is incorrect");
+
 uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions) {
     int n = static_cast<int>(type);
 
     uint32_t size = tableLookup(kSizeOfDataType, kSizeOfDataTypeOEM, n);
+
+    if (tableLookup(kScalarDataType, kScalarDataTypeOEM, n) == true) {
+        return size;
+    }
 
     for (auto d : dimensions) {
         size *= d;
