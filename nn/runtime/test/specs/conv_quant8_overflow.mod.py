@@ -15,30 +15,35 @@
 #
 
 model = Model()
-i1 = Input("op1", "TENSOR_FLOAT32", "{1, 1, 1, 3}")
-f1 = Input("op2", "TENSOR_FLOAT32", "{3, 1, 1, 3}")
-b1 = Input("op3", "TENSOR_FLOAT32", "{3}")
+i1 = Input("op1", "TENSOR_QUANT8_ASYMM", "{1, 2, 3, 3}, 0.5, 0")
+f1 = Input("op2", "TENSOR_QUANT8_ASYMM", "{3, 1, 1, 3}, 0.5, 0")
+b1 = Input("op3", "TENSOR_QUANT8_ASYMM", "{3}, 0.25, 0")
 pad0 = Int32Scalar("pad0", 0)
 act = Int32Scalar("act", 0)
 stride = Int32Scalar("stride", 1)
-# output dimension:
-#     (i1.height - f1.height + 1) x (i1.width - f1.width + 1)
-output = Output("op4", "TENSOR_FLOAT32", "{1, 1, 1, 3}")
+output = Output("op4",  "TENSOR_QUANT8_ASYMM", "{1, 1, 1, 3}, 1.0, 0")
 
 model = model.Operation("CONV_2D", i1, f1, b1, pad0, pad0, pad0, pad0, stride, stride, act).To(output)
 
 # Example 1. Input in operand 0,
 input0 = {i1: # input 0
-          [99.0, 99.0, 99.0],
+          [  1,   2,   3,   4,   5,   6,   7,   8,   9,
+             10,  11,  12,  13,  14,  15,  16,  17,  18],
           f1:
-          [1.0, 1.0, 1.0,
-           2.0, 2.0, 2.0,
-           3.0, 3.0, 3.0],
+          [ 10,  40,  70,
+            20,  50,  80,
+            30,  60,  90],
           b1:
-          [0., 0., 0.]}
+          [0, 0, 0]}
 
 output0 = {output: # output 0
-           [297., 594., 891.]}
+           [  75,  90,  107,
+              165, 203, 242,
+              255, 255, 255,
+              255, 255, 255,
+              255, 255, 255,
+              255, 255, 255]
+          }
 
 # Instantiate an example
 Example((input0, output0))
