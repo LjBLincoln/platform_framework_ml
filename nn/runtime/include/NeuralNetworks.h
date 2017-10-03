@@ -192,8 +192,6 @@ typedef enum {
      *          For inputs of type {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, all
      *          input tensors must have the same scale and zeroPoint.
      * * n+1: An INT32 value, specifying the concatenation axis.
-     * * n+2: An INT32 value, and has to be one of the {@link FuseCode} values.
-     *        Specifies the activation to invoke on the result of each addition.
      *
      * Outputs:
      * * 0: The output, a tensor of the same type as the input tensors.

@@ -25,9 +25,8 @@ output_row = row1 + row2
 input1 = Input("input1", "TENSOR_FLOAT32", "{%d, %d}" % (row1, col)) # input tensor 1
 input2 = Input("input2", "TENSOR_FLOAT32", "{%d, %d}" % (row2, col)) # input tensor 2
 axis0 = Int32Scalar("axis0", 0)
-act0 = Int32Scalar("act0", 0)
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (output_row, col)) # output
-model = model.Operation("CONCATENATION", input1, input2, axis0, act0).To(output)
+model = model.Operation("CONCATENATION", input1, input2, axis0).To(output)
 
 # Example 1.
 input1_values = [x for x in range(row1 * col)]
