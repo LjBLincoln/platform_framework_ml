@@ -42,12 +42,19 @@ struct LSTMParams {
 };
 
 struct RunTimeOperandInfo;
+struct Shape;
 
 class LSTMCell {
  public:
   LSTMCell(const android::hardware::neuralnetworks::V1_0::Operation &operation,
            std::vector<RunTimeOperandInfo> &operands);
 
+  static bool Prepare(const android::hardware::neuralnetworks::V1_0::Operation &operation,
+                      std::vector<RunTimeOperandInfo> &operands,
+                      Shape *scratchShape,
+                      Shape *outputStateShape,
+                      Shape *cellStateShape,
+                      Shape *outputShape);
   bool Eval();
 
   // Input Tensors of size {n_batch, n_input}
@@ -93,6 +100,10 @@ class LSTMCell {
   static constexpr int kOutputTensor = 3;
 
  private:
+  static bool CheckInputTensorDimensions(
+      const android::hardware::neuralnetworks::V1_0::Operation &operation,
+      std::vector<RunTimeOperandInfo> &operands, uint32_t n_input,
+      uint32_t n_output, uint32_t n_cell);
   LSTMParams params_;
 
   const RunTimeOperandInfo *input_;

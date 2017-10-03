@@ -24,14 +24,14 @@ input = Input("input", "TENSOR_FLOAT32", "{%d, %d}" % (batches, input_size))
 weights = Input("weights", "TENSOR_FLOAT32", "{%d, %d}" % (units, input_size))
 recurrent_weights = Input("recurrent_weights", "TENSOR_FLOAT32", "{%d, %d}" % (units, units))
 bias = Input("bias", "TENSOR_FLOAT32", "{%d}" % (units))
-hidden_state = Input("hidden_state", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 
 activation_param = Input("activation_param", "TENSOR_INT32", "{1}")
 
+hidden_state = IgnoredOutput("hidden_state", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 
 model = model.Operation("RNN", input, weights, recurrent_weights, bias,
-                        hidden_state, activation_param).To(output)
+                        activation_param).To([hidden_state, output])
 
 input0 = {
     weights: [
@@ -82,7 +82,6 @@ input0 = {
         0.10463274, 0.83918178, 0.37197268, 0.61957061, 0.3956964,
         -0.37609905
     ],
-    hidden_state: [0 for x in range(batches * units)],
     activation_param: [1],  # Relu
 }
 
@@ -184,8 +183,6 @@ golden_outputs = [
 
 input_sequence_size = int(len(test_inputs) / input_size / batches)
 
-output0 = {output:[]}
-
 # TODO: enable the other data points after fixing reference issues
 #for i in range(input_sequence_size):
 for i in range(1):
@@ -193,6 +190,9 @@ for i in range(1):
   input_end = input_begin + input_size
   input0[input] = test_inputs[input_begin:input_end]
   input0[input].extend(input0[input])
+  output0 = {
+    hidden_state: [0 for x in range(batches * units)],
+  }
   golden_start = i * units
   golden_end = golden_start + units
   output0[output] = golden_outputs[golden_start:golden_end]

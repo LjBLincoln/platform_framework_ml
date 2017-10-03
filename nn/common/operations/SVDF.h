@@ -41,19 +41,23 @@ struct SVDFParams {
 };
 
 struct RunTimeOperandInfo;
+struct Shape;
 
 class SVDF {
 public:
     SVDF(const android::hardware::neuralnetworks::V1_0::Operation &operation,
          std::vector<RunTimeOperandInfo>& operands);
 
+    static bool Prepare(
+        const hardware::neuralnetworks::V1_0::Operation &operation,
+        std::vector<RunTimeOperandInfo> &operands, Shape *stateShape,
+        Shape *outputShape);
     bool Eval();
 
     static constexpr int kInputTensor = 0;
     static constexpr int kWeightsFeatureTensor = 1;
     static constexpr int kWeightsTimeTensor = 2;
-    static constexpr int kBiasTensor = 3;
-
+    static constexpr int kBiasTensor = 3;  // Optional
     static constexpr int kRankParam = 4;
     static constexpr int kActivationParam = 5;
 
@@ -66,10 +70,10 @@ private:
     const RunTimeOperandInfo *input_;
     const RunTimeOperandInfo *weights_feature_;
     const RunTimeOperandInfo *weights_time_;
+    const RunTimeOperandInfo *bias_;
+
     RunTimeOperandInfo *state_;
     RunTimeOperandInfo *output_;
-
-    const RunTimeOperandInfo *bias_;
 };
 
 }  // namespace nn
