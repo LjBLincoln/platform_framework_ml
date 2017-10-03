@@ -445,7 +445,7 @@ typedef enum {
      *      and “input_size” is the size of the input.
      * * 1: A 2-D tensor, specifying the weights, of shape [num_units, input_size], where
      *      "num_units" corresponds to the number of output nodes.
-     * * 2: A 1-D tensor, of shape [depth_out], specifying the bias.
+     * * 2: A 1-D tensor, of shape [num_units], specifying the bias.
      *      For input tensor of {@link ANEURALNETWORKS_TENSOR_FLOAT32} type, the bias should
      *      also be of {@link ANEURALNETWORKS_TENSOR_FLOAT32}.
      *      For input tensor of {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, the bias

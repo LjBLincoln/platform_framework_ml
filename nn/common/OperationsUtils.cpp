@@ -309,6 +309,7 @@ bool fullyConnectedPrepare(const Shape& input,
                            Shape* output) {
     // Check all the parameters of tensor match within themselves and match the
     // input configuration.
+    NN_OPS_CHECK(getNumberOfDimensions(input) >= 2);
     uint32_t input_size = getNumberOfElements(input);
     uint32_t num_units  = getSizeOfDimension(weights, 0);
     uint32_t batch_size = input_size / getSizeOfDimension(weights, 1);
