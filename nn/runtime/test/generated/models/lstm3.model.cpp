@@ -1,7 +1,7 @@
 // Generated file (from: lstm3.mod.py). Do not edit
 void CreateModel(Model *model) {
-  OperandType type5(Type::TENSOR_FLOAT32, {0,0});
-  OperandType type3(Type::TENSOR_FLOAT32, {0});
+  OperandType type5(Type::TENSOR_FLOAT32, {0});
+  OperandType type4(Type::TENSOR_FLOAT32, {16,20});
   OperandType type7(Type::TENSOR_FLOAT32, {1});
   OperandType type9(Type::TENSOR_FLOAT32, {2, 16});
   OperandType type8(Type::TENSOR_FLOAT32, {2, 20, 4});
@@ -9,7 +9,7 @@ void CreateModel(Model *model) {
   OperandType type0(Type::TENSOR_FLOAT32, {2, 5});
   OperandType type2(Type::TENSOR_FLOAT32, {20, 16});
   OperandType type1(Type::TENSOR_FLOAT32, {20, 5});
-  OperandType type4(Type::TENSOR_FLOAT32, {20});
+  OperandType type3(Type::TENSOR_FLOAT32, {20});
   OperandType type6(Type::TENSOR_INT32, {1});
   // Phase 1, operands
   auto input = model->addOperand(&type0);
@@ -24,12 +24,12 @@ void CreateModel(Model *model) {
   auto cell_to_input_weights = model->addOperand(&type3);
   auto cell_to_forget_weights = model->addOperand(&type3);
   auto cell_to_output_weights = model->addOperand(&type3);
-  auto input_gate_bias = model->addOperand(&type4);
-  auto forget_gate_bias = model->addOperand(&type4);
-  auto cell_gate_bias = model->addOperand(&type4);
-  auto output_gate_bias = model->addOperand(&type4);
-  auto projection_weights = model->addOperand(&type5);
-  auto projection_bias = model->addOperand(&type3);
+  auto input_gate_bias = model->addOperand(&type3);
+  auto forget_gate_bias = model->addOperand(&type3);
+  auto cell_gate_bias = model->addOperand(&type3);
+  auto output_gate_bias = model->addOperand(&type3);
+  auto projection_weights = model->addOperand(&type4);
+  auto projection_bias = model->addOperand(&type5);
   auto activation_param = model->addOperand(&type6);
   auto cell_clip_param = model->addOperand(&type7);
   auto proj_clip_param = model->addOperand(&type7);

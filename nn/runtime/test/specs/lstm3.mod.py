@@ -36,16 +36,16 @@ recurrent_to_forget_weights = Input("recurrent_to_forget_weights", "TENSOR_FLOAT
 recurrent_to_cell_weights = Input("recurrent_to_cell_weights", "TENSOR_FLOAT32", "{%d, %d}" % (n_cell, n_output))
 recurrent_to_output_weights = Input("recurrent_to_output_weights", "TENSOR_FLOAT32", "{%d, %d}" % (n_cell, n_output))
 
-cell_to_input_weights = Input("cell_to_input_weights", "TENSOR_FLOAT32", "{0}")
-cell_to_forget_weights = Input("cell_to_forget_weights", "TENSOR_FLOAT32", "{0}")
-cell_to_output_weights = Input("cell_to_output_weights", "TENSOR_FLOAT32", "{0}")
+cell_to_input_weights = Input("cell_to_input_weights", "TENSOR_FLOAT32", "{%d}" % (n_cell))
+cell_to_forget_weights = Input("cell_to_forget_weights", "TENSOR_FLOAT32", "{%d}" %(n_cell))
+cell_to_output_weights = Input("cell_to_output_weights", "TENSOR_FLOAT32", "{%d}" % (n_cell))
 
 input_gate_bias = Input("input_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 forget_gate_bias = Input("forget_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 cell_gate_bias = Input("cell_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 output_gate_bias = Input("output_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 
-projection_weights = Input("projection_weights", "TENSOR_FLOAT32", "{0,0}")
+projection_weights = Input("projection_weights", "TENSOR_FLOAT32", "{%d,%d}" % (n_output, n_cell))
 projection_bias = Input("projection_bias", "TENSOR_FLOAT32", "{0}")
 
 activation_param = Input("activation_param", "TENSOR_INT32", "{1}");

@@ -42,34 +42,68 @@ int32_t getInt32ScalarData(RunTimeOperandInfo& info) {
 
 SVDF::SVDF(const Operation& operation,
            std::vector<RunTimeOperandInfo>& operands) {
-    auto GetInput = [&operation,
-                     &operands](uint32_t index) -> const RunTimeOperandInfo* {
-        const std::vector<uint32_t>& inputs = operation.inputs;
-        const int index_of_operand = inputs[index];
-        if (index_of_operand < 0) {
-            return nullptr;
-        }
-        return &operands[index_of_operand];
-    };
+    input_ = GetInput(operation, operands, kInputTensor);
+    weights_feature_ = GetInput(operation, operands, kWeightsFeatureTensor);
+    weights_time_ = GetInput(operation, operands, kWeightsTimeTensor);
+    bias_ = GetInput(operation, operands, kBiasTensor);
 
-    auto GetOutput = [&operation,
-                      &operands](uint32_t index) -> RunTimeOperandInfo* {
-        const std::vector<uint32_t>& outputs = operation.outputs;
-        const int index_of_operand = outputs[index];
-        // Expects index of operand in range.
-        return &operands[index_of_operand];
-    };
+    params_.rank_ = getInt32ScalarData(*GetInput(operation, operands, kRankParam));
+    params_.activation_ = static_cast<ActivationFn>(getInt32ScalarData(
+        *GetInput(operation, operands, kActivationParam)));
 
-    input_ = GetInput(kInputTensor);
-    weights_feature_ = GetInput(kWeightsFeatureTensor);
-    weights_time_ = GetInput(kWeightsTimeTensor);
-    bias_ = GetInput(kBiasTensor);
+    state_ = GetOutput(operation, operands, kStateTensor);
+    output_ = GetOutput(operation, operands, kOutputTensor);
+}
 
-    params_.rank_ = getInt32ScalarData(operands[operation.inputs[kRankParam]]);
-    params_.activation_ = static_cast<ActivationFn>(getInt32ScalarData(operands[operation.inputs[kActivationParam]]));
+bool SVDF::Prepare(const Operation &operation,
+                   std::vector<RunTimeOperandInfo> &operands,
+                   Shape *stateShape,
+                   Shape *outputShape) {
+  // Check we have all the inputs and outputs we need.
+  const int num_inputs = NumInputsWithValues(operation, operands);
+  NN_CHECK(num_inputs == 5 || num_inputs == 6);
+  NN_CHECK_EQ(NumOutputs(operation), 2);
 
-    state_ = GetOutput(kStateTensor);
-    output_ = GetOutput(kOutputTensor);
+  const RunTimeOperandInfo *input =
+      GetInput(operation, operands, SVDF::kInputTensor);
+  const RunTimeOperandInfo *weights_feature =
+      GetInput(operation, operands, SVDF::kWeightsFeatureTensor);
+  const RunTimeOperandInfo *weights_time =
+      GetInput(operation, operands, SVDF::kWeightsTimeTensor);
+
+  // Check all the parameters of tensor match within themselves and match the
+  // input configuration.
+  const uint32_t batch_size = SizeOfDimension(input, 0);
+  const uint32_t num_units = SizeOfDimension(weights_feature, 0);
+  const uint32_t memory_size = SizeOfDimension(weights_time, 1);
+  NN_CHECK_EQ(SizeOfDimension(input, 1), SizeOfDimension(weights_feature, 1));
+  NN_CHECK_EQ(SizeOfDimension(weights_time, 0), num_units);
+
+  const RunTimeOperandInfo *bias =
+      GetInput(operation, operands, kBiasTensor);
+  if (!IsNullInput(bias)) {
+    NN_CHECK_EQ(SizeOfDimension(bias, 0), num_units);
+  }
+
+  const RunTimeOperandInfo *state =
+      GetInput(operation, operands, SVDF::kStateTensor);
+  const RunTimeOperandInfo *output =
+      GetInput(operation, operands, SVDF::kOutputTensor);
+
+  // Resize state.
+  const Shape &inputShape = input->shape();
+  stateShape->type = inputShape.type;
+  stateShape->dimensions = { batch_size, memory_size * num_units };
+  stateShape->offset = inputShape.offset;
+  stateShape->scale = inputShape.scale;
+
+  // Resize output.
+  outputShape->type = inputShape.type;
+  outputShape->dimensions = { batch_size, num_units };
+  outputShape->offset = inputShape.offset;
+  outputShape->scale = inputShape.scale;
+
+  return true;
 }
 
 bool SVDF::Eval() {
