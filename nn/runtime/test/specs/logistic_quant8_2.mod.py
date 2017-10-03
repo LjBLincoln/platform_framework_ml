@@ -17,24 +17,25 @@
 # model
 model = Model()
 
-row1 = 512
-row2 = 256
-col = 1024
-output_row = row1 + row2
+d0 = 1 #2
+d1 = 16 #256
+d2 = 16 #256
+d3 = 1 #2
 
-input1 = Input("input1", "TENSOR_FLOAT32", "{%d, %d}" % (row1, col)) # input tensor 1
-input2 = Input("input2", "TENSOR_FLOAT32", "{%d, %d}" % (row2, col)) # input tensor 2
-axis0 = Int32Scalar("axis0", 0)
-output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (output_row, col)) # output
-model = model.Operation("CONCATENATION", input1, input2, axis0).To(output)
+i0 = Input("input", "TENSOR_QUANT8_ASYMM", "{%d, %d, %d, %d}, .5f, 0" % (d0, d1, d2, d3))
 
-# Example 1.
-input1_values = [x for x in range(row1 * col)]
-input2_values = (lambda s1 = row1 * col, s2 = row2 * col:
-                 [x + s1 for x in range(s2)])()
-input0 = {input1: input1_values,
-          input2: input2_values}
-output_values = [x for x in range(output_row * col)]
+output = Output("output", "TENSOR_QUANT8_ASYMM", "{%d, %d, %d, %d}, 0.00390625f, 0" % (d0, d1, d2, d3))
+
+model = model.Operation("LOGISTIC", i0).To(output)
+
+# Example 1. Input in operand 0,
+rng = d0 * d1 * d2 * d3
+input_values = (lambda r = rng: [x % 256 for x in range(r)])()
+input0 = {i0: input_values}
+output_values = [
+    255 if 1. / (1. + math.exp(-x * .5)) * 256 > 255
+        else int(round(1. / (1. + math.exp(-x * .5)) * 256))
+    for x in input_values]
 output0 = {output: output_values}
 
 # Instantiate an example

@@ -24,6 +24,7 @@
 #include <hidl/HidlTransportSupport.h>
 #include <hidl/ServiceManagement.h>
 
+#include <algorithm>
 #include <functional>
 
 namespace android {
@@ -52,7 +53,7 @@ void Device::initialize() {
 
 void Device::getSupportedOperations(const Model& hidlModel,
                                     hidl_vec<bool>* outSupportedOperations) const {
-    mInterface->getSupportedOperations(
+    auto ret = mInterface->getSupportedOperations(
         hidlModel,
         [outSupportedOperations](ErrorStatus status, const hidl_vec<bool>& supportedOperations) {
             if (status != ErrorStatus::NONE) {
@@ -62,6 +63,14 @@ void Device::getSupportedOperations(const Model& hidlModel,
             }
             *outSupportedOperations = supportedOperations;
         });
+
+    if (!ret.isOk()) {
+        LOG(ERROR) << "IDevice::getSupportedOperations failed for " << getName()
+                   << ": " << ret.description();
+        outSupportedOperations->resize(hidlModel.operations.size());
+        std::fill(outSupportedOperations->begin(), outSupportedOperations->end(), false);
+        return;
+    }
 
 #ifdef NN_DEBUGGABLE
     if (mSupported != 1) {

@@ -7,14 +7,11 @@ void CreateModel(Model *model) {
   auto op1 = model->addOperand(&type0);
   auto op2 = model->addOperand(&type0);
   auto axis0 = model->addOperand(&type1);
-  auto act0 = model->addOperand(&type1);
   auto result = model->addOperand(&type2);
   // Phase 2, operations
   static int32_t axis0_init[] = {0};
   model->setOperandValue(axis0, axis0_init, sizeof(int32_t) * 1);
-  static int32_t act0_init[] = {0};
-  model->setOperandValue(act0, act0_init, sizeof(int32_t) * 1);
-  model->addOperation(ANEURALNETWORKS_CONCATENATION, {op1, op2, axis0, act0}, {result});
+  model->addOperation(ANEURALNETWORKS_CONCATENATION, {op1, op2, axis0}, {result});
   // Phase 3, inputs and outputs
   model->setInputsAndOutputs(
     {op1, op2},

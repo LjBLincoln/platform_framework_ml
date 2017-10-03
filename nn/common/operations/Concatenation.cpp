@@ -23,8 +23,7 @@ namespace android {
 namespace nn {
 
 bool concatenationFloat32(const std::vector<const float*>& inputDataPtrs,
-                          const std::vector<Shape>& inputShapes,
-                          int32_t axis, int32_t activation,
+                          const std::vector<Shape>& inputShapes, int32_t axis,
                           float* outputData, const Shape& outputShape) {
     int num_inputs = inputShapes.size();
     std::vector<Dims<4>*> inputDimsPtr(num_inputs);
@@ -34,21 +33,16 @@ bool concatenationFloat32(const std::vector<const float*>& inputDataPtrs,
         inputDimsPtr[i] = &inputDims[i];
     }
 
-    #define ANDROID_NN_CONCATENATION(activation)                                      \
-        optimized_ops::Concatenation<FusedActivationFunctionType::activation, float>( \
-            getNumberOfDimensions(outputShape) - axis - 1,                            \
-            inputDataPtrs.data(), inputDimsPtr.data(), num_inputs,                    \
-            outputData, convertShapeToDims(outputShape))
-
-    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_CONCATENATION)
-    #undef ANDROID_NN_CONCATENATION
+    optimized_ops::Concatenation<FusedActivationFunctionType::kNone, float>(
+            getNumberOfDimensions(outputShape) - axis - 1,
+            inputDataPtrs.data(), inputDimsPtr.data(), num_inputs,
+            outputData, convertShapeToDims(outputShape));
 
     return true;
 }
 
 bool concatenationQuant8(const std::vector<const uint8_t*>& inputDataPtrs,
-                         const std::vector<Shape>& inputShapes,
-                         int32_t axis, int32_t activation,
+                         const std::vector<Shape>& inputShapes, int32_t axis,
                          uint8_t* outputData, const Shape& outputShape) {
     int num_inputs = inputShapes.size();
     std::vector<Dims<4>*> inputDimsPtr(num_inputs);
@@ -58,14 +52,10 @@ bool concatenationQuant8(const std::vector<const uint8_t*>& inputDataPtrs,
         inputDimsPtr[i] = &inputDims[i];
     }
 
-    #define ANDROID_NN_CONCATENATION(activation)                                        \
-        optimized_ops::Concatenation<FusedActivationFunctionType::activation, uint8_t>( \
-            getNumberOfDimensions(outputShape) - axis - 1,                              \
-            inputDataPtrs.data(), inputDimsPtr.data(), num_inputs,                      \
-            outputData, convertShapeToDims(outputShape))
-
-    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_CONCATENATION)
-    #undef ANDROID_NN_CONCATENATION
+    optimized_ops::Concatenation<FusedActivationFunctionType::kNone, uint8_t>(
+            getNumberOfDimensions(outputShape) - axis - 1,
+            inputDataPtrs.data(), inputDimsPtr.data(), num_inputs,
+            outputData, convertShapeToDims(outputShape));
 
     return true;
 }

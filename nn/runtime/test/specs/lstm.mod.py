@@ -48,7 +48,7 @@ output_gate_bias = Input("output_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 projection_weights = Input("projection_weights", "TENSOR_FLOAT32", "{0,0}")
 projection_bias = Input("projection_bias", "TENSOR_FLOAT32", "{0}")
 
-activation_param = Input("activation_param", "TENSOR_INT32", "{1}");
+activation_param = Input("activation_param", "TENSOR_INT32", "{1}")
 cell_clip_param = Input("cell_clip_param", "TENSOR_FLOAT32", "{1}")
 proj_clip_param = Input("proj_clip_param", "TENSOR_FLOAT32", "{1}")
 

@@ -39,6 +39,7 @@ enum LSHProjectionType {
 };
 
 struct RunTimeOperandInfo;
+struct Shape;
 
 class LSHProjection {
  public:
@@ -46,6 +47,10 @@ class LSHProjection {
       const android::hardware::neuralnetworks::V1_0::Operation &operation,
       std::vector<RunTimeOperandInfo> &operands);
 
+  static bool Prepare(
+      const android::hardware::neuralnetworks::V1_0::Operation &operation,
+      std::vector<RunTimeOperandInfo>& operands,
+      Shape *outputShape);
   bool Eval();
 
   static constexpr int kHashTensor = 0;

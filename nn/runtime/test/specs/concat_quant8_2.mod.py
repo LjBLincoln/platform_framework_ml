@@ -25,9 +25,8 @@ output_row = row1 + row2
 input1 = Input("input1", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (row1, col))
 input2 = Input("input2", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (row2, col))
 axis0 = Int32Scalar("axis0", 0)
-act0 = Int32Scalar("act0", 0)
 output = Output("output", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (output_row, col))
-model = model.Operation("CONCATENATION", input1, input2, axis0, act0).To(output)
+model = model.Operation("CONCATENATION", input1, input2, axis0).To(output)
 
 # Example 1.
 input1_values = [x % 256 for x in range(row1 * col)]
