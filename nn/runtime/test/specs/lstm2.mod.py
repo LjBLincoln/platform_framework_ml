@@ -37,8 +37,8 @@ recurrent_to_cell_weights = Input("recurrent_to_cell_weights", "TENSOR_FLOAT32",
 recurrent_to_output_weights = Input("recurrent_to_output_weights", "TENSOR_FLOAT32", "{%d, %d}" % (n_cell, n_output))
 
 cell_to_input_weights = Input("cell_to_input_weights", "TENSOR_FLOAT32", "{0}")
-cell_to_forget_weights = Input("cell_to_forget_weights", "TENSOR_FLOAT32", "{0}")
-cell_to_output_weights = Input("cell_to_output_weights", "TENSOR_FLOAT32", "{0}")
+cell_to_forget_weights = Input("cell_to_forget_weights", "TENSOR_FLOAT32", "{%d}" % (n_cell))
+cell_to_output_weights = Input("cell_to_output_weights", "TENSOR_FLOAT32", "{%d}" % (n_cell))
 
 input_gate_bias = Input("input_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 forget_gate_bias = Input("forget_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
@@ -92,7 +92,7 @@ input0 = {input_to_input_weights:[],
           input_to_forget_weights: [-0.55291498, -0.42866567, 0.13056988, -0.3633365, -0.22755712, 0.28253698, 0.24407166, 0.33826375],
           input_to_output_weights: [0.10725588, -0.02335852, -0.55932593, -0.09426838, -0.44257352, 0.54939759, 0.01533556, 0.42751634],
 
-          input_gate_bias:  [0.,0.,0.,0.],
+          input_gate_bias:  [],
           forget_gate_bias: [1.,1.,1.,1.],
           cell_gate_bias:   [0.,0.,0.,0.],
           output_gate_bias: [0.,0.,0.,0.],

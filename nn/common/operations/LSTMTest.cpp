@@ -420,8 +420,6 @@ TEST(LSTMOpTest, BlackBoxTestWithCifgWithPeepholeNoProjectionNoClipping) {
                                 -0.09426838, -0.44257352, 0.54939759,
                                 0.01533556, 0.42751634});
 
-  lstm.SetInputGateBias({0., 0., 0., 0.});
-
   lstm.SetCellGateBias({0., 0., 0., 0.});
 
   lstm.SetForgetGateBias({1., 1., 1., 1.});

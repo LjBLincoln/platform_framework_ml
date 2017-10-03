@@ -33,30 +33,12 @@ int greater(const void* a, const void* b) {
 
 HashtableLookup::HashtableLookup(const Operation& operation,
                                  std::vector<RunTimeOperandInfo>& operands) {
-  auto GetInput = [&operation,
-                   &operands](uint32_t index) -> const RunTimeOperandInfo* {
-    const std::vector<uint32_t>& inputs = operation.inputs;
-    const int index_of_operand = inputs[index];
-    if (index_of_operand < 0) {
-      return nullptr;
-    }
-    return &operands[index_of_operand];
-  };
+  lookup_ = GetInput(operation, operands, kLookupTensor);
+  key_ = GetInput(operation, operands, kKeyTensor);
+  value_ = GetInput(operation, operands, kValueTensor);
 
-  auto GetOutput = [&operation,
-                    &operands](uint32_t index) -> RunTimeOperandInfo* {
-    const std::vector<uint32_t>& outputs = operation.outputs;
-    const int index_of_operand = outputs[index];
-    // Expects index of operand in range.
-    return &operands[index_of_operand];
-  };
-
-  lookup_ = GetInput(kLookupTensor);
-  key_ = GetInput(kKeyTensor);
-  value_ = GetInput(kValueTensor);
-
-  output_ = GetOutput(kOutputTensor);
-  hits_ = GetOutput(kHitsTensor);
+  output_ = GetOutput(operation, operands, kOutputTensor);
+  hits_ = GetOutput(operation, operands, kHitsTensor);
 }
 
 bool HashtableLookup::Eval() {

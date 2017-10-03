@@ -22,46 +22,58 @@
 namespace android {
 namespace nn {
 
-namespace {
-
-template <typename T>
-T getScalarData(RunTimeOperandInfo& info) {
-  T* data = reinterpret_cast<T*>(info.buffer);
-  return data[0];
-}
-
-}  // anonymous namespace
-
 RNN::RNN(const Operation& operation,
          std::vector<RunTimeOperandInfo>& operands) {
-  auto GetInput = [&operation,
-                   &operands](uint32_t index) -> const RunTimeOperandInfo* {
-    const std::vector<uint32_t>& inputs = operation.inputs;
-    const int index_of_operand = inputs[index];
-    if (index_of_operand < 0) {
-      return nullptr;
-    }
-    return &operands[index_of_operand];
-  };
-
-  auto GetOutput = [&operation,
-                    &operands](uint32_t index) -> RunTimeOperandInfo* {
-    const std::vector<uint32_t>& outputs = operation.outputs;
-    const int index_of_operand = outputs[index];
-    // Expects index of operand in range.
-    return &operands[index_of_operand];
-  };
-
-  input_ = GetInput(kInputTensor);
-  weights_ = GetInput(kWeightsTensor);
-  recurrent_weights_ = GetInput(kRecurrentWeightsTensor);
-  bias_ = GetInput(kBiasTensor);
-  hidden_state_ = GetInput(kHiddenStateTensor);
+  input_ = GetInput(operation, operands, kInputTensor);
+  weights_ = GetInput(operation, operands, kWeightsTensor);
+  recurrent_weights_ = GetInput(operation, operands, kRecurrentWeightsTensor);
+  bias_ = GetInput(operation, operands, kBiasTensor);
 
   activation_ = static_cast<ActivationFn>(
       getScalarData<int32_t>(operands[operation.inputs[kActivationParam]]));
 
-  output_ = GetOutput(kOutputTensor);
+  hidden_state_ = GetOutput(operation, operands, kHiddenStateTensor);
+  output_ = GetOutput(operation, operands, kOutputTensor);
+}
+
+bool RNN::Prepare(const Operation &operation,
+                  std::vector<RunTimeOperandInfo> &operands,
+                  Shape *hiddenStateShape,
+                  Shape *outputShape) {
+  // Check we have all the inputs and outputs we need.
+  const int num_inputs = NumInputsWithValues(operation, operands);
+  NN_CHECK(num_inputs == 4 || num_inputs == 5);
+  NN_CHECK_EQ(NumOutputs(operation), 2);
+
+  const RunTimeOperandInfo *input =
+      GetInput(operation, operands, kInputTensor);
+  const RunTimeOperandInfo *input_weights =
+      GetInput(operation, operands, kWeightsTensor);
+  const RunTimeOperandInfo *recurrent_weights =
+      GetInput(operation, operands, kRecurrentWeightsTensor);
+  const RunTimeOperandInfo *bias =
+      GetInput(operation, operands, kBiasTensor);
+
+  // Check all the parameters of tensor match within themselves and match the
+  // input configuration.
+  const uint32_t batch_size = SizeOfDimension(input, 0);
+  const uint32_t num_units = SizeOfDimension(input_weights, 0);
+  NN_CHECK_EQ(SizeOfDimension(input, 1), SizeOfDimension(input_weights, 1));
+  NN_CHECK_EQ(SizeOfDimension(input_weights, 0), SizeOfDimension(bias, 0));
+  NN_CHECK_EQ(SizeOfDimension(recurrent_weights, 0), SizeOfDimension(bias, 0));
+  NN_CHECK_EQ(SizeOfDimension(recurrent_weights, 1), SizeOfDimension(bias, 0));
+
+  const Shape &inputShape = input->shape();
+
+  // Resize state.
+  hiddenStateShape->type = inputShape.type;
+  hiddenStateShape->dimensions = { batch_size, num_units };
+
+  // Resize output.
+  outputShape->type = inputShape.type;
+  outputShape->dimensions = { batch_size, num_units };
+
+  return true;
 }
 
 bool RNN::Eval() {

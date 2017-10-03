@@ -12,7 +12,7 @@ void CreateModel(Model *model) {
   auto output = model->addOperand(&type3);
   auto hits = model->addOperand(&type4);
   // Phase 2, operations
-  model->addOperation(ANEURALNETWORKS_HASHTABLE_LOOKUP, {lookup, key, value}, {output});
+  model->addOperation(ANEURALNETWORKS_HASHTABLE_LOOKUP, {lookup, key, value}, {output, hits});
   // Phase 3, inputs and outputs
   model->setInputsAndOutputs(
     {lookup, key, value},

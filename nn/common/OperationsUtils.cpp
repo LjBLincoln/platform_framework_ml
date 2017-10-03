@@ -471,5 +471,55 @@ bool spaceToDepthPrepare(const Shape& input,
     return true;
 }
 
+bool embeddingLookupPrepare(const Shape &valueShape,
+                            const Shape &lookupShape,
+                            Shape *outputShape) {
+    NN_OPS_CHECK(getNumberOfDimensions(valueShape) >= 2);
+    NN_OPS_CHECK(getNumberOfDimensions(lookupShape) == 1);
+
+    const uint32_t rows     = getSizeOfDimension(valueShape, 0);
+    const uint32_t columns  = getSizeOfDimension(valueShape, 1);
+
+    const uint32_t lookups  = getSizeOfDimension(lookupShape, 0);
+
+    outputShape->type = valueShape.type;
+    outputShape->dimensions = { lookups, columns };
+    for (uint32_t i = 2; i < getNumberOfDimensions(valueShape); i++) {
+        outputShape->dimensions[i] = getSizeOfDimension(valueShape, i);
+    }
+    outputShape->offset = valueShape.offset;
+    outputShape->scale = valueShape.scale;
+
+    return true;
+}
+
+bool hashtableLookupPrepare(const Shape &lookupShape,
+                            const Shape &keyShape,
+                            const Shape &valueShape,
+                            Shape *outputShape,
+                            Shape *hitShape) {
+    NN_OPS_CHECK(getNumberOfDimensions(lookupShape) == 1);
+    NN_OPS_CHECK(getNumberOfDimensions(keyShape) == 1);
+    NN_OPS_CHECK(getNumberOfDimensions(valueShape) >= 1);
+
+    const uint32_t lookups  = getSizeOfDimension(lookupShape, 0);
+    const uint32_t keys     = getSizeOfDimension(keyShape, 0);
+    const uint32_t rows     = getSizeOfDimension(valueShape, 0);
+    outputShape->type = valueShape.type;
+    outputShape->dimensions = { lookups };
+    for (uint32_t i = 1; i < getNumberOfDimensions(valueShape); i++) {
+        outputShape->dimensions[i] = getSizeOfDimension(valueShape, i);
+    }
+    outputShape->offset = valueShape.offset;
+    outputShape->scale = valueShape.scale;
+
+    hitShape->type = OperandType::TENSOR_QUANT8_ASYMM;
+    hitShape->dimensions = { lookups };
+    hitShape->offset = 0;
+    hitShape->scale = 1.f;
+
+    return true;
+}
+
 } // namespace nn
 } // namespace android
