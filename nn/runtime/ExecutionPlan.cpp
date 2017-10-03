@@ -392,16 +392,12 @@ int ExecutionPlan::finish(const ModelBuilder* fromModel) {
     return mBody->finish(fromModel);
 }
 
-bool ExecutionPlan::shouldBeExecutable() const {
-    return true;
-}
-
-ExecutionPlan::Controller ExecutionPlan::makeController(
+std::shared_ptr<ExecutionPlan::Controller> ExecutionPlan::makeController(
     const ExecutionBuilder* executionBuilder) const {
     nnAssert((mState == EMPTY) == (mBody == nullptr));
     if (mBody && !mBody->mSuccessfulFinish) {
-        LOG(DEBUG) << "ExecutionPlan::makeController -- error";
-        return Controller();
+        LOG(DEBUG) << "ExecutionPlan::makeController -- unsuccessful finish";
+        return std::shared_ptr<Controller>(nullptr);
     }
 
     // Allocate a Memory object for each TEMPORARY in the original
@@ -426,16 +422,16 @@ ExecutionPlan::Controller ExecutionPlan::makeController(
                 if ((size = sizeOfData(fromModelOperand)) == 0 ||
                     emplaceResult.first->second.create(size) != ANEURALNETWORKS_NO_ERROR) {
                     LOG(ERROR) << "ExecutionPlan::makeController -- could not allocate temporary";
-                    return Controller();
+                    return std::shared_ptr<Controller>(nullptr);
                 }
             }
         }
     }
 
-    return Controller(this, executionBuilder, subModelInputsAndOutputs);
+    return std::shared_ptr<Controller>(new Controller(this, executionBuilder, subModelInputsAndOutputs));
 }
 
-int ExecutionPlan::next(Controller* controller, std::shared_ptr<StepExecutor>* executor) const {
+int ExecutionPlan::next(std::shared_ptr<Controller> controller, std::shared_ptr<StepExecutor>* executor) const {
     *executor = nullptr;
 
     LOG(DEBUG) << "ExecutionPlan::next(" << controller << ", " << executor << "): mNextStepIndex = " << controller->mNextStepIndex;

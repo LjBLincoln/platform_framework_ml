@@ -147,6 +147,9 @@ public:
     class Controller {
         friend class ExecutionPlan;
     private:
+        Controller(const Controller&) = delete;
+        Controller& operator=(const Controller&) = delete;
+
         // Map from the operand index of a TEMPORARY in the original
         // model to a Memory object used to represent that TEMPORARY
         // as an inter-partition input or output.
@@ -158,17 +161,16 @@ public:
                    std::shared_ptr<const SubModelInputsAndOutputsType> subModelInputsAndOutputs) :
                 mPlan(plan), mExecutionBuilder(executionBuilder),
                 mSubModelInputsAndOutputs(subModelInputsAndOutputs), mNextStepIndex(0) {}
-        Controller() {}  // used for error state
 
-        const ExecutionPlan* mPlan = nullptr;
-        const ExecutionBuilder* mExecutionBuilder = nullptr;
+        const ExecutionPlan* mPlan;
+        const ExecutionBuilder* mExecutionBuilder;
         std::shared_ptr<const SubModelInputsAndOutputsType> mSubModelInputsAndOutputs;  // may be nullptr
-        size_t mNextStepIndex = kBadStepIndex;
+        size_t mNextStepIndex;
     };
 
-    Controller makeController(const ExecutionBuilder* executionBuilder) const;
+    std::shared_ptr<Controller> makeController(const ExecutionBuilder* executionBuilder) const;
 
-    int next(Controller* controller, std::shared_ptr<StepExecutor>* executor) const;
+    int next(std::shared_ptr<Controller> controller, std::shared_ptr<StepExecutor>* executor) const;
 
     std::shared_ptr<ExecutionStep> createNewStep(const std::shared_ptr<Device> device);
 
@@ -184,20 +186,6 @@ public:
     }
 
     void dump() const;
-
-    // TODO: This member function is only temporary, until we finish
-    // fully integrating ExecutionPlan with the compilation and
-    // execution phases of the NN API.
-    //
-    // Returns true if the plan is "in scope for execution" -- i.e.,
-    // the structure of the plan is such that the
-    // currently-implemented execution system ought to be able to
-    // handle it.  May return true even if something went wrong with
-    // the partitioning and compilation process.
-    //
-    // true - single partition (even if compilation failed)
-    // false - multiple partitions
-    bool shouldBeExecutable() const;
 
 private:
     void findSubModelOutputs();

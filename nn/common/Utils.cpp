@@ -371,7 +371,7 @@ bool validateRequest(const Request& request, const Model& model) {
 #ifdef NN_DEBUGGABLE
 
 // Implementation of property_get from libcutils
-static int property_get(const char *key, char *value, const char *default_value) {
+static int property_get(const char* key, char* value, const char* default_value) {
     int len;
     len = __system_property_get(key, value);
     if (len > 0) {
@@ -385,10 +385,13 @@ static int property_get(const char *key, char *value, const char *default_value)
     return len;
 }
 
-uint32_t getProp(const char *str) {
+uint32_t getProp(const char* str, uint32_t defaultValue) {
     char buf[256];
-    property_get(str, buf, "0");
-    return atoi(buf);
+    if (property_get(str, buf, nullptr) > 0) {
+        return atoi(buf);
+    } else {
+        return defaultValue;
+    }
 }
 
 #endif  // NN_DEBUGGABLE

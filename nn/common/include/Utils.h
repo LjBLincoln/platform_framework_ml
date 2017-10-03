@@ -125,7 +125,7 @@ inline size_t getSizeFromInts(int lower, int higher) {
 }
 
 #ifdef NN_DEBUGGABLE
-uint32_t getProp(const char *str);
+uint32_t getProp(const char* str, uint32_t defaultValue = 0);
 #endif  // NN_DEBUGGABLE
 
 }  // namespace nn
