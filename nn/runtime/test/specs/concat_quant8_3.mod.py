@@ -25,9 +25,8 @@ output_col = col1 + col2
 input1 = Input("input1", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (row, col1))
 input2 = Input("input2", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (row, col2))
 axis1 = Int32Scalar("axis1", 1)
-act2 = Int32Scalar("relu1_activation", 2)
 output = Output("output", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (row, output_col))
-model = model.Operation("CONCATENATION", input1, input2, axis1, act2).To(output)
+model = model.Operation("CONCATENATION", input1, input2, axis1).To(output)
 
 # Example 1.
 input1_values = [(x % 128 + 128) for x in range(row * col1)]
@@ -37,7 +36,6 @@ input0 = {input1: input1_values,
 
 output_values = [x for x in range(row * output_col)]
 for r in range(row):
-  # TODO(b/67185615): Cap the output values at 1 when the bug is fxed.
   for c1 in range(col1):
     output_values[r * output_col + c1] = input1_values[r * col1 + c1]
   for c2 in range(col2):

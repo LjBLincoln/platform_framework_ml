@@ -30,15 +30,6 @@ Model createTestModel() {
             .location = {.poolIndex = 0, .offset = 0, .length = 4},
         },
         {
-            .type = OperandType::INT32,
-            .dimensions = {},
-            .numberOfConsumers = 1,
-            .scale = 0.0f,
-            .zeroPoint = 0,
-            .lifetime = OperandLifeTime::CONSTANT_COPY,
-            .location = {.poolIndex = 0, .offset = 4, .length = 4},
-        },
-        {
             .type = OperandType::TENSOR_FLOAT32,
             .dimensions = {4, 3},
             .numberOfConsumers = 0,
@@ -52,13 +43,13 @@ Model createTestModel() {
     const std::vector<Operation> operations = {
         {
             .type = OperationType::CONCATENATION,
-            .inputs = {0, 1, 2, 3},
-            .outputs = {4},
+            .inputs = {0, 1, 2},
+            .outputs = {3},
         }
     };
 
     const std::vector<uint32_t> inputIndexes = {0, 1};
-    const std::vector<uint32_t> outputIndexes = {4};
+    const std::vector<uint32_t> outputIndexes = {3};
     std::vector<uint8_t> operandValues = {
       0, 0, 0, 0, 0, 0, 0, 0
     };
