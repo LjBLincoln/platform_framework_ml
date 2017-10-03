@@ -94,7 +94,7 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {0},
+            .dimensions = {4},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
@@ -103,7 +103,7 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {0},
+            .dimensions = {4},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
