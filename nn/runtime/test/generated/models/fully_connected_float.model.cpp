@@ -3,7 +3,7 @@ void CreateModel(Model *model) {
   OperandType type3(Type::INT32, {});
   OperandType type1(Type::TENSOR_FLOAT32, {1, 1});
   OperandType type2(Type::TENSOR_FLOAT32, {1});
-  OperandType type0(Type::TENSOR_FLOAT32, {3});
+  OperandType type0(Type::TENSOR_FLOAT32, {3, 1});
   // Phase 1, operands
   auto op1 = model->addOperand(&type0);
   auto op2 = model->addOperand(&type1);

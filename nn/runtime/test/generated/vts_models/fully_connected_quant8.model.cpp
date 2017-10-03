@@ -4,7 +4,7 @@ Model createTestModel() {
     const std::vector<Operand> operands = {
         {
             .type = OperandType::TENSOR_QUANT8_ASYMM,
-            .dimensions = {3},
+            .dimensions = {3, 1},
             .numberOfConsumers = 1,
             .scale = 0.5f,
             .zeroPoint = 0,
@@ -31,7 +31,7 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_QUANT8_ASYMM,
-            .dimensions = {3},
+            .dimensions = {3, 1},
             .numberOfConsumers = 0,
             .scale = 1.0f,
             .zeroPoint = 0,
