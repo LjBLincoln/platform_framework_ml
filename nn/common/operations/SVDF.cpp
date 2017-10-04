@@ -26,11 +26,12 @@ namespace {
 
 // TODO: Implement this using circular buffer instead.
 // This is here temporarily only to show the logic.
-void svdf_right_shift_state(float* state, int state_len, float shift_value) {
+void svdf_right_shift_state(const float* state_in, int state_len, float shift_value,
+                            float* state_out) {
   for (int i = 0; i < state_len - 1; i++) {
-    state[i] = state[i + 1];
+    state_out[i] = state_in[i + 1];
   }
-  state[state_len - 1] = shift_value;
+  state_out[state_len - 1] = shift_value;
 }
 
 int32_t getInt32ScalarData(RunTimeOperandInfo& info) {
@@ -46,12 +47,13 @@ SVDF::SVDF(const Operation& operation,
     weights_feature_ = GetInput(operation, operands, kWeightsFeatureTensor);
     weights_time_ = GetInput(operation, operands, kWeightsTimeTensor);
     bias_ = GetInput(operation, operands, kBiasTensor);
+    state_in_ = GetInput(operation, operands, kStateInTensor);
 
     params_.rank_ = getInt32ScalarData(*GetInput(operation, operands, kRankParam));
     params_.activation_ = static_cast<ActivationFn>(getInt32ScalarData(
         *GetInput(operation, operands, kActivationParam)));
 
-    state_ = GetOutput(operation, operands, kStateTensor);
+    state_out_ = GetOutput(operation, operands, kStateOutTensor);
     output_ = GetOutput(operation, operands, kOutputTensor);
 }
 
@@ -61,7 +63,7 @@ bool SVDF::Prepare(const Operation &operation,
                    Shape *outputShape) {
   // Check we have all the inputs and outputs we need.
   const int num_inputs = NumInputsWithValues(operation, operands);
-  NN_CHECK(num_inputs == 5 || num_inputs == 6);
+  NN_CHECK(num_inputs == 6 || num_inputs == 7);
   NN_CHECK_EQ(NumOutputs(operation), 2);
 
   const RunTimeOperandInfo *input =
@@ -84,11 +86,6 @@ bool SVDF::Prepare(const Operation &operation,
   if (!IsNullInput(bias)) {
     NN_CHECK_EQ(SizeOfDimension(bias, 0), num_units);
   }
-
-  const RunTimeOperandInfo *state =
-      GetInput(operation, operands, SVDF::kStateTensor);
-  const RunTimeOperandInfo *output =
-      GetInput(operation, operands, SVDF::kOutputTensor);
 
   // Resize state.
   const Shape &inputShape = input->shape();
@@ -123,7 +120,8 @@ bool SVDF::Eval() {
         // Initialize the pointer to input, output and bias.
         const float* input_ptr_batch = reinterpret_cast<float *>(input_->buffer) + b * input_size;
         float* output_ptr_batch = reinterpret_cast<float*>(output_->buffer) + b * num_units;
-        float* state_ptr_batch = reinterpret_cast<float*>(state_->buffer) + b * (memory_size - 1) * num_units;
+        const float* state_in_ptr_batch = reinterpret_cast<const float*>(state_in_->buffer) + b * (memory_size - 1) * num_units;
+        float* state_out_ptr_batch = reinterpret_cast<float*>(state_out_->buffer) + b * (memory_size - 1) * num_units;
 
         // For each unit
         for (int c = 0; c < num_units; c++) {
@@ -135,7 +133,8 @@ bool SVDF::Eval() {
             }
 
             // Initialize state pointer for unit 'c'.
-            float* state_ptr = state_ptr_batch + c * (memory_size - 1);
+            const float* state_in_ptr = state_in_ptr_batch + c * (memory_size - 1);
+            float* state_out_ptr = state_out_ptr_batch + c * (memory_size - 1);
 
             // Apply bias if bias tensor exists.
             output_ptr_batch[c] = bias_->buffer ? reinterpret_cast<float *>(bias_->buffer)[c] : 0.f;
@@ -143,7 +142,7 @@ bool SVDF::Eval() {
             // output = tf.matmul(state, weights_time)
             output_ptr_batch[c] += weights_time_ptr[memory_size - 1] * activation;
             for (int j = 0; j < memory_size - 1; j++) {
-                output_ptr_batch[c] += weights_time_ptr[j] * state_ptr[j];
+                output_ptr_batch[c] += weights_time_ptr[j] * state_in_ptr[j];
             }
 
             // Apply activation.
@@ -151,7 +150,8 @@ bool SVDF::Eval() {
                     (ActivationFunctor(params_.activation_))(output_ptr_batch[c]);
 
             // Right shift the state and concatenate with activation.
-            svdf_right_shift_state(state_ptr, memory_size - 1, activation);
+            svdf_right_shift_state(state_in_ptr, memory_size - 1, activation,
+                                   state_out_ptr);
 
             // Update weight pointers.
             weights_feature_ptr += weights_feature_stride;

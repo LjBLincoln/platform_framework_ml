@@ -1157,10 +1157,10 @@ int CpuExecutor::executeOperation(const Operation& operation) {
         case OperationType::LSTM: {
             RunTimeOperandInfo &scratch =
                 mOperands[outs[LSTMCell::kScratchBufferTensor]];
-            RunTimeOperandInfo &outputState =
-                mOperands[outs[LSTMCell::kOutputStateTensor]];
-            RunTimeOperandInfo &cellState =
-                mOperands[outs[LSTMCell::kCellStateTensor]];
+            RunTimeOperandInfo &outputStateOut =
+                mOperands[outs[LSTMCell::kOutputStateOutTensor]];
+            RunTimeOperandInfo &cellStateOut =
+                mOperands[outs[LSTMCell::kCellStateOutTensor]];
             RunTimeOperandInfo &output =
                 mOperands[outs[LSTMCell::kOutputTensor]];
 
@@ -1171,14 +1171,14 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                         &scratchShape, &outputStateShape,
                                         &cellStateShape, &outputShape) &&
                 setInfoAndAllocateIfNeeded(&scratch, scratchShape) &&
-                setInfoAndAllocateIfNeeded(&outputState, outputStateShape) &&
-                setInfoAndAllocateIfNeeded(&cellState, cellStateShape) &&
+                setInfoAndAllocateIfNeeded(&outputStateOut, outputStateShape) &&
+                setInfoAndAllocateIfNeeded(&cellStateOut, cellStateShape) &&
                 setInfoAndAllocateIfNeeded(&output, outputShape) &&
                 lstm_cell.Eval();
         } break;
         case OperationType::RNN: {
-            RunTimeOperandInfo &hiddenState =
-                mOperands[outs[RNN::kHiddenStateTensor]];
+            RunTimeOperandInfo &hiddenStateOut =
+                mOperands[outs[RNN::kHiddenStateOutTensor]];
             RunTimeOperandInfo &output =
                 mOperands[outs[RNN::kOutputTensor]];
 
@@ -1187,13 +1187,13 @@ int CpuExecutor::executeOperation(const Operation& operation) {
 
             success = RNN::Prepare(operation, mOperands,
                                    &hiddenStateShape, &outputShape) &&
-                setInfoAndAllocateIfNeeded(&hiddenState, hiddenStateShape) &&
+                setInfoAndAllocateIfNeeded(&hiddenStateOut, hiddenStateShape) &&
                 setInfoAndAllocateIfNeeded(&output, outputShape) &&
                 rnn_cell.Eval();
         } break;
         case OperationType::SVDF: {
             RunTimeOperandInfo &state =
-                mOperands[outs[SVDF::kStateTensor]];
+                mOperands[outs[SVDF::kStateOutTensor]];
             RunTimeOperandInfo &output =
                 mOperands[outs[SVDF::kOutputTensor]];
 
