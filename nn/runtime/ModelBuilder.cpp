@@ -64,19 +64,32 @@ int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t len
         return ANEURALNETWORKS_BAD_DATA;
     }
     Operand& operand = mOperands[index];
-    uint32_t neededLength = sizeOfData(operand.type, operand.dimensions);
-    if (neededLength != length) {
-        LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting " << length
-                   << " bytes when needing " << neededLength;
-        return ANEURALNETWORKS_BAD_DATA;
+    if (buffer == nullptr) {
+        if (length) {
+            LOG(ERROR) << "ANeuralNetworksModel_setOperandValue buffer is nullptr but length is "
+                          "not 0";
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+        operand.lifetime = OperandLifeTime::NO_VALUE;
+        // The location is unused and is set to zeros.
+        operand.location = {.poolIndex = 0,
+                            .offset = 0,
+                            .length = 0};
+    } else {
+        uint32_t neededLength = sizeOfData(operand.type, operand.dimensions);
+        if (neededLength != length) {
+            LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting " << length
+                       << " bytes when needing " << neededLength;
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+        uint32_t existingSize = static_cast<uint32_t>(mOperandValues.size());
+        uint32_t extraBytes = alignBytesNeeded(existingSize, length);
+        mOperandValues.resize(existingSize + extraBytes + length);
+        operand.lifetime = OperandLifeTime::CONSTANT_COPY;
+        operand.location = {
+                    .poolIndex = 0, .offset = existingSize + extraBytes, .length = neededLength};
+        memcpy(&mOperandValues[operand.location.offset], buffer, length);
     }
-    uint32_t existingSize = static_cast<uint32_t>(mOperandValues.size());
-    uint32_t extraBytes = alignBytesNeeded(existingSize, length);
-    mOperandValues.resize(existingSize + extraBytes + length);
-    operand.lifetime = OperandLifeTime::CONSTANT_COPY;
-    operand.location = {
-                .poolIndex = 0, .offset = existingSize + extraBytes, .length = neededLength};
-    memcpy(&mOperandValues[operand.location.offset], buffer, length);
     return ANEURALNETWORKS_NO_ERROR;
 }
 

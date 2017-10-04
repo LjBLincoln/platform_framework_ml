@@ -39,17 +39,18 @@ class StepExecutor;
 
 // TODO move length out of DataLocation
 struct ModelArgumentInfo {
-    // Whether the arguement was specified as being in a Memory, as a pointer,
-    // or has not been specified.
+    // Whether the argument was specified as being in a Memory, as a pointer,
+    // has no value, or has not been specified.
     // If POINTER then:
-    //   locationAndDimension.location.length is valid.
-    //   locationAndDimension.dimension is valid.
+    //   locationAndLength.length is valid.
+    //   dimensions is valid.
     //   buffer is valid
     // If MEMORY then:
-    //   locationAndDimension.location.{poolIndex, offset, length} is valid.
-    //   locationAndDimension.dimension is valid.
-    enum { POINTER, MEMORY, UNSPECIFIED } state = UNSPECIFIED;
-    RequestArgument locationAndDimension;
+    //   locationAndLength.location.{poolIndex, offset, length} is valid.
+    //   dimensions is valid.
+    enum { POINTER, MEMORY, HAS_NO_VALUE, UNSPECIFIED } state = UNSPECIFIED;
+    DataLocation locationAndLength;
+    std::vector<uint32_t> dimensions;
     void* buffer;
 
     int setFromPointer(const Operand& operand, const ANeuralNetworksOperandType* type, void* buffer,
