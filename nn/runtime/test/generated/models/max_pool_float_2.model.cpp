@@ -1,8 +1,8 @@
 // Generated file (from: max_pool_float_2.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type1(Type::INT32, {});
-  OperandType type2(Type::TENSOR_FLOAT32, {5, 30, 40, 3});
-  OperandType type0(Type::TENSOR_FLOAT32, {5, 600, 800, 3});
+  OperandType type2(Type::TENSOR_FLOAT32, {5, 2, 3, 3});
+  OperandType type0(Type::TENSOR_FLOAT32, {5, 50, 70, 3});
   // Phase 1, operands
   auto i0 = model->addOperand(&type0);
   auto stride = model->addOperand(&type1);

@@ -17,9 +17,9 @@
 # model
 model = Model()
 
-row = 1024
-col1 = 512
-col2 = 256
+row = 400
+col1 = 60
+col2 = 30
 output_col = col1 + col2
 
 input1 = Input("input1", "TENSOR_QUANT8_ASYMM", "{%d, %d}, 0.5f, 0" % (row, col1))

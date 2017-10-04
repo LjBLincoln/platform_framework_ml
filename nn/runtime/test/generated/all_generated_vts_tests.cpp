@@ -301,6 +301,36 @@ TEST_F(NeuralnetworksHidlTest, conv_float) {
                              conv_float::examples);
 }
 
+namespace conv_quant8_channels {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_quant8_channels test
+#include "examples/conv_quant8_channels.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/conv_quant8_channels.model.cpp"
+} // namespace conv_quant8_channels
+TEST_F(NeuralnetworksHidlTest, conv_quant8_channels) {
+    generated_tests::Execute(device,
+                             conv_quant8_channels::createTestModel,
+                             conv_quant8_channels::is_ignored,
+                             conv_quant8_channels::examples);
+}
+
+namespace conv_quant8_large {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_quant8_large test
+#include "examples/conv_quant8_large.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/conv_quant8_large.model.cpp"
+} // namespace conv_quant8_large
+TEST_F(NeuralnetworksHidlTest, conv_quant8_large) {
+    generated_tests::Execute(device,
+                             conv_quant8_large::createTestModel,
+                             conv_quant8_large::is_ignored,
+                             conv_quant8_large::examples);
+}
+
 namespace conv_quant8 {
 std::vector<MixedTypedExample> examples = {
 // Generated conv_quant8 test
@@ -314,6 +344,21 @@ TEST_F(NeuralnetworksHidlTest, conv_quant8) {
                              conv_quant8::createTestModel,
                              conv_quant8::is_ignored,
                              conv_quant8::examples);
+}
+
+namespace conv_quant8_overflow {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_quant8_overflow test
+#include "examples/conv_quant8_overflow.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/conv_quant8_overflow.model.cpp"
+} // namespace conv_quant8_overflow
+TEST_F(NeuralnetworksHidlTest, conv_quant8_overflow) {
+    generated_tests::Execute(device,
+                             conv_quant8_overflow::createTestModel,
+                             conv_quant8_overflow::is_ignored,
+                             conv_quant8_overflow::examples);
 }
 
 namespace depth_to_space_float_1 {
@@ -376,34 +421,79 @@ TEST_F(NeuralnetworksHidlTest, depth_to_space_quant8_2) {
                              depth_to_space_quant8_2::examples);
 }
 
-namespace depthwise_conv_2d {
+namespace depthwise_conv2d_float_large_2 {
 std::vector<MixedTypedExample> examples = {
-// Generated depthwise_conv_2d test
-#include "examples/depthwise_conv_2d.example.cpp"
+// Generated depthwise_conv2d_float_large_2 test
+#include "examples/depthwise_conv2d_float_large_2.example.cpp"
 };
 // Generated model constructor
-#include "vts_models/depthwise_conv_2d.model.cpp"
-} // namespace depthwise_conv_2d
-TEST_F(NeuralnetworksHidlTest, depthwise_conv_2d) {
+#include "vts_models/depthwise_conv2d_float_large_2.model.cpp"
+} // namespace depthwise_conv2d_float_large_2
+TEST_F(NeuralnetworksHidlTest, depthwise_conv2d_float_large_2) {
     generated_tests::Execute(device,
-                             depthwise_conv_2d::createTestModel,
-                             depthwise_conv_2d::is_ignored,
-                             depthwise_conv_2d::examples);
+                             depthwise_conv2d_float_large_2::createTestModel,
+                             depthwise_conv2d_float_large_2::is_ignored,
+                             depthwise_conv2d_float_large_2::examples);
 }
 
-namespace depthwise_conv_2d_quant8 {
+namespace depthwise_conv2d_float_large {
 std::vector<MixedTypedExample> examples = {
-// Generated depthwise_conv_2d_quant8 test
-#include "examples/depthwise_conv_2d_quant8.example.cpp"
+// Generated depthwise_conv2d_float_large test
+#include "examples/depthwise_conv2d_float_large.example.cpp"
 };
 // Generated model constructor
-#include "vts_models/depthwise_conv_2d_quant8.model.cpp"
-} // namespace depthwise_conv_2d_quant8
-TEST_F(NeuralnetworksHidlTest, depthwise_conv_2d_quant8) {
+#include "vts_models/depthwise_conv2d_float_large.model.cpp"
+} // namespace depthwise_conv2d_float_large
+TEST_F(NeuralnetworksHidlTest, depthwise_conv2d_float_large) {
     generated_tests::Execute(device,
-                             depthwise_conv_2d_quant8::createTestModel,
-                             depthwise_conv_2d_quant8::is_ignored,
-                             depthwise_conv_2d_quant8::examples);
+                             depthwise_conv2d_float_large::createTestModel,
+                             depthwise_conv2d_float_large::is_ignored,
+                             depthwise_conv2d_float_large::examples);
+}
+
+namespace depthwise_conv2d_float {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_float test
+#include "examples/depthwise_conv2d_float.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/depthwise_conv2d_float.model.cpp"
+} // namespace depthwise_conv2d_float
+TEST_F(NeuralnetworksHidlTest, depthwise_conv2d_float) {
+    generated_tests::Execute(device,
+                             depthwise_conv2d_float::createTestModel,
+                             depthwise_conv2d_float::is_ignored,
+                             depthwise_conv2d_float::examples);
+}
+
+namespace depthwise_conv2d_quant8_large {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_quant8_large test
+#include "examples/depthwise_conv2d_quant8_large.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/depthwise_conv2d_quant8_large.model.cpp"
+} // namespace depthwise_conv2d_quant8_large
+TEST_F(NeuralnetworksHidlTest, depthwise_conv2d_quant8_large) {
+    generated_tests::Execute(device,
+                             depthwise_conv2d_quant8_large::createTestModel,
+                             depthwise_conv2d_quant8_large::is_ignored,
+                             depthwise_conv2d_quant8_large::examples);
+}
+
+namespace depthwise_conv2d_quant8 {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_quant8 test
+#include "examples/depthwise_conv2d_quant8.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/depthwise_conv2d_quant8.model.cpp"
+} // namespace depthwise_conv2d_quant8
+TEST_F(NeuralnetworksHidlTest, depthwise_conv2d_quant8) {
+    generated_tests::Execute(device,
+                             depthwise_conv2d_quant8::createTestModel,
+                             depthwise_conv2d_quant8::is_ignored,
+                             depthwise_conv2d_quant8::examples);
 }
 
 namespace dequantize {
@@ -451,6 +541,21 @@ TEST_F(NeuralnetworksHidlTest, floor) {
                              floor::examples);
 }
 
+namespace fully_connected_float_large {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float_large test
+#include "examples/fully_connected_float_large.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/fully_connected_float_large.model.cpp"
+} // namespace fully_connected_float_large
+TEST_F(NeuralnetworksHidlTest, fully_connected_float_large) {
+    generated_tests::Execute(device,
+                             fully_connected_float_large::createTestModel,
+                             fully_connected_float_large::is_ignored,
+                             fully_connected_float_large::examples);
+}
+
 namespace fully_connected_float {
 std::vector<MixedTypedExample> examples = {
 // Generated fully_connected_float test
@@ -464,6 +569,21 @@ TEST_F(NeuralnetworksHidlTest, fully_connected_float) {
                              fully_connected_float::createTestModel,
                              fully_connected_float::is_ignored,
                              fully_connected_float::examples);
+}
+
+namespace fully_connected_quant8_large {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_quant8_large test
+#include "examples/fully_connected_quant8_large.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/fully_connected_quant8_large.model.cpp"
+} // namespace fully_connected_quant8_large
+TEST_F(NeuralnetworksHidlTest, fully_connected_quant8_large) {
+    generated_tests::Execute(device,
+                             fully_connected_quant8_large::createTestModel,
+                             fully_connected_quant8_large::is_ignored,
+                             fully_connected_quant8_large::examples);
 }
 
 namespace fully_connected_quant8 {

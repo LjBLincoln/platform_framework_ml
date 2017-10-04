@@ -1,8 +1,8 @@
 // Generated file (from: avg_pool_float_4.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type1(Type::INT32, {});
-  OperandType type2(Type::TENSOR_FLOAT32, {5, 103, 103, 3});
-  OperandType type0(Type::TENSOR_FLOAT32, {5, 512, 512, 3});
+  OperandType type2(Type::TENSOR_FLOAT32, {5, 11, 13, 3});
+  OperandType type0(Type::TENSOR_FLOAT32, {5, 52, 60, 3});
   // Phase 1, operands
   auto i0 = model->addOperand(&type0);
   auto stride = model->addOperand(&type1);
