@@ -20,6 +20,7 @@
 #include "Callbacks.h"
 #include "HalInterfaces.h"
 #include "Memory.h"
+#include "ModelBuilder.h"
 #include "NeuralNetworks.h"
 
 #include <unordered_map>
@@ -57,6 +58,7 @@ struct ModelArgumentInfo {
                        uint32_t length);
     int setFromMemory(const Operand& operand, const ANeuralNetworksOperandType* type,
                       uint32_t poolIndex, uint32_t offset, uint32_t length);
+    int setFromTemporaryMemory(const Operand& operand, uint32_t poolIndex);
     int updateDimensionInfo(const Operand& operand, const ANeuralNetworksOperandType* newType);
 };
 
@@ -74,6 +76,8 @@ public:
     int setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
                             const Memory* memory, size_t offset, size_t length);
     int startCompute(sp<ExecutionCallback>* synchronizationCallback);
+
+    const ModelBuilder* getModel() const { return mModel; }
 
 private:
     const ModelBuilder* mModel;
@@ -130,7 +134,19 @@ public:
                          &mOutputs[executorIndex]);
     }
 
-    // TODO: inter-partition temporaries
+    // The input or output is assumed to begin at offset zero within
+    // the memory object, and to have the size of the corresponding
+    // operand.
+    int setInputFromTemporaryMemory(uint32_t inputIndex, const Memory* memory) {
+        return setInputOrOutputFromTemporaryMemory(mModel->getInputOperand(inputIndex),
+                                                   memory,
+                                                   &mInputs.at(inputIndex));
+    }
+    int setOutputFromTemporaryMemory(uint32_t outputIndex, const Memory* memory) {
+        return setInputOrOutputFromTemporaryMemory(mModel->getOutputOperand(outputIndex),
+                                                   memory,
+                                                   &mOutputs.at(outputIndex));
+    }
 
     int startCompute(sp<ExecutionCallback>* synchronizationCallback);
 
@@ -141,6 +157,10 @@ private:
 
     void mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutput,
                           ModelArgumentInfo* executorInputOrOutput);
+
+    int setInputOrOutputFromTemporaryMemory(const Operand& inputOrOutputOperand,
+                                            const Memory* memory,
+                                            ModelArgumentInfo* inputOrOutputInfo);
 
     // describes the full (possibly multiple-"step") execution
     const ExecutionBuilder* mExecutionBuilder;

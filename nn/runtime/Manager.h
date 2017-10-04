@@ -69,9 +69,7 @@ public:
     // For testing only:
     void setUseCpuOnly(bool useCpuOnly) { mUseCpuOnly = useCpuOnly; }
 
-#ifdef NN_DEBUGGABLE
     uint32_t getPartitioning() const { return mPartitioning; }
-#endif
 
     // Returns the singleton manager.
     static DeviceManager* get();
@@ -99,15 +97,16 @@ private:
     // on the CPU.
     bool mUseCpuOnly = false;
 
-#ifdef NN_DEBUGGABLE
-    // For debugging: what to do about graph partitioning
+    // How to handle graph partitioning?
     // 0 - don't do graph partitioning
     // 1 - do graph partitioning, but only to test it -- do not rely on
-    //     compilation performed by graph partitioning
-    // 2 - do graph partitioning, and rely on compilation performed by it
-    //     when there is a single partition
-    uint32_t mPartitioning = 0;
-#endif  // NN_DEBUGGABLE
+    //     compilation performed by graph partitioning, and do not
+    //     use the partitions to drive execution
+    // 2 - do graph partitioning, and rely on it; but fall back to
+    //     non-partitioned execution if there is a partitioning failure
+    // 3 - do graph partitioning, and rely on it; there is no fallback
+    static const uint32_t kPartitioningDefault = 2;
+    uint32_t mPartitioning = kPartitioningDefault;
 };
 
 } // namespace nn
