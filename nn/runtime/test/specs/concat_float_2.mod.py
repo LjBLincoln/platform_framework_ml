@@ -17,9 +17,9 @@
 # model
 model = Model()
 
-row1 = 512
-row2 = 256
-col = 1024
+row1 = 52
+row2 = 40
+col = 230
 output_row = row1 + row2
 
 input1 = Input("input1", "TENSOR_FLOAT32", "{%d, %d}" % (row1, col)) # input tensor 1

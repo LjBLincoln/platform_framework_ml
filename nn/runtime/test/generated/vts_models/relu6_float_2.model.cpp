@@ -4,7 +4,7 @@ Model createTestModel() {
     const std::vector<Operand> operands = {
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {2, 256, 256, 2},
+            .dimensions = {2, 26, 40, 2},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
@@ -13,7 +13,7 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {2, 256, 256, 2},
+            .dimensions = {2, 26, 40, 2},
             .numberOfConsumers = 0,
             .scale = 0.0f,
             .zeroPoint = 0,

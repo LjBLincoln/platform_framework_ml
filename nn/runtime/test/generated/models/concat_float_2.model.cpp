@@ -1,9 +1,9 @@
 // Generated file (from: concat_float_2.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type2(Type::INT32, {});
-  OperandType type1(Type::TENSOR_FLOAT32, {256, 1024});
-  OperandType type0(Type::TENSOR_FLOAT32, {512, 1024});
-  OperandType type3(Type::TENSOR_FLOAT32, {768, 1024});
+  OperandType type1(Type::TENSOR_FLOAT32, {40, 230});
+  OperandType type0(Type::TENSOR_FLOAT32, {52, 230});
+  OperandType type3(Type::TENSOR_FLOAT32, {92, 230});
   // Phase 1, operands
   auto input1 = model->addOperand(&type0);
   auto input2 = model->addOperand(&type1);

@@ -1,8 +1,8 @@
 // Generated file (from: max_pool_quant8_3.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type1(Type::INT32, {});
-  OperandType type2(Type::TENSOR_QUANT8_ASYMM, {5, 30, 40, 3}, 0.5f, 0);
-  OperandType type0(Type::TENSOR_QUANT8_ASYMM, {5, 600, 800, 3}, 0.5f, 0);
+  OperandType type2(Type::TENSOR_QUANT8_ASYMM, {5, 2, 3, 3}, 0.5f, 0);
+  OperandType type0(Type::TENSOR_QUANT8_ASYMM, {5, 50, 70, 3}, 0.5f, 0);
   // Phase 1, operands
   auto i0 = model->addOperand(&type0);
   auto stride = model->addOperand(&type1);

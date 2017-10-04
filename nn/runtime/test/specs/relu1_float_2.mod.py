@@ -18,8 +18,8 @@
 model = Model()
 
 d0 = 2
-d1 = 256
-d2 = 256
+d1 = 30
+d2 = 24
 d3 = 2
 
 i0 = Input("input", "TENSOR_FLOAT32", "{%d, %d, %d, %d}" % (d0, d1, d2, d3))

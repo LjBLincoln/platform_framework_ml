@@ -19,7 +19,7 @@ model = Model()
 
 bat = 1
 row = 200
-col = 200
+col = 180
 chn = 1
 
 i0 = Input("i0", "TENSOR_FLOAT32", "{%d, %d, %d, %d}" % (bat, row, col, chn))
