@@ -181,6 +181,35 @@ int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksO
                                          length);
 }
 
+static void asyncStartComputePartitioned(const ExecutionPlan* plan,
+                                         std::shared_ptr<ExecutionPlan::Controller> controller,
+                                         const sp<IExecutionCallback>& executionCallback) {
+    LOG(DEBUG) << "ExecutionBuilder::startCompute (from plan, iteratively)";
+    while (true) {
+        std::shared_ptr<StepExecutor> executor;
+        LOG(DEBUG) << "looking for next StepExecutor";
+        int n = plan->next(controller, &executor);
+        if (n != ANEURALNETWORKS_NO_ERROR || executor == nullptr) {
+            executionCallback->notify(
+                n == ANEURALNETWORKS_NO_ERROR ? ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE);
+            return;
+        }
+
+        sp<ExecutionCallback> stepCallback;
+        n = executor->startCompute(&stepCallback);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            executionCallback->notify(ErrorStatus::GENERAL_FAILURE);
+            return;
+        }
+        stepCallback->wait();
+        ErrorStatus status = stepCallback->getStatus();
+        if (status != ErrorStatus::NONE) {
+            executionCallback->notify(status);
+            return;
+        }
+    }
+}
+
 int ExecutionBuilder::startCompute(sp<ExecutionCallback>* synchronizationCallback) {
     *synchronizationCallback = nullptr;
 
@@ -207,48 +236,26 @@ int ExecutionBuilder::startCompute(sp<ExecutionCallback>* synchronizationCallbac
     // TODO: Entire plan-based-path should run in an asynchronous thread --
     // take the asynchronous thread logic out of startComputeOnCpu() and use
     // it to wrap the plan-based-path.
-    const int partitioning = DeviceManager::get()->getPartitioning();
+    const uint32_t partitioning = DeviceManager::get()->getPartitioning();
     if (partitioning > 0) {
-        const bool simulation = (partitioning == 1);
         std::shared_ptr<ExecutionPlan::Controller> controller = mPlan->makeController(this);
         if (controller == nullptr) {
-            const bool fallback = (partitioning == 2);
-            if (!simulation && !fallback) {
+            if (!DeviceManager::partitioningAllowsFallback(partitioning)) {
                 return ANEURALNETWORKS_OP_FAILED;
             }
         } else {
-            LOG(DEBUG) << "ExecutionBuilder::startCompute"
-                       << (simulation ? " SIMULATION" : "")
-                       << " (from plan, iteratively)";
-            while (true) {
-                std::shared_ptr<StepExecutor> executor;
-                LOG(DEBUG) << "looking for next StepExecutor";
-                int n = mPlan->next(controller, &executor);
-                if (n != ANEURALNETWORKS_NO_ERROR || executor == nullptr) {
-                    if (!simulation) {
-                        return n;
-                    }
+            // TODO: use a thread pool
 
-                    // simulation
-                    if (n != ANEURALNETWORKS_NO_ERROR) {
-                        LOG(DEBUG) << "ExecutionBuilder::startCompute SIMULATION failed "
-                                   << "with error " << n;
-                    }
-                    break;
-                }
-                if (simulation) {
-                    continue;
-                }
-
-                n = executor->startCompute(synchronizationCallback);
-                if (n != ANEURALNETWORKS_NO_ERROR) {
-                    return n;
-                }
-                (*synchronizationCallback)->wait();
-                if ((*synchronizationCallback)->getStatus() != ErrorStatus::NONE) {
-                    return ANEURALNETWORKS_OP_FAILED;
-                }
-            }
+            // Prepare the callback for asynchronous execution.
+            // sp<ExecutionCallback> object is returned when the
+            // execution has been successfully launched, otherwise a
+            // nullptr is returned.  The executionCallback is
+            // abstracted in the NN API as an "event".
+            sp<ExecutionCallback> executionCallback = new ExecutionCallback();
+            std::thread thread(asyncStartComputePartitioned, mPlan, controller, executionCallback);
+            executionCallback->bind_thread(std::move(thread));
+            *synchronizationCallback = executionCallback;
+            return ANEURALNETWORKS_NO_ERROR;
         }
     }
 

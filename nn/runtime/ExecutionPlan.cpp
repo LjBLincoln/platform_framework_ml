@@ -409,6 +409,26 @@ std::shared_ptr<ExecutionPlan::Controller> ExecutionPlan::makeController(
 
     // Allocate a Memory object for each TEMPORARY in the original
     // model that is live across partition boundaries.
+    //
+    // TODO: Rethink this approach.  Some options:
+    //
+    // 1) If each such TEMPORARY is to have a lifetime that extends
+    // throughout the entire execution, then allocate a single Memory
+    // object and lay them out consecutively within that object.  Note
+    // that the Android system limits the number of shared memory
+    // objects, which are what our Memory objects represent.
+    //
+    // 2) Adopt a memory layout scheme analogous to stack allocation,
+    // where objects of non-overlapping lifetime can occupy the same
+    // storage.  We would use a single Memory object in this case.
+    //
+    // 3) Do something like what CpuExecutor does, and do allocations
+    // and deallocations on the fly (during execution) before first
+    // reference and after last reference, respectively.  This would
+    // mean having one Memory object per TEMPORARY; or, in a more
+    // complicated implementation, one Memory object per set of
+    // temporaries that have the same lifetime.
+    //
     std::shared_ptr<Controller::SubModelInputsAndOutputsType> subModelInputsAndOutputs;
     if (mState == COMPOUND) {
         const ModelBuilder* fromModel = executionBuilder->getModel();
@@ -425,8 +445,8 @@ std::shared_ptr<ExecutionPlan::Controller> ExecutionPlan::makeController(
                                                       std::forward_as_tuple(fromModelOperandIndex),
                                                       std::forward_as_tuple());
                 nnAssert(emplaceResult.second == true);  // assert that we actually inserted
-                uint32_t size;
-                if ((size = sizeOfData(fromModelOperand)) == 0 ||
+                const uint32_t size = sizeOfData(fromModelOperand);
+                if (size == 0 ||
                     emplaceResult.first->second.create(size) != ANEURALNETWORKS_NO_ERROR) {
                     LOG(ERROR) << "ExecutionPlan::makeController -- could not allocate temporary";
                     return std::shared_ptr<Controller>(nullptr);
@@ -489,7 +509,7 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller, std::shared_ptr<
     step->mapInputsAndOutputs(*executor);
     if (controller->mSubModelInputsAndOutputs != nullptr) {
         {
-            // tell executor about submodel outputs
+            // Tell executor about submodel outputs.
 
             const size_t firstSubModelOutputIndex = step->getModelOutputs().size();
             const auto& subModelOutputs = step->getSubModelOutputs();
@@ -507,7 +527,7 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller, std::shared_ptr<
             }
         }
         {
-            // tell executor about submodel inputs
+            // Tell executor about submodel inputs.
 
             const size_t firstSubModelInputIndex = step->getModelInputs().size();
             const auto& subModelInputs = step->getSubModelInputs();
