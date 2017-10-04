@@ -22,8 +22,8 @@
 
 #include "NeuralNetworks.h"
 
+#include "Callbacks.h"
 #include "CompilationBuilder.h"
-#include "Event.h"
 #include "ExecutionBuilder.h"
 #include "Manager.h"
 #include "Memory.h"
@@ -440,12 +440,13 @@ int ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution* execution,
 
     ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
 
-    // Dynamically allocate an sp to wrap an event. The sp<Event> object is
+    // Dynamically allocate an sp to wrap an ExecutionCallback, seen in the NN
+    // API as an abstract event object. The sp<ExecutionCallback> object is
     // returned when the execution has been successfully launched, otherwise a
     // nullptr is returned. The sp is used for ref-counting purposes. Without
-    // it, the HIDL service could attempt to communicate with a dead event
+    // it, the HIDL service could attempt to communicate with a dead callback
     // object.
-    std::unique_ptr<sp<Event>> e = std::make_unique<sp<Event>>();
+    std::unique_ptr<sp<ExecutionCallback>> e = std::make_unique<sp<ExecutionCallback>>();
     *event = nullptr;
 
     int n = r->startCompute(e.get());
@@ -462,7 +463,7 @@ int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event) {
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
 
-    sp<Event>* e = reinterpret_cast<sp<Event>*>(event);
+    sp<ExecutionCallback>* e = reinterpret_cast<sp<ExecutionCallback>*>(event);
     (*e)->wait();
     return ANEURALNETWORKS_NO_ERROR;
 }
@@ -470,7 +471,7 @@ int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event) {
 void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event) {
     // No validation.  Free of nullptr is valid.
     if (event) {
-        sp<Event>* e = reinterpret_cast<sp<Event>*>(event);
+        sp<ExecutionCallback>* e = reinterpret_cast<sp<ExecutionCallback>*>(event);
         (*e)->wait();
         delete e;
     }

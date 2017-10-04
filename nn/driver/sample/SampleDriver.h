@@ -35,8 +35,8 @@ class SampleDriver : public IDevice {
 public:
     SampleDriver(const char* name) : mName(name) {}
     ~SampleDriver() override {}
-    Return<void> prepareModel(const Model& model, const sp<IEvent>& event,
-                              prepareModel_cb _hidl_cb) override;
+    Return<ErrorStatus> prepareModel(const Model& model,
+                                     const sp<IPreparedModelCallback>& callback) override;
     Return<DeviceStatus> getStatus() override;
 
     // Starts and runs the driver service.  Typically called from main().
@@ -52,10 +52,11 @@ public:
           : // Make a copy of the model, as we need to preserve it.
             mModel(model) {}
     ~SamplePreparedModel() override {}
-    Return<ErrorStatus> execute(const Request& request, const sp<IEvent>& event) override;
+    Return<ErrorStatus> execute(const Request& request,
+                                const sp<IExecutionCallback>& callback) override;
 
 private:
-    void asyncExecute(const Request& request, const sp<IEvent>& event);
+    void asyncExecute(const Request& request, const sp<IExecutionCallback>& callback);
     Model mModel;
 };
 

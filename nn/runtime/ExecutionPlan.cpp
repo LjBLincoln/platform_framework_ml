@@ -18,8 +18,8 @@
 
 #include "ExecutionPlan.h"
 
+#include "Callbacks.h"
 #include "CompilationBuilder.h"
-#include "Event.h"
 #include "ExecutionBuilder.h"
 #include "Manager.h"
 #include "ModelBuilder.h"
@@ -32,7 +32,8 @@
 #include <utility>
 #include <vector>
 
-using ::android::hardware::neuralnetworks::V1_0::implementation::Event;
+using ::android::hardware::neuralnetworks::V1_0::implementation::ExecutionCallback;
+using ::android::hardware::neuralnetworks::V1_0::implementation::PreparedModelCallback;
 
 namespace android {
 namespace nn {
@@ -42,21 +43,30 @@ static int compile(std::shared_ptr<Device> device,
                    sp<IPreparedModel>* preparedModel) {
     nnAssert(device != nullptr);  // nullptr indicates CPU
     // Compilation logic copied from ExecutionBuilder::startComputeOnDevice().
-    sp<Event> preparationEvent = new Event();
-    ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
     Model hidlModel;
     model->setHidlModel(&hidlModel);
-    device->getInterface()->prepareModel(
-        hidlModel, preparationEvent,
-        [&prepareStatus, preparedModel](ErrorStatus status, const sp<IPreparedModel>& prepared) {
-            prepareStatus = status;
-            *preparedModel = prepared;
-        });
-    Event::Status eventStatus = preparationEvent->wait();
-    if (prepareStatus != ErrorStatus::NONE || eventStatus != Event::Status::SUCCESS) {
+
+    sp<PreparedModelCallback> preparedModelCallback = new PreparedModelCallback();
+    Return<ErrorStatus> prepareLaunchStatus =
+            device->getInterface()->prepareModel(hidlModel, preparedModelCallback);
+    if (!prepareLaunchStatus.isOk()) {
+        LOG(ERROR) << "ExecutionStep::finishSubModel compilation failed due to transport error: "
+                   << prepareLaunchStatus.description();
+        return ANEURALNETWORKS_OP_FAILED;
+    }
+    if (prepareLaunchStatus != ErrorStatus::NONE) {
+        LOG(ERROR) << "ExecutionStep::finishSubModel compilation failed with error: "
+                   << toString(static_cast<ErrorStatus>(prepareLaunchStatus));
+        return ANEURALNETWORKS_OP_FAILED;
+    }
+
+    preparedModelCallback->wait();
+    ErrorStatus prepareReturnStatus = preparedModelCallback->getStatus();
+    *preparedModel = preparedModelCallback->getPreparedModel();
+    if (prepareReturnStatus != ErrorStatus::NONE || preparedModel == nullptr) {
         LOG(ERROR) << "ExecutionPlan compilation on " << device->getName() << " failed:"
-                   << " prepareStatus=" << toString(prepareStatus)
-                   << " eventStatus=" << static_cast<int>(eventStatus);
+                   << " prepareReturnStatus=" << toString(prepareReturnStatus)
+                   << ", preparedModel=" << preparedModel->get();
         return ANEURALNETWORKS_OP_FAILED;
     }
     return ANEURALNETWORKS_NO_ERROR;

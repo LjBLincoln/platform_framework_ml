@@ -18,8 +18,9 @@
 #define ANDROID_ML_NN_COMMON_HAL_INTERFACES_H
 
 #include <android/hardware/neuralnetworks/1.0/IDevice.h>
-#include <android/hardware/neuralnetworks/1.0/IEvent.h>
+#include <android/hardware/neuralnetworks/1.0/IExecutionCallback.h>
 #include <android/hardware/neuralnetworks/1.0/IPreparedModel.h>
+#include <android/hardware/neuralnetworks/1.0/IPreparedModelCallback.h>
 #include <android/hardware/neuralnetworks/1.0/types.h>
 #include <android/hidl/allocator/1.0/IAllocator.h>
 #include <android/hidl/memory/1.0/IMemory.h>
@@ -36,8 +37,9 @@ using ::android::hardware::neuralnetworks::V1_0::DeviceStatus;
 using ::android::hardware::neuralnetworks::V1_0::ErrorStatus;
 using ::android::hardware::neuralnetworks::V1_0::FusedActivationFunc;
 using ::android::hardware::neuralnetworks::V1_0::IDevice;
-using ::android::hardware::neuralnetworks::V1_0::IEvent;
+using ::android::hardware::neuralnetworks::V1_0::IExecutionCallback;
 using ::android::hardware::neuralnetworks::V1_0::IPreparedModel;
+using ::android::hardware::neuralnetworks::V1_0::IPreparedModelCallback;
 using ::android::hardware::neuralnetworks::V1_0::Model;
 using ::android::hardware::neuralnetworks::V1_0::Operand;
 using ::android::hardware::neuralnetworks::V1_0::OperandLifeTime;

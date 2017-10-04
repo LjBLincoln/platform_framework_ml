@@ -33,8 +33,8 @@ cc_library {
     host_supported: false,
 
     srcs: [
+        "Callbacks.cpp",
         "CompilationBuilder.cpp",
-        "Event.cpp",
         "ExecutionBuilder.cpp",
         "ExecutionPlan.cpp",
         "Manager.cpp",

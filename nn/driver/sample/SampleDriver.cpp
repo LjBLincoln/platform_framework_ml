@@ -29,19 +29,23 @@ namespace android {
 namespace nn {
 namespace sample_driver {
 
-Return<void> SampleDriver::prepareModel(const Model& model, const sp<IEvent>& event,
-                                        prepareModel_cb cb) {
+Return<ErrorStatus> SampleDriver::prepareModel(const Model& model,
+                                               const sp<IPreparedModelCallback>& callback) {
     LOG(DEBUG) << "prepareModel(" << toString(model) << ")"; // TODO errror
-    if (validateModel(model)) {
-        // TODO: make asynchronous later
-        cb(ErrorStatus::NONE, new SamplePreparedModel(model));
-    } else {
-        cb(ErrorStatus::INVALID_ARGUMENT, nullptr);
+    if (callback.get() == nullptr) {
+        LOG(ERROR) << "invalid callback passed to prepareModel";
+        return ErrorStatus::INVALID_ARGUMENT;
+    }
+    if (!validateModel(model)) {
+        callback->notify(ErrorStatus::INVALID_ARGUMENT, nullptr);
+        return ErrorStatus::INVALID_ARGUMENT;
     }
 
-    // TODO: notify errors if they occur
-    event->notify(ErrorStatus::NONE);
-    return Void();
+    // TODO: make asynchronous later
+    sp<IPreparedModel> preparedModel = new SamplePreparedModel(model);
+    callback->notify(ErrorStatus::NONE, preparedModel);
+
+    return ErrorStatus::NONE;
 }
 
 Return<DeviceStatus> SampleDriver::getStatus() {
@@ -71,15 +75,11 @@ static bool mapPools(std::vector<RunTimePoolInfo>* poolInfos, const hidl_vec<hid
     return true;
 }
 
-void SamplePreparedModel::asyncExecute(const Request& request, const sp<IEvent>& event) {
-    if (event.get() == nullptr) {
-        LOG(ERROR) << "asyncExecute: invalid event";
-        return;
-    }
-
+void SamplePreparedModel::asyncExecute(const Request& request,
+                                       const sp<IExecutionCallback>& callback) {
     std::vector<RunTimePoolInfo> poolInfo;
     if (!mapPools(&poolInfo, request.pools)) {
-        event->notify(ErrorStatus::GENERAL_FAILURE);
+        callback->notify(ErrorStatus::GENERAL_FAILURE);
         return;
     }
 
@@ -88,22 +88,27 @@ void SamplePreparedModel::asyncExecute(const Request& request, const sp<IEvent>&
     LOG(DEBUG) << "executor.run returned " << n;
     ErrorStatus executionStatus =
             n == ANEURALNETWORKS_NO_ERROR ? ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
-    Return<void> returned = event->notify(executionStatus);
+    Return<void> returned = callback->notify(executionStatus);
     if (!returned.isOk()) {
         LOG(ERROR) << " hidl callback failed to return properly: " << returned.description();
     }
 }
 
-Return<ErrorStatus> SamplePreparedModel::execute(const Request& request, const sp<IEvent>& event) {
+Return<ErrorStatus> SamplePreparedModel::execute(const Request& request,
+                                                 const sp<IExecutionCallback>& callback) {
     LOG(DEBUG) << "execute(" << toString(request) << ")";
+    if (callback.get() == nullptr) {
+        LOG(ERROR) << "invalid callback passed to execute";
+        return ErrorStatus::INVALID_ARGUMENT;
+    }
     if (!validateRequest(request, mModel)) {
-        event->notify(ErrorStatus::INVALID_ARGUMENT);
+        callback->notify(ErrorStatus::INVALID_ARGUMENT);
         return ErrorStatus::INVALID_ARGUMENT;
     }
 
     // This thread is intentionally detached because the sample driver service
     // is expected to live forever.
-    std::thread([this, request, event] { asyncExecute(request, event); }).detach();
+    std::thread([this, request, callback]{ asyncExecute(request, callback); }).detach();
 
     return ErrorStatus::NONE;
 }
