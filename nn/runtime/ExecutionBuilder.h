@@ -17,7 +17,7 @@
 #ifndef ANDROID_ML_NN_RUNTIME_EXECUTION_BUILDER_H
 #define ANDROID_ML_NN_RUNTIME_EXECUTION_BUILDER_H
 
-#include "Event.h"
+#include "Callbacks.h"
 #include "HalInterfaces.h"
 #include "Memory.h"
 #include "NeuralNetworks.h"
@@ -25,7 +25,8 @@
 #include <unordered_map>
 #include <vector>
 
-using ::android::hardware::neuralnetworks::V1_0::implementation::Event;
+using ::android::hardware::neuralnetworks::V1_0::implementation::ExecutionCallback;
+using ::android::hardware::neuralnetworks::V1_0::implementation::PreparedModelCallback;
 
 namespace android {
 namespace nn {
@@ -71,7 +72,7 @@ public:
                   size_t length);
     int setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
                             const Memory* memory, size_t offset, size_t length);
-    int startCompute(sp<Event>* event);
+    int startCompute(sp<ExecutionCallback>* synchronizationCallback);
 
 private:
     const ModelBuilder* mModel;
@@ -130,12 +131,12 @@ public:
 
     // TODO: inter-partition temporaries
 
-    int startCompute(sp<Event>* event);
+    int startCompute(sp<ExecutionCallback>* synchronizationCallback);
 
 private:
     int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
-    int startComputeOnDevice(sp<Event>* event);
-    int startComputeOnCpu(sp<Event>* event);
+    int startComputeOnDevice(sp<ExecutionCallback>* synchronizationCallback);
+    int startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallback);
 
     void mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutput,
                           ModelArgumentInfo* executorInputOrOutput);

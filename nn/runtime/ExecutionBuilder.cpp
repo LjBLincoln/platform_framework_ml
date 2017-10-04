@@ -160,8 +160,8 @@ int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksO
                                          length);
 }
 
-int ExecutionBuilder::startCompute(sp<Event>* event) {
-    *event = nullptr;
+int ExecutionBuilder::startCompute(sp<ExecutionCallback>* synchronizationCallback) {
+    *synchronizationCallback = nullptr;
 
     // TODO validate that we have full types for all inputs and outputs,
     // that the graph is not cyclic,
@@ -217,11 +217,12 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
                     continue;
                 }
 
-                n = executor->startCompute(event);
+                n = executor->startCompute(synchronizationCallback);
                 if (n != ANEURALNETWORKS_NO_ERROR) {
                     return n;
                 }
-                if ((*event)->wait() != Event::Status::SUCCESS) {
+                (*synchronizationCallback)->wait();
+                if ((*synchronizationCallback)->getStatus() != ErrorStatus::NONE) {
                     return ANEURALNETWORKS_OP_FAILED;
                 }
             }
@@ -242,7 +243,7 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
             StepExecutor executor(this, mModel, device->getInterface(),
                                   nullptr /* no IPreparedModel, so compile */);
             executor.mapInputsAndOutputsTrivially();
-            return executor.startCompute(event);
+            return executor.startCompute(synchronizationCallback);
         }
     }
     // If none can, run on the CPU.
@@ -251,7 +252,7 @@ int ExecutionBuilder::startCompute(sp<Event>* event) {
                           nullptr /* no IDevice, so CPU */,
                           nullptr /* no IPreparedModel */);
     executor.mapInputsAndOutputsTrivially();
-    return executor.startCompute(event);
+    return executor.startCompute(synchronizationCallback);
 }
 
 // Figures out how to place each of the input or outputs in a buffer. This just does the layout,
@@ -326,18 +327,18 @@ void StepExecutor::mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutpu
     }
 }
 
-int StepExecutor::startCompute(sp<Event>* event) {
+int StepExecutor::startCompute(sp<ExecutionCallback>* synchronizationCallback) {
     if (mDriver == nullptr) {
-        return startComputeOnCpu(event);
+        return startComputeOnCpu(synchronizationCallback);
     } else {
-        return startComputeOnDevice(event);
+        return startComputeOnDevice(synchronizationCallback);
     }
 }
 
-int StepExecutor::startComputeOnDevice(sp<Event>* event) {
+int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCallback) {
     nnAssert(mDriver != nullptr);
 
-    *event = nullptr;
+    *synchronizationCallback = nullptr;
 
     // TODO: Remove the mPreparedModel == nullptr case once we've fully integrated
     // ExecutionPlan with the compilation and execution phases of the NN API
@@ -346,22 +347,19 @@ int StepExecutor::startComputeOnDevice(sp<Event>* event) {
         mModel->setHidlModel(&model);
 
         // TODO Dangerous!  In async, the model will outlive it here. Safe for now
-        sp<Event> preparationEvent = new Event();
-        ErrorStatus prepareStatus = ErrorStatus::GENERAL_FAILURE;
+        sp<PreparedModelCallback> preparedModelCallback = new PreparedModelCallback();
+        Return<ErrorStatus> prepareLaunchStatus =
+                mDriver->prepareModel(model, preparedModelCallback);
+        if (!prepareLaunchStatus.isOk() || prepareLaunchStatus != ErrorStatus::NONE) {
+            return ANEURALNETWORKS_OP_FAILED;
+        }
 
-        mDriver->prepareModel(model, preparationEvent,
-                              [&prepareStatus, this](ErrorStatus status,
-                                                     const sp<IPreparedModel>& prepared) {
-                                  prepareStatus = status;
-                                  mPreparedModel = prepared;
-                              });
-
-        // Immediately synchronize with event for now
+        // Immediately synchronize with callback object for now
         // TODO: change to asynchronous later
-        Event::Status eventStatus = preparationEvent->wait();
-
-        if (prepareStatus != ErrorStatus::NONE || mPreparedModel == nullptr ||
-            eventStatus != Event::Status::SUCCESS) {
+        preparedModelCallback->wait();
+        ErrorStatus prepareReturnStatus = preparedModelCallback->getStatus();
+        mPreparedModel = preparedModelCallback->getPreparedModel();
+        if (prepareReturnStatus != ErrorStatus::NONE || mPreparedModel == nullptr) {
             return ANEURALNETWORKS_OP_FAILED;
         }
     }
@@ -406,33 +404,36 @@ int StepExecutor::startComputeOnDevice(sp<Event>* event) {
         request.pools[i] = mMemories[i]->getHidlMemory();
     }
 
-    // Prepare the event for asynchronous execution. The sp<Event> object is
-    // returned when the execution has been successfully launched, otherwise a
-    // nullptr is returned. The sp is used for ref-counting purposes. Without
-    // it, the HIDL service could attempt to communicate with a dead event
-    // object.
+    // Prepare the callback for asynchronous execution. sp<ExecutionCallback>
+    // object is returned when the execution has been successfully launched,
+    // otherwise a nullptr is returned. The executionCallback is abstracted in
+    // the NN API as an "event".
     //
-    // TODO: Explain the "dead event" problem further, either here or
+    // The sp is used for ref-counting purposes. Without it, the HIDL service
+    // could attempt to communicate with a dead callback object.
+    //
+    // TODO: Explain the "dead callback" problem further, either here or
     // in the design document.
-    sp<Event> eventSp = new Event();
+    sp<ExecutionCallback> executionCallback = new ExecutionCallback();
 
     LOG(DEBUG) << "Before mPreparedModel->execute() " << toString(request);
     // Execute.
-    // TODO: What happens to the Event if the service dies abnormally
-    // -- won't that keep the Event live forever, because the service
+    // TODO: What happens to the Callback if the service dies abnormally
+    // -- won't that keep the Callback live forever, because the service
     // never has the opportunity to bump the reference count down? Or
     // maybe the HIDL infrastructure handles this magically? At worst,
-    // it seems like this is a small memory leak, if the Event stays
+    // it seems like this is a small memory leak, if the Callback stays
     // alive forever.
-    if (mPreparedModel->execute(request, eventSp) != ErrorStatus::NONE) {
+    if (mPreparedModel->execute(request, executionCallback) != ErrorStatus::NONE) {
         LOG(DEBUG) << "**Execute failed**";
         return ANEURALNETWORKS_OP_FAILED;
     }
 
     // TODO: Remove this synchronization point when the block of code below is
     // removed.
-    Event::Status status = eventSp->wait();
-    if (status != Event::Status::SUCCESS) {
+    executionCallback->wait();
+    Return<ErrorStatus> executionStatus = executionCallback->getStatus();
+    if (!executionStatus.isOk() || executionStatus != ErrorStatus::NONE) {
         LOG(DEBUG) << "**Execute async failed**";
         return ANEURALNETWORKS_OP_FAILED;
     }
@@ -454,31 +455,32 @@ int StepExecutor::startComputeOnDevice(sp<Event>* event) {
     }
     LOG(DEBUG) << "StepExecutor::startComputeOnDevice completed";
 
-    *event = eventSp;
+    *synchronizationCallback = executionCallback;
     return ANEURALNETWORKS_NO_ERROR;
 }
 
 static void asyncStartComputeOnCpu(const Model& model, const Request& request,
                                    const std::vector<RunTimePoolInfo>& runTimePoolInfos,
-                                   const sp<IEvent>& event) {
+                                   const sp<IExecutionCallback>& executionCallback) {
     CpuExecutor executor;
     int err = executor.run(model, request, runTimePoolInfos);
     ErrorStatus status = err == ANEURALNETWORKS_NO_ERROR ?
             ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
-    event->notify(status);
+    executionCallback->notify(status);
 }
 
-int StepExecutor::startComputeOnCpu(sp<Event>* event) {
+int StepExecutor::startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallback) {
     // TODO: use a thread pool
 
     Model model;
     mModel->setHidlModel(&model);
 
-    // Prepare the event for asynchronous execution. The sp<Event> object is
-    // returned when the execution has been successfully launched, otherwise a
-    // nullptr is returned.
-    sp<Event> eventSp = new Event();
-    *event = nullptr;
+    // Prepare the callback for asynchronous execution. sp<ExecutionCallback>
+    // object is returned when the execution has been successfully launched,
+    // otherwise a nullptr is returned. The executionCallback is abstracted in
+    // the NN API as an "event".
+    sp<ExecutionCallback> executionCallback = new ExecutionCallback();
+    *synchronizationCallback = nullptr;
 
     std::vector<RunTimePoolInfo> runTimePoolInfos;
     uint32_t count = mMemories.size();
@@ -509,10 +511,10 @@ int StepExecutor::startComputeOnCpu(sp<Event>* event) {
 
     // TODO: should model be moved with a std::cref?
     std::thread thread(asyncStartComputeOnCpu, model, std::move(request),
-                       std::move(runTimePoolInfos), eventSp);
-    eventSp->bind_thread(std::move(thread));
+                       std::move(runTimePoolInfos), executionCallback);
+    executionCallback->bind_thread(std::move(thread));
 
-    *event = eventSp;
+    *synchronizationCallback = executionCallback;
     return ANEURALNETWORKS_NO_ERROR;
 }
 
