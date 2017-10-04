@@ -122,6 +122,17 @@ const uint32_t kSizeOfDataType[]{
 
 static_assert(COUNT(kSizeOfDataType) == kNumberOfDataTypes, "kSizeOfDataType is incorrect");
 
+const bool kScalarDataType[]{
+        true,  // ANEURALNETWORKS_FLOAT32
+        true,  // ANEURALNETWORKS_INT32
+        true,  // ANEURALNETWORKS_UINT32
+        false, // ANEURALNETWORKS_TENSOR_FLOAT32
+        false, // ANEURALNETWORKS_TENSOR_INT32
+        false, // ANEURALNETWORKS_TENSOR_SYMMETRICAL_QUANT8
+};
+
+static_assert(COUNT(kScalarDataType) == kNumberOfDataTypes, "kScalarDataType is incorrect");
+
 const uint32_t kSizeOfDataTypeOEM[]{
         0, // ANEURALNETWORKS_OEM
         1, // ANEURALNETWORKS_TENSOR_OEM_BYTE
@@ -130,10 +141,22 @@ const uint32_t kSizeOfDataTypeOEM[]{
 static_assert(COUNT(kSizeOfDataTypeOEM) == kNumberOfDataTypesOEM,
               "kSizeOfDataTypeOEM is incorrect");
 
+const bool kScalarDataTypeOEM[]{
+        true,  // ANEURALNETWORKS_OEM
+        false, // ANEURALNETWORKS_TENSOR_OEM_BYTE
+};
+
+static_assert(COUNT(kScalarDataTypeOEM) == kNumberOfDataTypesOEM,
+              "kScalarDataTypeOEM is incorrect");
+
 uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions) {
     int n = static_cast<int>(type);
 
     uint32_t size = tableLookup(kSizeOfDataType, kSizeOfDataTypeOEM, n);
+
+    if (tableLookup(kScalarDataType, kScalarDataTypeOEM, n) == true) {
+        return size;
+    }
 
     for (auto d : dimensions) {
         size *= d;
@@ -235,31 +258,36 @@ static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint
             return false;
         }
         */
-        if (operand.lifetime == OperandLifeTime::CONSTANT_COPY) {
-            if (operand.location.offset + operand.location.length > operandValues.size()) {
-                LOG(ERROR) << "OperandValue location out of range.  Starts at "
-                           << operand.location.offset << ", length " << operand.location.length
+        switch (operand.lifetime) {
+            case OperandLifeTime::CONSTANT_COPY:
+                if (operand.location.offset + operand.location.length > operandValues.size()) {
+                    LOG(ERROR) << "OperandValue location out of range.  Starts at "
+                               << operand.location.offset << ", length " << operand.location.length
                            << ", max " << operandValues.size();
-                return false;
-            }
-        } else if (operand.lifetime == OperandLifeTime::TEMPORARY_VARIABLE ||
-                   operand.lifetime == OperandLifeTime::MODEL_INPUT ||
-                   operand.lifetime == OperandLifeTime::MODEL_OUTPUT) {
-            if (operand.location.offset != 0 || operand.location.length != 0) {
-                LOG(ERROR) << "Unexpected offset " << operand.location.offset << " or length "
-                           << operand.location.length << " for runtime location.";
-                return false;
-            }
-        } else if (operand.lifetime == OperandLifeTime::CONSTANT_REFERENCE) {
-            if (operand.location.poolIndex >= poolCount) {
-                LOG(ERROR) << "Invalid poolIndex " << operand.location.poolIndex << "/"
-                           << poolCount;
-                return false;
-            }
+                    return false;
+                }
+                break;
+            case OperandLifeTime::TEMPORARY_VARIABLE:
+            case OperandLifeTime::MODEL_INPUT:
+            case OperandLifeTime::MODEL_OUTPUT:
+            case OperandLifeTime::NO_VALUE:
+                if (operand.location.offset != 0 || operand.location.length != 0) {
+                    LOG(ERROR) << "Unexpected offset " << operand.location.offset << " or length "
+                               << operand.location.length << " for runtime location.";
+                    return false;
+                }
+                break;
+            case OperandLifeTime::CONSTANT_REFERENCE:
+                if (operand.location.poolIndex >= poolCount) {
+                    LOG(ERROR) << "Invalid poolIndex " << operand.location.poolIndex << "/"
+                               << poolCount;
+                    return false;
+                }
+                break;
             // TODO: Validate that we are within the pool.
-        } else {
-            LOG(ERROR) << "Invalid lifetime";
-            return false;
+            default:
+                LOG(ERROR) << "Invalid lifetime";
+                return false;
         }
     }
     return true;
@@ -303,6 +331,16 @@ bool validRequestArguments(const hidl_vec<RequestArgument>& arguments,
         const RequestArgument& argument = arguments[argumentIndex];
         const uint32_t operandIndex = operandIndexes[argumentIndex];
         const Operand& operand = operands[operandIndex];
+        if (argument.hasNoValue) {
+            if (argument.location.poolIndex != 0 ||
+                argument.location.offset != 0 ||
+                argument.location.length != 0 ||
+                argument.dimensions.size() != 0) {
+                LOG(ERROR) << "Request " << type << " " << argumentIndex
+                           << " has no value yet has details.";
+                return false;
+            }
+        }
         if (argument.location.poolIndex >= poolCount) {
             LOG(ERROR) << "Request " << type << " " << argumentIndex << " has an invalid poolIndex "
                        << argument.location.poolIndex << "/" << poolCount;
@@ -348,7 +386,7 @@ bool validateRequest(const Request& request, const Model& model) {
 #ifdef NN_DEBUGGABLE
 
 // Implementation of property_get from libcutils
-static int property_get(const char *key, char *value, const char *default_value) {
+static int property_get(const char* key, char* value, const char* default_value) {
     int len;
     len = __system_property_get(key, value);
     if (len > 0) {
@@ -362,10 +400,13 @@ static int property_get(const char *key, char *value, const char *default_value)
     return len;
 }
 
-uint32_t getProp(const char *str) {
+uint32_t getProp(const char* str, uint32_t defaultValue) {
     char buf[256];
-    property_get(str, buf, "0");
-    return atoi(buf);
+    if (property_get(str, buf, nullptr) > 0) {
+        return atoi(buf);
+    } else {
+        return defaultValue;
+    }
 }
 
 #endif  // NN_DEBUGGABLE

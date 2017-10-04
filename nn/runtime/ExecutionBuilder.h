@@ -17,15 +17,17 @@
 #ifndef ANDROID_ML_NN_RUNTIME_EXECUTION_BUILDER_H
 #define ANDROID_ML_NN_RUNTIME_EXECUTION_BUILDER_H
 
-#include "Event.h"
+#include "Callbacks.h"
 #include "HalInterfaces.h"
 #include "Memory.h"
+#include "ModelBuilder.h"
 #include "NeuralNetworks.h"
 
 #include <unordered_map>
 #include <vector>
 
-using ::android::hardware::neuralnetworks::V1_0::implementation::Event;
+using ::android::hardware::neuralnetworks::V1_0::implementation::ExecutionCallback;
+using ::android::hardware::neuralnetworks::V1_0::implementation::PreparedModelCallback;
 
 namespace android {
 namespace nn {
@@ -38,23 +40,25 @@ class StepExecutor;
 
 // TODO move length out of DataLocation
 struct ModelArgumentInfo {
-    // Whether the arguement was specified as being in a Memory, as a pointer,
-    // or has not been specified.
+    // Whether the argument was specified as being in a Memory, as a pointer,
+    // has no value, or has not been specified.
     // If POINTER then:
-    //   locationAndDimension.location.length is valid.
-    //   locationAndDimension.dimension is valid.
+    //   locationAndLength.length is valid.
+    //   dimensions is valid.
     //   buffer is valid
     // If MEMORY then:
-    //   locationAndDimension.location.{poolIndex, offset, length} is valid.
-    //   locationAndDimension.dimension is valid.
-    enum { POINTER, MEMORY, UNSPECIFIED } state = UNSPECIFIED;
-    RequestArgument locationAndDimension;
+    //   locationAndLength.location.{poolIndex, offset, length} is valid.
+    //   dimensions is valid.
+    enum { POINTER, MEMORY, HAS_NO_VALUE, UNSPECIFIED } state = UNSPECIFIED;
+    DataLocation locationAndLength;
+    std::vector<uint32_t> dimensions;
     void* buffer;
 
     int setFromPointer(const Operand& operand, const ANeuralNetworksOperandType* type, void* buffer,
                        uint32_t length);
     int setFromMemory(const Operand& operand, const ANeuralNetworksOperandType* type,
                       uint32_t poolIndex, uint32_t offset, uint32_t length);
+    int setFromTemporaryMemory(const Operand& operand, uint32_t poolIndex);
     int updateDimensionInfo(const Operand& operand, const ANeuralNetworksOperandType* newType);
 };
 
@@ -71,7 +75,9 @@ public:
                   size_t length);
     int setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
                             const Memory* memory, size_t offset, size_t length);
-    int startCompute(sp<Event>* event);
+    int startCompute(sp<ExecutionCallback>* synchronizationCallback);
+
+    const ModelBuilder* getModel() const { return mModel; }
 
 private:
     const ModelBuilder* mModel;
@@ -128,17 +134,33 @@ public:
                          &mOutputs[executorIndex]);
     }
 
-    // TODO: inter-partition temporaries
+    // The input or output is assumed to begin at offset zero within
+    // the memory object, and to have the size of the corresponding
+    // operand.
+    int setInputFromTemporaryMemory(uint32_t inputIndex, const Memory* memory) {
+        return setInputOrOutputFromTemporaryMemory(mModel->getInputOperand(inputIndex),
+                                                   memory,
+                                                   &mInputs.at(inputIndex));
+    }
+    int setOutputFromTemporaryMemory(uint32_t outputIndex, const Memory* memory) {
+        return setInputOrOutputFromTemporaryMemory(mModel->getOutputOperand(outputIndex),
+                                                   memory,
+                                                   &mOutputs.at(outputIndex));
+    }
 
-    int startCompute(sp<Event>* event);
+    int startCompute(sp<ExecutionCallback>* synchronizationCallback);
 
 private:
     int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
-    int startComputeOnDevice(sp<Event>* event);
-    int startComputeOnCpu(sp<Event>* event);
+    int startComputeOnDevice(sp<ExecutionCallback>* synchronizationCallback);
+    int startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallback);
 
     void mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutput,
                           ModelArgumentInfo* executorInputOrOutput);
+
+    int setInputOrOutputFromTemporaryMemory(const Operand& inputOrOutputOperand,
+                                            const Memory* memory,
+                                            ModelArgumentInfo* inputOrOutputInfo);
 
     // describes the full (possibly multiple-"step") execution
     const ExecutionBuilder* mExecutionBuilder;

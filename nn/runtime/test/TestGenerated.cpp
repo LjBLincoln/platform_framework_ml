@@ -53,8 +53,14 @@ class Example {
             // Go through all inputs
             for (auto& i : example.first) {
                 std::vector<T>& input = i.second;
-                execution.setInput(i.first, (const void*)input.data(),
-                                   input.size() * sizeof(T));
+                // We interpret an empty vector as an optional argument
+                // that has been omitted.
+                if (input.size() == 0) {
+                    execution.setInput(i.first, nullptr, 0);
+                } else {
+                    execution.setInput(i.first, (const void*)input.data(),
+                                       input.size() * sizeof(T));
+                }
             }
 
             std::map<int, std::vector<T>> test_outputs;

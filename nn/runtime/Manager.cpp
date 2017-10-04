@@ -143,7 +143,7 @@ DeviceManager::DeviceManager() {
     LOG(VERBOSE) << "DeviceManager::DeviceManager";
     findAvailableDevices();
 #ifdef NN_DEBUGGABLE
-    mPartitioning = getProp("debug.nn.partition.test");
+    mPartitioning = getProp("debug.nn.partition", kPartitioningDefault);
 #endif  // NN_DEBUGGABLE
 }
 

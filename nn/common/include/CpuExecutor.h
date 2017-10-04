@@ -46,6 +46,8 @@ struct RunTimeOperandInfo {
     uint8_t* buffer;
     // The length of the buffer.
     uint32_t length;
+    // Whether this is a temporary variable, a model input, a constant, etc.
+    OperandLifeTime lifetime;
     // Keeps track of how many operations have yet to make use
     // of this temporary variable.  When the count is decremented to 0,
     // we free the buffer.  For non-temporary variables, this count is
@@ -114,8 +116,7 @@ T getScalarData(const RunTimeOperandInfo& info) {
 }
 
 inline bool IsNullInput(const RunTimeOperandInfo *input) {
-  // TODO improve this. Should not rely on buffer pointer.
-  return input->buffer == nullptr;
+    return input->lifetime == OperandLifeTime::NO_VALUE;
 }
 
 inline int NumInputsWithValues(const Operation &operation,

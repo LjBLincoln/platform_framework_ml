@@ -41,14 +41,12 @@ int CompilationBuilder::finish() {
 
     mFinished = true;
 
-#ifdef NN_DEBUGGABLE
     if (uint32_t p = DeviceManager::get()->getPartitioning()) {
         int n = mModel->partitionTheWork(mPreference, &mPlan);
-        if ((p > 1) && (n != ANEURALNETWORKS_NO_ERROR) && mPlan.shouldBeExecutable()) {
+        if ((p > 2) && (n != ANEURALNETWORKS_NO_ERROR)) {
             return n;
         }
     }
-#endif  // NN_DEBUGGABLE
 
     return ANEURALNETWORKS_NO_ERROR;
 }
