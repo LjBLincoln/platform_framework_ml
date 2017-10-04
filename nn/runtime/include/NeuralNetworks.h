@@ -188,10 +188,10 @@ typedef enum {
      * Supported tensor rank: up to 4
      *
      * Inputs:
-     * * 0 ~ n: The list on n input tensors, of shape [D0, D1, ..., Daxis(i), ..., Dm].
-     *          For inputs of type {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, all
-     *          input tensors must have the same scale and zeroPoint.
-     * * n+1: An INT32 value, specifying the concatenation axis.
+     * * 0 ~ n-1: The list of n input tensors, of shape [D0, D1, ..., Daxis(i), ..., Dm].
+     *            For inputs of type {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM} type, all
+     *            input tensors must have the same scale and zeroPoint.
+     * * n: An INT32 value, specifying the concatenation axis.
      *
      * Outputs:
      * * 0: The output, a tensor of the same type as the input tensors.
