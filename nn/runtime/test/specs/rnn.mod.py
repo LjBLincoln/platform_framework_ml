@@ -24,14 +24,15 @@ input = Input("input", "TENSOR_FLOAT32", "{%d, %d}" % (batches, input_size))
 weights = Input("weights", "TENSOR_FLOAT32", "{%d, %d}" % (units, input_size))
 recurrent_weights = Input("recurrent_weights", "TENSOR_FLOAT32", "{%d, %d}" % (units, units))
 bias = Input("bias", "TENSOR_FLOAT32", "{%d}" % (units))
+hidden_state_in = Input("hidden_state_in", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 
 activation_param = Input("activation_param", "TENSOR_INT32", "{1}")
 
-hidden_state = IgnoredOutput("hidden_state", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
+hidden_state_out = IgnoredOutput("hidden_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 
-model = model.Operation("RNN", input, weights, recurrent_weights, bias,
-                        activation_param).To([hidden_state, output])
+model = model.Operation("RNN", input, weights, recurrent_weights, bias, hidden_state_in,
+                        activation_param).To([hidden_state_out, output])
 
 input0 = {
     weights: [
@@ -190,8 +191,9 @@ for i in range(1):
   input_end = input_begin + input_size
   input0[input] = test_inputs[input_begin:input_end]
   input0[input].extend(input0[input])
+  input0[hidden_state_in] = [0 for x in range(batches * units)]
   output0 = {
-    hidden_state: [0 for x in range(batches * units)],
+    hidden_state_out: [0 for x in range(batches * units)],
   }
   golden_start = i * units
   golden_end = golden_start + units
