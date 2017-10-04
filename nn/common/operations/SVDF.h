@@ -58,10 +58,11 @@ public:
     static constexpr int kWeightsFeatureTensor = 1;
     static constexpr int kWeightsTimeTensor = 2;
     static constexpr int kBiasTensor = 3;  // Optional
-    static constexpr int kRankParam = 4;
-    static constexpr int kActivationParam = 5;
+    static constexpr int kStateInTensor = 4;
+    static constexpr int kRankParam = 5;
+    static constexpr int kActivationParam = 6;
 
-    static constexpr int kStateTensor = 0;
+    static constexpr int kStateOutTensor = 0;
     static constexpr int kOutputTensor = 1;
 
 private:
@@ -71,8 +72,9 @@ private:
     const RunTimeOperandInfo *weights_feature_;
     const RunTimeOperandInfo *weights_time_;
     const RunTimeOperandInfo *bias_;
+    const RunTimeOperandInfo *state_in_;
 
-    RunTimeOperandInfo *state_;
+    RunTimeOperandInfo *state_out_;
     RunTimeOperandInfo *output_;
 };
 
