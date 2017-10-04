@@ -430,7 +430,7 @@ typedef enum {
      *
      * This layer implements the operation:
      *
-     *     outputs = activation(inputs * weights + bias)
+     *     outputs = activation(inputs * weights’ + bias)
      *
      * Supported tensor types:
      * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
