@@ -27,12 +27,13 @@ RNN::RNN(const Operation& operation,
   input_ = GetInput(operation, operands, kInputTensor);
   weights_ = GetInput(operation, operands, kWeightsTensor);
   recurrent_weights_ = GetInput(operation, operands, kRecurrentWeightsTensor);
+  hidden_state_in_ = GetInput(operation, operands, kHiddenStateInTensor);
   bias_ = GetInput(operation, operands, kBiasTensor);
 
   activation_ = static_cast<ActivationFn>(
       getScalarData<int32_t>(operands[operation.inputs[kActivationParam]]));
 
-  hidden_state_ = GetOutput(operation, operands, kHiddenStateTensor);
+  hidden_state_out_ = GetOutput(operation, operands, kHiddenStateOutTensor);
   output_ = GetOutput(operation, operands, kOutputTensor);
 }
 
@@ -42,7 +43,7 @@ bool RNN::Prepare(const Operation &operation,
                   Shape *outputShape) {
   // Check we have all the inputs and outputs we need.
   const int num_inputs = NumInputsWithValues(operation, operands);
-  NN_CHECK(num_inputs == 4 || num_inputs == 5);
+  NN_CHECK(num_inputs == 5 || num_inputs == 6);
   NN_CHECK_EQ(NumOutputs(operation), 2);
 
   const RunTimeOperandInfo *input =
@@ -91,10 +92,12 @@ bool RNN::Eval() {
     // Initialize the pointer to input, output and bias.
     const float* input_ptr_batch =
         reinterpret_cast<float*>(input_->buffer) + b * input_size;
+    const float* hidden_state_in_ptr_batch =
+        reinterpret_cast<float*>(hidden_state_in_->buffer) + b * num_units;
     float* output_ptr_batch =
         reinterpret_cast<float*>(output_->buffer) + b * num_units;
-    float* hidden_state_ptr_batch =
-        reinterpret_cast<float*>(hidden_state_->buffer) + b * num_units;
+    float* hidden_state_out_ptr_batch =
+        reinterpret_cast<float*>(hidden_state_out_->buffer) + b * num_units;
 
     // Initialize input_weights and recurrent_weights.
     const float* input_weights_ptr = reinterpret_cast<float*>(weights_->buffer);
@@ -118,7 +121,7 @@ bool RNN::Eval() {
     for (uint32_t o = 0; o < num_units; o++) {
       for (uint32_t h = 0; h < num_units; h++) {
         output_ptr_batch[o] +=
-            hidden_state_ptr_batch[h] * recurrent_weights_ptr[h];
+            hidden_state_in_ptr_batch[h] * recurrent_weights_ptr[h];
       }
       recurrent_weights_ptr += recurrent_weights_stride;
     }
@@ -127,7 +130,7 @@ bool RNN::Eval() {
     for (uint32_t o = 0; o < num_units; o++) {
       output_ptr_batch[o] =
           (ActivationFunctor(activation_))(output_ptr_batch[o]);
-      hidden_state_ptr_batch[o] = output_ptr_batch[o];
+      hidden_state_out_ptr_batch[o] = output_ptr_batch[o];
     }
   }
 

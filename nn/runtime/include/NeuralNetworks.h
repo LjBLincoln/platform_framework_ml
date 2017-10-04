@@ -704,17 +704,21 @@ typedef enum {
      *      A 2-D tensor of type T, of shape [output_size, num_units].
      * * 17:projection_bias.
      *      A 1-D tensor of type T, of shape [output_size].
+     * * 18: output_state (in).
+     *      A 2-D tensor of type T, of shape [batch_size, output_size].
+     * * 19: cell_state (in).
+     *      A 2-D tensor of type T, of shape [batch_size, num_units].
      *
      * Parameters:
-     * * 18:fused_activation_function.
+     * * 20:fused_activation_function.
      *      An (optional) ActivationFunctionType indicating the activation
      *      function.
      *      If “NONE” is specified then it results in a linear activation.
-     * * 19:cell_clip.
+     * * 21:cell_clip.
      *      A clipping threshold for the cell state, such that values are bound
      *      within [-cell_clip, cell_clip]. If set to 0.0 then clipping is
      *      disabled.
-     * * 20:proj_clip.
+     * * 22:proj_clip.
      *      A clipping threshold for the output from the projection layer, such
      *      that values are bound within [-proj_clip, proj_clip]. If set to 0.0
      *      then clipping is disabled.
@@ -722,9 +726,9 @@ typedef enum {
      * Outputs:
      * * 0: scratch_buffer.
      *      A 3-D tensor of type T, of shape [batch_size, num_cell, 4].
-     * * 1: output_state.
+     * * 1: output_state (out).
      *      A 2-D tensor of type T, of shape [batch_size, output_size].
-     * * 2: cell_state.
+     * * 2: cell_state (out).
      *      A 2-D tensor of type T, of shape [batch_size, num_units].
      * * 3: output.
      *      A 2-D tensor of type T, of shape [batch_size, output_size]. This is
@@ -945,7 +949,7 @@ typedef enum {
      *    For FLOAT32 input tensor, bias must also be FLOAT32.
      *    For UINT8 input tensor, bias must be INT32.
      *
-     * * 4: Hidden state.
+     * * 4: Hidden state (in).
      *      A 2-D tensor of type T, of shape [batch_size, num_units].
      *
      * Parameters
@@ -955,7 +959,10 @@ typedef enum {
      *      activation.
      *
      * Outputs:
-     * * 0: output.
+     * * 0: Hidden state (out).
+     *      A 2-D tensor of type T, of shape [batch_size, num_units].
+     *
+     * * 1: output.
      *      A 2-D tensor of type T, of shape [batch_size, num_units]. This is
      *      effectively the same as the current state value.
      */
@@ -1074,15 +1081,18 @@ typedef enum {
      *    For FLOAT32 input tensor, bias must also be FLOAT32.
      *    For UINT8 input tensor, bias must be INT32.
      *
+     * * 4: state (in).
+     *      A 2-D tensor of type T, of shape [batch_size, (memory_size - 1) * num_units * rank].
+     *
      * Parameters:
-     * * 4: rank.
+     * * 5: rank.
      *      The rank of the SVD approximation.
-     * * 5: fused_activation_function.
+     * * 6: fused_activation_function.
      *      An (optional) ActivationFunctionType indicating the activation function.
      *      If “NONE” is specified then it results in a linear activation.
      *
      * Outputs:
-     * * 0: state.
+     * * 0: state (out).
      *      A 2-D tensor of type T, of shape [batch_size, (memory_size - 1) * num_units * rank].
      * * 1: output.
      *      A 2-D tensor of type T, of shape [batch_size, num_units].

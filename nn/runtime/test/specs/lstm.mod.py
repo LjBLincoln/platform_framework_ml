@@ -48,13 +48,16 @@ output_gate_bias = Input("output_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 projection_weights = Input("projection_weights", "TENSOR_FLOAT32", "{0,0}")
 projection_bias = Input("projection_bias", "TENSOR_FLOAT32", "{0}")
 
+output_state_in = Input("output_state_in", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
+cell_state_in = Input("cell_state_in", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
+
 activation_param = Input("activation_param", "TENSOR_INT32", "{1}")
 cell_clip_param = Input("cell_clip_param", "TENSOR_FLOAT32", "{1}")
 proj_clip_param = Input("proj_clip_param", "TENSOR_FLOAT32", "{1}")
 
 scratch_buffer = IgnoredOutput("scratch_buffer", "TENSOR_FLOAT32", "{%d, %d, %d}" % (n_batch, n_cell, 4))
-output_state = IgnoredOutput("output_state", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
-cell_state = IgnoredOutput("cell_state", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
+output_state_out = IgnoredOutput("output_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
+cell_state_out = IgnoredOutput("cell_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
 
 model = model.Operation("LSTM",
@@ -82,10 +85,13 @@ model = model.Operation("LSTM",
                         projection_weights,
                         projection_bias,
 
+                        output_state_in,
+                        cell_state_in,
+
                         activation_param,
                         cell_clip_param,
                         proj_clip_param
-).To([scratch_buffer, output_state, cell_state, output])
+).To([scratch_buffer, output_state_out, cell_state_out, output])
 
 # Example 1. Input in operand 0,
 input0 = {input_to_input_weights:  [-0.45018822, -0.02338299, -0.0870589, -0.34550029, 0.04266912, -0.15680569, -0.34856534, 0.43890524],
@@ -145,9 +151,11 @@ golden_outputs = [
 for (input_tensor, output_tensor) in zip(test_inputs, golden_outputs):
   output0 = {
       scratch_buffer: [ 0 for x in range(n_batch * n_cell * 4) ],
-      cell_state: [ 0 for x in range(n_batch * n_cell) ],
-      output_state: [ 0 for x in range(n_batch * n_output) ],
+      cell_state_out: [ 0 for x in range(n_batch * n_cell) ],
+      output_state_out: [ 0 for x in range(n_batch * n_output) ],
       output: output_tensor
   }
   input0[input] = input_tensor
+  input0[output_state_in] = [ 0 for _ in range(n_batch * n_output) ]
+  input0[cell_state_in] = [ 0 for _ in range(n_batch * n_cell) ]
   Example((input0, output0))

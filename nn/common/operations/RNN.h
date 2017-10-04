@@ -50,9 +50,10 @@ class RNN {
   static constexpr int kWeightsTensor = 1;  // Optional
   static constexpr int kRecurrentWeightsTensor = 2;
   static constexpr int kBiasTensor = 3;
-  static constexpr int kActivationParam = 4;
+  static constexpr int kHiddenStateInTensor = 4;
+  static constexpr int kActivationParam = 5;
 
-  static constexpr int kHiddenStateTensor = 0;
+  static constexpr int kHiddenStateOutTensor = 0;
   static constexpr int kOutputTensor = 1;
 
  private:
@@ -62,8 +63,9 @@ class RNN {
   const RunTimeOperandInfo *weights_;
   const RunTimeOperandInfo *recurrent_weights_;
   const RunTimeOperandInfo *bias_;
-  const RunTimeOperandInfo *hidden_state_;
+  const RunTimeOperandInfo *hidden_state_in_;
 
+  RunTimeOperandInfo *hidden_state_out_;
   RunTimeOperandInfo *output_;
 };
 
