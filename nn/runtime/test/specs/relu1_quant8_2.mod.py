@@ -18,8 +18,8 @@
 model = Model()
 
 d0 = 2
-d1 = 256
-d2 = 256
+d1 = 64
+d2 = 64
 d3 = 2
 
 i0 = Input("input", "TENSOR_QUANT8_ASYMM", "{%d, %d, %d, %d}, 1.f, 128" % (d0, d1, d2, d3))

@@ -1,6 +1,6 @@
 // Generated file (from: logistic_float_2.mod.py). Do not edit
 void CreateModel(Model *model) {
-  OperandType type0(Type::TENSOR_FLOAT32, {2, 256, 256, 2});
+  OperandType type0(Type::TENSOR_FLOAT32, {2, 32, 40, 2});
   // Phase 1, operands
   auto input = model->addOperand(&type0);
   auto output = model->addOperand(&type0);
