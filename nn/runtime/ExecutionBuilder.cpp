@@ -64,11 +64,12 @@ int ModelArgumentInfo::setFromMemory(const Operand& operand, const ANeuralNetwor
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ModelArgumentInfo::setFromTemporaryMemory(const Operand& operand, uint32_t poolIndex) {
+int ModelArgumentInfo::setFromTemporaryMemory(const Operand& operand,
+                                              uint32_t poolIndex, uint32_t offset) {
     dimensions = operand.dimensions;
     state = ModelArgumentInfo::MEMORY;
     locationAndLength =
-            {.poolIndex = poolIndex, .offset = 0, .length = sizeOfData(operand)};
+            {.poolIndex = poolIndex, .offset = offset, .length = sizeOfData(operand)};
     buffer = nullptr;
     return ANEURALNETWORKS_NO_ERROR;
 }
@@ -361,14 +362,14 @@ void StepExecutor::mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutpu
 }
 
 int StepExecutor::setInputOrOutputFromTemporaryMemory(const Operand& inputOrOutputOperand,
-                                                      const Memory* memory,
+                                                      const Memory* memory, uint32_t offset,
                                                       ModelArgumentInfo* inputOrOutputInfo) {
     // Should be similar to
     //     ExecutionBuilder::setInputFromMemory()
     //     ExecutionBuilder::setOutputFromMemory()
 
     uint32_t poolIndex = mMemories.add(memory);
-    return inputOrOutputInfo->setFromTemporaryMemory(inputOrOutputOperand, poolIndex);
+    return inputOrOutputInfo->setFromTemporaryMemory(inputOrOutputOperand, poolIndex, offset);
 }
 
 int StepExecutor::startCompute(sp<ExecutionCallback>* synchronizationCallback) {

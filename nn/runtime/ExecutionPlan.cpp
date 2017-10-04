@@ -399,6 +399,21 @@ int ExecutionPlan::finish(const ModelBuilder* fromModel) {
     return mBody->finish(fromModel);
 }
 
+ExecutionPlan::Controller::Controller(
+    const ExecutionPlan* plan,
+    const ExecutionBuilder* executionBuilder,
+    std::shared_ptr<const SubModelInputsAndOutputsType> subModelInputsAndOutputs,
+    uint32_t totalSizeOfTemporaries) :
+        mPlan(plan), mExecutionBuilder(executionBuilder),
+        mSubModelInputsAndOutputs(subModelInputsAndOutputs), mNextStepIndex(0) {
+    if (totalSizeOfTemporaries) {
+        if (mTemporaries.create(totalSizeOfTemporaries) != ANEURALNETWORKS_NO_ERROR) {
+            LOG(ERROR) << "ExecutionPlan::Controller failed to allocate temporaries";
+            mNextStepIndex = kBadStepIndex;
+        }
+    }
+}
+
 std::shared_ptr<ExecutionPlan::Controller> ExecutionPlan::makeController(
     const ExecutionBuilder* executionBuilder) const {
     nnAssert((mState == EMPTY) == (mBody == nullptr));
@@ -407,28 +422,28 @@ std::shared_ptr<ExecutionPlan::Controller> ExecutionPlan::makeController(
         return std::shared_ptr<Controller>(nullptr);
     }
 
-    // Allocate a Memory object for each TEMPORARY in the original
-    // model that is live across partition boundaries.
+    // Create the layout for a Memory object big enough for to hold
+    // every TEMPORARY in the original model that is live across
+    // partition boundaries.
     //
-    // TODO: Rethink this approach.  Some options:
+    // TODO: Rethink this approach for managing temporaries.  Some
+    // alternatives:
     //
-    // 1) If each such TEMPORARY is to have a lifetime that extends
-    // throughout the entire execution, then allocate a single Memory
-    // object and lay them out consecutively within that object.  Note
-    // that the Android system limits the number of shared memory
-    // objects, which are what our Memory objects represent.
-    //
-    // 2) Adopt a memory layout scheme analogous to stack allocation,
+    // 1) Adopt a memory layout scheme analogous to stack allocation,
     // where objects of non-overlapping lifetime can occupy the same
-    // storage.  We would use a single Memory object in this case.
+    // storage.  We would still have a single Memory object in this
+    // case.
     //
-    // 3) Do something like what CpuExecutor does, and do allocations
+    // 2) Do something like what CpuExecutor does, and do allocations
     // and deallocations on the fly (during execution) before first
     // reference and after last reference, respectively.  This would
     // mean having one Memory object per TEMPORARY; or, in a more
     // complicated implementation, one Memory object per set of
-    // temporaries that have the same lifetime.
+    // temporaries that have the same lifetime.  Note that the Android
+    // system limits the number of shared memory objects, which are
+    // what our Memory objects represent.
     //
+    uint32_t totalSizeOfTemporaries = 0;
     std::shared_ptr<Controller::SubModelInputsAndOutputsType> subModelInputsAndOutputs;
     if (mState == COMPOUND) {
         const ModelBuilder* fromModel = executionBuilder->getModel();
@@ -440,28 +455,25 @@ std::shared_ptr<ExecutionPlan::Controller> ExecutionPlan::makeController(
                     subModelInputsAndOutputs =
                             std::make_shared<Controller::SubModelInputsAndOutputsType>();
                 }
-                auto emplaceResult =
-                    subModelInputsAndOutputs->emplace(std::piecewise_construct,
-                                                      std::forward_as_tuple(fromModelOperandIndex),
-                                                      std::forward_as_tuple());
-                nnAssert(emplaceResult.second == true);  // assert that we actually inserted
                 const uint32_t size = sizeOfData(fromModelOperand);
-                if (size == 0 ||
-                    emplaceResult.first->second.create(size) != ANEURALNETWORKS_NO_ERROR) {
-                    LOG(ERROR) << "ExecutionPlan::makeController -- could not allocate temporary";
-                    return std::shared_ptr<Controller>(nullptr);
-                }
+                totalSizeOfTemporaries += alignBytesNeeded(totalSizeOfTemporaries, size);
+                subModelInputsAndOutputs->insert(std::make_pair(fromModelOperandIndex, totalSizeOfTemporaries));
+                totalSizeOfTemporaries += size;
             }
         }
     }
 
-    return std::shared_ptr<Controller>(new Controller(this, executionBuilder, subModelInputsAndOutputs));
+    return std::shared_ptr<Controller>(new Controller(this, executionBuilder,
+                                                      subModelInputsAndOutputs,
+                                                      totalSizeOfTemporaries));
 }
 
-int ExecutionPlan::next(std::shared_ptr<Controller> controller, std::shared_ptr<StepExecutor>* executor) const {
+int ExecutionPlan::next(std::shared_ptr<Controller> controller,
+                        std::shared_ptr<StepExecutor>* executor) const {
     *executor = nullptr;
 
-    LOG(DEBUG) << "ExecutionPlan::next(" << controller << ", " << executor << "): mNextStepIndex = " << controller->mNextStepIndex;
+    LOG(DEBUG) << "ExecutionPlan::next(" << controller << ", " << executor
+               << "): mNextStepIndex = " << controller->mNextStepIndex;
 
     if (controller->mNextStepIndex == Controller::kBadStepIndex) {
         return ANEURALNETWORKS_OP_FAILED;
@@ -517,9 +529,12 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller, std::shared_ptr<
             uint32_t idx = 0;
             for (auto I = subModelOutputs.begin(), E = subModelOutputs.end(); I != E; I++, idx++) {
                 const uint32_t fromModelOperandIndex = I->first;
+                const uint32_t offsetOfTemporary =
+                    controller->mSubModelInputsAndOutputs->at(fromModelOperandIndex);
                 int n = (*executor)->setOutputFromTemporaryMemory(
                     firstSubModelOutputIndex + idx,
-                    &controller->mSubModelInputsAndOutputs->at(fromModelOperandIndex));
+                    &controller->mTemporaries,
+                    offsetOfTemporary);
                 if (n != ANEURALNETWORKS_NO_ERROR) {
                     controller->mNextStepIndex = Controller::kBadStepIndex;
                     return n;
@@ -535,9 +550,12 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller, std::shared_ptr<
             uint32_t idx = 0;
             for (auto I = subModelInputs.begin(), E = subModelInputs.end(); I != E; I++, idx++) {
                 const uint32_t fromModelOperandIndex = I->first;
+                const uint32_t offsetOfTemporary =
+                    controller->mSubModelInputsAndOutputs->at(fromModelOperandIndex);
                 int n = (*executor)->setInputFromTemporaryMemory(
                     firstSubModelInputIndex + idx,
-                    &controller->mSubModelInputsAndOutputs->at(fromModelOperandIndex));
+                    &controller->mTemporaries,
+                    offsetOfTemporary);
                 if (n != ANEURALNETWORKS_NO_ERROR) {
                     controller->mNextStepIndex = Controller::kBadStepIndex;
                     return n;
