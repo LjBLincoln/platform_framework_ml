@@ -235,31 +235,36 @@ static bool validOperands(const hidl_vec<Operand>& operands, const hidl_vec<uint
             return false;
         }
         */
-        if (operand.lifetime == OperandLifeTime::CONSTANT_COPY) {
-            if (operand.location.offset + operand.location.length > operandValues.size()) {
-                LOG(ERROR) << "OperandValue location out of range.  Starts at "
-                           << operand.location.offset << ", length " << operand.location.length
+        switch (operand.lifetime) {
+            case OperandLifeTime::CONSTANT_COPY:
+                if (operand.location.offset + operand.location.length > operandValues.size()) {
+                    LOG(ERROR) << "OperandValue location out of range.  Starts at "
+                               << operand.location.offset << ", length " << operand.location.length
                            << ", max " << operandValues.size();
-                return false;
-            }
-        } else if (operand.lifetime == OperandLifeTime::TEMPORARY_VARIABLE ||
-                   operand.lifetime == OperandLifeTime::MODEL_INPUT ||
-                   operand.lifetime == OperandLifeTime::MODEL_OUTPUT) {
-            if (operand.location.offset != 0 || operand.location.length != 0) {
-                LOG(ERROR) << "Unexpected offset " << operand.location.offset << " or length "
-                           << operand.location.length << " for runtime location.";
-                return false;
-            }
-        } else if (operand.lifetime == OperandLifeTime::CONSTANT_REFERENCE) {
-            if (operand.location.poolIndex >= poolCount) {
-                LOG(ERROR) << "Invalid poolIndex " << operand.location.poolIndex << "/"
-                           << poolCount;
-                return false;
-            }
+                    return false;
+                }
+                break;
+            case OperandLifeTime::TEMPORARY_VARIABLE:
+            case OperandLifeTime::MODEL_INPUT:
+            case OperandLifeTime::MODEL_OUTPUT:
+            case OperandLifeTime::NO_VALUE:
+                if (operand.location.offset != 0 || operand.location.length != 0) {
+                    LOG(ERROR) << "Unexpected offset " << operand.location.offset << " or length "
+                               << operand.location.length << " for runtime location.";
+                    return false;
+                }
+                break;
+            case OperandLifeTime::CONSTANT_REFERENCE:
+                if (operand.location.poolIndex >= poolCount) {
+                    LOG(ERROR) << "Invalid poolIndex " << operand.location.poolIndex << "/"
+                               << poolCount;
+                    return false;
+                }
+                break;
             // TODO: Validate that we are within the pool.
-        } else {
-            LOG(ERROR) << "Invalid lifetime";
-            return false;
+            default:
+                LOG(ERROR) << "Invalid lifetime";
+                return false;
         }
     }
     return true;
@@ -303,6 +308,16 @@ bool validRequestArguments(const hidl_vec<RequestArgument>& arguments,
         const RequestArgument& argument = arguments[argumentIndex];
         const uint32_t operandIndex = operandIndexes[argumentIndex];
         const Operand& operand = operands[operandIndex];
+        if (argument.hasNoValue) {
+            if (argument.location.poolIndex != 0 ||
+                argument.location.offset != 0 ||
+                argument.location.length != 0 ||
+                argument.dimensions.size() != 0) {
+                LOG(ERROR) << "Request " << type << " " << argumentIndex
+                           << " has no value yet has details.";
+                return false;
+            }
+        }
         if (argument.location.poolIndex >= poolCount) {
             LOG(ERROR) << "Request " << type << " " << argumentIndex << " has an invalid poolIndex "
                        << argument.location.poolIndex << "/" << poolCount;

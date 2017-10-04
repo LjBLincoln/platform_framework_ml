@@ -185,6 +185,13 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
                 return n;
             }
         } break;
+        case OperandLifeTime::NO_VALUE: {
+            n = mSubModel->setOperandValue(*toOperandIndex, nullptr, 0);
+            if (n != ANEURALNETWORKS_NO_ERROR) {
+                LOG(ERROR) << "Previous error occurred when partitioning the graph";
+                return n;
+            }
+        } break;
         case OperandLifeTime::TEMPORARY_VARIABLE:
             if (kind == INPUT) {
                 // The first time we've seen this operand is as an
