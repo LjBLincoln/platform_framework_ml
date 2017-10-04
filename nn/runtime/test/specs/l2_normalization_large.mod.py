@@ -15,18 +15,24 @@
 #
 
 model = Model()
-i1 = Input("op1", "TENSOR_FLOAT32", "{1, 1, 1, 3}")
-i2 = Output("op2", "TENSOR_FLOAT32", "{1, 1, 1, 3}")
+i1 = Input("op1", "TENSOR_FLOAT32", "{1, 2, 2, 3}")
+i2 = Output("op2", "TENSOR_FLOAT32", "{1, 2, 2, 3}")
 
 # Color wize (channel-wise) normalization
 model = model.Operation("L2_NORMALIZATION", i1).To(i2)
 
 # Example 1. Input in operand 0,
-input0 = {i1: # input 0 - 1 color, 3 channels
-          [0, 3, 4]}
+input0 = {i1: # input 0 - 4 color, 3 channels
+          [0, 3,  4, # 5
+           0, 5, 12, # 13,
+           0, 8, 15, # 17,
+           0, 7, 24]} # 25
 
 output0 = {i2: # output 0
-           [0, .6, .8]}
+           [0, .6, .8,
+            0, 0.38461539149284363, 0.92307698726654053,
+            0, 0.47058823704719543, 0.88235294818878174,
+            0, 0.28, 0.96]}
 
 # Instantiate an example
 Example((input0, output0))
