@@ -64,6 +64,15 @@ int ModelArgumentInfo::setFromMemory(const Operand& operand, const ANeuralNetwor
     return ANEURALNETWORKS_NO_ERROR;
 }
 
+int ModelArgumentInfo::setFromTemporaryMemory(const Operand& operand, uint32_t poolIndex) {
+    locationAndDimension.dimensions = operand.dimensions;
+    state = ModelArgumentInfo::MEMORY;
+    locationAndDimension.location =
+            {.poolIndex = poolIndex, .offset = 0, .length = sizeOfData(operand)};
+    buffer = nullptr;
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
 int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
                                            const ANeuralNetworksOperandType* newType) {
     if (newType == nullptr) {
@@ -115,6 +124,8 @@ int ExecutionBuilder::setInput(uint32_t index, const ANeuralNetworksOperandType*
 
 int ExecutionBuilder::setInputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
                                          const Memory* memory, size_t offset, size_t length) {
+    // Should be similar to StepExecutor::setInputOrOutputFromTemporaryMemory()
+
     uint32_t count = static_cast<uint32_t>(mInputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setInputFromMemory bad index " << index << " "
@@ -153,6 +164,8 @@ int ExecutionBuilder::setOutput(uint32_t index, const ANeuralNetworksOperandType
 
 int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksOperandType* type,
                                           const Memory* memory, size_t offset, size_t length) {
+    // Should be similar to StepExecutor::setInputOrOutputFromTemporaryMemory()
+
     uint32_t count = static_cast<uint32_t>(mOutputs.size());
     if (index >= count) {
         LOG(ERROR) << "ANeuralNetworksExecution_setOutputFromMemory bad index " << index << " "
@@ -188,24 +201,29 @@ int ExecutionBuilder::startCompute(sp<ExecutionCallback>* synchronizationCallbac
     }
 
     // TODO: Remove the non-plan-based path once we've fully integrated ExecutionPlan
-    // with the compilation and execution phases of the NN API.
+    // with the compilation and execution phases of the NN API?  Or retain that path
+    // as a fallback in the case of partitioning failure?
     //
     // TODO: Entire plan-based-path should run in an asynchronous thread --
     // take the asynchronous thread logic out of startComputeOnCpu() and use
     // it to wrap the plan-based-path.
-#if NN_DEBUGGABLE
-    {
-        const int partitioning = DeviceManager::get()->getPartitioning();
-        if (partitioning > 0) {
-            const bool simulation = !((partitioning > 1) && mPlan->shouldBeExecutable());
+    const int partitioning = DeviceManager::get()->getPartitioning();
+    if (partitioning > 0) {
+        const bool simulation = (partitioning == 1);
+        std::shared_ptr<ExecutionPlan::Controller> controller = mPlan->makeController(this);
+        if (controller == nullptr) {
+            const bool fallback = (partitioning == 2);
+            if (!simulation && !fallback) {
+                return ANEURALNETWORKS_OP_FAILED;
+            }
+        } else {
             LOG(DEBUG) << "ExecutionBuilder::startCompute"
                        << (simulation ? " SIMULATION" : "")
                        << " (from plan, iteratively)";
-            ExecutionPlan::Controller controller = mPlan->makeController(this);
             while (true) {
-                LOG(DEBUG) << "looking for next StepExecutor";
                 std::shared_ptr<StepExecutor> executor;
-                int n = mPlan->next(&controller, &executor);
+                LOG(DEBUG) << "looking for next StepExecutor";
+                int n = mPlan->next(controller, &executor);
                 if (n != ANEURALNETWORKS_NO_ERROR || executor == nullptr) {
                     if (!simulation) {
                         return n;
@@ -233,7 +251,6 @@ int ExecutionBuilder::startCompute(sp<ExecutionCallback>* synchronizationCallbac
             }
         }
     }
-#endif  // NN_DEBUGGABLE
 
     // Find a driver that can handle all the operations.
     Model hidlModel;
@@ -334,6 +351,17 @@ void StepExecutor::mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutpu
             break;
         }
     }
+}
+
+int StepExecutor::setInputOrOutputFromTemporaryMemory(const Operand& inputOrOutputOperand,
+                                                      const Memory* memory,
+                                                      ModelArgumentInfo* inputOrOutputInfo) {
+    // Should be similar to
+    //     ExecutionBuilder::setInputFromMemory()
+    //     ExecutionBuilder::setOutputFromMemory()
+
+    uint32_t poolIndex = mMemories.add(memory);
+    return inputOrOutputInfo->setFromTemporaryMemory(inputOrOutputOperand, poolIndex);
 }
 
 int StepExecutor::startCompute(sp<ExecutionCallback>* synchronizationCallback) {

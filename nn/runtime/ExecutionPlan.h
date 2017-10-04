@@ -53,12 +53,19 @@ public:
     int addOperand(uint32_t fromOperandIndex, uint32_t* toOperandIndex,
                    const ModelBuilder& fromModel, OperandKind kind);
 
-    // Each vector entry is of the form (fromModel index, subModel index)
+    // Each container entry is of the form (fromModel index, subModel index)
+    const RemapVectorType& getModelInputs() const {
+        return mModelInputs;
+    }
+    const RemapVectorType& getModelOutputs() const {
+        return mModelOutputs;
+    }
     const RemapVectorType& getSubModelInputs() const {
         return mSubModelInputs;
     }
-
-    size_t countSubModelOutputs() const;
+    const SubModelOutputSetType& getSubModelOutputs() const {
+        return mSubModelOutputs;
+    }
 
     void recordSubModelOutput(uint32_t fromModelIndex) {
         const auto it = mOperandMap.find(fromModelIndex);
@@ -140,20 +147,30 @@ public:
     class Controller {
         friend class ExecutionPlan;
     private:
+        Controller(const Controller&) = delete;
+        Controller& operator=(const Controller&) = delete;
+
+        // Map from the operand index of a TEMPORARY in the original
+        // model to a Memory object used to represent that TEMPORARY
+        // as an inter-partition input or output.
+        typedef std::map<uint32_t, Memory> SubModelInputsAndOutputsType;
+
         static const size_t kBadStepIndex = ~size_t(0);
 
-        Controller(const ExecutionPlan* plan, const ExecutionBuilder* executionBuilder) :
-                mPlan(plan), mExecutionBuilder(executionBuilder), mNextStepIndex(0) {}
-        Controller() {}  // used for error state
+        Controller(const ExecutionPlan* plan, const ExecutionBuilder* executionBuilder,
+                   std::shared_ptr<const SubModelInputsAndOutputsType> subModelInputsAndOutputs) :
+                mPlan(plan), mExecutionBuilder(executionBuilder),
+                mSubModelInputsAndOutputs(subModelInputsAndOutputs), mNextStepIndex(0) {}
 
-        const ExecutionPlan* mPlan = nullptr;
-        const ExecutionBuilder* mExecutionBuilder = nullptr;
-        size_t mNextStepIndex = kBadStepIndex;
+        const ExecutionPlan* mPlan;
+        const ExecutionBuilder* mExecutionBuilder;
+        std::shared_ptr<const SubModelInputsAndOutputsType> mSubModelInputsAndOutputs;  // may be nullptr
+        size_t mNextStepIndex;
     };
 
-    Controller makeController(const ExecutionBuilder* executionBuilder) const;
+    std::shared_ptr<Controller> makeController(const ExecutionBuilder* executionBuilder) const;
 
-    int next(Controller* controller, std::shared_ptr<StepExecutor>* executor) const;
+    int next(std::shared_ptr<Controller> controller, std::shared_ptr<StepExecutor>* executor) const;
 
     std::shared_ptr<ExecutionStep> createNewStep(const std::shared_ptr<Device> device);
 
@@ -169,20 +186,6 @@ public:
     }
 
     void dump() const;
-
-    // TODO: This member function is only temporary, until we finish
-    // fully integrating ExecutionPlan with the compilation and
-    // execution phases of the NN API.
-    //
-    // Returns true if the plan is "in scope for execution" -- i.e.,
-    // the structure of the plan is such that the
-    // currently-implemented execution system ought to be able to
-    // handle it.  May return true even if something went wrong with
-    // the partitioning and compilation process.
-    //
-    // true - single partition (even if compilation failed)
-    // false - multiple partitions
-    bool shouldBeExecutable() const;
 
 private:
     void findSubModelOutputs();
@@ -220,9 +223,6 @@ private:
         // Used for all (and only) TEMPORARY_VARIABLEs.
         std::unordered_map<uint32_t, uint32_t> mTemporaryToDefiningStep;
 
-        // Total number of submodel outputs across all steps.
-        size_t mSubModelOutputCount = 0;
-
         bool mHasSubModelOutputOfUnknownSize = false;
     private:
         void findSubModelOutputs();
@@ -233,6 +233,10 @@ private:
     CompoundBody* compound() {
         nnAssert(mState == COMPOUND);
         return static_cast<CompoundBody*>(mBody);
+    }
+    const CompoundBody* compound() const {
+        nnAssert(mState == COMPOUND);
+        return static_cast<const CompoundBody*>(mBody);
     }
 };
 
