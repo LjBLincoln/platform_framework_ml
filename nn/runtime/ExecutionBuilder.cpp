@@ -65,9 +65,9 @@ int ModelArgumentInfo::setFromMemory(const Operand& operand, const ANeuralNetwor
 }
 
 int ModelArgumentInfo::setFromTemporaryMemory(const Operand& operand, uint32_t poolIndex) {
-    locationAndDimension.dimensions = operand.dimensions;
+    dimensions = operand.dimensions;
     state = ModelArgumentInfo::MEMORY;
-    locationAndDimension.location =
+    locationAndLength =
             {.poolIndex = poolIndex, .offset = 0, .length = sizeOfData(operand)};
     buffer = nullptr;
     return ANEURALNETWORKS_NO_ERROR;
