@@ -158,10 +158,7 @@ void Execute(std::function<void(Model*)> create_model,
 
 class GeneratedTests : public ::testing::Test {
    protected:
-    virtual void SetUp() {
-        // For detailed logs, uncomment this line:
-        // SetMinimumLogSeverity(android::base::VERBOSE);
-    }
+    virtual void SetUp() {}
 };
 
 // Testcases generated from runtime/test/specs/*.mod.py

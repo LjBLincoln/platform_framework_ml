@@ -44,7 +44,30 @@ const int kNumberOfOperationTypesOEM = 1;
 // The lowest number assigned to any OEM Code in NeuralNetworksOEM.h.
 const int kOEMCodeBase = 10000;
 
-// TODO Remove all the LOG(DEBUG) statements in all the files.
+/* IMPORTANT: if you change the following list, don't
+ * forget to update the corresponding 'tags' table in
+ * the initVlogMask() function implemented in Utils.cpp.
+ */
+enum VLogFlags {
+    MODEL = 0,
+    COMPILATION,
+    EXECUTION,
+    CPUEXE,
+    MANAGER,
+    DRIVER
+};
+
+#define VLOG_IS_ON(TAG) \
+    ((vLogMask & (1 << (TAG))) != 0)
+
+#define VLOG(TAG)         \
+    if (LIKELY(!VLOG_IS_ON(TAG))) \
+        ;                 \
+    else                  \
+        LOG(INFO)
+
+extern int vLogMask;
+void initVLogMask();
 
 // Assert macro, as Android does not generally support assert.
 #define nnAssert(v)                                                                            \
