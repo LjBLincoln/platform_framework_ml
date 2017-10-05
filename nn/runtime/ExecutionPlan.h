@@ -172,6 +172,9 @@ public:
 
     int next(std::shared_ptr<Controller> controller, std::shared_ptr<StepExecutor>* executor) const;
 
+    // Create the same executor as the last one created by next().
+    int fallback(std::shared_ptr<Controller> controller, std::shared_ptr<StepExecutor>* executor) const;
+
     std::shared_ptr<ExecutionStep> createNewStep(const std::shared_ptr<Device> device);
 
     void becomeSingleStep(const std::shared_ptr<Device> device,

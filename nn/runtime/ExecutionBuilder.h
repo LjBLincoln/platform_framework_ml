@@ -147,12 +147,18 @@ public:
                                                    &mOutputs.at(outputIndex));
     }
 
+    // Executes using the (driver, preparedModel) specified at construction time.
     int startCompute(sp<ExecutionCallback>* synchronizationCallback);
+
+    // Executes using the CPU, regardless of the (driver,
+    // preparedModel) specified at construction time.
+    int startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallback);
+
+    bool isCpu() const { return mDriver == nullptr; }
 
 private:
     int allocatePointerArgumentsToPool(std::vector<ModelArgumentInfo>* args, Memory* memory);
     int startComputeOnDevice(sp<ExecutionCallback>* synchronizationCallback);
-    int startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallback);
 
     void mapInputOrOutput(const ModelArgumentInfo& builderInputOrOutput,
                           ModelArgumentInfo* executorInputOrOutput);
