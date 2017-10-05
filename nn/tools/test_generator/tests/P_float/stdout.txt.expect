@@ -11,7 +11,7 @@ void CreateModel(Model *model) {
   model->addOperation(ANEURALNETWORKS_ADD, {operand1, operand2}, {tmp4});
   model->addOperation(ANEURALNETWORKS_ADD, {operand3, tmp4}, {operand4});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {operand1, operand2, operand3},
     {operand4});
   assert(model->isValid());

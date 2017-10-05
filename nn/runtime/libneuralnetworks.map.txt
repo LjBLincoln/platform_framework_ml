@@ -29,7 +29,7 @@ LIBNEURALNETWORKS {
     ANeuralNetworksModel_setOperandValue;
     ANeuralNetworksModel_setOperandValueFromMemory;
     ANeuralNetworksModel_addOperation;
-    ANeuralNetworksModel_setInputsAndOutputs;
+    ANeuralNetworksModel_identifyInputsAndOutputs;
     ANeuralNetworksCompilation_create;
     ANeuralNetworksCompilation_free;
     ANeuralNetworksCompilation_setPreference;

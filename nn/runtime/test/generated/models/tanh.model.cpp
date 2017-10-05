@@ -7,7 +7,7 @@ void CreateModel(Model *model) {
   // Phase 2, operations
   model->addOperation(ANEURALNETWORKS_TANH, {op1}, {op2});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op1},
     {op2});
   assert(model->isValid());

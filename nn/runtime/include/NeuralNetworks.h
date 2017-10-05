@@ -1547,9 +1547,9 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
  * See {@link ANeuralNetworksModel} for information on multithreaded usage.
  *
  */
-int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model, uint32_t inputCount,
-                                             const uint32_t* inputs, uint32_t outputCount,
-                                             const uint32_t* outputs);
+int ANeuralNetworksModel_identifyInputsAndOutputs(ANeuralNetworksModel* model, uint32_t inputCount,
+                                                  const uint32_t* inputs, uint32_t outputCount,
+                                                  const uint32_t* outputs);
 
 /**
  * Create a {@link ANeuralNetworksCompilation} to compile the given model.
@@ -1675,7 +1675,7 @@ void ANeuralNetworksExecution_free(ANeuralNetworksExecution* execution);
  * @param execution The execution to be modified.
  * @param index The index of the input argument we are setting. It is
  *              an index into the lists passed to
- *              {@link ANeuralNetworksModel_setInputsAndOutputs}. It is not
+ *              {@link ANeuralNetworksModel_identifyInputsAndOutputs}. It is not
  *              the index associated with {@link ANeuralNetworksModel_addOperand}.
  * @param type The type of the operand. This should be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
@@ -1707,7 +1707,7 @@ int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32
  * @param execution The execution to be modified.
  * @param index The index of the input argument we are setting. It is
  *              an index into the lists passed to
- *              {@link ANeuralNetworksModel_setInputsAndOutputs}. It is not
+ *              {@link ANeuralNetworksModel_identifyInputsAndOutputs}. It is not
  *              the index associated with {@link ANeuralNetworksModel_addOperand}.
  * @param type The type of the operand. This can be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
@@ -1741,7 +1741,7 @@ int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execut
  * @param execution The execution to be modified.
  * @param index The index of the output argument we are setting. It is
  *              an index into the lists passed to
- *              {@link ANeuralNetworksModel_setInputsAndOutputs}. It is not
+ *              {@link ANeuralNetworksModel_identifyInputsAndOutputs}. It is not
  *              the index associated with {@link ANeuralNetworksModel_addOperand}.
  * @param type The type of the operand. This can be used to specify the
  *             dimensions that were set to 0 when the operand was added to the
@@ -1773,7 +1773,7 @@ int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int3
  * @param execution The execution to be modified.
  * @param index The index of the output argument we are setting. It is
  *              an index into the lists passed to
- *              {@link ANeuralNetworksModel_setInputsAndOutputs}. It is not
+ *              {@link ANeuralNetworksModel_identifyInputsAndOutputs}. It is not
  *              the index associated with {@link ANeuralNetworksModel_addOperand}.
  * @param type The type of the operand. This can be used to specify the
  *             dimensions that were set to 0 when the operand was added to the

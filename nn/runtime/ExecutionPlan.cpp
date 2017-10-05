@@ -336,7 +336,7 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
     }
 
     {
-      int n = mSubModel->setInputsAndOutputs(inputs.size(), &inputs[0], outputs.size(), &outputs[0]);
+      int n = mSubModel->identifyInputsAndOutputs(inputs.size(), &inputs[0], outputs.size(), &outputs[0]);
       if (n != ANEURALNETWORKS_NO_ERROR) {
           return n;
       }

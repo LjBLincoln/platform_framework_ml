@@ -181,7 +181,7 @@ class BasicRNNOpModel {
     Output_.insert(Output_.end(), batches_ * units_, 0.f);
 
     model_.addOperation(ANEURALNETWORKS_RNN, inputs, outputs);
-    model_.setInputsAndOutputs(inputs, outputs);
+    model_.identifyInputsAndOutputs(inputs, outputs);
 
     model_.finish();
   }

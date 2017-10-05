@@ -18,7 +18,7 @@ void CreateModel(Model *model) {
   // Phase 2, operations
   model->addOperation(ANEURALNETWORKS_RNN, {input, weights, recurrent_weights, bias, hidden_state_in, activation_param}, {hidden_state_out, output});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {input, weights, recurrent_weights, bias, hidden_state_in, activation_param},
     {hidden_state_out, output});
   assert(model->isValid());
