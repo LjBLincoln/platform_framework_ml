@@ -1,10 +1,10 @@
 // Generated file (from: conv_quant8.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type3(Type::INT32, {});
+  OperandType type2(Type::TENSOR_INT32, {1}, 0.25f, 0);
   OperandType type1(Type::TENSOR_QUANT8_ASYMM, {1, 2, 2, 1}, 0.5f, 0);
   OperandType type4(Type::TENSOR_QUANT8_ASYMM, {1, 2, 2, 1}, 1.f, 0);
   OperandType type0(Type::TENSOR_QUANT8_ASYMM, {1, 3, 3, 1}, 0.5f, 0);
-  OperandType type2(Type::TENSOR_QUANT8_ASYMM, {1}, 0.25f, 0);
   // Phase 1, operands
   auto op1 = model->addOperand(&type0);
   auto op2 = model->addOperand(&type1);

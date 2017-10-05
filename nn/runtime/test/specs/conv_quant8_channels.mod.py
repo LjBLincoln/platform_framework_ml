@@ -17,7 +17,7 @@
 model = Model()
 i1 = Input("op1", "TENSOR_QUANT8_ASYMM", "{1, 1, 1, 3}, 0.5f, 0")
 f1 = Input("op2", "TENSOR_QUANT8_ASYMM", "{3, 1, 1, 3}, 0.5f, 0")
-b1 = Input("op3", "TENSOR_QUANT8_ASYMM", "{3}, 0.25, 0")
+b1 = Input("op3", "TENSOR_INT32", "{3}, 0.25, 0")
 pad0 = Int32Scalar("pad0", 0)
 act = Int32Scalar("act", 0)
 stride = Int32Scalar("stride", 1)
@@ -36,7 +36,7 @@ input0 = {i1: # input 0
           [0, 0, 0]}
 
 output0 = {output: # output 0
-           [15, 38, 0]}
+           [15, 38, 60]}
 
 # Instantiate an example
 Example((input0, output0))
