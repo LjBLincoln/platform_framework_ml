@@ -58,7 +58,7 @@ struct ModelArgumentInfo {
                        uint32_t length);
     int setFromMemory(const Operand& operand, const ANeuralNetworksOperandType* type,
                       uint32_t poolIndex, uint32_t offset, uint32_t length);
-    int setFromTemporaryMemory(const Operand& operand, uint32_t poolIndex);
+    int setFromTemporaryMemory(const Operand& operand, uint32_t poolIndex, uint32_t offset);
     int updateDimensionInfo(const Operand& operand, const ANeuralNetworksOperandType* newType);
 };
 
@@ -81,7 +81,7 @@ public:
 
 private:
     const ModelBuilder* mModel;
-    [[maybe_unused]] const ExecutionPlan* mPlan;
+    const ExecutionPlan* mPlan;
 
     // The information we'll send to the driver about the inputs and outputs.
     // Note that we build this in two steps:
@@ -134,17 +134,16 @@ public:
                          &mOutputs[executorIndex]);
     }
 
-    // The input or output is assumed to begin at offset zero within
-    // the memory object, and to have the size of the corresponding
-    // operand.
-    int setInputFromTemporaryMemory(uint32_t inputIndex, const Memory* memory) {
+    // The input or output is assumed to have the size of the
+    // corresponding operand.
+    int setInputFromTemporaryMemory(uint32_t inputIndex, const Memory* memory, uint32_t offset) {
         return setInputOrOutputFromTemporaryMemory(mModel->getInputOperand(inputIndex),
-                                                   memory,
+                                                   memory, offset,
                                                    &mInputs.at(inputIndex));
     }
-    int setOutputFromTemporaryMemory(uint32_t outputIndex, const Memory* memory) {
+    int setOutputFromTemporaryMemory(uint32_t outputIndex, const Memory* memory, uint32_t offset) {
         return setInputOrOutputFromTemporaryMemory(mModel->getOutputOperand(outputIndex),
-                                                   memory,
+                                                   memory, offset,
                                                    &mOutputs.at(outputIndex));
     }
 
@@ -159,7 +158,7 @@ private:
                           ModelArgumentInfo* executorInputOrOutput);
 
     int setInputOrOutputFromTemporaryMemory(const Operand& inputOrOutputOperand,
-                                            const Memory* memory,
+                                            const Memory* memory, uint32_t offset,
                                             ModelArgumentInfo* inputOrOutputInfo);
 
     // describes the full (possibly multiple-"step") execution
