@@ -21,7 +21,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(relu6_activation, relu6_activation_init, sizeof(int32_t) * 1);
   model->addOperation(ANEURALNETWORKS_MAX_POOL_2D, {i0, padding, padding, padding, padding, stride, stride, filter, filter, relu6_activation}, {output});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {i0},
     {output});
   assert(model->isValid());

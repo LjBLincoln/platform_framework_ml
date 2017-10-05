@@ -30,7 +30,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(op1, op1_init, sizeof(float) * 3);
   model->addOperation(ANEURALNETWORKS_CONV_2D, {op2, op0, op1, pad0, pad1, pad1, pad1, b5, b6, b7}, {op3});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op2},
     {op3});
   assert(model->isValid());

@@ -20,7 +20,7 @@ void CreateModel(Model *model) {
   // Phase 2, operations
   model->addOperation(ANEURALNETWORKS_SVDF, {input, weights_feature, weights_time, bias, state_in, rank_param, activation_param}, {output, state_out});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {input, weights_feature, weights_time, bias, state_in, rank_param, activation_param},
     {output, state_out});
   assert(model->isValid());

@@ -13,7 +13,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(axis1, axis1_init, sizeof(int32_t) * 1);
   model->addOperation(ANEURALNETWORKS_CONCATENATION, {op1, op2, axis1}, {result});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op1, op2},
     {result});
   assert(model->isValid());

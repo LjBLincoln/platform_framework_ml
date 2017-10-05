@@ -180,7 +180,7 @@ class SVDFOpModel {
     FOR_ALL_OUTPUT_TENSORS(ReserveOutput);
 
     model_.addOperation(ANEURALNETWORKS_SVDF, inputs, outputs);
-    model_.setInputsAndOutputs(inputs, outputs);
+    model_.identifyInputsAndOutputs(inputs, outputs);
 
     model_.finish();
   }

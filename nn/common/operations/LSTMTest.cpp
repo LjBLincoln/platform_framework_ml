@@ -128,7 +128,7 @@ public:
 #undef AddOutput
 
         model_.addOperation(ANEURALNETWORKS_LSTM, inputs, outputs);
-        model_.setInputsAndOutputs(inputs, outputs);
+        model_.identifyInputsAndOutputs(inputs, outputs);
 
         Input_.insert(Input_.end(), n_batch * n_input, 0.f);
 

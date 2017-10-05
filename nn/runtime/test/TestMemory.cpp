@@ -102,7 +102,7 @@ TEST_F(MemoryTest, TestASharedMemory) {
     model.setOperandValue(f, &activation, sizeof(activation));
     model.addOperation(ANEURALNETWORKS_ADD, {a, c, f}, {b});
     model.addOperation(ANEURALNETWORKS_ADD, {b, e, f}, {d});
-    model.setInputsAndOutputs({c}, {d});
+    model.identifyInputsAndOutputs({c}, {d});
     ASSERT_TRUE(model.isValid());
     model.finish();
 
@@ -171,7 +171,7 @@ TEST_F(MemoryTest, TestFd) {
     model.setOperandValue(f, &activation, sizeof(activation));
     model.addOperation(ANEURALNETWORKS_ADD, {a, c, f}, {b});
     model.addOperation(ANEURALNETWORKS_ADD, {b, e, f}, {d});
-    model.setInputsAndOutputs({c}, {d});
+    model.identifyInputsAndOutputs({c}, {d});
     ASSERT_TRUE(model.isValid());
     model.finish();
 

@@ -631,6 +631,21 @@ TEST_F(NeuralnetworksHidlTest, hashtable_lookup_quant8) {
                              hashtable_lookup_quant8::examples);
 }
 
+namespace l2_normalization_large {
+std::vector<MixedTypedExample> examples = {
+// Generated l2_normalization_large test
+#include "examples/l2_normalization_large.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/l2_normalization_large.model.cpp"
+} // namespace l2_normalization_large
+TEST_F(NeuralnetworksHidlTest, l2_normalization_large) {
+    generated_tests::Execute(device,
+                             l2_normalization_large::createTestModel,
+                             l2_normalization_large::is_ignored,
+                             l2_normalization_large::examples);
+}
+
 namespace l2_normalization {
 std::vector<MixedTypedExample> examples = {
 // Generated l2_normalization test
@@ -644,6 +659,21 @@ TEST_F(NeuralnetworksHidlTest, l2_normalization) {
                              l2_normalization::createTestModel,
                              l2_normalization::is_ignored,
                              l2_normalization::examples);
+}
+
+namespace l2_pool_float_large {
+std::vector<MixedTypedExample> examples = {
+// Generated l2_pool_float_large test
+#include "examples/l2_pool_float_large.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/l2_pool_float_large.model.cpp"
+} // namespace l2_pool_float_large
+TEST_F(NeuralnetworksHidlTest, l2_pool_float_large) {
+    generated_tests::Execute(device,
+                             l2_pool_float_large::createTestModel,
+                             l2_pool_float_large::is_ignored,
+                             l2_pool_float_large::examples);
 }
 
 namespace l2_pool_float {
