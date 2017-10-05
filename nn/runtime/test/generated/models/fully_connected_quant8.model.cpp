@@ -1,8 +1,8 @@
 // Generated file (from: fully_connected_quant8.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type4(Type::INT32, {});
+  OperandType type2(Type::TENSOR_INT32, {1}, 0.25f, 0);
   OperandType type1(Type::TENSOR_QUANT8_ASYMM, {1, 1}, 0.5f, 0);
-  OperandType type2(Type::TENSOR_QUANT8_ASYMM, {1}, 0.25f, 0);
   OperandType type0(Type::TENSOR_QUANT8_ASYMM, {3, 1}, 0.5f, 0);
   OperandType type3(Type::TENSOR_QUANT8_ASYMM, {3, 1}, 1.f, 0);
   // Phase 1, operands

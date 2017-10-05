@@ -21,7 +21,7 @@ Model createTestModel() {
             .location = {.poolIndex = 0, .offset = 0, .length = 0},
         },
         {
-            .type = OperandType::TENSOR_QUANT8_ASYMM,
+            .type = OperandType::TENSOR_INT32,
             .dimensions = {3},
             .numberOfConsumers = 1,
             .scale = 0.25f,
@@ -58,7 +58,7 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_QUANT8_ASYMM,
-            .dimensions = {1, 1, 1, 3},
+            .dimensions = {1, 2, 3, 3},
             .numberOfConsumers = 0,
             .scale = 1.0f,
             .zeroPoint = 0,
