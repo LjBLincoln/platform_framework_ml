@@ -468,6 +468,29 @@ std::shared_ptr<ExecutionPlan::Controller> ExecutionPlan::makeController(
                                                       totalSizeOfTemporaries));
 }
 
+
+// TODO: Find a better way to provide this functionality.
+int ExecutionPlan::fallback(std::shared_ptr<Controller> controller,
+                            std::shared_ptr<StepExecutor>* executor) const {
+    *executor = nullptr;
+
+    LOG(DEBUG) << "ExecutionPlan::fallback(" << controller << ", " << executor
+               << "): mNextStepIndex = " << controller->mNextStepIndex;
+
+    if (controller->mNextStepIndex == 0) {
+        // We haven't called next().
+        return ANEURALNETWORKS_OP_FAILED;
+    }
+
+    if (controller->mNextStepIndex == Controller::kBadStepIndex) {
+        // The last call to next() did not produce an executor.
+        return ANEURALNETWORKS_OP_FAILED;
+    }
+
+    --controller->mNextStepIndex;
+    return next(controller, executor);
+}
+
 int ExecutionPlan::next(std::shared_ptr<Controller> controller,
                         std::shared_ptr<StepExecutor>* executor) const {
     *executor = nullptr;
