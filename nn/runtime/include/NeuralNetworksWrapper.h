@@ -190,6 +190,7 @@ private:
 
 class Event {
 public:
+    Event() {}
     ~Event() { ANeuralNetworksEvent_free(mEvent); }
 
     // Disallow copy semantics to ensure the runtime object can only be freed
@@ -214,7 +215,7 @@ public:
 
     Result wait() { return static_cast<Result>(ANeuralNetworksEvent_wait(mEvent)); }
 
-    // Only for use by Compilation
+    // Only for use by Execution
     void set(ANeuralNetworksEvent* newEvent) {
         ANeuralNetworksEvent_free(mEvent);
         mEvent = newEvent;
