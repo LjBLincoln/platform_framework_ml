@@ -15,14 +15,14 @@
 #
 
 model = Model()
-i1 = Input("op1", "TENSOR_FLOAT32", "{1, 2, 2, 2}")
-f1 = Input("op2", "TENSOR_FLOAT32", "{1, 2, 2, 2}")
-b1 = Input("op3", "TENSOR_FLOAT32", "{2}")
+i1 = Input("op1", "TENSOR_FLOAT32", "{1, 3, 3, 2}")
+f1 = Input("op2", "TENSOR_FLOAT32", "{1, 2, 2, 4}")
+b1 = Input("op3", "TENSOR_FLOAT32", "{4}")
 pad0 = Int32Scalar("pad0", 0)
 act = Int32Scalar("act", 0)
 stride = Int32Scalar("stride", 1)
-cm = Int32Scalar("channelMultiplier", 1)
-output = Output("op4", "TENSOR_FLOAT32", "{2}")
+cm = Int32Scalar("channelMultiplier", 2)
+output = Output("op4", "TENSOR_FLOAT32", "{1, 2, 2, 4}")
 
 model = model.Operation("DEPTHWISE_CONV_2D",
                         i1, f1, b1,
@@ -32,20 +32,27 @@ model = model.Operation("DEPTHWISE_CONV_2D",
 
 # Example 1. Input in operand 0,
 input0 = {i1: # input 0
-          [10, 21,
-           10, 22,
-           10, 23,
-           10, 24],
+          [10, 21, 10, 22, 10, 23,
+           10, 24, 10, 25, 10, 26,
+           10, 27, 10, 28, 10, 29],
           f1:
-          [.25, 0,
-           .25, 1,
-           .25, 0,
-           .25, 1],
+          [.25, 0, .2,  0,
+           .25, 0,  0, .3,
+           .25, 0,  0,  0,
+           .25, .1, 0,  0],
           b1:
-          [0, 4]}
+          [1, 2, 3, 4]}
 # (i1 (conv) f1) + b1
+# filter usage:
+#   in_ch1 * f_1  --> output_d1
+#   in_ch1 * f_2  --> output_d2
+#   in_ch2 * f_3  --> output_d3
+#   in_ch3 * f_4  --> output_d4
 output0 = {output: # output 0
-           [10, 50]}
+           [11, 3, 7.2, 10.6,
+            11, 3, 7.4, 10.9,
+            11, 3, 7.8, 11.5,
+            11, 3, 8.0, 11.8]}
 
 # Instantiate an example
 Example((input0, output0))
