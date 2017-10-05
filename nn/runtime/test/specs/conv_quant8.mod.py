@@ -17,7 +17,7 @@
 model = Model()
 i1 = Input("op1", "TENSOR_QUANT8_ASYMM", "{1, 3, 3, 1}, 0.5f, 0")
 f1 = Input("op2", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 1}, 0.5f, 0")
-b1 = Input("op3", "TENSOR_QUANT8_ASYMM", "{1}, 0.25f, 0")
+b1 = Input("op3", "TENSOR_INT32", "{1}, 0.25f, 0")
 pad0 = Int32Scalar("pad0", 0)
 act = Int32Scalar("act", 0)
 stride = Int32Scalar("stride", 1)
