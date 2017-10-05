@@ -166,6 +166,7 @@ int32_t CalculateInputRadius(int input_integer_bits, int input_left_shift) {
 
 bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out) {
     NN_OPS_CHECK(getNumberOfDimensions(in1) <= 4 && getNumberOfDimensions(in2) <= 4);
+    NN_OPS_CHECK(in1.type == in2.type);
     if (SameShape(in1, in2)) {
         return SetShape(in1, out);
     } else {
@@ -218,6 +219,12 @@ bool convPrepare(const Shape& input,
                  int32_t padding_top, int32_t padding_bottom,
                  int32_t stride_width, int32_t stride_height,
                  Shape* output) {
+    NN_OPS_CHECK(input.type == filter.type);
+    if (input.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NN_OPS_CHECK(bias.type == OperandType::TENSOR_INT32);
+    } else {
+        NN_OPS_CHECK(input.type == bias.type);
+    }
     NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
     NN_OPS_CHECK(getNumberOfDimensions(filter) == 4);
     NN_OPS_CHECK(getNumberOfDimensions(bias) == 1);
@@ -249,6 +256,12 @@ bool depthwiseConvPrepare(const Shape& input,
                           int32_t padding_top, int32_t padding_bottom,
                           int32_t stride_width, int32_t stride_height,
                           Shape* output) {
+    NN_OPS_CHECK(input.type == filter.type);
+    if (input.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NN_OPS_CHECK(bias.type == OperandType::TENSOR_INT32);
+    } else {
+        NN_OPS_CHECK(input.type == bias.type);
+    }
     NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
     NN_OPS_CHECK(getNumberOfDimensions(filter) == 4);
     NN_OPS_CHECK(getNumberOfDimensions(bias) == 1);
@@ -309,6 +322,12 @@ bool fullyConnectedPrepare(const Shape& input,
                            Shape* output) {
     // Check all the parameters of tensor match within themselves and match the
     // input configuration.
+    NN_OPS_CHECK(input.type == weights.type);
+    if (input.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NN_OPS_CHECK(bias.type == OperandType::TENSOR_INT32);
+    } else {
+        NN_OPS_CHECK(input.type == bias.type);
+    }
     NN_OPS_CHECK(getNumberOfDimensions(input) >= 2);
     uint32_t input_size = getNumberOfElements(input);
     uint32_t num_units  = getSizeOfDimension(weights, 0);

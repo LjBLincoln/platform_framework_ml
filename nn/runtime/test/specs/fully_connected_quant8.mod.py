@@ -17,7 +17,7 @@
 model = Model()
 in0 = Input("op1", "TENSOR_QUANT8_ASYMM", "{3, 1}, 0.5f, 0")
 weights = Input("op2", "TENSOR_QUANT8_ASYMM", "{1, 1}, 0.5f, 0")
-bias = Input("b0", "TENSOR_QUANT8_ASYMM", "{1}, 0.25f, 0")
+bias = Input("b0", "TENSOR_INT32", "{1}, 0.25f, 0")
 out0 = Output("op3", "TENSOR_QUANT8_ASYMM", "{3, 1}, 1.f, 0")
 act = Int32Scalar("act", 0)
 model = model.Operation("FULLY_CONNECTED", in0, weights, bias, act).To(out0)
