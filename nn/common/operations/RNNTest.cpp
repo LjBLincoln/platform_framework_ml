@@ -203,6 +203,7 @@ class BasicRNNOpModel {
 
   void ResetHiddenState() {
     std::fill(HiddenStateIn_.begin(), HiddenStateIn_.end(), 0.f);
+    std::fill(HiddenStateOut_.begin(), HiddenStateOut_.end(), 0.f);
   }
 
   const std::vector<float>& GetOutput() const { return Output_; }
@@ -214,11 +215,14 @@ class BasicRNNOpModel {
   void Invoke() {
     ASSERT_TRUE(model_.isValid());
 
+    HiddenStateIn_.swap(HiddenStateOut_);
+
     Compilation compilation(&model_);
     compilation.finish();
     Execution execution(&compilation);
 #define SetInputOrWeight(X)                                                   \
-  ASSERT_EQ(execution.setInput(RNN::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+  ASSERT_EQ(execution.setInput(RNN::k##X##Tensor, X##_.data(),                \
+                               sizeof(float) * X##_.size()),                  \
             Result::NO_ERROR);
 
     FOR_ALL_INPUT_AND_WEIGHT_TENSORS(SetInputOrWeight);
@@ -226,7 +230,8 @@ class BasicRNNOpModel {
 #undef SetInputOrWeight
 
 #define SetOutput(X)                                                           \
-  ASSERT_EQ(execution.setOutput(RNN::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+  ASSERT_EQ(execution.setOutput(RNN::k##X##Tensor, X##_.data(),                \
+                                sizeof(float) * X##_.size()),                  \
             Result::NO_ERROR);
 
     FOR_ALL_OUTPUT_TENSORS(SetOutput);

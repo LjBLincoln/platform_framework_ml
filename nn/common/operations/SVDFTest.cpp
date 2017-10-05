@@ -120,17 +120,18 @@ static float svdf_golden_output[] = {
 class SVDFOpModel {
  public:
   SVDFOpModel(uint32_t batches, uint32_t units, uint32_t input_size,
-              uint32_t memory_size)
+              uint32_t memory_size, uint32_t rank)
       : batches_(batches),
         units_(units),
         input_size_(input_size),
-        memory_size_(memory_size) {
+        memory_size_(memory_size),
+        rank_(rank) {
     std::vector<std::vector<uint32_t>> input_shapes{
         {batches_, input_size_},  // Input tensor
-        {units_, input_size_},    // weights_feature tensor
-        {units_, memory_size_},   // weights_time tensor
+        {units_ * rank_, input_size_},    // weights_feature tensor
+        {units_ * rank_, memory_size_},   // weights_time tensor
         {units_},                  // bias tensor
-        {batches_, (memory_size_ - 1) * units_},  // state in
+        {batches_,  memory_size * units_ * rank_},   // state in tensor
     };
     std::vector<uint32_t> inputs;
     auto it = input_shapes.begin();
@@ -151,7 +152,7 @@ class SVDFOpModel {
     inputs.push_back(model_.addOperand(&ActivationParamTy));
 
     // Output and other intermediate state
-    std::vector<std::vector<uint32_t>> output_shapes{{batches_, (memory_size_ - 1) * units_},
+    std::vector<std::vector<uint32_t>> output_shapes{{batches_, memory_size_ * units_ * rank_},
                                                      {batches_, units_}};
     std::vector<uint32_t> outputs;
 
@@ -166,6 +167,7 @@ class SVDFOpModel {
 #undef AddOutput
 
     Input_.insert(Input_.end(), batches_ * input_size_, 0.f);
+    StateIn_.insert(StateIn_.end(), batches_ * units_ * rank_ * memory_size_, 0.f);
 
     auto multiAll = [](const std::vector<uint32_t> &dims) -> uint32_t {
         uint32_t sz = 1;
@@ -191,8 +193,12 @@ class SVDFOpModel {
     Compilation compilation(&model_);
     compilation.finish();
     Execution execution(&compilation);
+
+    StateIn_.swap(StateOut_);
+
 #define SetInputOrWeight(X)                                                    \
-  ASSERT_EQ(execution.setInput(SVDF::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+  ASSERT_EQ(execution.setInput(SVDF::k##X##Tensor, X##_.data(),                \
+                               sizeof(float) * X##_.size()),                   \
             Result::NO_ERROR);
 
     FOR_ALL_INPUT_AND_WEIGHT_TENSORS(SetInputOrWeight);
@@ -200,15 +206,16 @@ class SVDFOpModel {
 #undef SetInputOrWeight
 
 #define SetOutput(X)                                                            \
-  ASSERT_EQ(execution.setOutput(SVDF::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+  EXPECT_TRUE(X##_.data() != nullptr);                                          \
+  ASSERT_EQ(execution.setOutput(SVDF::k##X##Tensor, X##_.data(),                \
+                                sizeof(float) * X##_.size()),                   \
             Result::NO_ERROR);
 
     FOR_ALL_OUTPUT_TENSORS(SetOutput);
 
 #undef SetOutput
 
-    int rank = 1;
-    ASSERT_EQ(execution.setInput(SVDF::kRankParam, &rank, sizeof(rank)),
+    ASSERT_EQ(execution.setInput(SVDF::kRankParam, &rank_, sizeof(rank_)),
               Result::NO_ERROR);
 
     int activation = ActivationFn::kActivationNone;
@@ -235,7 +242,10 @@ class SVDFOpModel {
   }
 
   // Resets the state of SVDF op by filling it with 0's.
-  void ResetState() { std::fill(StateIn_.begin(), StateIn_.end(), 0.f); }
+  void ResetState() {
+      std::fill(StateIn_.begin(), StateIn_.end(), 0.f);
+      std::fill(StateOut_.begin(), StateOut_.end(), 0.f);
+  }
 
   // Extracts the output tensor from the SVDF op.
   const std::vector<float>& GetOutput() const { return Output_; }
@@ -251,6 +261,7 @@ class SVDFOpModel {
   const uint32_t units_;
   const uint32_t input_size_;
   const uint32_t memory_size_;
+  const uint32_t rank_;
 
 #define DefineTensor(X) std::vector<float> X##_;
 
@@ -262,7 +273,7 @@ class SVDFOpModel {
 
 TEST(SVDFOpTest, BlackBoxTest) {
   SVDFOpModel svdf(/*batches=*/2, /*units=*/4, /*input_size=*/3,
-                   /*memory_size=*/10);
+                   /*memory_size=*/10, /*rank=*/1);
   svdf.SetWeightsFeature({-0.31930989, -0.36118156, 0.0079667, 0.37613347,
                           0.22197971, 0.12416199, 0.27901134, 0.27557442,
                           0.3905206, -0.36137494, -0.06634006, -0.10640851});
@@ -279,6 +290,8 @@ TEST(SVDFOpTest, BlackBoxTest) {
 
        -0.10781813, 0.27201805,  0.14324132,  -0.23681851, -0.27115166,
        -0.01580888, -0.14943552, 0.15465137,  0.09784451,  -0.0337657});
+
+  svdf.SetBias({});
 
   svdf.ResetState();
   const int svdf_num_batches = svdf.num_batches();
