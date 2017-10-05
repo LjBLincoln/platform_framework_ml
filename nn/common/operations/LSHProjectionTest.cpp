@@ -78,7 +78,7 @@ class LSHProjectionOpModel {
     }
 
     model_.addOperation(ANEURALNETWORKS_LSH_PROJECTION, inputs, outputs);
-    model_.setInputsAndOutputs(inputs, outputs);
+    model_.identifyInputsAndOutputs(inputs, outputs);
 
     model_.finish();
   }

@@ -46,8 +46,8 @@ public:
 
     int addOperation(ANeuralNetworksOperationType type, uint32_t inputCount, const uint32_t* inputs,
                      uint32_t outputCount, const uint32_t* outputs);
-    int setInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs, uint32_t outputCount,
-                            const uint32_t* outputs);
+    int identifyInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs, uint32_t outputCount,
+                                 const uint32_t* outputs);
 
     int finish();
     bool isFinished() const { return mCompletedModel; }

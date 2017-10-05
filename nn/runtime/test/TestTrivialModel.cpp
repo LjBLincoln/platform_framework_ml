@@ -70,7 +70,7 @@ void CreateAddTwoTensorModel(Model* model) {
     auto d = model->addOperand(&scalarType);
     model->setOperandValue(d, &activation, sizeof(activation));
     model->addOperation(ANEURALNETWORKS_ADD, {a, b, d}, {c});
-    model->setInputsAndOutputs({a, b}, {c});
+    model->identifyInputsAndOutputs({a, b}, {c});
     ASSERT_TRUE(model->isValid());
     model->finish();
 }
@@ -91,7 +91,7 @@ void CreateAddThreeTensorModel(Model* model, const Matrix3x4 bias) {
     model->setOperandValue(f, &activation, sizeof(activation));
     model->addOperation(ANEURALNETWORKS_ADD, {a, c, f}, {b});
     model->addOperation(ANEURALNETWORKS_ADD, {b, e, f}, {d});
-    model->setInputsAndOutputs({c, a}, {d});
+    model->identifyInputsAndOutputs({c, a}, {d});
     ASSERT_TRUE(model->isValid());
     model->finish();
 }
@@ -172,7 +172,7 @@ TEST_F(TrivialTest, BroadcastAddTwo) {
     auto b = modelBroadcastAdd2.addOperand(&matrixType2);
     auto c = modelBroadcastAdd2.addOperand(&matrixType);
     modelBroadcastAdd2.addOperation(ANEURALNETWORKS_ADD, {a, b, activation}, {c});
-    modelBroadcastAdd2.setInputsAndOutputs({a, b}, {c});
+    modelBroadcastAdd2.identifyInputsAndOutputs({a, b}, {c});
     ASSERT_TRUE(modelBroadcastAdd2.isValid());
     modelBroadcastAdd2.finish();
 
@@ -204,7 +204,7 @@ TEST_F(TrivialTest, BroadcastMulTwo) {
     auto b = modelBroadcastMul2.addOperand(&matrixType2);
     auto c = modelBroadcastMul2.addOperand(&matrixType);
     modelBroadcastMul2.addOperation(ANEURALNETWORKS_MUL, {a, b, activation}, {c});
-    modelBroadcastMul2.setInputsAndOutputs({a, b}, {c});
+    modelBroadcastMul2.identifyInputsAndOutputs({a, b}, {c});
     ASSERT_TRUE(modelBroadcastMul2.isValid());
     modelBroadcastMul2.finish();
 

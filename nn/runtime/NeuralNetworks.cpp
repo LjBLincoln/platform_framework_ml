@@ -307,15 +307,15 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
     return m->addOperation(type, inputCount, inputs, outputCount, outputs);
 }
 
-int ANeuralNetworksModel_setInputsAndOutputs(ANeuralNetworksModel* model, uint32_t inputCount,
-                                             const uint32_t* inputs, uint32_t outputCount,
-                                             const uint32_t* outputs) {
+int ANeuralNetworksModel_identifyInputsAndOutputs(ANeuralNetworksModel* model, uint32_t inputCount,
+                                                  const uint32_t* inputs, uint32_t outputCount,
+                                                  const uint32_t* outputs) {
     if (!model || !inputs || !outputs) {
-        LOG(ERROR) << ("ANeuralNetworksModel_setInputsAndOutputs passed a nullptr");
+        LOG(ERROR) << ("ANeuralNetworksModel_identifyInputsAndOutputs passed a nullptr");
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
     ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
-    return m->setInputsAndOutputs(inputCount, inputs, outputCount, outputs);
+    return m->identifyInputsAndOutputs(inputCount, inputs, outputCount, outputs);
 }
 
 int ANeuralNetworksCompilation_create(ANeuralNetworksModel* model,

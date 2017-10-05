@@ -17,7 +17,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(relu1_activitation, relu1_activitation_init, sizeof(int32_t) * 1);
   model->addOperation(ANEURALNETWORKS_AVERAGE_POOL_2D, {op1, pad0, pad0, pad0, pad0, cons1, cons1, cons1, cons1, relu1_activitation}, {op3});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op1},
     {op3});
   assert(model->isValid());

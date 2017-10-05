@@ -589,6 +589,20 @@ TEST_F(GeneratedTests, hashtable_lookup_quant8) {
             hashtable_lookup_quant8::examples);
 }
 
+namespace l2_normalization_large {
+std::vector<MixedTypedExample> examples = {
+// Generated l2_normalization_large test
+#include "generated/examples/l2_normalization_large.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/l2_normalization_large.model.cpp"
+} // namespace l2_normalization_large
+TEST_F(GeneratedTests, l2_normalization_large) {
+    Execute(l2_normalization_large::CreateModel,
+            l2_normalization_large::is_ignored,
+            l2_normalization_large::examples);
+}
+
 namespace l2_normalization {
 std::vector<MixedTypedExample> examples = {
 // Generated l2_normalization test
@@ -601,6 +615,20 @@ TEST_F(GeneratedTests, l2_normalization) {
     Execute(l2_normalization::CreateModel,
             l2_normalization::is_ignored,
             l2_normalization::examples);
+}
+
+namespace l2_pool_float_large {
+std::vector<MixedTypedExample> examples = {
+// Generated l2_pool_float_large test
+#include "generated/examples/l2_pool_float_large.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/l2_pool_float_large.model.cpp"
+} // namespace l2_pool_float_large
+TEST_F(GeneratedTests, l2_pool_float_large) {
+    Execute(l2_pool_float_large::CreateModel,
+            l2_pool_float_large::is_ignored,
+            l2_pool_float_large::examples);
 }
 
 namespace l2_pool_float {
@@ -867,6 +895,20 @@ TEST_F(GeneratedTests, max_pool_quant8_3) {
     Execute(max_pool_quant8_3::CreateModel,
             max_pool_quant8_3::is_ignored,
             max_pool_quant8_3::examples);
+}
+
+namespace mobilenet_quantized {
+std::vector<MixedTypedExample> examples = {
+// Generated mobilenet_quantized test
+#include "generated/examples/mobilenet_quantized.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/mobilenet_quantized.model.cpp"
+} // namespace mobilenet_quantized
+TEST_F(GeneratedTests, mobilenet_quantized) {
+    Execute(mobilenet_quantized::CreateModel,
+            mobilenet_quantized::is_ignored,
+            mobilenet_quantized::examples);
 }
 
 namespace mul_broadcast_quant8 {

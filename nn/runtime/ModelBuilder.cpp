@@ -154,19 +154,19 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type, uint32_t input
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ModelBuilder::setInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs,
+int ModelBuilder::identifyInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs,
                                       uint32_t outputCount, const uint32_t* outputs) {
     if (mCompletedModel) {
-        LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs can't modify after model finished";
+        LOG(ERROR) << "ANeuralNetworksModel_identifyInputsAndOutputs can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
     int n = validateOperandList(inputCount, inputs, operandCount(),
-                                "ANeuralNetworksModel_setInputsAndOutputs inputs");
+                                "ANeuralNetworksModel_identifyInputsAndOutputs inputs");
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
     n = validateOperandList(outputCount, outputs, operandCount(),
-                            "ANeuralNetworksModel_setInputsAndOutputs outputs");
+                            "ANeuralNetworksModel_identifyInputsAndOutputs outputs");
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
@@ -179,7 +179,7 @@ int ModelBuilder::setInputsAndOutputs(uint32_t inputCount, const uint32_t* input
         for (uint32_t i = 0; i < indexCount; i++) {
             const uint32_t operandIndex = indexList[i];
             if (operandIndex >= mOperands.size()) {
-                LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs Can't set input or output "
+                LOG(ERROR) << "ANeuralNetworksModel_identifyInputsAndOutputs Can't set input or output "
                               "to be "
                            << operandIndex << " as this exceeds the numbe of operands "
                            << mOperands.size();
@@ -188,7 +188,7 @@ int ModelBuilder::setInputsAndOutputs(uint32_t inputCount, const uint32_t* input
             (*indexVector)[i] = operandIndex;
             Operand& operand = mOperands[operandIndex];
             if (operand.lifetime != OperandLifeTime::TEMPORARY_VARIABLE) {
-                LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs Can't set operand "
+                LOG(ERROR) << "ANeuralNetworksModel_identifyInputsAndOutputs Can't set operand "
                            << operandIndex
                            << " to be an input or output.  Check that it's not a constant or "
                               "already an input or output";

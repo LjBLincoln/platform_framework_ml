@@ -97,7 +97,7 @@ class HashtableLookupOpModel {
     Hits_.insert(Hits_.end(), multiAll(lookup_shape), 0);
 
     model_.addOperation(ANEURALNETWORKS_HASHTABLE_LOOKUP, inputs, outputs);
-    model_.setInputsAndOutputs(inputs, outputs);
+    model_.identifyInputsAndOutputs(inputs, outputs);
 
     model_.finish();
   }

@@ -16,7 +16,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(act, act_init, sizeof(int32_t) * 1);
   model->addOperation(ANEURALNETWORKS_FULLY_CONNECTED, {op1, op2, b0, act}, {op3});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op1, op2, b0},
     {op3});
   assert(model->isValid());

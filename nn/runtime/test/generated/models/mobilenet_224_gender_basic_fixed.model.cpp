@@ -665,7 +665,7 @@ void CreateModel(Model *model) {
   model->addOperation(ANEURALNETWORKS_CONV_2D, {op81, op84, op83, pad0, pad0, pad0, pad0, b215, b216, b217}, {op82});
   model->addOperation(ANEURALNETWORKS_LOGISTIC, {op82}, {op85});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op86},
     {op85});
   assert(model->isValid());

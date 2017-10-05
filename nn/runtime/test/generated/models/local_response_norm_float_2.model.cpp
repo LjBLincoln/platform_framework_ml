@@ -21,7 +21,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(beta, beta_init, sizeof(float) * 1);
   model->addOperation(ANEURALNETWORKS_LOCAL_RESPONSE_NORMALIZATION, {input, radius, bias, alpha, beta}, {output});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {input},
     {output});
   assert(model->isValid());
