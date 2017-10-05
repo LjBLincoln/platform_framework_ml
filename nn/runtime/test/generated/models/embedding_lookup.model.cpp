@@ -9,7 +9,7 @@ void CreateModel(Model *model) {
   // Phase 2, operations
   model->addOperation(ANEURALNETWORKS_EMBEDDING_LOOKUP, {value, index}, {output});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {value, index},
     {output});
   assert(model->isValid());

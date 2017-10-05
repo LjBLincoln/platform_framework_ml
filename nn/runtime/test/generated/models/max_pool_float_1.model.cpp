@@ -17,7 +17,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(act, act_init, sizeof(int32_t) * 1);
   model->addOperation(ANEURALNETWORKS_MAX_POOL_2D, {op1, pad0, pad0, pad0, pad0, cons1, cons1, cons1, cons1, act}, {op3});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op1},
     {op3});
   assert(model->isValid());

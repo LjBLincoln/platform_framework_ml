@@ -806,7 +806,7 @@ if __name__ == '__main__':
       print ("  // Phase 3, inputs and outputs", file=model_file)
       inputs = Operand.print_operands(Input.get_inputs(True));
       outputs = Operand.print_operands(Output.get_outputs());
-      print ("  model->setInputsAndOutputs(\n" +
+      print ("  model->identifyInputsAndOutputs(\n" +
              "    {"+", ".join(inputs)+"},\n    {" + ", ".join(outputs) + "});",
              file=model_file)
       # Boilerplate

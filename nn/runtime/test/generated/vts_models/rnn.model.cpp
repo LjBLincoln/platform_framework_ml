@@ -39,6 +39,15 @@ Model createTestModel() {
             .location = {.poolIndex = 0, .offset = 0, .length = 0},
         },
         {
+            .type = OperandType::TENSOR_FLOAT32,
+            .dimensions = {2, 16},
+            .numberOfConsumers = 1,
+            .scale = 0.0f,
+            .zeroPoint = 0,
+            .lifetime = OperandLifeTime::MODEL_INPUT,
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+        },
+        {
             .type = OperandType::TENSOR_INT32,
             .dimensions = {1},
             .numberOfConsumers = 1,
@@ -70,13 +79,13 @@ Model createTestModel() {
     const std::vector<Operation> operations = {
         {
             .type = OperationType::RNN,
-            .inputs = {0, 1, 2, 3, 4},
-            .outputs = {5, 6},
+            .inputs = {0, 1, 2, 3, 4, 5},
+            .outputs = {6, 7},
         }
     };
 
-    const std::vector<uint32_t> inputIndexes = {0, 1, 2, 3, 4};
-    const std::vector<uint32_t> outputIndexes = {5, 6};
+    const std::vector<uint32_t> inputIndexes = {0, 1, 2, 3, 4, 5};
+    const std::vector<uint32_t> outputIndexes = {6, 7};
     std::vector<uint8_t> operandValues = {};
     const std::vector<hidl_memory> pools = {};
 

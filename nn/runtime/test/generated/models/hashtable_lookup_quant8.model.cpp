@@ -14,7 +14,7 @@ void CreateModel(Model *model) {
   // Phase 2, operations
   model->addOperation(ANEURALNETWORKS_HASHTABLE_LOOKUP, {lookup, key, value}, {output, hits});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {lookup, key, value},
     {output, hits});
   assert(model->isValid());

@@ -25,13 +25,14 @@ input = Input("input", "TENSOR_FLOAT32", "{%d, %d}" % (batches, input_size))
 weights_feature = Input("weights_feature", "TENSOR_FLOAT32", "{%d, %d}" % (units, input_size))
 weights_time = Input("weights_time", "TENSOR_FLOAT32", "{%d, %d}" % (units, memory_size))
 bias = Input("bias", "TENSOR_FLOAT32", "{%d}" % (units))
+state_in = Input("state_in", "TENSOR_FLOAT32", "{%d, %d}" % (batches, (memory_size-1)*units))
 rank_param = Input("rank_param", "TENSOR_INT32", "{1}")
 activation_param = Input("activation_param", "TENSOR_INT32", "{1}")
-state = IgnoredOutput("state", "TENSOR_FLOAT32", "{%d, %d}" % (batches, (memory_size-1)*units))
+state_out = IgnoredOutput("state_out", "TENSOR_FLOAT32", "{%d, %d}" % (batches, (memory_size-1)*units))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 
-model = model.Operation("SVDF", input, weights_feature, weights_time, bias,
-                        rank_param, activation_param).To([state, output])
+model = model.Operation("SVDF", input, weights_feature, weights_time, bias, state_in,
+                        rank_param, activation_param).To([state_out, output])
 
 input0 = {
     weights_feature: [
@@ -130,7 +131,8 @@ for i in range(1):
   batch_start = i * input_size * batches
   batch_end = batch_start + input_size * batches
   input0[input] = test_inputs[batch_start:batch_end]
-  output0 = {state:[0 for x in range(batches * (memory_size - 1) * units)],
+  input0[state_in]  = [0 for _ in range(batches * (memory_size - 1) * units)]
+  output0 = {state_out:[0 for x in range(batches * (memory_size - 1) * units)],
              output: []}
   golden_start = i * units * batches
   golden_end = golden_start + units * batches

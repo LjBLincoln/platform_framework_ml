@@ -140,10 +140,11 @@ static float rnn_golden_output[] = {
   ACTION(Weights)                                \
   ACTION(RecurrentWeights)                       \
   ACTION(Bias)                                   \
+  ACTION(HiddenStateIn)
 
 // For all output and intermediate states
 #define FOR_ALL_OUTPUT_TENSORS(ACTION) \
-  ACTION(HiddenState)                  \
+  ACTION(HiddenStateOut)               \
   ACTION(Output)
 
 class BasicRNNOpModel {
@@ -163,22 +164,24 @@ class BasicRNNOpModel {
     inputs.push_back(model_.addOperand(&RecurrentWeightTy));
     OperandType BiasTy(Type::TENSOR_FLOAT32, {units_});
     inputs.push_back(model_.addOperand(&BiasTy));
-    OperandType ActionParamTy(Type::INT32, {});
+    OperandType HiddenStateTy(Type::TENSOR_FLOAT32, {batches_, units_});
+    inputs.push_back(model_.addOperand(&HiddenStateTy));
+    OperandType ActionParamTy(Type::INT32, {1});
     inputs.push_back(model_.addOperand(&ActionParamTy));
 
     std::vector<uint32_t> outputs;
 
-    OperandType HiddenStateTy(Type::TENSOR_FLOAT32, {batches_, units_});
     outputs.push_back(model_.addOperand(&HiddenStateTy));
     OperandType OutputTy(Type::TENSOR_FLOAT32, {batches_, units_});
     outputs.push_back(model_.addOperand(&OutputTy));
 
     Input_.insert(Input_.end(), batches_ * input_size_, 0.f);
-    HiddenState_.insert(HiddenState_.end(), batches_ * units_, 0.f);
+    HiddenStateIn_.insert(HiddenStateIn_.end(), batches_ * units_, 0.f);
+    HiddenStateOut_.insert(HiddenStateOut_.end(), batches_ * units_, 0.f);
     Output_.insert(Output_.end(), batches_ * units_, 0.f);
 
     model_.addOperation(ANEURALNETWORKS_RNN, inputs, outputs);
-    model_.setInputsAndOutputs(inputs, outputs);
+    model_.identifyInputsAndOutputs(inputs, outputs);
 
     model_.finish();
   }
@@ -199,7 +202,7 @@ class BasicRNNOpModel {
   }
 
   void ResetHiddenState() {
-    std::fill(HiddenState_.begin(), HiddenState_.end(), 0.f);
+    std::fill(HiddenStateIn_.begin(), HiddenStateIn_.end(), 0.f);
   }
 
   const std::vector<float>& GetOutput() const { return Output_; }

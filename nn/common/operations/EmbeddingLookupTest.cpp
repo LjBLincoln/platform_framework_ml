@@ -83,7 +83,7 @@ class EmbeddingLookupOpModel {
     Output_.insert(Output_.end(), multiAll(weight_shape), 0.f);
 
     model_.addOperation(ANEURALNETWORKS_EMBEDDING_LOOKUP, inputs, outputs);
-    model_.setInputsAndOutputs(inputs, outputs);
+    model_.identifyInputsAndOutputs(inputs, outputs);
 
     model_.finish();
   }

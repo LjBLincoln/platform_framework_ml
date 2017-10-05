@@ -88,15 +88,17 @@ class LSTMCell {
   // Projection bias tensor of size {n_output}
   static constexpr int kProjectionBiasTensor = 17;  // Optional
 
-  static constexpr int kActivationParam = 18;
-  static constexpr int kCellClipParam = 19;
-  static constexpr int kProjClipParam = 20;
+  static constexpr int kOutputStateInTensor = 18;
+  static constexpr int kCellStateInTensor = 19;
+
+  static constexpr int kActivationParam = 20;
+  static constexpr int kCellClipParam = 21;
+  static constexpr int kProjClipParam = 22;
 
   // Output tensors.
-  // TODO: Do we have to pre-allocate scratch buffer as outputs?
   static constexpr int kScratchBufferTensor = 0;
-  static constexpr int kOutputStateTensor = 1;
-  static constexpr int kCellStateTensor = 2;
+  static constexpr int kOutputStateOutTensor = 1;
+  static constexpr int kCellStateOutTensor = 2;
   static constexpr int kOutputTensor = 3;
 
  private:
@@ -130,8 +132,11 @@ class LSTMCell {
   const RunTimeOperandInfo *projection_weights_;
   const RunTimeOperandInfo *projection_bias_;
 
-  RunTimeOperandInfo *output_state_;
-  RunTimeOperandInfo *cell_state_;
+  const RunTimeOperandInfo *output_state_in_;
+  const RunTimeOperandInfo *cell_state_in_;
+
+  RunTimeOperandInfo *output_state_out_;
+  RunTimeOperandInfo *cell_state_out_;
   RunTimeOperandInfo *output_;
 
   RunTimeOperandInfo *scratch_buffer_;

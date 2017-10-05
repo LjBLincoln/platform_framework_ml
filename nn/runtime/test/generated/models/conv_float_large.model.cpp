@@ -22,7 +22,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(stride, stride_init, sizeof(int32_t) * 1);
   model->addOperation(ANEURALNETWORKS_CONV_2D, {op1, op2, op3, pad0, pad0, pad0, pad0, stride, stride, act}, {op4});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op1, op2, op3},
     {op4});
   assert(model->isValid());

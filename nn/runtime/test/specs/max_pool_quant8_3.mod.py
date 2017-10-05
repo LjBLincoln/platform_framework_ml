@@ -18,8 +18,8 @@
 model = Model()
 
 bat = 5
-row = 600
-col = 800
+row = 50
+col = 70
 chn = 3
 
 i0 = Input("i0", "TENSOR_QUANT8_ASYMM", "{%d, %d, %d, %d}, 0.5f, 0" % (bat, row, col, chn))
