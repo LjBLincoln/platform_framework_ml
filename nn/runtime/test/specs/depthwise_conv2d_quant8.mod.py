@@ -22,7 +22,7 @@ pad0 = Int32Scalar("pad0", 0)
 act = Int32Scalar("act", 0)
 stride = Int32Scalar("stride", 1)
 cm = Int32Scalar("channelMultiplier", 1)
-output = Output("op4", "TENSOR_QUANT8_ASYMM", "{2}, 1.f, 0")
+output = Output("op4", "TENSOR_QUANT8_ASYMM", "{1,1,1,2}, 1.f, 0")
 
 model = model.Operation("DEPTHWISE_CONV_2D",
                         i1, f1, b1,
