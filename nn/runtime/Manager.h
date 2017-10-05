@@ -69,7 +69,20 @@ public:
     // For testing only:
     void setUseCpuOnly(bool useCpuOnly) { mUseCpuOnly = useCpuOnly; }
 
+    // How to handle graph partitioning?
+    // 0 - Don't do graph partitioning.
+    // 1 - Do graph partitioning; but fall back to non-partitioned
+    //     execution if there is a partitioning failure.
+    // 2 - Do graph partitioning, and rely on it; there is no fallback.
+    enum {
+        kPartitioningNo              = 0,
+        kPartitioningWithFallback    = 1,
+        kPartitioningWithoutFallback = 2
+    };
     uint32_t getPartitioning() const { return mPartitioning; }
+    static bool partitioningAllowsFallback(uint32_t partitioning) {
+        return partitioning == kPartitioningWithFallback;
+    }
 
     // Returns the singleton manager.
     static DeviceManager* get();
@@ -97,15 +110,7 @@ private:
     // on the CPU.
     bool mUseCpuOnly = false;
 
-    // How to handle graph partitioning?
-    // 0 - don't do graph partitioning
-    // 1 - do graph partitioning, but only to test it -- do not rely on
-    //     compilation performed by graph partitioning, and do not
-    //     use the partitions to drive execution
-    // 2 - do graph partitioning, and rely on it; but fall back to
-    //     non-partitioned execution if there is a partitioning failure
-    // 3 - do graph partitioning, and rely on it; there is no fallback
-    static const uint32_t kPartitioningDefault = 2;
+    static const uint32_t kPartitioningDefault = kPartitioningWithFallback;
     uint32_t mPartitioning = kPartitioningDefault;
 };
 
