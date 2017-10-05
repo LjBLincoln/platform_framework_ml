@@ -17,7 +17,7 @@
 #ifndef FRAMEWORKS_ML_NN_SVDF_H
 #define FRAMEWORKS_ML_NN_SVDF_H
 
-#include "ActivationFunctor.h"
+#include "tensorflow/contrib/lite/kernels/internal/tensor_utils.h"
 
 #include <algorithm>
 #include <cmath>
@@ -37,7 +37,7 @@ namespace nn {
 
 struct SVDFParams {
     int rank_;
-    ActivationFn activation_;
+    TfLiteFusedActivation activation_;
 };
 
 struct RunTimeOperandInfo;
