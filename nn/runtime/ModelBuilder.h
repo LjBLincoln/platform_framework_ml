@@ -35,7 +35,6 @@ class ExecutionStep;
 class Memory;
 
 class ModelBuilder {
-    friend class CompilationBuilder;  // TODO remove this
 public:
     virtual ~ModelBuilder() {}
     // Adds an operand to the model.
@@ -82,11 +81,13 @@ public:
         return mOperandValues.data() + offset;
     }
 
-private:
+    int partitionTheWork(const std::vector<std::shared_ptr<Device>>& devices,
+                         uint32_t preference, ExecutionPlan* plan) const;
+
+ private:
     // TODO: move partitionTheWork, findBestDeviceForEachOperation,
     // sortIntoRunOrder to CompilationBuilder?
 
-    int partitionTheWork(uint32_t preference, ExecutionPlan* plan) const;
     int findBestDeviceForEachOperation(uint32_t preference,
                                        const std::vector<std::shared_ptr<Device>>& devices,
                                        const size_t operationCount,
