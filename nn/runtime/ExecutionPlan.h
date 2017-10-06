@@ -190,6 +190,13 @@ public:
 
     void dump() const;
 
+    // These functions are solely intended for use by unit tests of
+    // the partitioning algorithm.
+    enum class Kind { ERROR, EMPTY, SIMPLE, COMPOUND };
+    Kind forTest_getKind() const;
+    std::shared_ptr<const Device> forTest_simpleGetDevice() const;
+    const std::vector<std::shared_ptr<ExecutionStep>>& forTest_compoundGetSteps() const;
+
 private:
     void findSubModelOutputs();
 

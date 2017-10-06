@@ -618,6 +618,31 @@ void ExecutionPlan::dump() const {
     }
 }
 
+ExecutionPlan::Kind ExecutionPlan::forTest_getKind() const {
+    switch (mState) {
+        case EMPTY:
+            return Kind::EMPTY;
+        case SIMPLE:
+            nnAssert(mBody);
+            return mBody->mSuccessfulFinish ? Kind::SIMPLE : Kind::ERROR;
+        case COMPOUND:
+            nnAssert(mBody);
+            return mBody->mSuccessfulFinish ? Kind::COMPOUND : Kind::ERROR;
+        default:
+            nnAssert(!"unexpected state");
+            return Kind::ERROR;
+    }
+}
+
+std::shared_ptr<const Device> ExecutionPlan::forTest_simpleGetDevice() const {
+    nnAssert(mState == SIMPLE);
+    return static_cast<const SimpleBody*>(mBody)->mDevice;
+}
+
+const std::vector<std::shared_ptr<ExecutionStep>>& ExecutionPlan::forTest_compoundGetSteps() const {
+    return compound()->mSteps;
+}
+
 void ExecutionPlan::SimpleBody::dump() const {
     LOG(DEBUG) << "SIMPLE for " << (mDevice == nullptr ? "CPU" : mDevice->getName());
 }
@@ -628,12 +653,10 @@ void ExecutionPlan::CompoundBody::dump() const {
     }
 }
 
-int ModelBuilder::partitionTheWork(uint32_t preference, ExecutionPlan* plan) const {
+int ModelBuilder::partitionTheWork(const std::vector<std::shared_ptr<Device>>& devices,
+                                   uint32_t preference, ExecutionPlan* plan) const {
     // This function uses a heuristic approach to partitioning the graph.
     // It should be good enough for the first release.
-
-    // Get the list of HAL devices.
-    const std::vector<std::shared_ptr<Device>>& devices = DeviceManager::get()->getDrivers();
 
     const size_t nonCpuDeviceCount = devices.size();
     // The device count is the number of HAL devices + 1. The +1 is for the CPU.
