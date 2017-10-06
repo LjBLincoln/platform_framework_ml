@@ -31,7 +31,7 @@ namespace sample_driver {
 
 Return<ErrorStatus> SampleDriver::prepareModel(const Model& model,
                                                const sp<IPreparedModelCallback>& callback) {
-    LOG(DEBUG) << "prepareModel(" << toString(model) << ")"; // TODO errror
+    VLOG(DRIVER) << "prepareModel(" << toString(model) << ")"; // TODO errror
     if (callback.get() == nullptr) {
         LOG(ERROR) << "invalid callback passed to prepareModel";
         return ErrorStatus::INVALID_ARGUMENT;
@@ -49,7 +49,7 @@ Return<ErrorStatus> SampleDriver::prepareModel(const Model& model,
 }
 
 Return<DeviceStatus> SampleDriver::getStatus() {
-    LOG(DEBUG) << "getStatus()";
+    VLOG(DRIVER) << "getStatus()";
     return DeviceStatus::AVAILABLE;
 }
 
@@ -85,7 +85,7 @@ void SamplePreparedModel::asyncExecute(const Request& request,
 
     CpuExecutor executor;
     int n = executor.run(mModel, request, poolInfo);
-    LOG(DEBUG) << "executor.run returned " << n;
+    VLOG(DRIVER) << "executor.run returned " << n;
     ErrorStatus executionStatus =
             n == ANEURALNETWORKS_NO_ERROR ? ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
     Return<void> returned = callback->notify(executionStatus);
@@ -96,7 +96,7 @@ void SamplePreparedModel::asyncExecute(const Request& request,
 
 Return<ErrorStatus> SamplePreparedModel::execute(const Request& request,
                                                  const sp<IExecutionCallback>& callback) {
-    LOG(DEBUG) << "execute(" << toString(request) << ")";
+    VLOG(DRIVER) << "execute(" << toString(request) << ")";
     if (callback.get() == nullptr) {
         LOG(ERROR) << "invalid callback passed to execute";
         return ErrorStatus::INVALID_ARGUMENT;

@@ -44,8 +44,8 @@ void Device::initialize() {
         if (status != ErrorStatus::NONE) {
             LOG(ERROR) << "IDevice::getCapabilities returned the error " << toString(status);
         }
-        LOG(DEBUG) << "Capab " << capabilities.float32Performance.execTime;
-        LOG(DEBUG) << "Capab " << capabilities.quantized8Performance.execTime;
+        VLOG(MANAGER) << "Capab " << capabilities.float32Performance.execTime;
+        VLOG(MANAGER) << "Capab " << capabilities.quantized8Performance.execTime;
         mFloat32Performance = capabilities.float32Performance;
         mQuantized8Performance = capabilities.quantized8Performance;
     });
@@ -118,7 +118,7 @@ DeviceManager* DeviceManager::get() {
 void DeviceManager::findAvailableDevices() {
     using ::android::hardware::neuralnetworks::V1_0::IDevice;
     using ::android::hidl::manager::V1_0::IServiceManager;
-    LOG(DEBUG) << "findAvailableDevices";
+    VLOG(MANAGER) << "findAvailableDevices";
 
     sp<IServiceManager> manager = hardware::defaultServiceManager();
     if (manager == nullptr) {
@@ -128,7 +128,7 @@ void DeviceManager::findAvailableDevices() {
 
     manager->listByInterface(IDevice::descriptor, [this](const hidl_vec<hidl_string>& names) {
         for (const auto& name : names) {
-            LOG(DEBUG) << "Found interface " << name.c_str();
+            VLOG(MANAGER) << "Found interface " << name.c_str();
             sp<IDevice> device = IDevice::getService(name);
             if (device == nullptr) {
                 LOG(ERROR) << "Got a null IDEVICE for " << name.c_str();
@@ -140,7 +140,7 @@ void DeviceManager::findAvailableDevices() {
 }
 
 DeviceManager::DeviceManager() {
-    LOG(VERBOSE) << "DeviceManager::DeviceManager";
+    VLOG(MANAGER) << "DeviceManager::DeviceManager";
     findAvailableDevices();
 #ifdef NN_DEBUGGABLE
     mPartitioning = getProp("debug.nn.partition", kPartitioningDefault);
