@@ -100,9 +100,9 @@ static bool setInfoAndAllocateIfNeeded(RunTimeOperandInfo* info, const Shape& sh
 // by the caller.
 int CpuExecutor::run(const Model& model, const Request& request,
                      const std::vector<RunTimePoolInfo>& runTimePoolInfos) {
-    LOG(DEBUG) << "CpuExecutor::run()";
-    LOG(DEBUG) << "model: " << toString(model);
-    LOG(DEBUG) << "request: " << toString(request);
+    VLOG(CPUEXE) << "CpuExecutor::run()";
+    // VLOG(CPUEXE) << "model: " << toString(model);
+    VLOG(CPUEXE) << "request: " << toString(request);
 
     mModel = &model;
     mRequest = &request; // TODO check if mRequest is needed
@@ -119,12 +119,12 @@ int CpuExecutor::run(const Model& model, const Request& request,
     }
     mModel = nullptr;
     mRequest = nullptr;
-    LOG(DEBUG) << "Completed run normally";
+    VLOG(CPUEXE) << "Completed run normally";
     return ANEURALNETWORKS_NO_ERROR;
 }
 
 bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runTimePoolInfos) {
-    LOG(DEBUG) << "CpuExecutor::initializeRunTimeInfo";
+    VLOG(CPUEXE) << "CpuExecutor::initializeRunTimeInfo";
     const size_t count = mModel->operands.size();
     mOperands.resize(count);
 
@@ -218,7 +218,7 @@ void CpuExecutor::freeNoLongerUsedOperands(const std::vector<uint32_t>& inputs) 
 }
 
 int CpuExecutor::executeOperation(const Operation& operation) {
-    LOG(DEBUG) << "CpuExecutor::executeOperation(" << toString(operation) << ")";
+    // VLOG(CPUEXE) << "CpuExecutor::executeOperation(" << toString(operation) << ")";
     const hidl_vec<uint32_t>& ins = operation.inputs;
     const hidl_vec<uint32_t>& outs = operation.outputs;
     bool success = false;

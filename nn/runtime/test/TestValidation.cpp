@@ -26,10 +26,7 @@
 namespace {
 class ValidationTest : public ::testing::Test {
 protected:
-    virtual void SetUp() {
-        // For detailed logs, uncomment this line:
-        // SetMinimumLogSeverity(android::base::VERBOSE);
-    }
+    virtual void SetUp() {}
 };
 
 class ValidationTestModel : public ValidationTest {

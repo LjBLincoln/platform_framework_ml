@@ -29,7 +29,7 @@ namespace nn {
 
 CompilationBuilder::CompilationBuilder(const ModelBuilder* model) :
     mModel(model) {
-    LOG(DEBUG) << "CompilationBuilder::CompilationBuilder";
+    VLOG(COMPILATION) << "CompilationBuilder::CompilationBuilder";
 }
 
 int CompilationBuilder::finish() {
