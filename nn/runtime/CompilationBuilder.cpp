@@ -29,7 +29,7 @@ namespace nn {
 
 CompilationBuilder::CompilationBuilder(const ModelBuilder* model) :
     mModel(model) {
-    LOG(DEBUG) << "CompilationBuilder::CompilationBuilder";
+    VLOG(COMPILATION) << "CompilationBuilder::CompilationBuilder";
 }
 
 int CompilationBuilder::finish() {
@@ -42,7 +42,10 @@ int CompilationBuilder::finish() {
     mFinished = true;
 
     if (uint32_t p = DeviceManager::get()->getPartitioning()) {
-        int n = mModel->partitionTheWork(mPreference, &mPlan);
+        // Get the list of HAL devices.
+        const std::vector<std::shared_ptr<Device>>& devices = DeviceManager::get()->getDrivers();
+
+        int n = mModel->partitionTheWork(devices, mPreference, &mPlan);
         if (!DeviceManager::partitioningAllowsFallback(p) &&
             (n != ANEURALNETWORKS_NO_ERROR)) {
             return n;

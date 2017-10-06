@@ -235,6 +235,7 @@ void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory) {
 }
 
 int ANeuralNetworksModel_create(ANeuralNetworksModel** model) {
+    initVLogMask();
     if (!model) {
         LOG(ERROR) << "ANeuralNetworksModel_create passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;

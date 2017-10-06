@@ -172,6 +172,9 @@ public:
 
     int next(std::shared_ptr<Controller> controller, std::shared_ptr<StepExecutor>* executor) const;
 
+    // Create the same executor as the last one created by next().
+    int fallback(std::shared_ptr<Controller> controller, std::shared_ptr<StepExecutor>* executor) const;
+
     std::shared_ptr<ExecutionStep> createNewStep(const std::shared_ptr<Device> device);
 
     void becomeSingleStep(const std::shared_ptr<Device> device,
@@ -186,6 +189,13 @@ public:
     }
 
     void dump() const;
+
+    // These functions are solely intended for use by unit tests of
+    // the partitioning algorithm.
+    enum class Kind { ERROR, EMPTY, SIMPLE, COMPOUND };
+    Kind forTest_getKind() const;
+    std::shared_ptr<const Device> forTest_simpleGetDevice() const;
+    const std::vector<std::shared_ptr<ExecutionStep>>& forTest_compoundGetSteps() const;
 
 private:
     void findSubModelOutputs();
