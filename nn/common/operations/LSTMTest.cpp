@@ -60,13 +60,15 @@ std::vector<Matcher<float>> ArrayFloatNear(const std::vector<float>& values,
     ACTION(ForgetGateBias)                              \
     ACTION(OutputGateBias)                              \
     ACTION(ProjectionWeights)                           \
-    ACTION(ProjectionBias)
+    ACTION(ProjectionBias)                              \
+    ACTION(OutputStateIn)                               \
+    ACTION(CellStateIn)
 
 // For all output and intermediate states
 #define FOR_ALL_OUTPUT_TENSORS(ACTION)          \
     ACTION(Output)                              \
-    ACTION(OutputState)                         \
-    ACTION(CellState)                           \
+    ACTION(OutputStateOut)                      \
+    ACTION(CellStateOut)                        \
     ACTION(ScratchBuffer)
 
 class LSTMOpModel {
@@ -75,7 +77,7 @@ public:
                 uint32_t n_cell, uint32_t n_output, bool use_cifg,
                 bool use_peephole, bool use_projection_weights,
                 bool use_projection_bias, float cell_clip, float proj_clip,
-                const std::vector<std::vector<uint32_t>>& input_shapes)
+                const std::vector<std::vector<uint32_t>>& input_shapes0)
         : n_batch_(n_batch), n_input_(n_input),
           n_cell_(n_cell), n_output_(n_output),
           use_cifg_(use_cifg), use_peephole_(use_peephole),
@@ -84,7 +86,10 @@ public:
           activation_(ActivationFn::kActivationTanh),
           cell_clip_(cell_clip), proj_clip_(proj_clip) {
         std::vector<uint32_t> inputs;
+        std::vector<std::vector<uint32_t>> input_shapes(input_shapes0.begin(), input_shapes0.end());
         auto it = input_shapes.begin();
+        input_shapes.push_back({n_batch, n_output});
+        input_shapes.push_back({n_batch, n_cell});
 
         // Input and weights
 #define AddInput(X)                                                     \
@@ -123,7 +128,7 @@ public:
 #undef AddOutput
 
         model_.addOperation(ANEURALNETWORKS_LSTM, inputs, outputs);
-        model_.setInputsAndOutputs(inputs, outputs);
+        model_.identifyInputsAndOutputs(inputs, outputs);
 
         Input_.insert(Input_.end(), n_batch * n_input, 0.f);
 
@@ -154,11 +159,11 @@ public:
 #undef DefineSetter
 
     void ResetOutputState() {
-        std::fill(OutputState_.begin(), OutputState_.end(), 0.f);
+        std::fill(OutputStateIn_.begin(), OutputStateIn_.end(), 0.f);
     }
 
     void ResetCellState() {
-        std::fill(CellState_.begin(), CellState_.end(), 0.f);
+        std::fill(CellStateIn_.begin(), CellStateIn_.end(), 0.f);
     }
 
     void SetInput(int offset, float *begin, float *end) {
@@ -419,8 +424,6 @@ TEST(LSTMOpTest, BlackBoxTestWithCifgWithPeepholeNoProjectionNoClipping) {
   lstm.SetInputToOutputWeights({0.10725588, -0.02335852, -0.55932593,
                                 -0.09426838, -0.44257352, 0.54939759,
                                 0.01533556, 0.42751634});
-
-  lstm.SetInputGateBias({0., 0., 0., 0.});
 
   lstm.SetCellGateBias({0., 0., 0., 0.});
 

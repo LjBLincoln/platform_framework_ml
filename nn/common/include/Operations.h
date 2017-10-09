@@ -38,10 +38,19 @@ bool addFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
                 float* out, const Shape& shapeOut);
+bool addQuant8(const uint8_t* in1, const Shape& shape1,
+               const uint8_t* in2, const Shape& shape2,
+               int32_t activation,
+               uint8_t* out, const Shape& shapeOut);
+
 bool mulFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
                 float* out, const Shape& shapeOut);
+bool mulQuant8(const uint8_t* in1, const Shape& shape1,
+               const uint8_t* in2, const Shape& shape2,
+               int32_t activation,
+               uint8_t* out, const Shape& shapeOut);
 
 bool floorFloat32(const float* inputData,
                   float* outputData,
@@ -153,12 +162,10 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
                           uint8_t* outputData, const Shape& outputShape);
 
 bool concatenationFloat32(const std::vector<const float*>& inputDataPtrs,
-                          const std::vector<Shape>& inputShapes,
-                          int32_t axis, int32_t activation,
+                          const std::vector<Shape>& inputShapes, int32_t axis,
                           float* outputData, const Shape& outputShape);
 bool concatenationQuant8(const std::vector<const uint8_t*>& inputDataPtrs,
-                         const std::vector<Shape>& inputShapes,
-                         int32_t axis, int32_t activation,
+                         const std::vector<Shape>& inputShapes, int32_t axis,
                          uint8_t* outputData, const Shape& outputShape);
 
 bool l2normFloat32(const float* inputData, const Shape& inputShape,

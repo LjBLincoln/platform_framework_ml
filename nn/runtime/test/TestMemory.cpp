@@ -32,10 +32,7 @@ typedef float Matrix3x4[3][4];
 // Tests the various ways to pass weights and input/output data.
 class MemoryTest : public ::testing::Test {
 protected:
-    virtual void SetUp() {
-        // For detailed logs, uncomment this line:
-        // SetMinimumLogSeverity(android::base::VERBOSE);
-    }
+    virtual void SetUp() {}
 
     const Matrix3x4 matrix1 = {{1.f, 2.f, 3.f, 4.f}, {5.f, 6.f, 7.f, 8.f}, {9.f, 10.f, 11.f, 12.f}};
     const Matrix3x4 matrix2 = {{100.f, 200.f, 300.f, 400.f},
@@ -102,7 +99,7 @@ TEST_F(MemoryTest, TestASharedMemory) {
     model.setOperandValue(f, &activation, sizeof(activation));
     model.addOperation(ANEURALNETWORKS_ADD, {a, c, f}, {b});
     model.addOperation(ANEURALNETWORKS_ADD, {b, e, f}, {d});
-    model.setInputsAndOutputs({c}, {d});
+    model.identifyInputsAndOutputs({c}, {d});
     ASSERT_TRUE(model.isValid());
     model.finish();
 
@@ -171,7 +168,7 @@ TEST_F(MemoryTest, TestFd) {
     model.setOperandValue(f, &activation, sizeof(activation));
     model.addOperation(ANEURALNETWORKS_ADD, {a, c, f}, {b});
     model.addOperation(ANEURALNETWORKS_ADD, {b, e, f}, {d});
-    model.setInputsAndOutputs({c}, {d});
+    model.identifyInputsAndOutputs({c}, {d});
     ASSERT_TRUE(model.isValid());
     model.finish();
 

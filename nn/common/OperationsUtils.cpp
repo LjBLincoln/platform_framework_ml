@@ -65,14 +65,6 @@ uint32_t getSizeOfDimension(const Shape& shape, uint32_t dimensionIdx) {
     return shape.dimensions[dimensionIdx];
 }
 
-
-// Macro to check if the input parameters for operation are valid or not.
-#define NN_OPS_CHECK(v)                                                  \
-    if (!(v)) {                                                          \
-        LOG(ERROR) << "NN_OPS_CHECK failed: "  << #v << "'\n";           \
-        return false;                                                    \
-    }
-
 bool QuantizeMultiplierSmallerThanOne(double double_multiplier,
                                       int32_t* quantized_multiplier,
                                       int32_t* right_shift) {
@@ -174,6 +166,7 @@ int32_t CalculateInputRadius(int input_integer_bits, int input_left_shift) {
 
 bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out) {
     NN_OPS_CHECK(getNumberOfDimensions(in1) <= 4 && getNumberOfDimensions(in2) <= 4);
+    NN_OPS_CHECK(in1.type == in2.type);
     if (SameShape(in1, in2)) {
         return SetShape(in1, out);
     } else {
@@ -226,6 +219,12 @@ bool convPrepare(const Shape& input,
                  int32_t padding_top, int32_t padding_bottom,
                  int32_t stride_width, int32_t stride_height,
                  Shape* output) {
+    NN_OPS_CHECK(input.type == filter.type);
+    if (input.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NN_OPS_CHECK(bias.type == OperandType::TENSOR_INT32);
+    } else {
+        NN_OPS_CHECK(input.type == bias.type);
+    }
     NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
     NN_OPS_CHECK(getNumberOfDimensions(filter) == 4);
     NN_OPS_CHECK(getNumberOfDimensions(bias) == 1);
@@ -257,6 +256,12 @@ bool depthwiseConvPrepare(const Shape& input,
                           int32_t padding_top, int32_t padding_bottom,
                           int32_t stride_width, int32_t stride_height,
                           Shape* output) {
+    NN_OPS_CHECK(input.type == filter.type);
+    if (input.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NN_OPS_CHECK(bias.type == OperandType::TENSOR_INT32);
+    } else {
+        NN_OPS_CHECK(input.type == bias.type);
+    }
     NN_OPS_CHECK(getNumberOfDimensions(input) == 4);
     NN_OPS_CHECK(getNumberOfDimensions(filter) == 4);
     NN_OPS_CHECK(getNumberOfDimensions(bias) == 1);
@@ -317,6 +322,13 @@ bool fullyConnectedPrepare(const Shape& input,
                            Shape* output) {
     // Check all the parameters of tensor match within themselves and match the
     // input configuration.
+    NN_OPS_CHECK(input.type == weights.type);
+    if (input.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NN_OPS_CHECK(bias.type == OperandType::TENSOR_INT32);
+    } else {
+        NN_OPS_CHECK(input.type == bias.type);
+    }
+    NN_OPS_CHECK(getNumberOfDimensions(input) >= 2);
     uint32_t input_size = getNumberOfElements(input);
     uint32_t num_units  = getSizeOfDimension(weights, 0);
     uint32_t batch_size = input_size / getSizeOfDimension(weights, 1);
@@ -475,6 +487,56 @@ bool spaceToDepthPrepare(const Shape& input,
                           channels * (blockSize * blockSize)};
     output->offset = input.offset;
     output->scale = input.scale;
+
+    return true;
+}
+
+bool embeddingLookupPrepare(const Shape &valueShape,
+                            const Shape &lookupShape,
+                            Shape *outputShape) {
+    NN_OPS_CHECK(getNumberOfDimensions(valueShape) >= 2);
+    NN_OPS_CHECK(getNumberOfDimensions(lookupShape) == 1);
+
+    const uint32_t rows     = getSizeOfDimension(valueShape, 0);
+    const uint32_t columns  = getSizeOfDimension(valueShape, 1);
+
+    const uint32_t lookups  = getSizeOfDimension(lookupShape, 0);
+
+    outputShape->type = valueShape.type;
+    outputShape->dimensions = { lookups, columns };
+    for (uint32_t i = 2; i < getNumberOfDimensions(valueShape); i++) {
+        outputShape->dimensions[i] = getSizeOfDimension(valueShape, i);
+    }
+    outputShape->offset = valueShape.offset;
+    outputShape->scale = valueShape.scale;
+
+    return true;
+}
+
+bool hashtableLookupPrepare(const Shape &lookupShape,
+                            const Shape &keyShape,
+                            const Shape &valueShape,
+                            Shape *outputShape,
+                            Shape *hitShape) {
+    NN_OPS_CHECK(getNumberOfDimensions(lookupShape) == 1);
+    NN_OPS_CHECK(getNumberOfDimensions(keyShape) == 1);
+    NN_OPS_CHECK(getNumberOfDimensions(valueShape) >= 1);
+
+    const uint32_t lookups  = getSizeOfDimension(lookupShape, 0);
+    const uint32_t keys     = getSizeOfDimension(keyShape, 0);
+    const uint32_t rows     = getSizeOfDimension(valueShape, 0);
+    outputShape->type = valueShape.type;
+    outputShape->dimensions = { lookups };
+    for (uint32_t i = 1; i < getNumberOfDimensions(valueShape); i++) {
+        outputShape->dimensions[i] = getSizeOfDimension(valueShape, i);
+    }
+    outputShape->offset = valueShape.offset;
+    outputShape->scale = valueShape.scale;
+
+    hitShape->type = OperandType::TENSOR_QUANT8_ASYMM;
+    hitShape->dimensions = { lookups };
+    hitShape->offset = 0;
+    hitShape->scale = 1.f;
 
     return true;
 }

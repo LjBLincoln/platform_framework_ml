@@ -33,13 +33,14 @@ class Device {
 public:
     Device(const std::string& name, const sp<IDevice>& device) : mName(name), mInterface(device) {}
     sp<IDevice> getInterface() { return mInterface; }
-    const std::string& getName() { return mName; }
+    const std::string& getName() const { return mName; }
     void initialize();
 
     void getSupportedOperations(const Model& hidlModel, hidl_vec<bool>* supportedOperations) const;
 
     PerformanceInfo getFloat32Performance() const { return mFloat32Performance; }
     PerformanceInfo getQuantized8Performance() const { return mQuantized8Performance; }
+
 private:
     std::string mName;
     sp<IDevice> mInterface;
@@ -68,6 +69,21 @@ public:
     // For testing only:
     void setUseCpuOnly(bool useCpuOnly) { mUseCpuOnly = useCpuOnly; }
 
+    // How to handle graph partitioning?
+    // 0 - Don't do graph partitioning.
+    // 1 - Do graph partitioning; but fall back to non-partitioned
+    //     execution if there is a partitioning failure.
+    // 2 - Do graph partitioning, and rely on it; there is no fallback.
+    enum {
+        kPartitioningNo              = 0,
+        kPartitioningWithFallback    = 1,
+        kPartitioningWithoutFallback = 2
+    };
+    uint32_t getPartitioning() const { return mPartitioning; }
+    static bool partitioningAllowsFallback(uint32_t partitioning) {
+        return partitioning == kPartitioningWithFallback;
+    }
+
     // Returns the singleton manager.
     static DeviceManager* get();
 
@@ -93,6 +109,9 @@ private:
     // If true, we'll ignore the drivers that are on the device and run everything
     // on the CPU.
     bool mUseCpuOnly = false;
+
+    static const uint32_t kPartitioningDefault = kPartitioningWithFallback;
+    uint32_t mPartitioning = kPartitioningDefault;
 };
 
 } // namespace nn

@@ -37,7 +37,7 @@ public:
 };
 
 Return<void> SampleDriverQuant::getCapabilities(getCapabilities_cb cb) {
-    LOG(DEBUG) << "getCapabilities()";
+    VLOG(DRIVER) << "getCapabilities()";
     Capabilities capabilities = {.float32Performance = {.execTime = 50.0f, .powerUsage = 1.0f},
                                  .quantized8Performance = {.execTime = 50.0f, .powerUsage = 1.0f}};
     cb(ErrorStatus::NONE, capabilities);
@@ -46,7 +46,7 @@ Return<void> SampleDriverQuant::getCapabilities(getCapabilities_cb cb) {
 
 Return<void> SampleDriverQuant::getSupportedOperations(const Model& model,
                                                        getSupportedOperations_cb cb) {
-    LOG(DEBUG) << "getSupportedOperations()";
+    VLOG(DRIVER) << "getSupportedOperations()";
     if (validateModel(model)) {
         const size_t count = model.operations.size();
         std::vector<bool> supported(count);
@@ -73,7 +73,7 @@ using android::nn::sample_driver::SampleDriverQuant;
 using android::sp;
 
 int main() {
-    SetMinimumLogSeverity(android::base::VERBOSE);
+    android::nn::initVLogMask();
     sp<SampleDriverQuant> driver(new SampleDriverQuant());
     return driver->run();
 }

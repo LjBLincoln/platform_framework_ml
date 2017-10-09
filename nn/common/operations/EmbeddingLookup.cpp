@@ -25,28 +25,10 @@ namespace nn {
 
 EmbeddingLookup::EmbeddingLookup(const Operation& operation,
                                  std::vector<RunTimeOperandInfo>& operands) {
-  auto GetInput = [&operation,
-                   &operands](uint32_t index) -> const RunTimeOperandInfo* {
-    const std::vector<uint32_t>& inputs = operation.inputs;
-    const int index_of_operand = inputs[index];
-    if (index_of_operand < 0) {
-      return nullptr;
-    }
-    return &operands[index_of_operand];
-  };
+  value_ = GetInput(operation, operands, kValueTensor);
+  lookup_ = GetInput(operation, operands, kLookupTensor);
 
-  auto GetOutput = [&operation,
-                    &operands](uint32_t index) -> RunTimeOperandInfo* {
-    const std::vector<uint32_t>& outputs = operation.outputs;
-    const int index_of_operand = outputs[index];
-    // Expects index of operand in range.
-    return &operands[index_of_operand];
-  };
-
-  value_ = GetInput(kValueTensor);
-  lookup_ = GetInput(kLookupTensor);
-
-  output_ = GetOutput(kOutputTensor);
+  output_ = GetOutput(operation, operands, kOutputTensor);
 }
 
 bool EmbeddingLookup::Eval() {
@@ -56,7 +38,6 @@ bool EmbeddingLookup::Eval() {
 
   for (uint32_t i = 0; i < lookup_->shape().dimensions[0]; i++) {
     int idx = static_cast<int>((reinterpret_cast<float*>(lookup_->buffer))[i]);
-    LOG(INFO) << "idx=" << idx;
     if (idx >= row_size || idx < 0) {
       LOG(ERROR) << "Embedding Lookup: index out of bounds.";
       return false;

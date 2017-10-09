@@ -36,6 +36,10 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperand can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
+    int n = validateOperandType(type, "ANeuralNetworksModel_addOperand", true);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
     size_t idx = mOperands.size();
     if (idx >= MAX_NUMBER_OF_OPERANDS) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperand exceed max operands";
@@ -60,19 +64,32 @@ int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t len
         return ANEURALNETWORKS_BAD_DATA;
     }
     Operand& operand = mOperands[index];
-    uint32_t neededLength = sizeOfData(operand.type, operand.dimensions);
-    if (neededLength != length) {
-        LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting " << length
-                   << " bytes when needing " << neededLength;
-        return ANEURALNETWORKS_BAD_DATA;
+    if (buffer == nullptr) {
+        if (length) {
+            LOG(ERROR) << "ANeuralNetworksModel_setOperandValue buffer is nullptr but length is "
+                          "not 0";
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+        operand.lifetime = OperandLifeTime::NO_VALUE;
+        // The location is unused and is set to zeros.
+        operand.location = {.poolIndex = 0,
+                            .offset = 0,
+                            .length = 0};
+    } else {
+        uint32_t neededLength = sizeOfData(operand.type, operand.dimensions);
+        if (neededLength != length) {
+            LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting " << length
+                       << " bytes when needing " << neededLength;
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+        uint32_t existingSize = static_cast<uint32_t>(mOperandValues.size());
+        uint32_t extraBytes = alignBytesNeeded(existingSize, length);
+        mOperandValues.resize(existingSize + extraBytes + length);
+        operand.lifetime = OperandLifeTime::CONSTANT_COPY;
+        operand.location = {
+                    .poolIndex = 0, .offset = existingSize + extraBytes, .length = neededLength};
+        memcpy(&mOperandValues[operand.location.offset], buffer, length);
     }
-    uint32_t existingSize = static_cast<uint32_t>(mOperandValues.size());
-    uint32_t extraBytes = alignBytesNeeded(existingSize, length);
-    mOperandValues.resize(existingSize + extraBytes + length);
-    operand.lifetime = OperandLifeTime::CONSTANT_COPY;
-    operand.location = {
-                .poolIndex = 0, .offset = existingSize + extraBytes, .length = neededLength};
-    memcpy(&mOperandValues[operand.location.offset], buffer, length);
     return ANEURALNETWORKS_NO_ERROR;
 }
 
@@ -104,6 +121,21 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type, uint32_t input
         LOG(ERROR) << "ANeuralNetworksModel_addOperation can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
+    if (!validCode(kNumberOfOperationTypes, kNumberOfOperationTypesOEM, type)) {
+        LOG(ERROR) << "ANeuralNetworksModel_addOperation invalid operations type " << type;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    int n = validateOperandList(inputCount, inputs, operandCount(),
+                                "ANeuralNetworksModel_addOperation inputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    n = validateOperandList(outputCount, outputs, operandCount(),
+                            "ANeuralNetworksModel_addOperation outputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+
     uint32_t operationIndex = operationCount();
     if (operationIndex >= MAX_NUMBER_OF_OPERATIONS) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperation exceed max operations";
@@ -122,11 +154,21 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type, uint32_t input
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ModelBuilder::setInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs,
+int ModelBuilder::identifyInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs,
                                       uint32_t outputCount, const uint32_t* outputs) {
     if (mCompletedModel) {
-        LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs can't modify after model finished";
+        LOG(ERROR) << "ANeuralNetworksModel_identifyInputsAndOutputs can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
+    }
+    int n = validateOperandList(inputCount, inputs, operandCount(),
+                                "ANeuralNetworksModel_identifyInputsAndOutputs inputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    n = validateOperandList(outputCount, outputs, operandCount(),
+                            "ANeuralNetworksModel_identifyInputsAndOutputs outputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
     }
 
     // Makes a copy of the index list, validates the arguments, and changes
@@ -137,7 +179,7 @@ int ModelBuilder::setInputsAndOutputs(uint32_t inputCount, const uint32_t* input
         for (uint32_t i = 0; i < indexCount; i++) {
             const uint32_t operandIndex = indexList[i];
             if (operandIndex >= mOperands.size()) {
-                LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs Can't set input or output "
+                LOG(ERROR) << "ANeuralNetworksModel_identifyInputsAndOutputs Can't set input or output "
                               "to be "
                            << operandIndex << " as this exceeds the numbe of operands "
                            << mOperands.size();
@@ -146,7 +188,7 @@ int ModelBuilder::setInputsAndOutputs(uint32_t inputCount, const uint32_t* input
             (*indexVector)[i] = operandIndex;
             Operand& operand = mOperands[operandIndex];
             if (operand.lifetime != OperandLifeTime::TEMPORARY_VARIABLE) {
-                LOG(ERROR) << "ANeuralNetworksModel_setInputsAndOutputs Can't set operand "
+                LOG(ERROR) << "ANeuralNetworksModel_identifyInputsAndOutputs Can't set operand "
                            << operandIndex
                            << " to be an input or output.  Check that it's not a constant or "
                               "already an input or output";

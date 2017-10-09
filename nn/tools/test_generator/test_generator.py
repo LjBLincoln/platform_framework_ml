@@ -24,6 +24,7 @@ from __future__ import division
 from __future__ import print_function
 import argparse
 from functools import reduce
+import math
 import os
 import struct
 import sys
@@ -175,20 +176,23 @@ class Type(object):
     if (self.__shape != "" and self.__shape != "{}"):
       left, sep, right = self.__shape.partition('{')
       real_shape, sep, right = right.partition('}')
-      assert right == ""
       shape = [int(x) for x in real_shape.split(",")]
       # left now looks like "0.0f, 127.5f, "
-      real_fminmax, sep, right = left.rpartition(',')
-      return real_fminmax.replace("f",""), real_shape
+      scale, sep, zero_point = right.rpartition(',')
+      if scale == "":
+        if zero_point == "":
+          return real_shape, "0", "0"
+        return real_shape, zero_point, "0"
+      left, sep, scale = scale.partition(',')
+      return real_shape, scale.replace("f", ""), zero_point
     else:
-      return "", ""
+      return "", "0", "0"
 
   def get_size(self):
     element_size = TypeLookup.get_size(self.__vt)
     # Parse shape
     nr_elements = 1
-    fminmax, real_shape = self.get_parsed_shape()
-    assert fminmax == ""
+    real_shape, scale, zero_point = self.get_parsed_shape()
 
     if (real_shape != "" and real_shape != "{}"):
       shape = [int(x) for x in real_shape.split(",")]
@@ -490,6 +494,13 @@ class Model(object):
     self.__currentOp = op
     return self
 
+  def Reshape(self, input, shape):
+    ins = [input, shape]
+    outs = []
+    op = Operation("RESHAPE", ins, outs)
+    self.__currentOp = op
+    return self
+
   def Out(self, o):
     if (type(o) is list or type(o) is tuple):
       for i in o:
@@ -646,19 +657,9 @@ def generate_vts_operands():
     no_consumers = len(o.outs) if o.traversable() else 0
     lifetime = o.lifetime()
     length = ty.get_size() if o.is_weight() else 0
-    fminmax, real_shape = ty.get_parsed_shape()
-    scale = 0.0
-    zero_point = 0.0
-    # TODO: parse this in Type instead
-    if fminmax != "":
-      fmin, sep, fmax = fminmax.partition(",")
-      assert fmin != ""
-      assert fmax != ""
-      fmin = float(fmin)
-      fmax = float(fmax)
-      scale = (fmax - fmin) / 255
-      zero_point = min(255.0, max(0, int(round(0 - fmin / scale))))
-
+    real_shape, scale, zero_point = ty.get_parsed_shape()
+    scale = float(scale)
+    zero_point = int(zero_point)
     op = {
         "operand_type": ty.get_element_type(),
         "shape": "{%s}" % real_shape,
@@ -805,7 +806,7 @@ if __name__ == '__main__':
       print ("  // Phase 3, inputs and outputs", file=model_file)
       inputs = Operand.print_operands(Input.get_inputs(True));
       outputs = Operand.print_operands(Output.get_outputs());
-      print ("  model->setInputsAndOutputs(\n" +
+      print ("  model->identifyInputsAndOutputs(\n" +
              "    {"+", ".join(inputs)+"},\n    {" + ", ".join(outputs) + "});",
              file=model_file)
       # Boilerplate

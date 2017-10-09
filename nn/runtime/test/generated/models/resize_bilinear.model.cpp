@@ -15,7 +15,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(height, height_init, sizeof(int32_t) * 1);
   model->addOperation(ANEURALNETWORKS_RESIZE_BILINEAR, {op1, width, height}, {op2});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op1},
     {op2});
   assert(model->isValid());

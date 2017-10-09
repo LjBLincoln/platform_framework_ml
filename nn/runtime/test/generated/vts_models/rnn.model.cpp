@@ -64,6 +64,15 @@ Model createTestModel() {
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::MODEL_OUTPUT,
             .location = {.poolIndex = 0, .offset = 0, .length = 0},
+        },
+        {
+            .type = OperandType::TENSOR_FLOAT32,
+            .dimensions = {2, 16},
+            .numberOfConsumers = 0,
+            .scale = 0.0f,
+            .zeroPoint = 0,
+            .lifetime = OperandLifeTime::MODEL_OUTPUT,
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
         }
     };
 
@@ -71,12 +80,12 @@ Model createTestModel() {
         {
             .type = OperationType::RNN,
             .inputs = {0, 1, 2, 3, 4, 5},
-            .outputs = {6},
+            .outputs = {6, 7},
         }
     };
 
     const std::vector<uint32_t> inputIndexes = {0, 1, 2, 3, 4, 5};
-    const std::vector<uint32_t> outputIndexes = {6};
+    const std::vector<uint32_t> outputIndexes = {6, 7};
     std::vector<uint8_t> operandValues = {};
     const std::vector<hidl_memory> pools = {};
 
@@ -91,6 +100,6 @@ Model createTestModel() {
 }
 
 bool is_ignored(int i) {
-  static std::set<int> ignore = {};
+  static std::set<int> ignore = {0};
   return ignore.find(i) != ignore.end();
 }

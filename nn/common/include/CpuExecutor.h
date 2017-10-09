@@ -21,6 +21,7 @@
 #include "OperationsUtils.h"
 #include "Utils.h"
 
+#include <algorithm>
 #include <vector>
 
 namespace android {
@@ -45,6 +46,8 @@ struct RunTimeOperandInfo {
     uint8_t* buffer;
     // The length of the buffer.
     uint32_t length;
+    // Whether this is a temporary variable, a model input, a constant, etc.
+    OperandLifeTime lifetime;
     // Keeps track of how many operations have yet to make use
     // of this temporary variable.  When the count is decremented to 0,
     // we free the buffer.  For non-temporary variables, this count is
@@ -102,6 +105,54 @@ private:
     // Runtime information about all the operands.
     std::vector<RunTimeOperandInfo> mOperands;
 };
+
+namespace {
+
+template <typename T>
+T getScalarData(const RunTimeOperandInfo& info) {
+  // TODO: Check buffer is at least as long as size of data.
+  T* data = reinterpret_cast<T*>(info.buffer);
+  return data[0];
+}
+
+inline bool IsNullInput(const RunTimeOperandInfo *input) {
+    return input->lifetime == OperandLifeTime::NO_VALUE;
+}
+
+inline int NumInputsWithValues(const Operation &operation,
+                               std::vector<RunTimeOperandInfo> &operands) {
+  const std::vector<uint32_t> &inputs = operation.inputs;
+  return std::count_if(inputs.begin(), inputs.end(),
+                       [&operands](uint32_t i) {
+                         return !IsNullInput(&operands[i]);
+                       });
+}
+
+inline int NumOutputs(const Operation &operation) {
+  return operation.outputs.size();
+}
+
+inline size_t NumDimensions(const RunTimeOperandInfo *operand) {
+  return operand->shape().dimensions.size();
+}
+
+inline uint32_t SizeOfDimension(const RunTimeOperandInfo *operand, int i) {
+  return operand->shape().dimensions[i];
+}
+
+inline RunTimeOperandInfo *GetInput(const Operation &operation,
+                                    std::vector<RunTimeOperandInfo> &operands,
+                                    int index) {
+  return &operands[operation.inputs[index]];
+}
+
+inline RunTimeOperandInfo *GetOutput(const Operation &operation,
+                                     std::vector<RunTimeOperandInfo> &operands,
+                                     int index) {
+  return &operands[operation.outputs[index]];
+}
+
+}  // anonymous namespace
 
 } // namespace nn
 } // namespace android

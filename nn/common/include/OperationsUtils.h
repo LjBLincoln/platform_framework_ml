@@ -22,6 +22,20 @@
 #include <cstdint>
 #include <vector>
 
+// Macro to check if the input parameters for operation are valid or not.
+#define NN_CHECK(v)                                                     \
+  do {                                                                  \
+    if (!(v)) {                                                         \
+      LOG(ERROR) << "NN_CHECK failed: "  << #v << "'\n";                \
+      return false;                                                     \
+    }                                                                   \
+  } while(0);
+
+#define NN_CHECK_EQ(actual, expected)           \
+  NN_CHECK((actual) == (expected))
+
+#define NN_OPS_CHECK NN_CHECK
+
 namespace android {
 namespace nn {
 
@@ -178,6 +192,16 @@ bool depthToSpacePrepare(const Shape& input,
 bool spaceToDepthPrepare(const Shape& input,
                          int32_t blockSize,
                          Shape* output);
+
+bool embeddingLookupPrepare(const Shape &valueShape,
+                            const Shape &lookupShape,
+                            Shape *outputShape);
+
+bool hashtableLookupPrepare(const Shape &lookupShape,
+                            const Shape &keyShape,
+                            const Shape &valueShape,
+                            Shape *outputShape,
+                            Shape *hitShape);
 
 #define ANDROID_NN_MACRO_DISPATCH(macro)                                    \
     switch (activation) {                                                   \

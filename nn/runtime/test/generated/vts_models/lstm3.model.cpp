@@ -85,33 +85,6 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {0},
-            .numberOfConsumers = 1,
-            .scale = 0.0f,
-            .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
-        },
-        {
-            .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {0},
-            .numberOfConsumers = 1,
-            .scale = 0.0f,
-            .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
-        },
-        {
-            .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {0},
-            .numberOfConsumers = 1,
-            .scale = 0.0f,
-            .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
-        },
-        {
-            .type = OperandType::TENSOR_FLOAT32,
             .dimensions = {20},
             .numberOfConsumers = 1,
             .scale = 0.0f,
@@ -148,7 +121,34 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {0,0},
+            .dimensions = {20},
+            .numberOfConsumers = 1,
+            .scale = 0.0f,
+            .zeroPoint = 0,
+            .lifetime = OperandLifeTime::MODEL_INPUT,
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+        },
+        {
+            .type = OperandType::TENSOR_FLOAT32,
+            .dimensions = {20},
+            .numberOfConsumers = 1,
+            .scale = 0.0f,
+            .zeroPoint = 0,
+            .lifetime = OperandLifeTime::MODEL_INPUT,
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+        },
+        {
+            .type = OperandType::TENSOR_FLOAT32,
+            .dimensions = {20},
+            .numberOfConsumers = 1,
+            .scale = 0.0f,
+            .zeroPoint = 0,
+            .lifetime = OperandLifeTime::MODEL_INPUT,
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+        },
+        {
+            .type = OperandType::TENSOR_FLOAT32,
+            .dimensions = {16,20},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
@@ -158,6 +158,24 @@ Model createTestModel() {
         {
             .type = OperandType::TENSOR_FLOAT32,
             .dimensions = {0},
+            .numberOfConsumers = 1,
+            .scale = 0.0f,
+            .zeroPoint = 0,
+            .lifetime = OperandLifeTime::MODEL_INPUT,
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+        },
+        {
+            .type = OperandType::TENSOR_FLOAT32,
+            .dimensions = {2, 16},
+            .numberOfConsumers = 1,
+            .scale = 0.0f,
+            .zeroPoint = 0,
+            .lifetime = OperandLifeTime::MODEL_INPUT,
+            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+        },
+        {
+            .type = OperandType::TENSOR_FLOAT32,
+            .dimensions = {2, 20},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
@@ -232,13 +250,13 @@ Model createTestModel() {
     const std::vector<Operation> operations = {
         {
             .type = OperationType::LSTM,
-            .inputs = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},
-            .outputs = {24, 21, 22, 23},
+            .inputs = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22},
+            .outputs = {24, 25, 26, 23},
         }
     };
 
-    const std::vector<uint32_t> inputIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
-    const std::vector<uint32_t> outputIndexes = {24, 21, 22, 23};
+    const std::vector<uint32_t> inputIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22};
+    const std::vector<uint32_t> outputIndexes = {24, 25, 26, 23};
     std::vector<uint8_t> operandValues = {};
     const std::vector<hidl_memory> pools = {};
 
@@ -253,6 +271,6 @@ Model createTestModel() {
 }
 
 bool is_ignored(int i) {
-  static std::set<int> ignore = {0, 1, 2};
+  static std::set<int> ignore = {1, 2, 0};
   return ignore.find(i) != ignore.end();
 }

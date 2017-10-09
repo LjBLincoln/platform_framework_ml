@@ -26,13 +26,12 @@ for i in range(rows):
 
 model = Model()
 
-# lookup, key, and hits are all int32 stored as float32.
-lookup = Input("lookup", "TENSOR_FLOAT32", "{%d}" % lookups)
-key = Input("key", "TENSOR_FLOAT32", "{%d}" % (keys))
+lookup = Input("lookup", "TENSOR_INT32", "{%d}" % lookups)
+key = Input("key", "TENSOR_INT32", "{%d}" % (keys))
 value = Input("value", "TENSOR_FLOAT32", "{%d, %d}" % (rows, features))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (lookups, features))
-hits = Output("hits", "TENSOR_FLOAT32", "{%d}" % (lookups))
-model = model.Operation("HASHTABLE_LOOKUP", lookup, key, value).To(output)
+hits = Output("hits", "TENSOR_QUANT8_ASYMM", "{%d}, 1.f, 0" % (lookups))
+model = model.Operation("HASHTABLE_LOOKUP", lookup, key, value).To([output, hits])
 
 input0 = {lookup:  [1234, -292, -11, 0],
           key: [-11, 0, 1234],

@@ -10,7 +10,7 @@ void CreateModel(Model *model) {
   // Phase 2, operations
   model->addOperation(ANEURALNETWORKS_RESHAPE, {op1, op2}, {op3});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op1, op2},
     {op3});
   assert(model->isValid());

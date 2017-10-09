@@ -12,7 +12,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(radius, radius_init, sizeof(int32_t) * 1);
   model->addOperation(ANEURALNETWORKS_SPACE_TO_DEPTH, {input, radius}, {output});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {input},
     {output});
   assert(model->isValid());

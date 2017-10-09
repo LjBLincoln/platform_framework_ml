@@ -11,7 +11,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(beta, beta_init, sizeof(float) * 1);
   model->addOperation(ANEURALNETWORKS_SOFTMAX, {input, beta}, {output});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {input},
     {output});
   assert(model->isValid());

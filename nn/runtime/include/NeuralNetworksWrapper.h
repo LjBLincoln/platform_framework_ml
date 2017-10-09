@@ -56,8 +56,9 @@ struct OperandType {
     // int32_t type;
     std::vector<uint32_t> dimensions;
 
-    OperandType(Type type, const std::vector<uint32_t>& d,
-                float scale = 0.0f, int32_t zeroPoint = 0) : dimensions(d) {
+    OperandType(Type type, const std::vector<uint32_t>& d, float scale = 0.0f,
+                int32_t zeroPoint = 0)
+        : dimensions(d) {
         operandType.type = static_cast<int32_t>(type);
         operandType.scale = scale;
         operandType.zeroPoint = zeroPoint;
@@ -134,9 +135,7 @@ public:
         return *this;
     }
 
-    Result finish() {
-        return static_cast<Result>(ANeuralNetworksModel_finish(mModel));
-    }
+    Result finish() { return static_cast<Result>(ANeuralNetworksModel_finish(mModel)); }
 
     uint32_t addOperand(const OperandType* type) {
         if (ANeuralNetworksModel_addOperand(mModel, &(type->operandType)) !=
@@ -169,12 +168,12 @@ public:
             mValid = false;
         }
     }
-    void setInputsAndOutputs(const std::vector<uint32_t>& inputs,
-                             const std::vector<uint32_t>& outputs) {
-        if (ANeuralNetworksModel_setInputsAndOutputs(mModel, static_cast<uint32_t>(inputs.size()),
-                                                     inputs.data(),
-                                                     static_cast<uint32_t>(outputs.size()),
-                                                     outputs.data()) != ANEURALNETWORKS_NO_ERROR) {
+    void identifyInputsAndOutputs(const std::vector<uint32_t>& inputs,
+                                  const std::vector<uint32_t>& outputs) {
+        if (ANeuralNetworksModel_identifyInputsAndOutputs(
+                        mModel, static_cast<uint32_t>(inputs.size()), inputs.data(),
+                        static_cast<uint32_t>(outputs.size()),
+                        outputs.data()) != ANEURALNETWORKS_NO_ERROR) {
             mValid = false;
         }
     }
@@ -190,6 +189,7 @@ private:
 
 class Event {
 public:
+    Event() {}
     ~Event() { ANeuralNetworksEvent_free(mEvent); }
 
     // Disallow copy semantics to ensure the runtime object can only be freed
@@ -201,9 +201,7 @@ public:
     // Move semantics to remove access to the runtime object from the wrapper
     // object that is being moved. This ensures the runtime object will be
     // freed only once.
-    Event(Event&& other) {
-        *this = std::move(other);
-    }
+    Event(Event&& other) { *this = std::move(other); }
     Event& operator=(Event&& other) {
         if (this != &other) {
             mEvent = other.mEvent;
@@ -214,7 +212,7 @@ public:
 
     Result wait() { return static_cast<Result>(ANeuralNetworksEvent_wait(mEvent)); }
 
-    // Only for use by Compilation
+    // Only for use by Execution
     void set(ANeuralNetworksEvent* newEvent) {
         ANeuralNetworksEvent_free(mEvent);
         mEvent = newEvent;
@@ -252,9 +250,7 @@ public:
                     mCompilation, static_cast<int32_t>(preference)));
     }
 
-    Result finish() {
-        return static_cast<Result>(ANeuralNetworksCompilation_finish(mCompilation));
-    }
+    Result finish() { return static_cast<Result>(ANeuralNetworksCompilation_finish(mCompilation)); }
 
     ANeuralNetworksCompilation* getHandle() const { return mCompilation; }
 
@@ -325,7 +321,7 @@ public:
     Result compute() {
         ANeuralNetworksEvent* event = nullptr;
         Result result =
-                static_cast<Result>(ANeuralNetworksExecution_startCompute(mExecution, &event));
+                    static_cast<Result>(ANeuralNetworksExecution_startCompute(mExecution, &event));
         if (result != Result::NO_ERROR) {
             return result;
         }

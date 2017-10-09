@@ -35,7 +35,6 @@ class ExecutionStep;
 class Memory;
 
 class ModelBuilder {
-    friend class CompilationBuilder;  // TODO remove this
 public:
     virtual ~ModelBuilder() {}
     // Adds an operand to the model.
@@ -46,8 +45,8 @@ public:
 
     int addOperation(ANeuralNetworksOperationType type, uint32_t inputCount, const uint32_t* inputs,
                      uint32_t outputCount, const uint32_t* outputs);
-    int setInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs, uint32_t outputCount,
-                            const uint32_t* outputs);
+    int identifyInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs, uint32_t outputCount,
+                                 const uint32_t* outputs);
 
     int finish();
     bool isFinished() const { return mCompletedModel; }
@@ -66,8 +65,14 @@ public:
     }
     uint32_t inputCount() const { return static_cast<uint32_t>(mInputIndexes.size()); }
     uint32_t outputCount() const { return static_cast<uint32_t>(mOutputIndexes.size()); }
-    const Operand& getInputOperand(uint32_t i) const { return mOperands[mInputIndexes[i]]; }
-    const Operand& getOutputOperand(uint32_t i) const { return mOperands[mOutputIndexes[i]]; }
+    uint32_t getInputOperandIndex(uint32_t i) const { return mInputIndexes[i]; }
+    const Operand& getInputOperand(uint32_t i) const {
+        return mOperands[getInputOperandIndex(i)];
+    }
+    uint32_t getOutputOperandIndex(uint32_t i) const { return mOutputIndexes[i]; }
+    const Operand& getOutputOperand(uint32_t i) const {
+        return mOperands[getOutputOperandIndex(i)];
+    }
     const Operand& getOperand(uint32_t index) const { return mOperands[index]; }
     const Operation& getOperation(uint32_t index) const { return mOperations[index]; }
     const MemoryTracker& getMemories() const { return mMemories; }
@@ -76,11 +81,13 @@ public:
         return mOperandValues.data() + offset;
     }
 
-private:
+    int partitionTheWork(const std::vector<std::shared_ptr<Device>>& devices,
+                         uint32_t preference, ExecutionPlan* plan) const;
+
+ private:
     // TODO: move partitionTheWork, findBestDeviceForEachOperation,
     // sortIntoRunOrder to CompilationBuilder?
 
-    int partitionTheWork(uint32_t preference, ExecutionPlan* plan) const;
     int findBestDeviceForEachOperation(uint32_t preference,
                                        const std::vector<std::shared_ptr<Device>>& devices,
                                        const size_t operationCount,

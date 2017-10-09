@@ -42,12 +42,19 @@ struct LSTMParams {
 };
 
 struct RunTimeOperandInfo;
+struct Shape;
 
 class LSTMCell {
  public:
   LSTMCell(const android::hardware::neuralnetworks::V1_0::Operation &operation,
            std::vector<RunTimeOperandInfo> &operands);
 
+  static bool Prepare(const android::hardware::neuralnetworks::V1_0::Operation &operation,
+                      std::vector<RunTimeOperandInfo> &operands,
+                      Shape *scratchShape,
+                      Shape *outputStateShape,
+                      Shape *cellStateShape,
+                      Shape *outputShape);
   bool Eval();
 
   // Input Tensors of size {n_batch, n_input}
@@ -81,18 +88,24 @@ class LSTMCell {
   // Projection bias tensor of size {n_output}
   static constexpr int kProjectionBiasTensor = 17;  // Optional
 
-  static constexpr int kActivationParam = 18;
-  static constexpr int kCellClipParam = 19;
-  static constexpr int kProjClipParam = 20;
+  static constexpr int kOutputStateInTensor = 18;
+  static constexpr int kCellStateInTensor = 19;
+
+  static constexpr int kActivationParam = 20;
+  static constexpr int kCellClipParam = 21;
+  static constexpr int kProjClipParam = 22;
 
   // Output tensors.
-  // TODO: Do we have to pre-allocate scratch buffer as outputs?
   static constexpr int kScratchBufferTensor = 0;
-  static constexpr int kOutputStateTensor = 1;
-  static constexpr int kCellStateTensor = 2;
+  static constexpr int kOutputStateOutTensor = 1;
+  static constexpr int kCellStateOutTensor = 2;
   static constexpr int kOutputTensor = 3;
 
  private:
+  static bool CheckInputTensorDimensions(
+      const android::hardware::neuralnetworks::V1_0::Operation &operation,
+      std::vector<RunTimeOperandInfo> &operands, uint32_t n_input,
+      uint32_t n_output, uint32_t n_cell);
   LSTMParams params_;
 
   const RunTimeOperandInfo *input_;
@@ -119,8 +132,11 @@ class LSTMCell {
   const RunTimeOperandInfo *projection_weights_;
   const RunTimeOperandInfo *projection_bias_;
 
-  RunTimeOperandInfo *output_state_;
-  RunTimeOperandInfo *cell_state_;
+  const RunTimeOperandInfo *output_state_in_;
+  const RunTimeOperandInfo *cell_state_in_;
+
+  RunTimeOperandInfo *output_state_out_;
+  RunTimeOperandInfo *cell_state_out_;
   RunTimeOperandInfo *output_;
 
   RunTimeOperandInfo *scratch_buffer_;

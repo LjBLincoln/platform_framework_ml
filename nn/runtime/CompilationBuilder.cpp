@@ -20,6 +20,7 @@
 
 #include "ExecutionBuilder.h"
 #include "ExecutionPlan.h"
+#include "Manager.h"
 #include "ModelBuilder.h"
 #include "Utils.h"
 
@@ -28,7 +29,7 @@ namespace nn {
 
 CompilationBuilder::CompilationBuilder(const ModelBuilder* model) :
     mModel(model) {
-    LOG(DEBUG) << "CompilationBuilder::CompilationBuilder";
+    VLOG(COMPILATION) << "CompilationBuilder::CompilationBuilder";
 }
 
 int CompilationBuilder::finish() {
@@ -36,15 +37,20 @@ int CompilationBuilder::finish() {
         LOG(ERROR) << "ANeuralNetworksCompilation_finish called more than once";
         return ANEURALNETWORKS_BAD_STATE;
     }
+    // TODO validate the rest
 
     mFinished = true;
 
-#ifdef NN_DEBUGGABLE
-    if (getProp("debug.nn.partition.test")) {
-        ExecutionPlan plan;
-        mModel->partitionTheWork(mPreference, &plan);
+    if (uint32_t p = DeviceManager::get()->getPartitioning()) {
+        // Get the list of HAL devices.
+        const std::vector<std::shared_ptr<Device>>& devices = DeviceManager::get()->getDrivers();
+
+        int n = mModel->partitionTheWork(devices, mPreference, &mPlan);
+        if (!DeviceManager::partitioningAllowsFallback(p) &&
+            (n != ANEURALNETWORKS_NO_ERROR)) {
+            return n;
+        }
     }
-#endif  // NN_DEBUGGABLE
 
     return ANEURALNETWORKS_NO_ERROR;
 }
@@ -55,6 +61,11 @@ int CompilationBuilder::setPreference(int32_t preference) {
                 "ANeuralNetworksCompilation_setPreference can't modify after compilation finished";
         return ANEURALNETWORKS_BAD_STATE;
     }
+    if (preference >= kNumberOfPreferences) {
+        LOG(ERROR) << "ANeuralNetworksCompilation_setPreference invalid preference " << preference;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+
     mPreference = preference;
     return ANEURALNETWORKS_NO_ERROR;
 }

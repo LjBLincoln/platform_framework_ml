@@ -36,25 +36,28 @@ recurrent_to_forget_weights = Input("recurrent_to_forget_weights", "TENSOR_FLOAT
 recurrent_to_cell_weights = Input("recurrent_to_cell_weights", "TENSOR_FLOAT32", "{%d, %d}" % (n_cell, n_output))
 recurrent_to_output_weights = Input("recurrent_to_output_weights", "TENSOR_FLOAT32", "{%d, %d}" % (n_cell, n_output))
 
-cell_to_input_weights = Input("cell_to_input_weights", "TENSOR_FLOAT32", "{0}")
-cell_to_forget_weights = Input("cell_to_forget_weights", "TENSOR_FLOAT32", "{0}")
-cell_to_output_weights = Input("cell_to_output_weights", "TENSOR_FLOAT32", "{0}")
+cell_to_input_weights = Input("cell_to_input_weights", "TENSOR_FLOAT32", "{%d}" % (n_cell))
+cell_to_forget_weights = Input("cell_to_forget_weights", "TENSOR_FLOAT32", "{%d}" %(n_cell))
+cell_to_output_weights = Input("cell_to_output_weights", "TENSOR_FLOAT32", "{%d}" % (n_cell))
 
 input_gate_bias = Input("input_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 forget_gate_bias = Input("forget_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 cell_gate_bias = Input("cell_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 output_gate_bias = Input("output_gate_bias", "TENSOR_FLOAT32", "{%d}"%(n_cell))
 
-projection_weights = Input("projection_weights", "TENSOR_FLOAT32", "{0,0}")
+projection_weights = Input("projection_weights", "TENSOR_FLOAT32", "{%d,%d}" % (n_output, n_cell))
 projection_bias = Input("projection_bias", "TENSOR_FLOAT32", "{0}")
+
+output_state_in = Input("output_state_in", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
+cell_state_in = Input("cell_state_in", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
 
 activation_param = Input("activation_param", "TENSOR_INT32", "{1}");
 cell_clip_param = Input("cell_clip_param", "TENSOR_FLOAT32", "{1}")
 proj_clip_param = Input("proj_clip_param", "TENSOR_FLOAT32", "{1}")
 
 scratch_buffer = IgnoredOutput("scratch_buffer", "TENSOR_FLOAT32", "{%d, %d, %d}" % (n_batch, n_cell, 4))
-output_state = IgnoredOutput("output_state", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
-cell_state = IgnoredOutput("cell_state", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
+output_state_out = IgnoredOutput("output_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
+cell_state_out = IgnoredOutput("cell_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
 
 # TODO: need support for more than one output
@@ -83,10 +86,13 @@ model = model.Operation("LSTM",
                         projection_weights,
                         projection_bias,
 
+                        output_state_in,
+                        cell_state_in,
+
                         activation_param,
                         cell_clip_param,
                         proj_clip_param
-).To([scratch_buffer, output_state, cell_state, output])
+).To([scratch_buffer, output_state_out, cell_state_out, output])
 
 input0 = {input_to_input_weights: [
     0.021393683,  0.06124551,    0.046905167,  -0.014657677,  -0.03149463,
@@ -671,11 +677,13 @@ golden_outputs_batch1 = [
 for (input_tensor0, input_tensor1, output_tensor0, output_tensor1) in zip(test_inputs_batch0, test_inputs_batch1, golden_outputs_batch0, golden_outputs_batch1):
   input_tensor0.extend(input_tensor1)
   input0[input] = input_tensor0
+  input0[cell_state_in] = [ 0 for _ in range(n_batch * n_cell) ]
+  input0[output_state_in] = [ 0 for _ in range(n_batch * n_output) ]
   output_tensor0.extend(output_tensor1)
   output0 = {
       scratch_buffer: [ 0 for x in range(n_batch * n_cell * 4) ],
-      cell_state: [ 0 for x in range(n_batch * n_cell) ],
-      output_state: [ 0 for x in range(n_batch * n_output) ],
+      cell_state_out: [ 0 for x in range(n_batch * n_cell) ],
+      output_state_out: [ 0 for x in range(n_batch * n_output) ],
       output: output_tensor0
   }
   Example((input0, output0))

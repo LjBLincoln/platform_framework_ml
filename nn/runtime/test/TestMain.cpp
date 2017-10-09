@@ -16,7 +16,6 @@
 
 #include "Manager.h"
 #include "NeuralNetworksWrapper.h"
-//#include "SampleDriver.h"
 #include "Utils.h"
 
 #include <gtest/gtest.h>
@@ -26,6 +25,7 @@ using namespace android::nn::wrapper;
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
 
+    android::nn::initVLogMask();
     // Test with the installed drivers.
     int n1 = RUN_ALL_TESTS();
 

@@ -108,11 +108,12 @@ static float svdf_golden_output[] = {
   ACTION(Input)                                  \
   ACTION(WeightsFeature)                         \
   ACTION(WeightsTime)                            \
-  ACTION(Bias)
+  ACTION(Bias)                                   \
+  ACTION(StateIn)
 
 // For all output and intermediate states
 #define FOR_ALL_OUTPUT_TENSORS(ACTION) \
-  ACTION(State)                        \
+  ACTION(StateOut)                     \
   ACTION(Output)
 
 // Derived class of SingleOpModel, which is used to test SVDF TFLite op.
@@ -128,7 +129,8 @@ class SVDFOpModel {
         {batches_, input_size_},  // Input tensor
         {units_, input_size_},    // weights_feature tensor
         {units_, memory_size_},   // weights_time tensor
-        {units_}                  // bias tensor
+        {units_},                  // bias tensor
+        {batches_, (memory_size_ - 1) * units_},  // state in
     };
     std::vector<uint32_t> inputs;
     auto it = input_shapes.begin();
@@ -178,7 +180,7 @@ class SVDFOpModel {
     FOR_ALL_OUTPUT_TENSORS(ReserveOutput);
 
     model_.addOperation(ANEURALNETWORKS_SVDF, inputs, outputs);
-    model_.setInputsAndOutputs(inputs, outputs);
+    model_.identifyInputsAndOutputs(inputs, outputs);
 
     model_.finish();
   }
@@ -233,7 +235,7 @@ class SVDFOpModel {
   }
 
   // Resets the state of SVDF op by filling it with 0's.
-  void ResetState() { std::fill(State_.begin(), State_.end(), 0.f); }
+  void ResetState() { std::fill(StateIn_.begin(), StateIn_.end(), 0.f); }
 
   // Extracts the output tensor from the SVDF op.
   const std::vector<float>& GetOutput() const { return Output_; }

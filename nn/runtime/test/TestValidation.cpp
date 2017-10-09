@@ -26,10 +26,7 @@
 namespace {
 class ValidationTest : public ::testing::Test {
 protected:
-    virtual void SetUp() {
-        // For detailed logs, uncomment this line:
-        // SetMinimumLogSeverity(android::base::VERBOSE);
-    }
+    virtual void SetUp() {}
 };
 
 class ValidationTestModel : public ValidationTest {
@@ -148,11 +145,11 @@ TEST_F(ValidationTestModel, AddOperation) {
 TEST_F(ValidationTestModel, SetInputsAndOutputs) {
     uint32_t input = 0;
     uint32_t output = 0;
-    EXPECT_EQ(ANeuralNetworksModel_setInputsAndOutputs(nullptr, 1, &input, 1, &output),
+    EXPECT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(nullptr, 1, &input, 1, &output),
               ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksModel_setInputsAndOutputs(mModel, 0, nullptr, 1, &output),
+    EXPECT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 0, nullptr, 1, &output),
               ANEURALNETWORKS_UNEXPECTED_NULL);
-    EXPECT_EQ(ANeuralNetworksModel_setInputsAndOutputs(mModel, 1, &input, 0, nullptr),
+    EXPECT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 1, &input, 0, nullptr),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 }
 

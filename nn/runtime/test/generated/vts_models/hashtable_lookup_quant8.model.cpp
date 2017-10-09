@@ -3,7 +3,7 @@
 Model createTestModel() {
     const std::vector<Operand> operands = {
         {
-            .type = OperandType::TENSOR_FLOAT32,
+            .type = OperandType::TENSOR_INT32,
             .dimensions = {4},
             .numberOfConsumers = 1,
             .scale = 0.0f,
@@ -12,7 +12,7 @@ Model createTestModel() {
             .location = {.poolIndex = 0, .offset = 0, .length = 0},
         },
         {
-            .type = OperandType::TENSOR_FLOAT32,
+            .type = OperandType::TENSOR_INT32,
             .dimensions = {3},
             .numberOfConsumers = 1,
             .scale = 0.0f,
@@ -39,10 +39,10 @@ Model createTestModel() {
             .location = {.poolIndex = 0, .offset = 0, .length = 0},
         },
         {
-            .type = OperandType::TENSOR_FLOAT32,
+            .type = OperandType::TENSOR_QUANT8_ASYMM,
             .dimensions = {4},
             .numberOfConsumers = 0,
-            .scale = 0.0f,
+            .scale = 1.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::MODEL_OUTPUT,
             .location = {.poolIndex = 0, .offset = 0, .length = 0},
@@ -53,7 +53,7 @@ Model createTestModel() {
         {
             .type = OperationType::HASHTABLE_LOOKUP,
             .inputs = {0, 1, 2},
-            .outputs = {3},
+            .outputs = {3, 4},
         }
     };
 

@@ -45,8 +45,6 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
                           const int32_t* biasData, const Shape& biasShape,
                           int32_t activation,
                           uint8_t* outputData, const Shape& outputShape) {
-    gemmlowp::GemmContext* gemm_context = new gemmlowp::GemmContext();
-
     int32_t inputOffset = -inputShape.offset;
     int32_t weightsOffset = -weightsShape.offset;
     int32_t outputOffset = outputShape.offset;
@@ -67,6 +65,10 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
                                   &output_activation_min,
                                   &output_activation_max);
 
+    static gemmlowp::GemmContext gemm_context;
+    // Alow gemmlowp automatcally decide how many threads to use.
+    gemm_context.set_max_num_threads(0);
+
     #define ANDROID_NN_FULLY_CONNECTED(activation)                              \
         optimized_ops::FullyConnected<FusedActivationFunctionType::activation>( \
             inputData, convertShapeToDims(inputShape), inputOffset,             \
@@ -74,7 +76,7 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
             biasData, convertShapeToDims(biasShape),                            \
             outputOffset, output_multiplier, output_shift,                      \
             output_activation_min, output_activation_max,                       \
-            outputData, convertShapeToDims(outputShape), gemm_context)
+            outputData, convertShapeToDims(outputShape), &gemm_context)
 
     ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_FULLY_CONNECTED)
     #undef ANDROID_NN_FULLY_CONNECTED
