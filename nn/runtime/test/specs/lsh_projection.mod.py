@@ -25,7 +25,7 @@ hhash = Parameter("hash", "TENSOR_FLOAT32", "{%d, %d}" % (num_hash, num_bits),
 lookup = Input("lookup", "TENSOR_INT32", "{%d, %d}" % (num_input, num_bits))
 weight = Input("weight", "TENSOR_FLOAT32", "{%d}" % (num_input))
 type_param = Int32Scalar("type_param", 2)  # DENSE
-output = Output("output", "TENSOR_INT32", "{%d, %d}" % (num_hash, num_bits))
+output = Output("output", "TENSOR_INT32", "{%d}" % (num_hash * num_bits))
 model = model.Operation("LSH_PROJECTION", hhash, lookup, weight,
                         type_param).To(output)
 
@@ -37,3 +37,4 @@ input0 = {
 output0 = {output: [1, 1, 1, 0, 1, 1, 1, 0]}
 
 Example((input0, output0))
+

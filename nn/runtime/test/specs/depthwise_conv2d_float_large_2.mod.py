@@ -15,7 +15,7 @@
 #
 
 model = Model()
-i1 = Input("op1", "TENSOR_FLOAT32", "{1, 2, 2, 3}") # depth_in = 3
+i1 = Input("op1", "TENSOR_FLOAT32", "{1, 2, 2, 4}") # depth_in = 4
 f1 = Parameter("op2", "TENSOR_FLOAT32", "{1, 2, 2, 4}", [.25, 0, 10, 100, .25, 1, 20, 100, .25, 0, 30, 100, .25, 1, 40, 100]) # depth_out = 4
 b1 = Parameter("op3", "TENSOR_FLOAT32", "{4}", [600000, 700000, 800000, 900000]) # depth_out = 4
 pad0 = Int32Scalar("pad0", 0)
@@ -33,10 +33,10 @@ model = model.Operation("DEPTHWISE_CONV_2D",
 # Example 1. Input in operand 0,
 input0 = {
     i1: [ # input 0
-     10, 21, 100,
-     10, 22, 200,
-     10, 23, 300,
-     10, 24, 400]
+     10, 21, 100, 0,
+     10, 22, 200, 0,
+     10, 23, 300, 0,
+     10, 24, 400, 0],
   }
 # (i1 (conv) f1) + b1
 output0 = {output: # output 0

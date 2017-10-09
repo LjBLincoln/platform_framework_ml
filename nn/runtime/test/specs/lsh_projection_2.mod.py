@@ -25,7 +25,7 @@ hhash = Parameter("hash", "TENSOR_FLOAT32", "{%d, %d}" % (num_hash, num_bits),
 lookup = Input("lookup", "TENSOR_INT32", "{%d, %d}" % (num_input, num_bits))
 weight = Input("weight", "TENSOR_FLOAT32", "{%d}" % (num_input))
 type_param = Int32Scalar("type_param", 1)  # SPARSE
-output = Output("output", "TENSOR_INT32", "{%d, %d}" % (num_hash, num_bits))
+output = Output("output", "TENSOR_INT32", "{%d}" % (num_hash))
 model = model.Operation("LSH_PROJECTION", hhash, lookup, weight,
                         type_param).To(output)
 

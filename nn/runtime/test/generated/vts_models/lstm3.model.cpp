@@ -211,7 +211,7 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {2, 20, 4},
+            .dimensions = {2, 80},
             .numberOfConsumers = 0,
             .scale = 0.0f,
             .zeroPoint = 0,
@@ -251,12 +251,12 @@ Model createTestModel() {
         {
             .type = OperationType::LSTM,
             .inputs = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22},
-            .outputs = {24, 25, 26, 23},
+            .outputs = {23, 24, 25, 26},
         }
     };
 
     const std::vector<uint32_t> inputIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22};
-    const std::vector<uint32_t> outputIndexes = {24, 25, 26, 23};
+    const std::vector<uint32_t> outputIndexes = {23, 24, 25, 26};
     std::vector<uint8_t> operandValues = {};
     const std::vector<hidl_memory> pools = {};
 
