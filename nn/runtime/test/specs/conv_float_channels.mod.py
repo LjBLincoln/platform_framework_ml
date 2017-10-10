@@ -16,8 +16,8 @@
 
 model = Model()
 i1 = Input("op1", "TENSOR_FLOAT32", "{1, 1, 1, 3}")
-f1 = Input("op2", "TENSOR_FLOAT32", "{3, 1, 1, 3}")
-b1 = Input("op3", "TENSOR_FLOAT32", "{3}")
+f1 = Parameter("op2", "TENSOR_FLOAT32", "{3, 1, 1, 3}", [1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0])
+b1 = Parameter("op3", "TENSOR_FLOAT32", "{3}", [0., 0., 0.])
 pad0 = Int32Scalar("pad0", 0)
 act = Int32Scalar("act", 0)
 stride = Int32Scalar("stride", 1)
@@ -29,13 +29,7 @@ model = model.Operation("CONV_2D", i1, f1, b1, pad0, pad0, pad0, pad0, stride, s
 
 # Example 1. Input in operand 0,
 input0 = {i1: # input 0
-          [99.0, 99.0, 99.0],
-          f1:
-          [1.0, 1.0, 1.0,
-           2.0, 2.0, 2.0,
-           3.0, 3.0, 3.0],
-          b1:
-          [0., 0., 0.]}
+          [99.0, 99.0, 99.0]}
 
 output0 = {output: # output 0
            [297., 594., 891.]}
