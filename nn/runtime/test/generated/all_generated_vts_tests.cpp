@@ -496,6 +496,21 @@ TEST_F(NeuralnetworksHidlTest, depth_to_space_float_2) {
                              depth_to_space_float_2::examples);
 }
 
+namespace depth_to_space_float_3 {
+std::vector<MixedTypedExample> examples = {
+// Generated depth_to_space_float_3 test
+#include "examples/depth_to_space_float_3.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/depth_to_space_float_3.model.cpp"
+} // namespace depth_to_space_float_3
+TEST_F(NeuralnetworksHidlTest, depth_to_space_float_3) {
+    generated_tests::Execute(device,
+                             depth_to_space_float_3::createTestModel,
+                             depth_to_space_float_3::is_ignored,
+                             depth_to_space_float_3::examples);
+}
+
 namespace depth_to_space_quant8_1 {
 std::vector<MixedTypedExample> examples = {
 // Generated depth_to_space_quant8_1 test
@@ -1649,6 +1664,21 @@ TEST_F(NeuralnetworksHidlTest, space_to_depth_float_2) {
                              space_to_depth_float_2::createTestModel,
                              space_to_depth_float_2::is_ignored,
                              space_to_depth_float_2::examples);
+}
+
+namespace space_to_depth_float_3 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_float_3 test
+#include "examples/space_to_depth_float_3.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/space_to_depth_float_3.model.cpp"
+} // namespace space_to_depth_float_3
+TEST_F(NeuralnetworksHidlTest, space_to_depth_float_3) {
+    generated_tests::Execute(device,
+                             space_to_depth_float_3::createTestModel,
+                             space_to_depth_float_3::is_ignored,
+                             space_to_depth_float_3::examples);
 }
 
 namespace space_to_depth_quant8_1 {
