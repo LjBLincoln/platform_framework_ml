@@ -15,24 +15,20 @@
 #
 
 model = Model()
-i1 = Input("op1", "TENSOR_FLOAT32", "{1, 3, 3, 1}")
-f1 = Parameter("op2", "TENSOR_FLOAT32", "{1, 2, 2, 1}", [.25, .25, .25, .25])
-b1 = Parameter("op3", "TENSOR_FLOAT32", "{1}", [0])
-pad0 = Int32Scalar("pad0", 0)
+in0 = Input("op1", "TENSOR_FLOAT32", "{3, 1}")
+weights = Input("op2", "TENSOR_FLOAT32", "{1, 1}")
+bias = Input("b0", "TENSOR_FLOAT32", "{1}")
+out0 = Output("op3", "TENSOR_FLOAT32", "{3, 1}")
 act = Int32Scalar("act", 0)
-stride = Int32Scalar("stride", 1)
-# output dimension:
-#     (i1.height - f1.height + 1) x (i1.width - f1.width + 1)
-output = Output("op4", "TENSOR_FLOAT32", "{1, 2, 2, 1}")
-
-model = model.Operation("CONV_2D", i1, f1, b1, pad0, pad0, pad0, pad0, stride, stride, act).To(output)
+model = model.Operation("FULLY_CONNECTED", in0, weights, bias, act).To(out0)
 
 # Example 1. Input in operand 0,
-input0 = {i1: # input 0
-          [1.0, 1.0, 1.0, 1.0, 0.5, 1.0, 1.0, 1.0, 1.0]}
-
-output0 = {output: # output 0
-           [.875, .875, .875, .875]}
+input0 = {in0: # input 0
+             [2, 32, 16],
+         weights: [2],
+         bias: [4]}
+output0 = {out0: # output 0
+               [8, 68, 36]}
 
 # Instantiate an example
 Example((input0, output0))

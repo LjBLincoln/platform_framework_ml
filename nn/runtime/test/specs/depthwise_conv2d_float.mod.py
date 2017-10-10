@@ -16,8 +16,8 @@
 
 model = Model()
 i1 = Input("op1", "TENSOR_FLOAT32", "{1, 3, 3, 2}")
-f1 = Input("op2", "TENSOR_FLOAT32", "{1, 2, 2, 4}")
-b1 = Input("op3", "TENSOR_FLOAT32", "{4}")
+f1 = Parameter("op2", "TENSOR_FLOAT32", "{1, 2, 2, 4}", [.25, 0, .2, 0, .25, 0, 0, .3, .25, 0, 0, 0, .25, .1, 0, 0])
+b1 = Parameter("op3", "TENSOR_FLOAT32", "{4}", [1, 2, 3, 4])
 pad0 = Int32Scalar("pad0", 0)
 act = Int32Scalar("act", 0)
 stride = Int32Scalar("stride", 1)
@@ -34,14 +34,7 @@ model = model.Operation("DEPTHWISE_CONV_2D",
 input0 = {i1: # input 0
           [10, 21, 10, 22, 10, 23,
            10, 24, 10, 25, 10, 26,
-           10, 27, 10, 28, 10, 29],
-          f1:
-          [.25, 0, .2,  0,
-           .25, 0,  0, .3,
-           .25, 0,  0,  0,
-           .25, .1, 0,  0],
-          b1:
-          [1, 2, 3, 4]}
+           10, 27, 10, 28, 10, 29]}
 # (i1 (conv) f1) + b1
 # filter usage:
 #   in_ch1 * f_1  --> output_d1
