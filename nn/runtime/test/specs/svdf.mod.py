@@ -25,10 +25,10 @@ input = Input("input", "TENSOR_FLOAT32", "{%d, %d}" % (batches, input_size))
 weights_feature = Input("weights_feature", "TENSOR_FLOAT32", "{%d, %d}" % (units, input_size))
 weights_time = Input("weights_time", "TENSOR_FLOAT32", "{%d, %d}" % (units, memory_size))
 bias = Input("bias", "TENSOR_FLOAT32", "{%d}" % (units))
-state_in = Input("state_in", "TENSOR_FLOAT32", "{%d, %d}" % (batches, (memory_size-1)*units))
+state_in = Input("state_in", "TENSOR_FLOAT32", "{%d, %d}" % (batches, memory_size*units))
 rank_param = Input("rank_param", "TENSOR_INT32", "{1}")
 activation_param = Input("activation_param", "TENSOR_INT32", "{1}")
-state_out = IgnoredOutput("state_out", "TENSOR_FLOAT32", "{%d, %d}" % (batches, (memory_size-1)*units))
+state_out = IgnoredOutput("state_out", "TENSOR_FLOAT32", "{%d, %d}" % (batches, memory_size*units))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 
 model = model.Operation("SVDF", input, weights_feature, weights_time, bias, state_in,

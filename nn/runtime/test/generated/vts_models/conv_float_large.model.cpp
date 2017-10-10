@@ -17,8 +17,8 @@ Model createTestModel() {
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+            .lifetime = OperandLifeTime::CONSTANT_COPY,
+            .location = {.poolIndex = 0, .offset = 0, .length = 36},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
@@ -26,8 +26,8 @@ Model createTestModel() {
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+            .lifetime = OperandLifeTime::CONSTANT_COPY,
+            .location = {.poolIndex = 0, .offset = 36, .length = 12},
         },
         {
             .type = OperandType::INT32,
@@ -36,7 +36,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
-            .location = {.poolIndex = 0, .offset = 0, .length = 4},
+            .location = {.poolIndex = 0, .offset = 48, .length = 4},
         },
         {
             .type = OperandType::INT32,
@@ -45,7 +45,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
-            .location = {.poolIndex = 0, .offset = 4, .length = 4},
+            .location = {.poolIndex = 0, .offset = 52, .length = 4},
         },
         {
             .type = OperandType::INT32,
@@ -54,11 +54,11 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
-            .location = {.poolIndex = 0, .offset = 8, .length = 4},
+            .location = {.poolIndex = 0, .offset = 56, .length = 4},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {1, 1, 1, 3},
+            .dimensions = {1, 2, 3, 3},
             .numberOfConsumers = 0,
             .scale = 0.0f,
             .zeroPoint = 0,
@@ -75,10 +75,10 @@ Model createTestModel() {
         }
     };
 
-    const std::vector<uint32_t> inputIndexes = {0, 1, 2};
+    const std::vector<uint32_t> inputIndexes = {0};
     const std::vector<uint32_t> outputIndexes = {6};
     std::vector<uint8_t> operandValues = {
-      0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0
+      0, 0, 128, 63, 0, 0, 128, 64, 0, 0, 224, 64, 0, 0, 0, 64, 0, 0, 160, 64, 0, 0, 0, 65, 0, 0, 64, 64, 0, 0, 192, 64, 0, 0, 16, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0
     };
     const std::vector<hidl_memory> pools = {};
 
