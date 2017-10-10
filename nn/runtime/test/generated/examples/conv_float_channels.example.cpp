@@ -4,7 +4,7 @@
 //Input(s)
 { // See tools/test_generator/include/TestHarness.h:MixedTyped
   // int -> FLOAT32 map
-  {{0, {99.0f, 99.0f, 99.0f}}, {1, {1.0f, 1.0f, 1.0f, 2.0f, 2.0f, 2.0f, 3.0f, 3.0f, 3.0f}}, {2, {0.0f, 0.0f, 0.0f}}},
+  {{0, {99.0f, 99.0f, 99.0f}}},
   // int -> INT32 map
   {},
   // int -> QUANT8_ASYMM map

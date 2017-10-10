@@ -505,7 +505,7 @@ bool embeddingLookupPrepare(const Shape &valueShape,
     outputShape->type = valueShape.type;
     outputShape->dimensions = { lookups, columns };
     for (uint32_t i = 2; i < getNumberOfDimensions(valueShape); i++) {
-        outputShape->dimensions[i] = getSizeOfDimension(valueShape, i);
+        outputShape->dimensions.push_back(getSizeOfDimension(valueShape, i));
     }
     outputShape->offset = valueShape.offset;
     outputShape->scale = valueShape.scale;
@@ -528,7 +528,7 @@ bool hashtableLookupPrepare(const Shape &lookupShape,
     outputShape->type = valueShape.type;
     outputShape->dimensions = { lookups };
     for (uint32_t i = 1; i < getNumberOfDimensions(valueShape); i++) {
-        outputShape->dimensions[i] = getSizeOfDimension(valueShape, i);
+        outputShape->dimensions.push_back(getSizeOfDimension(valueShape, i));
     }
     outputShape->offset = valueShape.offset;
     outputShape->scale = valueShape.scale;

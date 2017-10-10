@@ -23,7 +23,7 @@ act = Int32Scalar("act", 0)
 stride = Int32Scalar("stride", 1)
 # output dimension:
 #     (i1.height - f1.height + 1) x (i1.width - f1.width + 1)
-output = Output("op4", "TENSOR_FLOAT32", "{1, 1, 1, 3}")
+output = Output("op4", "TENSOR_FLOAT32", "{1, 2, 3, 3}")
 
 model = model.Operation("CONV_2D", i1, f1, b1, pad0, pad0, pad0, pad0, stride, stride, act).To(output)
 

@@ -6,9 +6,9 @@
   // int -> FLOAT32 map
   {},
   // int -> INT32 map
-  {{2, {10}}},
+  {},
   // int -> QUANT8_ASYMM map
-  {{0, {10, 10, 10, 10, 10}}, {1, {10, 20, 20, 20, 10}}}
+  {{0, {10, 10, 10, 10, 10}}}
 },
 //Output(s)
 { // See tools/test_generator/include/TestHarness.h:MixedTyped

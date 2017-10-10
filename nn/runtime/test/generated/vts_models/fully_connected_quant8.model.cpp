@@ -17,8 +17,8 @@ Model createTestModel() {
             .numberOfConsumers = 1,
             .scale = 0.5f,
             .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+            .lifetime = OperandLifeTime::CONSTANT_COPY,
+            .location = {.poolIndex = 0, .offset = 0, .length = 1},
         },
         {
             .type = OperandType::TENSOR_INT32,
@@ -26,8 +26,8 @@ Model createTestModel() {
             .numberOfConsumers = 1,
             .scale = 0.25f,
             .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+            .lifetime = OperandLifeTime::CONSTANT_COPY,
+            .location = {.poolIndex = 0, .offset = 1, .length = 4},
         },
         {
             .type = OperandType::TENSOR_QUANT8_ASYMM,
@@ -45,7 +45,7 @@ Model createTestModel() {
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
-            .location = {.poolIndex = 0, .offset = 0, .length = 4},
+            .location = {.poolIndex = 0, .offset = 5, .length = 4},
         }
     };
 
@@ -57,10 +57,10 @@ Model createTestModel() {
         }
     };
 
-    const std::vector<uint32_t> inputIndexes = {0, 1, 2};
+    const std::vector<uint32_t> inputIndexes = {0};
     const std::vector<uint32_t> outputIndexes = {3};
     std::vector<uint8_t> operandValues = {
-      0, 0, 0, 0
+      2, 4, 0, 0, 0, 0, 0, 0, 0
     };
     const std::vector<hidl_memory> pools = {};
 
