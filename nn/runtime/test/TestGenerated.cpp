@@ -132,10 +132,8 @@ class Example {
             Result r = execution.compute();
             ASSERT_EQ(Result::NO_ERROR, r);
             // Filter out don't cares
-            MixedTyped filtered_golden;
-            MixedTyped filtered_test;
-            filter(golden, &filtered_golden, is_ignored);
-            filter(test, &filtered_test, is_ignored);
+            MixedTyped filtered_golden = filter(golden, is_ignored);
+            MixedTyped filtered_test = filter(test, is_ignored);
             // We want "close-enough" results for float
             compare(filtered_golden, filtered_test);
         }
