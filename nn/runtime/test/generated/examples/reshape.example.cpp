@@ -6,7 +6,7 @@
   // int -> FLOAT32 map
   {{0, {1, 2, 3, 4, 5, 6, 7, 8, 9}}},
   // int -> INT32 map
-  {{1, {-1}}},
+  {},
   // int -> QUANT8_ASYMM map
   {}
 },

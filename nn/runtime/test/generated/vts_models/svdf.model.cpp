@@ -40,7 +40,7 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {2, 36},
+            .dimensions = {2, 40},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
@@ -67,7 +67,7 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {2, 36},
+            .dimensions = {2, 40},
             .numberOfConsumers = 0,
             .scale = 0.0f,
             .zeroPoint = 0,
@@ -89,12 +89,12 @@ Model createTestModel() {
         {
             .type = OperationType::SVDF,
             .inputs = {0, 1, 2, 3, 4, 5, 6},
-            .outputs = {8, 7},
+            .outputs = {7, 8},
         }
     };
 
     const std::vector<uint32_t> inputIndexes = {0, 1, 2, 3, 4, 5, 6};
-    const std::vector<uint32_t> outputIndexes = {8, 7};
+    const std::vector<uint32_t> outputIndexes = {7, 8};
     std::vector<uint8_t> operandValues = {};
     const std::vector<hidl_memory> pools = {};
 

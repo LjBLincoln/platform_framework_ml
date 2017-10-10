@@ -17,8 +17,8 @@ Model createTestModel() {
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+            .lifetime = OperandLifeTime::CONSTANT_COPY,
+            .location = {.poolIndex = 0, .offset = 0, .length = 4},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
@@ -39,9 +39,11 @@ Model createTestModel() {
         }
     };
 
-    const std::vector<uint32_t> inputIndexes = {0, 1};
+    const std::vector<uint32_t> inputIndexes = {0};
     const std::vector<uint32_t> outputIndexes = {2};
-    std::vector<uint8_t> operandValues = {};
+    std::vector<uint8_t> operandValues = {
+      255, 255, 255, 255
+    };
     const std::vector<hidl_memory> pools = {};
 
     return {

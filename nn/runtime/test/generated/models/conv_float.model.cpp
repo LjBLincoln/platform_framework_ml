@@ -13,6 +13,10 @@ void CreateModel(Model *model) {
   auto stride = model->addOperand(&type3);
   auto op4 = model->addOperand(&type1);
   // Phase 2, operations
+  static float op2_init[] = {0.25f, 0.25f, 0.25f, 0.25f};
+  model->setOperandValue(op2, op2_init, sizeof(float) * 4);
+  static float op3_init[] = {0.0f};
+  model->setOperandValue(op3, op3_init, sizeof(float) * 1);
   static int32_t pad0_init[] = {0};
   model->setOperandValue(pad0, pad0_init, sizeof(int32_t) * 1);
   static int32_t act_init[] = {0};
@@ -22,7 +26,7 @@ void CreateModel(Model *model) {
   model->addOperation(ANEURALNETWORKS_CONV_2D, {op1, op2, op3, pad0, pad0, pad0, pad0, stride, stride, act}, {op4});
   // Phase 3, inputs and outputs
   model->identifyInputsAndOutputs(
-    {op1, op2, op3},
+    {op1},
     {op4});
   assert(model->isValid());
 }
