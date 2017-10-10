@@ -463,6 +463,20 @@ TEST_F(GeneratedTests, depth_to_space_float_2) {
             depth_to_space_float_2::examples);
 }
 
+namespace depth_to_space_float_3 {
+std::vector<MixedTypedExample> examples = {
+// Generated depth_to_space_float_3 test
+#include "generated/examples/depth_to_space_float_3.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depth_to_space_float_3.model.cpp"
+} // namespace depth_to_space_float_3
+TEST_F(GeneratedTests, depth_to_space_float_3) {
+    Execute(depth_to_space_float_3::CreateModel,
+            depth_to_space_float_3::is_ignored,
+            depth_to_space_float_3::examples);
+}
+
 namespace depth_to_space_quant8_1 {
 std::vector<MixedTypedExample> examples = {
 // Generated depth_to_space_quant8_1 test
@@ -1553,6 +1567,20 @@ TEST_F(GeneratedTests, space_to_depth_float_2) {
     Execute(space_to_depth_float_2::CreateModel,
             space_to_depth_float_2::is_ignored,
             space_to_depth_float_2::examples);
+}
+
+namespace space_to_depth_float_3 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_float_3 test
+#include "generated/examples/space_to_depth_float_3.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/space_to_depth_float_3.model.cpp"
+} // namespace space_to_depth_float_3
+TEST_F(GeneratedTests, space_to_depth_float_3) {
+    Execute(space_to_depth_float_3::CreateModel,
+            space_to_depth_float_3::is_ignored,
+            space_to_depth_float_3::examples);
 }
 
 namespace space_to_depth_quant8_1 {
