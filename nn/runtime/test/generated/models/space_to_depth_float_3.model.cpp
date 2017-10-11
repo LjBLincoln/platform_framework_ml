@@ -1,8 +1,8 @@
-// Generated file (from: space_to_depth_float_1.mod.py). Do not edit
+// Generated file (from: space_to_depth_float_3.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type1(Type::INT32, {});
-  OperandType type2(Type::TENSOR_FLOAT32, {1, 1, 1, 8});
-  OperandType type0(Type::TENSOR_FLOAT32, {1, 2, 2, 2});
+  OperandType type2(Type::TENSOR_FLOAT32, {1, 2, 2, 8});
+  OperandType type0(Type::TENSOR_FLOAT32, {1, 4, 4, 2});
   // Phase 1, operands
   auto input = model->addOperand(&type0);
   auto block_size = model->addOperand(&type1);

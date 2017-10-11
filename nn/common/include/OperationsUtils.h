@@ -45,26 +45,6 @@ enum PaddingScheme {
     kPaddingValid = 2,
 };
 
-inline PaddingScheme getPaddingScheme(uint32_t filterWidth, uint32_t filterHeight,
-                                      uint32_t paddingLeft, uint32_t paddingRight,
-                                      uint32_t paddingTop, uint32_t paddingBottom) {
-    if (paddingLeft > paddingRight || paddingTop > paddingBottom) {
-        return kPaddingUnknown;
-    }
-
-    uint32_t totolPaddingWidth = paddingLeft + paddingRight;
-    uint32_t totolPaddingHeight = paddingTop + paddingBottom;
-    if (totolPaddingWidth == filterWidth - 1 &&
-        totolPaddingHeight == filterHeight -1) {
-        return kPaddingSame;
-    } else if (totolPaddingWidth == 0 &&
-               totolPaddingHeight == 0) {
-        return kPaddingValid;
-    } else {
-        return kPaddingUnknown;
-    }
-}
-
 // The type and dimensions of an operand.
 struct Shape {
     OperandType type;
@@ -129,6 +109,30 @@ inline void calculateExplicitPadding(int32_t in_size, int32_t stride,
             *padding_head = (tmp - in_size) / 2;
             *padding_tail = (tmp - in_size) - *padding_head;
         }
+    }
+}
+
+inline PaddingScheme getPaddingScheme(int32_t inWidth, int32_t inHeight,
+                                      int32_t strideWidth, int32_t strideHeight,
+                                      int32_t filterWidth, int32_t filterHeight,
+                                      int32_t paddingLeft, int32_t paddingRight,
+                                      int32_t paddingTop, int32_t paddingBottom) {
+    if (paddingLeft == 0 && paddingRight == 0 && paddingTop == 0 && paddingBottom == 0) {
+        return kPaddingValid;
+    }
+
+    int32_t expectedPaddingLeft, expectedPaddingRight;
+    int32_t expectedPaddingTop, expectedPaddingBottom;
+
+    calculateExplicitPadding(inWidth, strideWidth, filterWidth, kPaddingSame,
+                             &expectedPaddingLeft, &expectedPaddingRight);
+    calculateExplicitPadding(inHeight, strideHeight, filterHeight, kPaddingSame,
+                             &expectedPaddingTop, &expectedPaddingBottom);
+    if (expectedPaddingLeft == paddingLeft && expectedPaddingRight == paddingRight &&
+        expectedPaddingTop == paddingTop && expectedPaddingBottom == paddingBottom) {
+        return kPaddingSame;
+    } else {
+        return kPaddingUnknown;
     }
 }
 

@@ -1,6 +1,6 @@
 model = Model()
 i1 = Input("input", "TENSOR_FLOAT32", "{1, 2, 2, 4}")
-block = Int32Scalar("radius", 2)
+block = Int32Scalar("block_size", 2)
 output = Output("output", "TENSOR_FLOAT32", "{1, 4, 4, 1}")
 
 model = model.Operation("DEPTH_TO_SPACE", i1, block).To(output)
