@@ -409,10 +409,10 @@ typedef enum {
      * and an error will be reported.
      *
      * Inputs:
-     * * 0: Values. An n-D tensor, where n >= 2, from which sub-tensors are
-     *      extracted.
-     * * 1: Lookups. A 1-D tensor of {@link ANEURALNETWORKS_TENSOR_INT32} type.
+     * * 0: Lookups. A 1-D tensor of {@link ANEURALNETWORKS_TENSOR_INT32} type.
      *      The values are indices into the first dimension of Values.
+     * * 1: Values. An n-D tensor, where n >= 2, from which sub-tensors are
+     *      extracted.
      *
      * Output:
      * * 0: A n-D tensor with the same rank and shape as the Values
