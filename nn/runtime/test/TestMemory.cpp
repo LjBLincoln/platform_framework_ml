@@ -134,6 +134,9 @@ TEST_F(MemoryTest, TestASharedMemory) {
               Result::NO_ERROR);
     ASSERT_EQ(execution2.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected3, *reinterpret_cast<Matrix3x4*>(outputData + offsetForActual)), 0);
+    close(weightsFd);
+    close(inputFd);
+    close(outputFd);
 }
 
 TEST_F(MemoryTest, TestFd) {
