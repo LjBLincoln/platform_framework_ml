@@ -37,7 +37,7 @@ bool EmbeddingLookup::Eval() {
   const int row_bytes = total_bytes/row_size;
 
   for (uint32_t i = 0; i < lookup_->shape().dimensions[0]; i++) {
-    int idx = static_cast<int>((reinterpret_cast<float*>(lookup_->buffer))[i]);
+    int idx = (reinterpret_cast<int*>(lookup_->buffer))[i];
     if (idx >= row_size || idx < 0) {
       LOG(ERROR) << "Embedding Lookup: index out of bounds.";
       return false;
