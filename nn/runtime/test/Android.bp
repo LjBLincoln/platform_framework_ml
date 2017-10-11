@@ -24,6 +24,7 @@ cc_defaults {
         "TestTrivialModel.cpp",
         "TestValidation.cpp",
         "TestGenerated.cpp",
+        "TestPartitioning.cpp",
     ],
     shared_libs: [
         "libandroid",
