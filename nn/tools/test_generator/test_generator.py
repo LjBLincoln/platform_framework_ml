@@ -16,7 +16,7 @@
 
 """NN model compiler
 
-Compile models and examples into NDK-based unit tests
+Compile models and examples into VTS and NDK-based CTS unit tests
 """
 
 from __future__ import absolute_import
@@ -105,12 +105,12 @@ class Uses(object):
     self.ins = ins.copy()
     Uses.all_uses.add(self)
     for i in ins:
-      i.outs.add(self)
+      i.outs.append(self)
 
 # Object that other objects takes its definition from
 class Definitions(object):
   def __init__(self, outs = []):
-    self.outs = set(outs)
+    self.outs = outs.copy()
     for o in outs:
       o.ins.append(self)
 
@@ -265,20 +265,23 @@ class Input(Operand, Definitions, Traversable):
 class Output(Operand, Uses, Nontraversable):
   # for enumerating outputs
   __next_number = 0
-  __outputs = set()
+  __outputs = []
 
   def __init__(self, name, vt, shape):
     Operand.__init__(self, name, Type(vt, shape))
     Uses.__init__(self)
-    Output.__outputs.add(self)
+    Output.__outputs.append(self)
     self.number = Output.__next_number
     Output.__next_number += 1
 
   def lifetime(self):
     return "MODEL_OUTPUT"
 
+  # return all unique outputs in the original order
   def get_outputs():
-    return Output.__outputs
+    saw = set()
+    unique = [x for x in Output.__outputs if x not in saw and (saw.add(x) or True)]
+    return unique
 
 # An output that we don't want to compare the results
 class IgnoredOutput(Output):
@@ -513,10 +516,10 @@ class Model(object):
   def Out(self, o):
     if (type(o) is list or type(o) is tuple):
       for i in o:
-        self.__currentOp.outs.add(i)
+        self.__currentOp.outs.append(i)
         i.ins.append(self.__currentOp)
     else:
-      self.__currentOp.outs.add(o)
+      self.__currentOp.outs.append(o)
       o.ins.append(self.__currentOp)
     return self
 
@@ -605,7 +608,8 @@ def TopologicalSort(format_op):
   while len(start) > 0:
     cur = start.pop()
     format_op(cur) #cur.Definition()
-    for o in cur.outs:
+    distinct_outs = set(cur.outs)
+    for o in distinct_outs:
       deps[o].remove(cur)
       if len(deps[o]) == 0 and o.traversable():
         start.add(o)
