@@ -897,7 +897,8 @@ typedef enum {
 
     /** Resizes images to given size using the bilinear interpretation.
      *
-     * Resized images will be distorted if their original aspect ratio is not the same as input.
+     * Resized images will be distorted if their output aspect ratio is not the same as
+     * input aspect ratio.
      *
      * Supported tensor types:
      * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
@@ -906,8 +907,8 @@ typedef enum {
      *
      * Inputs:
      * * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
-     * * 1: An INT32 value, specifying the output width of the output tensor.
-     * * 2: An INT32 value, specifying the output height of the output tensor.
+     * * 1: An INT32 value, specifying the output height of the output tensor.
+     * * 2: An INT32 value, specifying the output width of the output tensor.
      *
      * Outputs:
      * * 0: The output 4-D tensor, of shape [batches, new_height, new_width, depth].

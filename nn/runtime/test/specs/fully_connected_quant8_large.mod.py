@@ -16,19 +16,15 @@
 
 model = Model()
 in0 = Input("op1", "TENSOR_QUANT8_ASYMM", "{1, 5}, 0.2, 0") # batch = 1, input_size = 5
-weights = Input("op2", "TENSOR_QUANT8_ASYMM", "{1, 5}, 0.2, 0") # num_units = 1, input_size = 5
-bias = Input("b0", "TENSOR_INT32", "{1}, 0.04, 0")
+weights = Parameter("op2", "TENSOR_QUANT8_ASYMM", "{1, 5}, 0.2, 0", [10, 20, 20, 20, 10]) # num_units = 1, input_size = 5
+bias = Parameter("b0", "TENSOR_INT32", "{1}, 0.04, 0", [10])
 out0 = Output("op3", "TENSOR_QUANT8_ASYMM", "{1, 1}, 1.f, 0") # batch = 1, number_units = 1
 act = Int32Scalar("act", 0)
 model = model.Operation("FULLY_CONNECTED", in0, weights, bias, act).To(out0)
 
 # Example 1. Input in operand 0,
 input0 = {in0: # input 0
-          [10, 10, 10, 10, 10],
-          weights:
-          [10, 20, 20, 20, 10],
-          bias:
-          [10]}
+          [10, 10, 10, 10, 10]}
 output0 = {out0: # output 0
            [32]}
 

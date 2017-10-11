@@ -253,6 +253,20 @@ TEST_F(GeneratedTests, conv_float_channels) {
             conv_float_channels::examples);
 }
 
+namespace conv_float_channels_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_float_channels_weights_as_inputs test
+#include "generated/examples/conv_float_channels_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_float_channels_weights_as_inputs.model.cpp"
+} // namespace conv_float_channels_weights_as_inputs
+TEST_F(GeneratedTests, conv_float_channels_weights_as_inputs) {
+    Execute(conv_float_channels_weights_as_inputs::CreateModel,
+            conv_float_channels_weights_as_inputs::is_ignored,
+            conv_float_channels_weights_as_inputs::examples);
+}
+
 namespace conv_float_large {
 std::vector<MixedTypedExample> examples = {
 // Generated conv_float_large test
@@ -265,6 +279,20 @@ TEST_F(GeneratedTests, conv_float_large) {
     Execute(conv_float_large::CreateModel,
             conv_float_large::is_ignored,
             conv_float_large::examples);
+}
+
+namespace conv_float_large_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_float_large_weights_as_inputs test
+#include "generated/examples/conv_float_large_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_float_large_weights_as_inputs.model.cpp"
+} // namespace conv_float_large_weights_as_inputs
+TEST_F(GeneratedTests, conv_float_large_weights_as_inputs) {
+    Execute(conv_float_large_weights_as_inputs::CreateModel,
+            conv_float_large_weights_as_inputs::is_ignored,
+            conv_float_large_weights_as_inputs::examples);
 }
 
 namespace conv_float {
@@ -281,6 +309,20 @@ TEST_F(GeneratedTests, conv_float) {
             conv_float::examples);
 }
 
+namespace conv_float_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_float_weights_as_inputs test
+#include "generated/examples/conv_float_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_float_weights_as_inputs.model.cpp"
+} // namespace conv_float_weights_as_inputs
+TEST_F(GeneratedTests, conv_float_weights_as_inputs) {
+    Execute(conv_float_weights_as_inputs::CreateModel,
+            conv_float_weights_as_inputs::is_ignored,
+            conv_float_weights_as_inputs::examples);
+}
+
 namespace conv_quant8_channels {
 std::vector<MixedTypedExample> examples = {
 // Generated conv_quant8_channels test
@@ -295,6 +337,20 @@ TEST_F(GeneratedTests, conv_quant8_channels) {
             conv_quant8_channels::examples);
 }
 
+namespace conv_quant8_channels_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_quant8_channels_weights_as_inputs test
+#include "generated/examples/conv_quant8_channels_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_quant8_channels_weights_as_inputs.model.cpp"
+} // namespace conv_quant8_channels_weights_as_inputs
+TEST_F(GeneratedTests, conv_quant8_channels_weights_as_inputs) {
+    Execute(conv_quant8_channels_weights_as_inputs::CreateModel,
+            conv_quant8_channels_weights_as_inputs::is_ignored,
+            conv_quant8_channels_weights_as_inputs::examples);
+}
+
 namespace conv_quant8_large {
 std::vector<MixedTypedExample> examples = {
 // Generated conv_quant8_large test
@@ -307,6 +363,20 @@ TEST_F(GeneratedTests, conv_quant8_large) {
     Execute(conv_quant8_large::CreateModel,
             conv_quant8_large::is_ignored,
             conv_quant8_large::examples);
+}
+
+namespace conv_quant8_large_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_quant8_large_weights_as_inputs test
+#include "generated/examples/conv_quant8_large_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_quant8_large_weights_as_inputs.model.cpp"
+} // namespace conv_quant8_large_weights_as_inputs
+TEST_F(GeneratedTests, conv_quant8_large_weights_as_inputs) {
+    Execute(conv_quant8_large_weights_as_inputs::CreateModel,
+            conv_quant8_large_weights_as_inputs::is_ignored,
+            conv_quant8_large_weights_as_inputs::examples);
 }
 
 namespace conv_quant8 {
@@ -335,6 +405,34 @@ TEST_F(GeneratedTests, conv_quant8_overflow) {
     Execute(conv_quant8_overflow::CreateModel,
             conv_quant8_overflow::is_ignored,
             conv_quant8_overflow::examples);
+}
+
+namespace conv_quant8_overflow_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_quant8_overflow_weights_as_inputs test
+#include "generated/examples/conv_quant8_overflow_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_quant8_overflow_weights_as_inputs.model.cpp"
+} // namespace conv_quant8_overflow_weights_as_inputs
+TEST_F(GeneratedTests, conv_quant8_overflow_weights_as_inputs) {
+    Execute(conv_quant8_overflow_weights_as_inputs::CreateModel,
+            conv_quant8_overflow_weights_as_inputs::is_ignored,
+            conv_quant8_overflow_weights_as_inputs::examples);
+}
+
+namespace conv_quant8_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_quant8_weights_as_inputs test
+#include "generated/examples/conv_quant8_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_quant8_weights_as_inputs.model.cpp"
+} // namespace conv_quant8_weights_as_inputs
+TEST_F(GeneratedTests, conv_quant8_weights_as_inputs) {
+    Execute(conv_quant8_weights_as_inputs::CreateModel,
+            conv_quant8_weights_as_inputs::is_ignored,
+            conv_quant8_weights_as_inputs::examples);
 }
 
 namespace depth_to_space_float_1 {
@@ -407,6 +505,20 @@ TEST_F(GeneratedTests, depthwise_conv2d_float_large_2) {
             depthwise_conv2d_float_large_2::examples);
 }
 
+namespace depthwise_conv2d_float_large_2_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_float_large_2_weights_as_inputs test
+#include "generated/examples/depthwise_conv2d_float_large_2_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv2d_float_large_2_weights_as_inputs.model.cpp"
+} // namespace depthwise_conv2d_float_large_2_weights_as_inputs
+TEST_F(GeneratedTests, depthwise_conv2d_float_large_2_weights_as_inputs) {
+    Execute(depthwise_conv2d_float_large_2_weights_as_inputs::CreateModel,
+            depthwise_conv2d_float_large_2_weights_as_inputs::is_ignored,
+            depthwise_conv2d_float_large_2_weights_as_inputs::examples);
+}
+
 namespace depthwise_conv2d_float_large {
 std::vector<MixedTypedExample> examples = {
 // Generated depthwise_conv2d_float_large test
@@ -419,6 +531,20 @@ TEST_F(GeneratedTests, depthwise_conv2d_float_large) {
     Execute(depthwise_conv2d_float_large::CreateModel,
             depthwise_conv2d_float_large::is_ignored,
             depthwise_conv2d_float_large::examples);
+}
+
+namespace depthwise_conv2d_float_large_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_float_large_weights_as_inputs test
+#include "generated/examples/depthwise_conv2d_float_large_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv2d_float_large_weights_as_inputs.model.cpp"
+} // namespace depthwise_conv2d_float_large_weights_as_inputs
+TEST_F(GeneratedTests, depthwise_conv2d_float_large_weights_as_inputs) {
+    Execute(depthwise_conv2d_float_large_weights_as_inputs::CreateModel,
+            depthwise_conv2d_float_large_weights_as_inputs::is_ignored,
+            depthwise_conv2d_float_large_weights_as_inputs::examples);
 }
 
 namespace depthwise_conv2d_float {
@@ -435,6 +561,20 @@ TEST_F(GeneratedTests, depthwise_conv2d_float) {
             depthwise_conv2d_float::examples);
 }
 
+namespace depthwise_conv2d_float_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_float_weights_as_inputs test
+#include "generated/examples/depthwise_conv2d_float_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv2d_float_weights_as_inputs.model.cpp"
+} // namespace depthwise_conv2d_float_weights_as_inputs
+TEST_F(GeneratedTests, depthwise_conv2d_float_weights_as_inputs) {
+    Execute(depthwise_conv2d_float_weights_as_inputs::CreateModel,
+            depthwise_conv2d_float_weights_as_inputs::is_ignored,
+            depthwise_conv2d_float_weights_as_inputs::examples);
+}
+
 namespace depthwise_conv2d_quant8_large {
 std::vector<MixedTypedExample> examples = {
 // Generated depthwise_conv2d_quant8_large test
@@ -449,6 +589,20 @@ TEST_F(GeneratedTests, depthwise_conv2d_quant8_large) {
             depthwise_conv2d_quant8_large::examples);
 }
 
+namespace depthwise_conv2d_quant8_large_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_quant8_large_weights_as_inputs test
+#include "generated/examples/depthwise_conv2d_quant8_large_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv2d_quant8_large_weights_as_inputs.model.cpp"
+} // namespace depthwise_conv2d_quant8_large_weights_as_inputs
+TEST_F(GeneratedTests, depthwise_conv2d_quant8_large_weights_as_inputs) {
+    Execute(depthwise_conv2d_quant8_large_weights_as_inputs::CreateModel,
+            depthwise_conv2d_quant8_large_weights_as_inputs::is_ignored,
+            depthwise_conv2d_quant8_large_weights_as_inputs::examples);
+}
+
 namespace depthwise_conv2d_quant8 {
 std::vector<MixedTypedExample> examples = {
 // Generated depthwise_conv2d_quant8 test
@@ -461,6 +615,20 @@ TEST_F(GeneratedTests, depthwise_conv2d_quant8) {
     Execute(depthwise_conv2d_quant8::CreateModel,
             depthwise_conv2d_quant8::is_ignored,
             depthwise_conv2d_quant8::examples);
+}
+
+namespace depthwise_conv2d_quant8_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_quant8_weights_as_inputs test
+#include "generated/examples/depthwise_conv2d_quant8_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv2d_quant8_weights_as_inputs.model.cpp"
+} // namespace depthwise_conv2d_quant8_weights_as_inputs
+TEST_F(GeneratedTests, depthwise_conv2d_quant8_weights_as_inputs) {
+    Execute(depthwise_conv2d_quant8_weights_as_inputs::CreateModel,
+            depthwise_conv2d_quant8_weights_as_inputs::is_ignored,
+            depthwise_conv2d_quant8_weights_as_inputs::examples);
 }
 
 namespace dequantize {
@@ -519,6 +687,20 @@ TEST_F(GeneratedTests, fully_connected_float_large) {
             fully_connected_float_large::examples);
 }
 
+namespace fully_connected_float_large_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float_large_weights_as_inputs test
+#include "generated/examples/fully_connected_float_large_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_float_large_weights_as_inputs.model.cpp"
+} // namespace fully_connected_float_large_weights_as_inputs
+TEST_F(GeneratedTests, fully_connected_float_large_weights_as_inputs) {
+    Execute(fully_connected_float_large_weights_as_inputs::CreateModel,
+            fully_connected_float_large_weights_as_inputs::is_ignored,
+            fully_connected_float_large_weights_as_inputs::examples);
+}
+
 namespace fully_connected_float {
 std::vector<MixedTypedExample> examples = {
 // Generated fully_connected_float test
@@ -531,6 +713,20 @@ TEST_F(GeneratedTests, fully_connected_float) {
     Execute(fully_connected_float::CreateModel,
             fully_connected_float::is_ignored,
             fully_connected_float::examples);
+}
+
+namespace fully_connected_float_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float_weights_as_inputs test
+#include "generated/examples/fully_connected_float_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_float_weights_as_inputs.model.cpp"
+} // namespace fully_connected_float_weights_as_inputs
+TEST_F(GeneratedTests, fully_connected_float_weights_as_inputs) {
+    Execute(fully_connected_float_weights_as_inputs::CreateModel,
+            fully_connected_float_weights_as_inputs::is_ignored,
+            fully_connected_float_weights_as_inputs::examples);
 }
 
 namespace fully_connected_quant8_large {
@@ -547,6 +743,20 @@ TEST_F(GeneratedTests, fully_connected_quant8_large) {
             fully_connected_quant8_large::examples);
 }
 
+namespace fully_connected_quant8_large_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_quant8_large_weights_as_inputs test
+#include "generated/examples/fully_connected_quant8_large_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_quant8_large_weights_as_inputs.model.cpp"
+} // namespace fully_connected_quant8_large_weights_as_inputs
+TEST_F(GeneratedTests, fully_connected_quant8_large_weights_as_inputs) {
+    Execute(fully_connected_quant8_large_weights_as_inputs::CreateModel,
+            fully_connected_quant8_large_weights_as_inputs::is_ignored,
+            fully_connected_quant8_large_weights_as_inputs::examples);
+}
+
 namespace fully_connected_quant8 {
 std::vector<MixedTypedExample> examples = {
 // Generated fully_connected_quant8 test
@@ -559,6 +769,20 @@ TEST_F(GeneratedTests, fully_connected_quant8) {
     Execute(fully_connected_quant8::CreateModel,
             fully_connected_quant8::is_ignored,
             fully_connected_quant8::examples);
+}
+
+namespace fully_connected_quant8_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_quant8_weights_as_inputs test
+#include "generated/examples/fully_connected_quant8_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_quant8_weights_as_inputs.model.cpp"
+} // namespace fully_connected_quant8_weights_as_inputs
+TEST_F(GeneratedTests, fully_connected_quant8_weights_as_inputs) {
+    Execute(fully_connected_quant8_weights_as_inputs::CreateModel,
+            fully_connected_quant8_weights_as_inputs::is_ignored,
+            fully_connected_quant8_weights_as_inputs::examples);
 }
 
 namespace hashtable_lookup_float {
@@ -757,6 +981,20 @@ TEST_F(GeneratedTests, logistic_quant8_2) {
             logistic_quant8_2::examples);
 }
 
+namespace lsh_projection_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated lsh_projection_2 test
+#include "generated/examples/lsh_projection_2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lsh_projection_2.model.cpp"
+} // namespace lsh_projection_2
+TEST_F(GeneratedTests, lsh_projection_2) {
+    Execute(lsh_projection_2::CreateModel,
+            lsh_projection_2::is_ignored,
+            lsh_projection_2::examples);
+}
+
 namespace lsh_projection {
 std::vector<MixedTypedExample> examples = {
 // Generated lsh_projection test
@@ -769,6 +1007,20 @@ TEST_F(GeneratedTests, lsh_projection) {
     Execute(lsh_projection::CreateModel,
             lsh_projection::is_ignored,
             lsh_projection::examples);
+}
+
+namespace lsh_projection_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated lsh_projection_weights_as_inputs test
+#include "generated/examples/lsh_projection_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lsh_projection_weights_as_inputs.model.cpp"
+} // namespace lsh_projection_weights_as_inputs
+TEST_F(GeneratedTests, lsh_projection_weights_as_inputs) {
+    Execute(lsh_projection_weights_as_inputs::CreateModel,
+            lsh_projection_weights_as_inputs::is_ignored,
+            lsh_projection_weights_as_inputs::examples);
 }
 
 namespace lstm2 {
@@ -1161,6 +1413,34 @@ TEST_F(GeneratedTests, reshape_quant8) {
     Execute(reshape_quant8::CreateModel,
             reshape_quant8::is_ignored,
             reshape_quant8::examples);
+}
+
+namespace reshape_quant8_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated reshape_quant8_weights_as_inputs test
+#include "generated/examples/reshape_quant8_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/reshape_quant8_weights_as_inputs.model.cpp"
+} // namespace reshape_quant8_weights_as_inputs
+TEST_F(GeneratedTests, reshape_quant8_weights_as_inputs) {
+    Execute(reshape_quant8_weights_as_inputs::CreateModel,
+            reshape_quant8_weights_as_inputs::is_ignored,
+            reshape_quant8_weights_as_inputs::examples);
+}
+
+namespace reshape_weights_as_inputs {
+std::vector<MixedTypedExample> examples = {
+// Generated reshape_weights_as_inputs test
+#include "generated/examples/reshape_weights_as_inputs.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/reshape_weights_as_inputs.model.cpp"
+} // namespace reshape_weights_as_inputs
+TEST_F(GeneratedTests, reshape_weights_as_inputs) {
+    Execute(reshape_weights_as_inputs::CreateModel,
+            reshape_weights_as_inputs::is_ignored,
+            reshape_weights_as_inputs::examples);
 }
 
 namespace resize_bilinear {

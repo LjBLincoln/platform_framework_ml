@@ -240,12 +240,13 @@ class Input(Operand, Definitions, Traversable):
   # Holds reference to all Inputs; used by Topoligcal sort as starting nodes.
   __inputs = set()
 
-  def __init__(self, name, vt, shape):
+  def __init__(self, name, vt, shape, increase_next_number=True):
     Operand.__init__(self, name, Type(vt, shape))
     Definitions.__init__(self)
     Input.__inputs.add(self)
     self.number = Input.__next_number
-    Input.__next_number += 1
+    if increase_next_number is True:
+      Input.__next_number += 1
 
   def lifetime(self):
     return "MODEL_INPUT"
@@ -313,10 +314,18 @@ class ModelArgument:
   def lifetime(self):
     return "CONSTANT_COPY"
 
+# Print in C float literal format
+def pretty_print_as_float(x):
+  s = str(float(x))
+  if s.find(".") >= 0 or s.find("e") >= 0:
+    return s + "f"
+  else:
+    return s + ".0f"
+
 class Parameter(Input):
   # TODO seems wrong that's an Input.
   def __init__(self, name, vt, shape, initializer):
-    Input.__init__(self, name, vt, shape)
+    Input.__init__(self, name, vt, shape, False)
     self.initializer = initializer
     self.cpptype = TypeLookup.get_cpptype(vt)
   def is_internal(self):
@@ -325,7 +334,7 @@ class Parameter(Input):
     init_name = self.get_name() + "_init"
     initializer = [str(x) for x in self.initializer]
     if self.cpptype == "float":
-      initializer = [ x+"f" for x in initializer]
+      initializer = [ pretty_print_as_float(x) for x in initializer]
     init = self.cpptype + " " + init_name + "[]"
     init = "static " + init + " = {" + ", ".join(initializer) + "};"
     args = [ self.get_name(), init_name,
@@ -628,14 +637,6 @@ def import_source():
 
   return (args.model, args.example)
 
-
-# Print in C float literal format
-def pretty_print_as_float(x):
-  s = str(float(x))
-  if s.find(".") >= 0:
-    return s + "f"
-  else:
-    return s + ".0f"
 
 # Generate operands in VTS format
 def generate_vts_operands():

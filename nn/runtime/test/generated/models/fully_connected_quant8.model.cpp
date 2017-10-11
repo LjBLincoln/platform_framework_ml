@@ -12,12 +12,16 @@ void CreateModel(Model *model) {
   auto op3 = model->addOperand(&type3);
   auto act = model->addOperand(&type4);
   // Phase 2, operations
+  static uint8_t op2_init[] = {2};
+  model->setOperandValue(op2, op2_init, sizeof(uint8_t) * 1);
+  static int32_t b0_init[] = {4};
+  model->setOperandValue(b0, b0_init, sizeof(int32_t) * 1);
   static int32_t act_init[] = {0};
   model->setOperandValue(act, act_init, sizeof(int32_t) * 1);
   model->addOperation(ANEURALNETWORKS_FULLY_CONNECTED, {op1, op2, b0, act}, {op3});
   // Phase 3, inputs and outputs
   model->identifyInputsAndOutputs(
-    {op1, op2, b0},
+    {op1},
     {op3});
   assert(model->isValid());
 }

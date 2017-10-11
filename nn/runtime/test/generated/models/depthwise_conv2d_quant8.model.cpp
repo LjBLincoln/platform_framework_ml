@@ -3,7 +3,7 @@ void CreateModel(Model *model) {
   OperandType type2(Type::INT32, {});
   OperandType type1(Type::TENSOR_INT32, {2}, 0.25f, 0);
   OperandType type0(Type::TENSOR_QUANT8_ASYMM, {1, 2, 2, 2}, 0.5f, 0);
-  OperandType type3(Type::TENSOR_QUANT8_ASYMM, {2}, 1.f, 0);
+  OperandType type3(Type::TENSOR_QUANT8_ASYMM, {1,1,1,2}, 1.f, 0);
   // Phase 1, operands
   auto op1 = model->addOperand(&type0);
   auto op2 = model->addOperand(&type0);
@@ -14,6 +14,10 @@ void CreateModel(Model *model) {
   auto channelMultiplier = model->addOperand(&type2);
   auto op4 = model->addOperand(&type3);
   // Phase 2, operations
+  static uint8_t op2_init[] = {2, 4, 2, 0, 2, 2, 2, 0};
+  model->setOperandValue(op2, op2_init, sizeof(uint8_t) * 8);
+  static int32_t op3_init[] = {0, 0};
+  model->setOperandValue(op3, op3_init, sizeof(int32_t) * 2);
   static int32_t pad0_init[] = {0};
   model->setOperandValue(pad0, pad0_init, sizeof(int32_t) * 1);
   static int32_t act_init[] = {0};
@@ -25,7 +29,7 @@ void CreateModel(Model *model) {
   model->addOperation(ANEURALNETWORKS_DEPTHWISE_CONV_2D, {op1, op2, op3, pad0, pad0, pad0, pad0, stride, stride, channelMultiplier, act}, {op4});
   // Phase 3, inputs and outputs
   model->identifyInputsAndOutputs(
-    {op1, op2, op3},
+    {op1},
     {op4});
   assert(model->isValid());
 }

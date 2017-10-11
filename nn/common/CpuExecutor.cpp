@@ -82,6 +82,20 @@ bool RunTimePoolInfo::update() {
 // Updates the RunTimeOperandInfo with the newly calculated shape.
 // Allocate the buffer if we need to.
 static bool setInfoAndAllocateIfNeeded(RunTimeOperandInfo* info, const Shape& shape) {
+    // For user-provided model output operands, the parameters must match the Shape
+    // calculated from the preparation step.
+    if (info->lifetime == OperandLifeTime::MODEL_OUTPUT) {
+        if (info->type != shape.type ||
+            info->dimensions != shape.dimensions) {
+            LOG(ERROR) << "Invalid type or dimensions for model output";
+            return false;
+        }
+        if (info->type == OperandType::TENSOR_QUANT8_ASYMM &&
+            (info->scale != shape.scale || info->zeroPoint != shape.offset)) {
+            LOG(ERROR) << "Invalid scale or zeroPoint for model output";
+            return false;
+        }
+    }
     info->type = shape.type;
     info->dimensions = shape.dimensions;
     info->scale = shape.scale;
