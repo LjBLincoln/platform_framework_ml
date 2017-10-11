@@ -4,7 +4,7 @@ Model createTestModel() {
     const std::vector<Operand> operands = {
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {1, 2, 2, 3},
+            .dimensions = {1, 2, 2, 2},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
@@ -32,7 +32,7 @@ Model createTestModel() {
         {
             .type = OperandType::INT32,
             .dimensions = {},
-            .numberOfConsumers = 1,
+            .numberOfConsumers = 4,
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
@@ -50,7 +50,7 @@ Model createTestModel() {
         {
             .type = OperandType::INT32,
             .dimensions = {},
-            .numberOfConsumers = 1,
+            .numberOfConsumers = 2,
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
