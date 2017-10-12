@@ -58,6 +58,7 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
 }
 
 int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t length) {
+    VLOG(MODEL) << __func__ << " for operand " << index << " size " << length;
     if (index >= operandCount()) {
         LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting operand " << index << " of "
                    << operandCount();
@@ -76,25 +77,81 @@ int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t len
                             .offset = 0,
                             .length = 0};
     } else {
+        if (length > 0xFFFFFFFF) {
+            LOG(ERROR) << "ANeuralNetworksModel_setOperandValue value length of " << length
+                       << " exceeds max size";
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+        uint32_t valueLength = static_cast<uint32_t>(length);
         uint32_t neededLength = sizeOfData(operand.type, operand.dimensions);
-        if (neededLength != length) {
-            LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting " << length
+        if (neededLength != valueLength) {
+            LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting " << valueLength
                        << " bytes when needing " << neededLength;
             return ANEURALNETWORKS_BAD_DATA;
         }
-        uint32_t existingSize = static_cast<uint32_t>(mOperandValues.size());
-        uint32_t extraBytes = alignBytesNeeded(existingSize, length);
-        mOperandValues.resize(existingSize + extraBytes + length);
-        operand.lifetime = OperandLifeTime::CONSTANT_COPY;
-        operand.location = {
-                    .poolIndex = 0, .offset = existingSize + extraBytes, .length = neededLength};
-        memcpy(&mOperandValues[operand.location.offset], buffer, length);
+        if (valueLength <= ANEURALNETWORKS_MAX_SIZE_OF_IMMEDIATELY_COPIED_VALUES) {
+            uint32_t existingSize = static_cast<uint32_t>(mSmallOperandValues.size());
+            uint32_t extraBytes = alignBytesNeeded(existingSize, valueLength);
+            mSmallOperandValues.resize(existingSize + extraBytes + valueLength);
+            operand.lifetime = OperandLifeTime::CONSTANT_COPY;
+            operand.location = {
+                .poolIndex = 0, .offset = existingSize + extraBytes, .length = neededLength};
+            memcpy(&mSmallOperandValues[operand.location.offset], buffer, valueLength);
+            VLOG(MODEL) << "Copied small value to offset " << operand.location.offset;
+        } else {
+            VLOG(MODEL) << "Saving large value";
+            operand.lifetime = OperandLifeTime::CONSTANT_REFERENCE;
+            // The values for poolIndex and offset will be set when the model is finished.
+            operand.location = {.poolIndex = 0, .offset = 0, .length = valueLength};
+            // We keep track of the buffers. We'll allocate the shared memory only
+            // once we know the total size, to avoid needless copies.
+            mLargeOperandValues.push_back(LargeValue{.operandIndex = index, .buffer = buffer});
+        }
+    }
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int ModelBuilder::copyLargeValuesToSharedMemory() {
+    VLOG(MODEL) << __func__ << " has " << mLargeOperandValues.size() << " values.";
+    if (!mLargeOperandValues.empty()) {
+        // Calculate the size of the shared memory needed for all the large values.
+        // Also sets the offset for each value within the memory.
+        size_t poolSize = 0;
+        for (LargeValue& l: mLargeOperandValues) {
+            Operand& operand = mOperands[l.operandIndex];
+            nnAssert(operand.lifetime == OperandLifeTime::CONSTANT_REFERENCE);
+            poolSize += alignBytesNeeded(poolSize, operand.location.length);
+            operand.location.offset = poolSize;
+            poolSize += operand.location.length;
+        }
+
+        // Allocated the shared memory.
+        int n = mLargeValueMemory.create(poolSize);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+        uint8_t* memoryPointer = nullptr;
+        n = mLargeValueMemory.getPointer(&memoryPointer);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+        uint32_t poolIndex = mMemories.add(&mLargeValueMemory);
+        VLOG(MODEL) << "Allocated large value pool of size " << poolSize << " at index "
+                    << poolIndex;
+
+        // Copy the values to this memory.
+        for (LargeValue& l: mLargeOperandValues) {
+            Operand& operand = mOperands[l.operandIndex];
+            operand.location.poolIndex = poolIndex;
+            memcpy(memoryPointer + operand.location.offset, l.buffer, operand.location.length);
+        }
     }
     return ANEURALNETWORKS_NO_ERROR;
 }
 
 int ModelBuilder::setOperandValueFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
                                             size_t length) {
+    VLOG(MODEL) << __func__ << " for operand " << index << " offset " << offset << " size " << length;
     if (index >= operandCount()) {
         LOG(ERROR) << "ANeuralNetworksModel_setOperandValueFromMemory setting operand " << index
                    << " of " << operandCount();
@@ -223,8 +280,14 @@ int ModelBuilder::finish() {
         return ANEURALNETWORKS_BAD_STATE;
     }
 
+    int n = copyLargeValuesToSharedMemory();
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+
     // We sort the operations so that they will be in the appropriate
     // order for a single-threaded, op at a time execution.
+    // TODO: we don't need this if we always run the partitioner.
     sortIntoRunOrder();
     mCompletedModel = true;
     return ANEURALNETWORKS_NO_ERROR;
@@ -282,7 +345,7 @@ void ModelBuilder::setHidlModel(Model* model) const {
     model->operations = mOperations;
     model->inputIndexes = mInputIndexes;
     model->outputIndexes = mOutputIndexes;
-    model->operandValues = mOperandValues;
+    model->operandValues = mSmallOperandValues;
 
     uint32_t count = mMemories.size();
     model->pools.resize(count);

@@ -55,10 +55,7 @@ struct RunTimeOperandInfo {
     uint32_t numberOfUsesLeft;
 
     Shape shape() const {
-        return Shape{.type = type,
-                     .dimensions = dimensions,
-                     .scale = scale,
-                     .offset = zeroPoint};
+        return Shape{.type = type, .dimensions = dimensions, .scale = scale, .offset = zeroPoint};
     }
 };
 
@@ -72,6 +69,9 @@ struct RunTimePoolInfo {
     bool update();
 };
 
+bool setRunTimePoolInfosFromHidlMemories(std::vector<RunTimePoolInfo>* poolInfos,
+                                         const hidl_vec<hidl_memory>& pools);
+
 // This class is used to execute a model on the CPU.
 class CpuExecutor {
 public:
@@ -80,17 +80,17 @@ public:
     // The model must outlive the executor.  We prevent it from being modified
     // while this is executing.
     int run(const Model& model, const Request& request,
-            const std::vector<RunTimePoolInfo>& runTimePoolInfos);
+            const std::vector<RunTimePoolInfo>& modelPoolInfos,
+            const std::vector<RunTimePoolInfo>& requestPoolInfos);
 
 private:
-    bool initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runTimePoolInfos);
+    bool initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& modelPoolInfos,
+                               const std::vector<RunTimePoolInfo>& requestPoolInfos);
     // Runs one operation of the graph.
     int executeOperation(const Operation& entry);
     // Decrement the usage count for the operands listed.  Frees the memory
     // allocated for any temporary variable with a count of zero.
     void freeNoLongerUsedOperands(const std::vector<uint32_t>& inputs);
-    void setLocationAndUses(RunTimeOperandInfo* to, const DataLocation& location,
-                            const std::vector<RunTimePoolInfo>& runTimePoolInfos);
 
     // The model and the request that we'll execute. Only valid while run()
     // is being executed.
