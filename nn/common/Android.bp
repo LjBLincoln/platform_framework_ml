@@ -31,6 +31,7 @@ cc_library_static {
         "CpuExecutor.cpp",
         "OperationsUtils.cpp",
         "Utils.cpp",
+        "ValidateHal.cpp",
         "operations/Activation.cpp",
         "operations/Concatenation.cpp",
         "operations/Conv2D.cpp",
