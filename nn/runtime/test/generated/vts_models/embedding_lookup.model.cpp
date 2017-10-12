@@ -3,8 +3,8 @@
 Model createTestModel() {
     const std::vector<Operand> operands = {
         {
-            .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {3, 2, 4},
+            .type = OperandType::TENSOR_INT32,
+            .dimensions = {3},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
@@ -13,7 +13,7 @@ Model createTestModel() {
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {3},
+            .dimensions = {3, 2, 4},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,

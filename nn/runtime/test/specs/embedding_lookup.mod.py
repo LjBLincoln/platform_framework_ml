@@ -26,12 +26,12 @@ for i in range(rows):
       actual_values[(i * columns + j) * features + k] = i + j / 10. + k / 100.
 
 model = Model()
+index = Input("index", "TENSOR_INT32", "{%d}"%lookups)
 value = Input("value", "TENSOR_FLOAT32", "{%d, %d, %d}" % (rows, columns, features))
-index = Input("index", "TENSOR_FLOAT32", "{%d}"%lookups)
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d, %d}" % (lookups, columns, features))
-model = model.Operation("EMBEDDING_LOOKUP", value, index).To(output)
+model = model.Operation("EMBEDDING_LOOKUP", index, value).To(output)
 
-input0 = {index: [1., 0., 2.],  # TODO: these should be integers
+input0 = {index: [1, 0, 2],
           value: actual_values}
 
 output0 = {output:

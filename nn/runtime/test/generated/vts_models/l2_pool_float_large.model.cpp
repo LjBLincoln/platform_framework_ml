@@ -50,7 +50,7 @@ Model createTestModel() {
         {
             .type = OperandType::INT32,
             .dimensions = {},
-            .numberOfConsumers = 1,
+            .numberOfConsumers = 4,
             .scale = 0.0f,
             .zeroPoint = 0,
             .lifetime = OperandLifeTime::CONSTANT_COPY,
