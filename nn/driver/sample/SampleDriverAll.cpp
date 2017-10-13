@@ -37,6 +37,7 @@ public:
 };
 
 Return<void> SampleDriverAll::getCapabilities(getCapabilities_cb cb) {
+    android::nn::initVLogMask();
     VLOG(DRIVER) << "getCapabilities()";
     Capabilities capabilities = {.float32Performance = {.execTime = 1.1f, .powerUsage = 1.1f},
                                  .quantized8Performance = {.execTime = 1.1f, .powerUsage = 1.1f}};
@@ -66,7 +67,6 @@ using android::nn::sample_driver::SampleDriverAll;
 using android::sp;
 
 int main() {
-    android::nn::initVLogMask();
     sp<SampleDriverAll> driver(new SampleDriverAll());
     return driver->run();
 }
