@@ -1206,7 +1206,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                 rnn_cell.Eval();
         } break;
         case OperationType::SVDF: {
-            RunTimeOperandInfo &state =
+            RunTimeOperandInfo &stateOut =
                 mOperands[outs[SVDF::kStateOutTensor]];
             RunTimeOperandInfo &output =
                 mOperands[outs[SVDF::kOutputTensor]];
@@ -1216,7 +1216,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
 
             success = SVDF::Prepare(operation, mOperands,
                                     &stateShape, &outputShape) &&
-                setInfoAndAllocateIfNeeded(&state, stateShape) &&
+                setInfoAndAllocateIfNeeded(&stateOut, stateShape) &&
                 setInfoAndAllocateIfNeeded(&output, outputShape) &&
                 svdf.Eval();
         } break;

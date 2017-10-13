@@ -46,6 +46,9 @@ cc_library_static {
         "operations/RNN.cpp",
         "operations/SimpleMath.cpp",
         "operations/SVDF.cpp",
+        "operations/internal/optimized/neon_tensor_utils.cc",
+        "operations/internal/reference/portable_tensor_utils.cc",
+        "operations/internal/tensor_utils.cc",
     ],
     shared_libs: [
         "libbase",
@@ -76,6 +79,23 @@ cc_library_static {
         "-Wno-unused-variable",
     ],
 
+}
+
+cc_test {
+    name: "tensor_utils_test",
+    srcs: [
+        "operations/internal/tensor_utils_test.cc",
+    ],
+    shared_libs: [
+        "libneuralnetworks",
+    ],
+    local_include_dirs: [ "include" ],
+    header_libs: [
+        "libneuralnetworks_headers",
+    ],
+    static_libs: [
+        "libgmock",
+    ],
 }
 
 cc_test {
