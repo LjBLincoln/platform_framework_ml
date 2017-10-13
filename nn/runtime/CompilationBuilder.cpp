@@ -48,9 +48,23 @@ int CompilationBuilder::finish(const std::vector<std::shared_ptr<Device>>& devic
 
     if (mPartitioning) {
         int n = mModel->partitionTheWork(devices, mPreference, &mPlan);
-        if (!DeviceManager::partitioningAllowsFallback(mPartitioning) &&
-            (n != ANEURALNETWORKS_NO_ERROR)) {
-            return n;
+        switch (n) {
+            case ANEURALNETWORKS_NO_ERROR:
+                break;
+            case ANEURALNETWORKS_UNEXPECTED_NULL:
+            case ANEURALNETWORKS_BAD_DATA:
+                // The two error codes above should only be used for errors in the user's
+                // request. In case of a user error, we won't try any fallback.
+                // TODO: Document this in NeuralNetworks.h and in the HAL. Make sure
+                // driver writers know which code they can return.
+                return n;
+            default:
+                // The error might be recoverable. Return the error only if falling back
+                // is not allowed.
+                if (!DeviceManager::partitioningAllowsFallback(mPartitioning)) {
+                    return n;
+                }
+                break;
         }
     }
 

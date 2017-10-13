@@ -769,9 +769,15 @@ int ModelBuilder::partitionTheWork(const std::vector<std::shared_ptr<Device>>& d
     VLOG(COMPILATION) << "ModelBuilder::partitionTheWork: deviceCount = " << deviceCount
                       << ", operationCount = " << operationCount;
 
-    // If we only have the CPU, or if the graph has no operations, no
-    // need to try to partition.
-    if (deviceCount == 1 || operationCount == 0) {
+    // If we only have the CPU, or if the graph has no operations, no need to try to partition.
+    if (nonCpuDeviceCount == 0 || operationCount == 0) {
+        // Make sure no op is an OEM operation.
+        for (auto& op: mOperations) {
+            if (op.type == OperationType::OEM_OPERATION) {
+                LOG(ERROR) << "No driver can do the OEM op";
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+        }
         plan->becomeSingleStep(nullptr /* CPU */, this);
         return plan->finish(this);
     }
@@ -780,8 +786,11 @@ int ModelBuilder::partitionTheWork(const std::vector<std::shared_ptr<Device>>& d
     // The value of the vector is the index in the devices vector, with devices.size()
     // representing the CPU.
     std::vector<int> bestDeviceForOperation(operationCount);
-    findBestDeviceForEachOperation(preference, devices, operationCount, deviceCount,
-                                   &bestDeviceForOperation);
+    int status = findBestDeviceForEachOperation(preference, devices, deviceCount,
+                                                &bestDeviceForOperation);
+    if (status != ANEURALNETWORKS_NO_ERROR) {
+        return status;
+    }
 
     // If one device will run all the operations, we don't need to split the work.
     if (std::adjacent_find(bestDeviceForOperation.begin(), bestDeviceForOperation.end(),
@@ -909,7 +918,7 @@ private:
 int ModelBuilder::findBestDeviceForEachOperation(
         uint32_t preference,
         const std::vector<std::shared_ptr<Device>>& devices,
-        const size_t operationCount, [[maybe_unused]] const size_t deviceCount,
+        const size_t deviceCount,
         std::vector<int>* bestDeviceForOperation) const {
 
     // Note that deviceCount includes CPU, which has no entry in devices[]
@@ -921,19 +930,11 @@ int ModelBuilder::findBestDeviceForEachOperation(
     }
 
     // Figure out the best driver for each operation.
-    //
-    // TODO: If the best driver is inferior (higher-power or
-    // longer-running, depending on preference) than the CPU, then we
-    // should use the CPU.  We could do this by setting bestChoice
-    // initially to the number representing the CPU
-    // (nonCpuDeviceCount) and bestPerfVal to the CPU value.  Problem
-    // is, we have no such number now, so that will have to be for
-    // release P or later.  One option is that the float performance
-    // is a ratio of device/cpu rather than a number in joules or
-    // microseconds.
+    const size_t operationCount = mOperations.size();
     for (size_t operationIndex = 0; operationIndex < operationCount; operationIndex++) {
+        // Find which non-CPU device gives the best performance for this operation.
         int bestChoice = -1;
-        float bestPerfVal = 0.0;  // do not check bestPerfVal unless we have bestChoice >= 0
+        float bestPerfVal = 0.0;  // Do not check bestPerfVal if bestChoice < 0.
         for (size_t deviceIndex = 0; deviceIndex < nonCpuDeviceCount; deviceIndex++) {
             if (canDo[deviceIndex].check(operationIndex)) {
                 const auto& device = devices[deviceIndex];
@@ -941,17 +942,28 @@ int ModelBuilder::findBestDeviceForEachOperation(
                 const float perfVal =
                             (preference == ANEURALNETWORKS_PREFER_LOW_POWER ? perf.powerUsage
                                                                             : perf.execTime);
-                if ((bestChoice >= 0) && (bestPerfVal <= perfVal)) {
-                    continue;
+                if (bestChoice < 0 || perfVal < bestPerfVal) {
+                    bestChoice = deviceIndex;
+                    bestPerfVal = perfVal;
                 }
-                bestChoice = deviceIndex;
-                bestPerfVal = perfVal;
             }
         }
-        // No drivers are available for this operation, so choose the CPU.
-        // TODO What if it is an OEM op?
-        (*bestDeviceForOperation)[operationIndex] =
-                bestChoice >= 0 ? bestChoice : static_cast<int>(nonCpuDeviceCount);
+        // If it's the OEM op, we'd better have a device able to do it.
+        if (mOperations[operationIndex].type == OperationType::OEM_OPERATION) {
+            if (bestChoice < 0) {
+                LOG(ERROR) << "No driver can do the OEM op";
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+        } else {
+            // If no driver has been found, or if the best driver is not better than the CPU,
+            // prefer the CPU. Since the performance is a ratio compared to the CPU performance,
+            // by definition the performance of the CPU is 1.0.
+            if (bestChoice < 0 || bestPerfVal >= 1.0) {
+                bestChoice = nonCpuDeviceCount;  // The ID of the CPU.
+            }
+        }
+
+        (*bestDeviceForOperation)[operationIndex] = bestChoice;
         VLOG(COMPILATION) << "ModelBuilder::findBestDeviceForEachOperation("
                           << toString(getOperation(operationIndex).type)
                           << ") = "
