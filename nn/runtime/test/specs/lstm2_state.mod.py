@@ -134,13 +134,12 @@ input0 = {input_to_input_weights:[],
 
 output0 = {
     scratch_buffer: [ 0 for x in range(n_batch * n_cell * 4) ],
-    cell_state_out: [ -0.760444, -0.0180416, 0.182264, -0.0649371 ],
-    output_state_out: [ -0.364445, -0.00352185, 0.128866, -0.0516365 ],
+    cell_state_out: [ -0.978419, -0.139203, 0.338163, -0.0983904 ],
+    output_state_out: [ -0.423122, -0.0121822, 0.24201, -0.0812458 ],
 }
 
-input0[input] = [2., 3.]
-input0[output_state_in] = [ 0 for _ in range(n_batch * n_output) ]
-input0[cell_state_in] = [ 0 for _ in range(n_batch * n_cell) ]
-output0[output] = [-0.36444446, -0.00352185, 0.12886585, -0.05163646]
-
+input0[input] = [3., 4.]
+input0[output_state_in] = [-0.364445, -0.00352185, 0.128866, -0.0516365]
+input0[cell_state_in] = [-0.760444, -0.0180416, 0.182264, -0.0649371]
+output0[output] = [-0.42312205, -0.01218222, 0.24201041, -0.08124574]
 Example((input0, output0))
