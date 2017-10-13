@@ -31,7 +31,10 @@ namespace sample_driver {
 
 Return<ErrorStatus> SampleDriver::prepareModel(const Model& model,
                                                const sp<IPreparedModelCallback>& callback) {
-    VLOG(DRIVER) << "prepareModel(" << toString(model) << ")"; // TODO errror
+    if (VLOG_IS_ON(DRIVER)) {
+        VLOG(DRIVER) << "prepareModel";
+        logModelToInfo(model);
+    }
     if (callback.get() == nullptr) {
         LOG(ERROR) << "invalid callback passed to prepareModel";
         return ErrorStatus::INVALID_ARGUMENT;
@@ -42,9 +45,12 @@ Return<ErrorStatus> SampleDriver::prepareModel(const Model& model,
     }
 
     // TODO: make asynchronous later
-    sp<IPreparedModel> preparedModel = new SamplePreparedModel(model);
+    sp<SamplePreparedModel> preparedModel = new SamplePreparedModel(model);
+    if (!preparedModel->initialize()) {
+       callback->notify(ErrorStatus::INVALID_ARGUMENT, nullptr);
+       return ErrorStatus::INVALID_ARGUMENT;
+    }
     callback->notify(ErrorStatus::NONE, preparedModel);
-
     return ErrorStatus::NONE;
 }
 
@@ -64,27 +70,20 @@ int SampleDriver::run() {
     return 1;
 }
 
-static bool mapPools(std::vector<RunTimePoolInfo>* poolInfos, const hidl_vec<hidl_memory>& pools) {
-    poolInfos->resize(pools.size());
-    for (size_t i = 0; i < pools.size(); i++) {
-        auto& poolInfo = (*poolInfos)[i];
-        if (!poolInfo.set(pools[i])) {
-            return false;
-        }
-    }
-    return true;
+bool SamplePreparedModel::initialize() {
+    return setRunTimePoolInfosFromHidlMemories(&mPoolInfos, mModel.pools);
 }
 
 void SamplePreparedModel::asyncExecute(const Request& request,
                                        const sp<IExecutionCallback>& callback) {
-    std::vector<RunTimePoolInfo> poolInfo;
-    if (!mapPools(&poolInfo, request.pools)) {
+    std::vector<RunTimePoolInfo> requestPoolInfos;
+    if (!setRunTimePoolInfosFromHidlMemories(&requestPoolInfos, request.pools)) {
         callback->notify(ErrorStatus::GENERAL_FAILURE);
         return;
     }
 
     CpuExecutor executor;
-    int n = executor.run(mModel, request, poolInfo);
+    int n = executor.run(mModel, request, mPoolInfos, requestPoolInfos);
     VLOG(DRIVER) << "executor.run returned " << n;
     ErrorStatus executionStatus =
             n == ANEURALNETWORKS_NO_ERROR ? ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;

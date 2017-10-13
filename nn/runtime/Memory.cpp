@@ -109,12 +109,14 @@ int MemoryFd::getPointer(uint8_t** buffer) const {
 }
 
 uint32_t MemoryTracker::add(const Memory* memory) {
+    VLOG(MODEL) << __func__ << " for " << memory;
     // See if we already have this memory. If so,
     // return its index.
     auto i = mKnown.find(memory);
     if (i != mKnown.end()) {
         return i->second;
     }
+    VLOG(MODEL) << "It's new";
     // It's a new one.  Save it an assign an index to it.
     size_t next = mKnown.size();
     if (next > 0xFFFFFFFF) {
