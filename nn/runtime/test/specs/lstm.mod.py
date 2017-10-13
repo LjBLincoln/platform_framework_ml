@@ -56,8 +56,8 @@ cell_clip_param = Input("cell_clip_param", "TENSOR_FLOAT32", "{1}")
 proj_clip_param = Input("proj_clip_param", "TENSOR_FLOAT32", "{1}")
 
 scratch_buffer = IgnoredOutput("scratch_buffer", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, (n_cell * 4)))
-output_state_out = IgnoredOutput("output_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
-cell_state_out = IgnoredOutput("cell_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
+output_state_out = Output("output_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
+cell_state_out = Output("cell_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
 
 model = model.Operation("LSTM",
@@ -136,26 +136,17 @@ input0 = {input_to_input_weights:  [-0.45018822, -0.02338299, -0.0870589, -0.345
           proj_clip_param: [0.],
 }
 
-# Instantiate examples
-# TODO: Add more examples after fixing the reference issue
-test_inputs = [
-    [2., 3.],
-#    [3., 4.],[1., 1.]
-]
-golden_outputs = [
-    [-0.02973187, 0.1229473, 0.20885126, -0.15358765,],
-#    [-0.03716109, 0.12507336, 0.41193449,  -0.20860538],
-#    [-0.15053082, 0.09120187,  0.24278517,  -0.12222792]
-]
-
-for (input_tensor, output_tensor) in zip(test_inputs, golden_outputs):
-  output0 = {
-      scratch_buffer: [ 0 for x in range(n_batch * n_cell * 4) ],
-      cell_state_out: [ 0 for x in range(n_batch * n_cell) ],
-      output_state_out: [ 0 for x in range(n_batch * n_output) ],
-      output: output_tensor
-  }
-  input0[input] = input_tensor
-  input0[output_state_in] = [ 0 for _ in range(n_batch * n_output) ]
-  input0[cell_state_in] = [ 0 for _ in range(n_batch * n_cell) ]
-  Example((input0, output0))
+test_input = [2., 3.]
+output_state = [0, 0, 0, 0]
+cell_state = [0, 0, 0, 0]
+golden_output = [-0.02973187, 0.1229473, 0.20885126, -0.15358765,]
+output0 = {
+  scratch_buffer: [ 0 for x in range(n_batch * n_cell * 4) ],
+  cell_state_out: [ -0.145439, 0.157475, 0.293663, -0.277353 ],
+  output_state_out: [ -0.0297319, 0.122947, 0.208851, -0.153588 ],
+  output: golden_output
+}
+input0[input] = test_input
+input0[output_state_in] = output_state
+input0[cell_state_in] = cell_state
+Example((input0, output0))
