@@ -18,119 +18,12 @@
 
 #include "CpuExecutor.h"
 #include "HalInterfaces.h"
+#include "internal/tensor_utils.h"
 
 namespace android {
 namespace nn {
 
-// TODO: move the kernels to a separate file as soon as we have the
-// optimized version ready.
 namespace {
-
-// Limit a float input f between +abs_limit and -abs_limit.
-inline float Clip(float f, float abs_limit) {
-  float result = (abs_limit < f) ? abs_limit : f;
-  result = (-abs_limit > result) ? -abs_limit : result;
-  return result;
-}
-
-// Multiply a matrix by a batch vector, and store results in a batch-size
-// vector.
-void MatrixBatchVectorMultiplyAccumulate(const float* matrix, int m_rows,
-                                         int m_cols, const float* vector,
-                                         int n_batch, float* result) {
-  for (int b = 0; b < n_batch; b++) {
-    float* result_in_batch = result + b * m_rows;
-    const float* matrix_ptr = matrix;
-    for (int r = 0; r < m_rows; r++) {
-      const float* vector_in_batch = vector + b * m_cols;
-      for (int c = 0; c < m_cols; c++) {
-        *result_in_batch += *matrix_ptr++ * *vector_in_batch++;
-      }
-      result_in_batch++;
-    }
-  }
-}
-
-// Cwise product of two vectors.
-void VectorVectorCwiseProduct(const float* vector1, const float* vector2,
-                              int v_size, float* result) {
-  for (int v = 0; v < v_size; v++) {
-    *result++ = *vector1++ * *vector2++;
-  }
-}
-
-// Cwise product and accumulation of two vectors. Since it's a MAC operation, the
-// assumption here is that result array is initialized to valid values.
-void VectorVectorCwiseProductAccumulate(const float* vector1,
-                                        const float* vector2, int v_size,
-                                        float* result) {
-  for (int v = 0; v < v_size; v++) {
-    *result++ += *vector1++ * *vector2++;
-  }
-}
-
-// Cwise product and accumulation of a vector and a batch-vector. Since it's a MAC
-// operation, the assumption here is that result array is initialized to valid
-// values.
-void VectorBatchVectorCwiseProductAccumulate(const float* vector, int v_size,
-                                             const float* batch_vector,
-                                             int n_batch, float* result) {
-  for (int b = 0; b < n_batch; b++) {
-    for (int v = 0; v < v_size; v++) {
-      *result++ += vector[v] * *batch_vector++;
-    }
-  }
-}
-
-// Batch vector initialization with another vector.
-void VectorBatchVectorAssign(const float* vector, int v_size, int n_batch,
-                             float* batch_vector) {
-  for (int b = 0; b < n_batch; b++) {
-    memcpy(batch_vector + b * v_size, vector, v_size * sizeof(float));
-  }
-}
-
-// Apply sigmoid to elements of a vector.
-void ApplySigmoidToVector(const float* vector, int v_size, float* result) {
-  auto sigmoid_func = ActivationFunctor(kActivationSigmoid);
-  for (int v = 0; v < v_size; v++) {
-    *result++ = (sigmoid_func)(*vector++);
-  }
-}
-
-// Apply activation function to elements of a vector.
-void ApplyActivationToVector(const float* vector, int v_size,
-                             ActivationFn activation, float* result) {
-  auto activation_func = ActivationFunctor(activation);
-  for (int v = 0; v < v_size; v++) {
-    *result++ = (activation_func)(*vector++);
-  }
-}
-
-// Copy vector to another vector.
-inline void CopyVector(const float* vector, int v_size, float* result) {
-  memcpy(result, vector, v_size * sizeof(float));
-}
-
-// Compute "1.0f - elements of vector" (used in CIFG).
-void Sub1Vector(const float* vector, int v_size, float* result) {
-  for (int v = 0; v < v_size; v++) {
-    *result++ = 1.0f - *vector++;
-  }
-}
-
-// Fill vector with 0.f.
-void ZeroVector(float* vector, int v_size) {
-  memset(vector, 0, v_size * sizeof(float));
-}
-
-// Clip elements of a vector using a abs_limit value.
-void ClipVector(const float* vector, int v_size, float abs_limit,
-                float* result) {
-  for (int v = 0; v < v_size; v++) {
-    *result++ = Clip(*vector++, abs_limit);
-  }
-}
 
 template <typename T>
 inline T *GetBuffer(RunTimeOperandInfo* operand) {
@@ -436,100 +329,102 @@ bool LSTMCell::Eval() {
 
   // Initialize scratch buffers with bias.
   if (!use_cifg) {
-    VectorBatchVectorAssign(GetBuffer<float>(input_gate_bias_), n_cell, n_batch,
-                            input_gate_scratch);
+    tensor_utils::VectorBatchVectorAssign(GetBuffer<float>(input_gate_bias_), n_cell, n_batch,
+                                          input_gate_scratch);
   }
-  VectorBatchVectorAssign(GetBuffer<float>(forget_gate_bias_), n_cell, n_batch,
-                          forget_gate_scratch);
-  VectorBatchVectorAssign(GetBuffer<float>(cell_bias_), n_cell, n_batch,
-                          cell_scratch);
-  VectorBatchVectorAssign(GetBuffer<float>(output_gate_bias_), n_cell, n_batch,
-                          output_gate_scratch);
+  tensor_utils::VectorBatchVectorAssign(GetBuffer<float>(forget_gate_bias_), n_cell, n_batch,
+                                        forget_gate_scratch);
+  tensor_utils::VectorBatchVectorAssign(GetBuffer<float>(cell_bias_), n_cell, n_batch,
+                                        cell_scratch);
+  tensor_utils::VectorBatchVectorAssign(GetBuffer<float>(output_gate_bias_), n_cell, n_batch,
+                                        output_gate_scratch);
 
   // For each batch and cell: compute input_weight * input.
   if (!use_cifg) {
-    MatrixBatchVectorMultiplyAccumulate(
+    tensor_utils::MatrixBatchVectorMultiplyAccumulate(
         GetBuffer<float>(input_to_input_weights_), n_cell, n_input,
-        GetBuffer<float>(input_), n_batch, input_gate_scratch);
+        GetBuffer<float>(input_), n_batch, input_gate_scratch, /*result_stride*/1);
   }
-  MatrixBatchVectorMultiplyAccumulate(
+  tensor_utils::MatrixBatchVectorMultiplyAccumulate(
       GetBuffer<float>(input_to_forget_weights_), n_cell, n_input,
-      GetBuffer<float>(input_), n_batch, forget_gate_scratch);
-  MatrixBatchVectorMultiplyAccumulate(
+      GetBuffer<float>(input_), n_batch, forget_gate_scratch, /*result_stride*/1);
+  tensor_utils::MatrixBatchVectorMultiplyAccumulate(
       GetBuffer<float>(input_to_cell_weights_), n_cell, n_input,
-      GetBuffer<float>(input_), n_batch, cell_scratch);
-  MatrixBatchVectorMultiplyAccumulate(
+      GetBuffer<float>(input_), n_batch, cell_scratch, /*result_stride*/1);
+  tensor_utils::MatrixBatchVectorMultiplyAccumulate(
       GetBuffer<float>(input_to_output_weights_), n_cell, n_input,
-      GetBuffer<float>(input_), n_batch, output_gate_scratch);
+      GetBuffer<float>(input_), n_batch, output_gate_scratch, /*result_stride*/1);
 
   // For each batch and cell: compute recurrent_weight * output_state.
   if (!use_cifg) {
-    MatrixBatchVectorMultiplyAccumulate(
+    tensor_utils::MatrixBatchVectorMultiplyAccumulate(
         GetBuffer<float>(recurrent_to_input_weights_), n_cell, n_output,
-        GetBuffer<float>(output_state_in_), n_batch, input_gate_scratch);
+        GetBuffer<float>(output_state_in_), n_batch, input_gate_scratch, /*result_stride*/1);
   }
-  MatrixBatchVectorMultiplyAccumulate(
+  tensor_utils::MatrixBatchVectorMultiplyAccumulate(
       GetBuffer<float>(recurrent_to_forget_weights_), n_cell, n_output,
-      GetBuffer<float>(output_state_in_), n_batch, forget_gate_scratch);
-  MatrixBatchVectorMultiplyAccumulate(
+      GetBuffer<float>(output_state_in_), n_batch, forget_gate_scratch, /*result_stride*/1);
+  tensor_utils::MatrixBatchVectorMultiplyAccumulate(
       GetBuffer<float>(recurrent_to_cell_weights_), n_cell, n_output,
-      GetBuffer<float>(output_state_in_), n_batch, cell_scratch);
-  MatrixBatchVectorMultiplyAccumulate(
+      GetBuffer<float>(output_state_in_), n_batch, cell_scratch, /*result_stride*/1);
+  tensor_utils::MatrixBatchVectorMultiplyAccumulate(
       GetBuffer<float>(recurrent_to_output_weights_), n_cell, n_output,
-      GetBuffer<float>(output_state_in_), n_batch, output_gate_scratch);
+      GetBuffer<float>(output_state_in_), n_batch, output_gate_scratch, /*result_stride*/1);
 
   // For each batch and cell: update input gate.
   if (!use_cifg) {
     if (use_peephole) {
-      VectorBatchVectorCwiseProductAccumulate(
+      tensor_utils::VectorBatchVectorCwiseProductAccumulate(
           GetBuffer<float>(cell_to_input_weights_), n_cell,
           GetBuffer<float>(cell_state_in_), n_batch, input_gate_scratch);
     }
-    ApplySigmoidToVector(input_gate_scratch, n_cell * n_batch,
-                         input_gate_scratch);
+    tensor_utils::ApplySigmoidToVector(input_gate_scratch, n_cell * n_batch,
+                                       input_gate_scratch);
   }
 
   // For each batch and cell: update forget gate.
   if (use_peephole) {
-    VectorBatchVectorCwiseProductAccumulate(
+    tensor_utils::VectorBatchVectorCwiseProductAccumulate(
         GetBuffer<float>(cell_to_forget_weights_), n_cell,
         GetBuffer<float>(cell_state_in_), n_batch, forget_gate_scratch);
   }
-  ApplySigmoidToVector(forget_gate_scratch, n_cell * n_batch,
-                       forget_gate_scratch);
+  tensor_utils::ApplySigmoidToVector(forget_gate_scratch, n_cell * n_batch,
+                                     forget_gate_scratch);
 
   // For each batch and cell: update the cell.
-  VectorVectorCwiseProduct(forget_gate_scratch, GetBuffer<float>(cell_state_in_),
-                           n_batch * n_cell, GetBuffer<float>(cell_state_out_));
-  ApplyActivationToVector(cell_scratch, n_batch * n_cell, params_.activation_,
-                          cell_scratch);
+  tensor_utils::VectorVectorCwiseProduct(
+      forget_gate_scratch, GetBuffer<float>(cell_state_in_), n_batch * n_cell,
+      GetBuffer<float>(cell_state_out_));
+  tensor_utils::ApplyActivationToVector(
+      cell_scratch, n_batch * n_cell, params_.activation_, cell_scratch);
   if (use_cifg) {
-    Sub1Vector(forget_gate_scratch, n_batch * n_cell, forget_gate_scratch);
-    VectorVectorCwiseProductAccumulate(cell_scratch, forget_gate_scratch,
-                                       n_batch * n_cell,
-                                       GetBuffer<float>(cell_state_out_));
+    tensor_utils::Sub1Vector(forget_gate_scratch, n_batch * n_cell,
+                             forget_gate_scratch);
+    tensor_utils::VectorVectorCwiseProductAccumulate(
+        cell_scratch, forget_gate_scratch, n_batch * n_cell,
+        GetBuffer<float>(cell_state_out_));
   } else {
-    VectorVectorCwiseProductAccumulate(cell_scratch, input_gate_scratch,
-                                       n_batch * n_cell,
-                                       GetBuffer<float>(cell_state_out_));
+    tensor_utils::VectorVectorCwiseProductAccumulate(
+        cell_scratch, input_gate_scratch, n_batch * n_cell,
+        GetBuffer<float>(cell_state_out_));
   }
   if (params_.cell_clip_ > 0.0) {
-    ClipVector(GetBuffer<float>(cell_state_out_), n_batch * n_cell,
-               params_.cell_clip_, GetBuffer<float>(cell_state_out_));
+    tensor_utils::ClipVector(GetBuffer<float>(cell_state_out_), n_batch * n_cell,
+                             params_.cell_clip_, GetBuffer<float>(cell_state_out_));
   }
 
   // For each batch and cell: update the output gate.
   if (use_peephole) {
-    VectorBatchVectorCwiseProductAccumulate(
+    tensor_utils::VectorBatchVectorCwiseProductAccumulate(
         GetBuffer<float>(cell_to_output_weights_), n_cell,
         GetBuffer<float>(cell_state_out_), n_batch, output_gate_scratch);
   }
-  ApplySigmoidToVector(output_gate_scratch, n_batch * n_cell,
-                       output_gate_scratch);
-  ApplyActivationToVector(GetBuffer<float>(cell_state_out_), n_batch * n_cell,
-                          params_.activation_, cell_scratch);
-  VectorVectorCwiseProduct(output_gate_scratch, cell_scratch, n_batch * n_cell,
-                           output_gate_scratch);
+  tensor_utils::ApplySigmoidToVector(output_gate_scratch, n_batch * n_cell,
+                                     output_gate_scratch);
+  tensor_utils::ApplyActivationToVector(GetBuffer<float>(cell_state_out_), n_batch * n_cell,
+                                        params_.activation_, cell_scratch);
+  tensor_utils::VectorVectorCwiseProduct(output_gate_scratch, cell_scratch, n_batch * n_cell,
+                                         output_gate_scratch);
 
   // For each batch: update the projection and output_state.
   const bool use_projection_weight =
@@ -537,24 +432,25 @@ bool LSTMCell::Eval() {
   const bool use_projection_bias = (projection_bias_->lifetime != OperandLifeTime::NO_VALUE);
   if (use_projection_weight) {
     if (use_projection_bias) {
-      VectorBatchVectorAssign(GetBuffer<float>(projection_bias_), n_output,
-                              n_batch, GetBuffer<float>(output_));
+      tensor_utils::VectorBatchVectorAssign(GetBuffer<float>(projection_bias_), n_output,
+                                            n_batch, GetBuffer<float>(output_));
     } else {
-      ZeroVector(GetBuffer<float>(output_), n_batch * n_output);
+      tensor_utils::ZeroVector(GetBuffer<float>(output_), n_batch * n_output);
     }
-    MatrixBatchVectorMultiplyAccumulate(GetBuffer<float>(projection_weights_),
-                                        n_output, n_cell, output_gate_scratch,
-                                        n_batch, GetBuffer<float>(output_));
+    tensor_utils::MatrixBatchVectorMultiplyAccumulate(
+        GetBuffer<float>(projection_weights_), n_output, n_cell,
+        output_gate_scratch, n_batch, GetBuffer<float>(output_),
+        /*result_stride*/1);
     if (params_.proj_clip_ > 0.0) {
-      ClipVector(GetBuffer<float>(output_), n_batch * n_output,
-                 params_.proj_clip_, GetBuffer<float>(output_));
+      tensor_utils::ClipVector(GetBuffer<float>(output_), n_batch * n_output,
+                               params_.proj_clip_, GetBuffer<float>(output_));
     }
   } else {
-    CopyVector(output_gate_scratch, n_batch * n_output,
-               GetBuffer<float>(output_));
+    tensor_utils::CopyVector(output_gate_scratch, n_batch * n_output,
+                             GetBuffer<float>(output_));
   }
-  CopyVector(GetBuffer<float>(output_), n_batch * n_output,
-             GetBuffer<float>(output_state_out_));
+  tensor_utils::CopyVector(GetBuffer<float>(output_), n_batch * n_output,
+                           GetBuffer<float>(output_state_out_));
 
   return true;
 }
