@@ -96,8 +96,7 @@ ExecutionBuilder::ExecutionBuilder(const CompilationBuilder* compilation) :
         mModel(compilation->mModel),
         mPlan(&compilation->mPlan),
         mInputs(mModel->inputCount()),
-        mOutputs(mModel->outputCount()),
-        mMemories(mModel->getMemories()) {
+        mOutputs(mModel->outputCount()) {
     VLOG(EXECUTION) << "ExecutionBuilder::ExecutionBuilder";
 }
 
@@ -600,10 +599,11 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
 }
 
 static void asyncStartComputeOnCpu(const Model& model, const Request& request,
-                                   const std::vector<RunTimePoolInfo>& runTimePoolInfos,
+                                   const std::vector<RunTimePoolInfo>& modelPoolInfos,
+                                   const std::vector<RunTimePoolInfo>& requestPoolInfos,
                                    const sp<IExecutionCallback>& executionCallback) {
     CpuExecutor executor;
-    int err = executor.run(model, request, runTimePoolInfos);
+    int err = executor.run(model, request, modelPoolInfos, requestPoolInfos);
     ErrorStatus status = err == ANEURALNETWORKS_NO_ERROR ?
             ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
     executionCallback->notify(status);
@@ -622,23 +622,30 @@ int StepExecutor::startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallba
     sp<ExecutionCallback> executionCallback = new ExecutionCallback();
     *synchronizationCallback = nullptr;
 
-    std::vector<RunTimePoolInfo> runTimePoolInfos;
+    std::vector<RunTimePoolInfo> modelPoolInfos;
+    if (!setRunTimePoolInfosFromHidlMemories(&modelPoolInfos, model.pools)) {
+        return ANEURALNETWORKS_UNMAPPABLE;
+    }
+
+    std::vector<RunTimePoolInfo> requestPoolInfos;
     uint32_t count = mMemories.size();
-    runTimePoolInfos.resize(count);
+    requestPoolInfos.resize(count);
     for (uint32_t i = 0; i < count; i++) {
         const Memory* mem = mMemories[i];
-        runTimePoolInfos[i].set(mem->getHidlMemory());
+        if (!requestPoolInfos[i].set(mem->getHidlMemory())) {
+            return ANEURALNETWORKS_UNMAPPABLE;
+        }
     }
     // Create as many pools as there are input / output.
-    auto fixPointerArguments = [&runTimePoolInfos](std::vector<ModelArgumentInfo>& argumentInfos) {
+    auto fixPointerArguments = [&requestPoolInfos](std::vector<ModelArgumentInfo>& argumentInfos) {
         for (ModelArgumentInfo& argumentInfo : argumentInfos) {
             if (argumentInfo.state == ModelArgumentInfo::POINTER) {
                 RunTimePoolInfo runTimeInfo = {
                             .buffer = static_cast<uint8_t*>(argumentInfo.buffer)};
                 argumentInfo.locationAndLength.poolIndex =
-                            static_cast<uint32_t>(runTimePoolInfos.size());
+                            static_cast<uint32_t>(requestPoolInfos.size());
                 argumentInfo.locationAndLength.offset = 0;
-                runTimePoolInfos.push_back(runTimeInfo);
+                requestPoolInfos.push_back(runTimeInfo);
             }
         }
     };
@@ -651,7 +658,8 @@ int StepExecutor::startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallba
 
     // TODO: should model be moved with a std::cref?
     std::thread thread(asyncStartComputeOnCpu, model, std::move(request),
-                       std::move(runTimePoolInfos), executionCallback);
+                       std::move(modelPoolInfos), std::move(requestPoolInfos),
+                       executionCallback);
     executionCallback->bind_thread(std::move(thread));
 
     *synchronizationCallback = executionCallback;

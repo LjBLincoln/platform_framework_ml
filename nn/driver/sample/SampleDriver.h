@@ -17,6 +17,7 @@
 #ifndef ANDROID_ML_NN_SAMPLE_DRIVER_SAMPLE_DRIVER_H
 #define ANDROID_ML_NN_SAMPLE_DRIVER_SAMPLE_DRIVER_H
 
+#include "CpuExecutor.h"
 #include "HalInterfaces.h"
 #include "NeuralNetworks.h"
 
@@ -52,12 +53,15 @@ public:
           : // Make a copy of the model, as we need to preserve it.
             mModel(model) {}
     ~SamplePreparedModel() override {}
+    bool initialize();
     Return<ErrorStatus> execute(const Request& request,
                                 const sp<IExecutionCallback>& callback) override;
 
 private:
     void asyncExecute(const Request& request, const sp<IExecutionCallback>& callback);
+
     Model mModel;
+    std::vector<RunTimePoolInfo> mPoolInfos;
 };
 
 } // namespace sample_driver

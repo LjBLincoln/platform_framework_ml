@@ -1205,6 +1205,15 @@ typedef enum {
 } ResultCode;
 
 /**
+ * For {@link ANeuralNetworksModel_setOperandValue}, values with a
+ * length smaller or equal to this will be immediately copied into
+ * the model. The size is in bytes.
+ */
+enum {
+    ANEURALNETWORKS_MAX_SIZE_OF_IMMEDIATELY_COPIED_VALUES = 128
+};
+
+/**
  * ANeuralNetworksMemory is an opaque type that represents memory.
  *
  * This type is used to represent shared memory, memory mapped files,
@@ -1468,13 +1477,18 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
 /**
  * Sets an operand to a constant value.
  *
- * For scalar values, the content of buffer is copied into the model.
+ * Values of length smaller or equal to
+ * {@link ANEURALNETWORKS_MAX_SIZE_OF_IMMEDIATELY_COPIED_VALUES}
+ * are immediately copied into the model.
  *
- * For tensor values, a pointer to the buffer is stored within the model.
- * The application is responsible for not changing the content of this region
- * until all executions using this model have completed. As the data may
- * be copied during processing, modifying the data after this call yields
- * undefined results.
+ * For values of length greater than {@link ANEURALNETWORKS_MAX_SIZE_OF_IMMEDIATELY_COPIED_VALUES},
+ * a pointer to the buffer is stored within the model. The application is responsible
+ * for not changing the content of this region until all executions using this model
+ * have completed. As the data may be copied during processing, modifying the data
+ * after this call yields undefined results.
+ *
+ * For large tensors, using {@link ANeuralNetworksModel_setOperandValueFromMemory}
+ * is likely to be more efficient.
  *
  * To indicate that an optional operand should be considered missing,
  * pass nullptr for buffer and 0 for length.
