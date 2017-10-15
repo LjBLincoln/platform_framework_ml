@@ -78,7 +78,7 @@ public:
     const MemoryTracker& getMemories() const { return mMemories; }
     const std::vector<Operation>& getOperations() const { return mOperations; }
     const uint8_t* getPointerToOperandValue(uint32_t offset) const {
-        return mOperandValues.data() + offset;
+        return mSmallOperandValues.data() + offset;
     }
 
     int partitionTheWork(const std::vector<std::shared_ptr<Device>>& devices,
@@ -99,12 +99,9 @@ public:
     // Sorts the operations to be in the correct order for single threaded
     // node-at-a-time execution.
     void sortIntoRunOrder();
-    /*
-    int32_t getOperandIndex(const ArrayInfo& info, uint32_t listIndex) const {
-        nnAssert(listIndex < info.count);
-        return mOperandIndexes[info.offset + listIndex];
-    }
-    */
+
+    // Copies the large values to a shared memory, if we have any.
+    int copyLargeValuesToSharedMemory();
 
     // The operations of the graph.
     std::vector<Operation> mOperations;
@@ -118,11 +115,18 @@ public:
 
     MemoryTracker mMemories;
 
-    // The value of the operands that are defined at model
+    // The value of the small operands that are defined at model
     // creation time.
-    // TODO We are copying all the values.  Once we support memory
-    // pools, revisit.
-    std::vector<uint8_t> mOperandValues;
+    std::vector<uint8_t> mSmallOperandValues;
+
+    struct LargeValue {
+        uint32_t operandIndex;
+        const void* buffer;
+    };
+    // Operand index and buffer pointer for all the large operand values of this model.
+    std::vector<LargeValue> mLargeOperandValues;
+    // The shared memory region that will contain the large values.
+    Memory mLargeValueMemory;
 
     // Once the model has been finished, we should not allow further
     // modifications to the model.

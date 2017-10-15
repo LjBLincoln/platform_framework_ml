@@ -360,9 +360,11 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
 void ExecutionStep::dump() const {
     Model model;
     mSubModel->setHidlModel(&model);
-    VLOG(COMPILATION) << "ExecutionStep#" << mIndex
-                      << " for " << (mDevice == nullptr ? "CPU" : mDevice->getName())
-                      << " submodel: " << toString(model);
+    if (VLOG_IS_ON(COMPILATION)) {
+        VLOG(COMPILATION) << "ExecutionStep#" << mIndex
+                          << " for " << (mDevice == nullptr ? "CPU" : mDevice->getName());
+        logModelToInfo(model);
+    }
 }
 
 int ExecutionPlan::CompoundBody::finish(const ModelBuilder* fromModel) {
@@ -750,8 +752,8 @@ int ModelBuilder::partitionTheWork(const std::vector<std::shared_ptr<Device>>& d
     if (VLOG_IS_ON(COMPILATION)) {
         Model model;
         setHidlModel(&model);
-        VLOG(COMPILATION) << "ModelBuilder::partitionTheWork: original model: "
-                          << toString(model);
+        VLOG(COMPILATION) << "ModelBuilder::partitionTheWork: original model: ";
+        logModelToInfo(model);
         plan->dump();
     }
     return n;

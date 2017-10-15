@@ -154,8 +154,10 @@ typedef enum {
      * * 2: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
      * * 3: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
      * * 4: An INT32 value, specifying the padding on the bottom, in the ‘height’ dimension.
-     * * 5: An INT32 value, specifying the output stride in the ‘width’ dimension.
-     * * 6: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 5: An INT32 value, specifying the stride when walking through input
+     *      in the ‘width’ dimension.
+     * * 6: An INT32 value, specifying the stride when walking through input
+     *      in the ‘height’ dimension.
      * * 7: An INT32 value, specifying the filter width.
      * * 8: An INT32 value, specifying the filter height.
      * * 9: An INT32 value, and has to be one of the {@link FuseCode} values.
@@ -165,8 +167,10 @@ typedef enum {
      * * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
      * * 1: An INT32 value, specifying the implicit padding scheme, has to be one of the
      *      {@link PaddingCode} values.
-     * * 2: An INT32 value, specifying the output stride in the ‘width’ dimension.
-     * * 3: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 2: An INT32 value, specifying the stride when walking through input
+     *      in the ‘width’ dimension.
+     * * 3: An INT32 value, specifying the stride when walking through input
+     *      in the ‘height’ dimension.
      * * 4: An INT32 value, specifying the filter width.
      * * 5: An INT32 value, specifying the filter height.
      * * 6: An INT32 value, and has to be one of the {@link FuseCode} values.
@@ -238,8 +242,10 @@ typedef enum {
      * * 4: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
      * * 5: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
      * * 6: An INT32 value, specifying the padding on the bottom, in the ‘height’ dimension.
-     * * 7: An INT32 value, specifying the output stride in the ‘width’ dimension.
-     * * 8: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 7: An INT32 value, specifying the stride when walking through input
+     *      in the ‘width’ dimension.
+     * * 8: An INT32 value, specifying the stride when walking through input
+     *      in the ‘height’ dimension.
      * * 9: An INT32 value, and has to be one of the {@link FuseCode} values.
      *      Specifies the activation to invoke on the result of each addition.
      *
@@ -255,8 +261,10 @@ typedef enum {
      *      bias_scale == input_scale * filter_scale.
      * * 3: An INT32 value, specifying the implicit padding scheme, has to be one of the
      *      {@link PaddingCode} values.
-     * * 4: An INT32 value, specifying the output stride in the ‘width’ dimension.
-     * * 5: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 4: An INT32 value, specifying the stride when walking through input
+     *      in the ‘width’ dimension.
+     * * 5: An INT32 value, specifying the stride when walking through input
+     *      in the ‘height’ dimension.
      * * 6: An INT32 value, and has to be one of the {@link FuseCode} values.
      *      Specifies the activation to invoke on the result of each addition.
      *
@@ -308,8 +316,10 @@ typedef enum {
      * * 4: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
      * * 5: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
      * * 6: An INT32 value, specifying the padding on the bottom, in the ‘height’ dimension.
-     * * 7: An INT32 value, specifying the output stride in the ‘width’ dimension.
-     * * 8: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 7: An INT32 value, specifying the stride when walking through input
+     *      in the ‘width’ dimension.
+     * * 8: An INT32 value, specifying the stride when walking through input
+     *      in the ‘height’ dimension.
      * * 9: An INT32 value, specifying the depthwise multiplier.
      * * 10: An INT32 value, and has to be one of the {@link FuseCode} values.
      *       Specifies the activation to invoke on the result of each addition.
@@ -326,8 +336,10 @@ typedef enum {
      *      bias_scale == input_scale * filter_scale.
      * * 3: An INT32 value, specifying the implicit padding scheme, has to be one of the
      *      {@link PaddingCode} values.
-     * * 4: An INT32 value, specifying the output stride in the ‘width’ dimension.
-     * * 5: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 4: An INT32 value, specifying the stride when walking through input
+     *      in the ‘width’ dimension.
+     * * 5: An INT32 value, specifying the stride when walking through input
+     *      in the ‘height’ dimension.
      * * 6: An INT32 value, specifying the depthwise multiplier.
      * * 7: An INT32 value, and has to be one of the {@link FuseCode} values.
      *       Specifies the activation to invoke on the result of each addition.
@@ -561,8 +573,10 @@ typedef enum {
      * * 2: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
      * * 3: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
      * * 4: An INT32 value, specifying the padding on the bottom, in the ‘height’ dimension.
-     * * 5: An INT32 value, specifying the output stride in the ‘width’ dimension.
-     * * 6: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 5: An INT32 value, specifying the stride when walking through input
+     *      in the ‘width’ dimension.
+     * * 6: An INT32 value, specifying the stride when walking through input
+     *      in the ‘height’ dimension.
      * * 7: An INT32 value, specifying the filter width.
      * * 8: An INT32 value, specifying the filter height.
      * * 9: An INT32 value, and has to be one of the {@link FuseCode} values.
@@ -572,8 +586,10 @@ typedef enum {
      * * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
      * * 1: An INT32 value, specifying the implicit padding scheme, has to be one of the
      *      {@link PaddingCode} values.
-     * * 2: An INT32 value, specifying the output stride in the ‘width’ dimension.
-     * * 3: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 2: An INT32 value, specifying the stride when walking through input
+     *      in the ‘width’ dimension.
+     * * 3: An INT32 value, specifying the stride when walking through input
+     *      in the ‘height’ dimension.
      * * 4: An INT32 value, specifying the filter width.
      * * 5: An INT32 value, specifying the filter height.
      * * 6: An INT32 value, and has to be one of the {@link FuseCode} values.
@@ -794,8 +810,10 @@ typedef enum {
      * * 2: An INT32 value, specifying the padding on the right,in the ‘width’ dimension.
      * * 3: An INT32 value, specifying the padding on the top, in the ‘height’ dimension.
      * * 4: An INT32 value, specifying the padding on the bottom, in the ‘height’ dimension.
-     * * 5: An INT32 value, specifying the output stride in the ‘width’ dimension.
-     * * 6: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 5: An INT32 value, specifying the stride when walking through input
+     *      in the ‘width’ dimension.
+     * * 6: An INT32 value, specifying the stride when walking through input
+     *      in the ‘height’ dimension.
      * * 7: An INT32 value, specifying the filter width.
      * * 8: An INT32 value, specifying the filter height.
      * * 9: An INT32 value, and has to be one of the {@link FuseCode} values.
@@ -805,8 +823,10 @@ typedef enum {
      * * 0: A 4-D tensor, of shape [batches, height, width, depth], specifying the input.
      * * 1: An INT32 value, specifying the implicit padding scheme, has to be one of the
      *      {@link PaddingCode} values.
-     * * 2: An INT32 value, specifying the output stride in the ‘width’ dimension.
-     * * 3: An INT32 value, specifying the output stride in the ‘height’ dimension.
+     * * 2: An INT32 value, specifying the stride when walking through input
+     *      in the ‘width’ dimension.
+     * * 3: An INT32 value, specifying the stride when walking through input
+     *      in the ‘height’ dimension.
      * * 4: An INT32 value, specifying the filter width.
      * * 5: An INT32 value, specifying the filter height.
      * * 6: An INT32 value, and has to be one of the {@link FuseCode} values.
@@ -1073,7 +1093,8 @@ typedef enum {
      *
      * Specifically, for rank 1, this layer implements the operation:
      *
-     *    memory = push(conv1d(inputs, weights_feature, feature_dim, "VALID"));
+     *    memory = push(conv1d(inputs, weights_feature, feature_dim,
+     *                  "ANEURALNETWORKS_PADDING_VALID"));
      *    outputs = activation(memory * weights_time + bias);
      *
      * Where:
@@ -1163,9 +1184,30 @@ typedef enum {
  *
  */
 typedef enum {
-    /** SAME padding. */
+    /**
+     * SAME padding.
+     * Padding on both ends are the "same":
+     *     padding_to_beginning =  total_padding / 2
+     *     padding_to_end       = (total_padding + 1)/2.
+     * i.e., for even number of padding, padding to both ends are exactly
+     * the same; for odd number of padding, padding to the ending is bigger
+     * than the padding to the beginning by 1.
+     *
+     * total_padding is a function of input, stride and filter size.
+     * It could be computed as follows:
+     *    out_size = (input + stride - 1) / stride;
+     *    needed_input = (out_size - 1) * stride + filter_size
+     *    total_padding = max(0, needed_input - output_size)
+     *  The computation is the same for the horizontal and vertical directions.
+     */
     ANEURALNETWORKS_PADDING_SAME = 1,
-    /** VALID padding. */
+
+    /**
+     * VALID padding.
+     * No padding. When the input size is not evenly divisible by
+     * the filter size, the input at the end that could not fill
+     * the whole filter tile will simply be ignored.
+     */
     ANEURALNETWORKS_PADDING_VALID = 2,
 } PaddingCode;
 
@@ -1203,6 +1245,15 @@ typedef enum {
     ANEURALNETWORKS_UNMAPPABLE = 5,
     ANEURALNETWORKS_BAD_STATE = 6,
 } ResultCode;
+
+/**
+ * For {@link ANeuralNetworksModel_setOperandValue}, values with a
+ * length smaller or equal to this will be immediately copied into
+ * the model. The size is in bytes.
+ */
+enum {
+    ANEURALNETWORKS_MAX_SIZE_OF_IMMEDIATELY_COPIED_VALUES = 128
+};
 
 /**
  * ANeuralNetworksMemory is an opaque type that represents memory.
@@ -1468,13 +1519,18 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
 /**
  * Sets an operand to a constant value.
  *
- * For scalar values, the content of buffer is copied into the model.
+ * Values of length smaller or equal to
+ * {@link ANEURALNETWORKS_MAX_SIZE_OF_IMMEDIATELY_COPIED_VALUES}
+ * are immediately copied into the model.
  *
- * For tensor values, a pointer to the buffer is stored within the model.
- * The application is responsible for not changing the content of this region
- * until all executions using this model have completed. As the data may
- * be copied during processing, modifying the data after this call yields
- * undefined results.
+ * For values of length greater than {@link ANEURALNETWORKS_MAX_SIZE_OF_IMMEDIATELY_COPIED_VALUES},
+ * a pointer to the buffer is stored within the model. The application is responsible
+ * for not changing the content of this region until all executions using this model
+ * have completed. As the data may be copied during processing, modifying the data
+ * after this call yields undefined results.
+ *
+ * For large tensors, using {@link ANeuralNetworksModel_setOperandValueFromMemory}
+ * is likely to be more efficient.
  *
  * To indicate that an optional operand should be considered missing,
  * pass nullptr for buffer and 0 for length.
