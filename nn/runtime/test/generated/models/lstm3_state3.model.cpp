@@ -1,4 +1,4 @@
-// Generated file (from: lstm3.mod.py). Do not edit
+// Generated file (from: lstm3_state3.mod.py). Do not edit
 void CreateModel(Model *model) {
   OperandType type5(Type::TENSOR_FLOAT32, {0});
   OperandType type4(Type::TENSOR_FLOAT32, {16,20});
@@ -49,6 +49,6 @@ void CreateModel(Model *model) {
 }
 
 bool is_ignored(int i) {
-  static std::set<int> ignore = {0};
+  static std::set<int> ignore = {1, 2, 0};
   return ignore.find(i) != ignore.end();
 }
