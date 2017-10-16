@@ -31,7 +31,7 @@ namespace android {
 namespace nn {
 
 // TODO: handle errors from initialize correctly
-void Device::initialize() {
+bool Device::initialize() {
 #ifdef NN_DEBUGGABLE
     static const char samplePrefix[] = "sample";
 
@@ -39,16 +39,24 @@ void Device::initialize() {
             (mName.substr(0, sizeof(samplePrefix) - 1)  == samplePrefix)
             ? getProp("debug.nn.sample.supported") : 0;
 #endif  // NN_DEBUGGABLE
-
-    mInterface->getCapabilities([&](ErrorStatus status, const Capabilities& capabilities) {
+    bool success = false;
+    auto ret = mInterface->getCapabilities([&](ErrorStatus status,
+                                               const Capabilities& capabilities) {
         if (status != ErrorStatus::NONE) {
             LOG(ERROR) << "IDevice::getCapabilities returned the error " << toString(status);
+        } else {
+            VLOG(MANAGER) << "Capab " << capabilities.float32Performance.execTime;
+            VLOG(MANAGER) << "Capab " << capabilities.quantized8Performance.execTime;
+            mFloat32Performance = capabilities.float32Performance;
+            mQuantized8Performance = capabilities.quantized8Performance;
+            success = true;
         }
-        VLOG(MANAGER) << "Capab " << capabilities.float32Performance.execTime;
-        VLOG(MANAGER) << "Capab " << capabilities.quantized8Performance.execTime;
-        mFloat32Performance = capabilities.float32Performance;
-        mQuantized8Performance = capabilities.quantized8Performance;
     });
+    if (!ret.isOk()) {
+        LOG(ERROR) << "IDevice::getCapabilities failed for " << getName()
+                   << ": " << ret.description();
+    }
+    return success;
 }
 
 void Device::getSupportedOperations(const Model& hidlModel,
@@ -137,6 +145,13 @@ void DeviceManager::findAvailableDevices() {
             registerDevice(name.c_str(), device);
         }
     });
+}
+
+void DeviceManager::registerDevice(const char* name, const sp<IDevice>& device) {
+    auto d = std::make_shared<Device>(name, device);
+    if (d->initialize()) {
+        mDevices.push_back(d);
+    }
 }
 
 DeviceManager::DeviceManager() {
