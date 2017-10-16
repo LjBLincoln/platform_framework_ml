@@ -34,7 +34,8 @@ public:
     Device(const std::string& name, const sp<IDevice>& device) : mName(name), mInterface(device) {}
     sp<IDevice> getInterface() { return mInterface; }
     const std::string& getName() const { return mName; }
-    void initialize();
+    // Returns true if succesfully initialized.
+    bool initialize();
 
     void getSupportedOperations(const Model& hidlModel, hidl_vec<bool>* supportedOperations) const;
 
@@ -92,11 +93,7 @@ private:
     DeviceManager();
 
     // Adds a device for the manager to use.
-    void registerDevice(const char* name, const sp<IDevice>& device) {
-        auto d = std::make_shared<Device>(name, device);
-        mDevices.push_back(d);
-        d->initialize();
-    }
+    void registerDevice(const char* name, const sp<IDevice>& device);
 
     void findAvailableDevices();
 
