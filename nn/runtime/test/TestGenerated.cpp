@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 #include <cassert>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <map>
 
@@ -29,60 +30,89 @@ namespace generated_tests {
 using namespace android::nn::wrapper;
 
 template <typename T>
-class Example {
-   public:
-    // Test driver for those generated from ml/nn/runtime/test/spec
-    static void Execute(std::function<void(Model*)> create_model,
-                        std::function<bool(int)> is_ignored,
-                        std::vector<MixedTypedExampleType>& examples) {
-        Model model;
-        create_model(&model);
-        model.finish();
-
-        int example_no = 1;
-        for (auto& example : examples) {
-            SCOPED_TRACE(example_no++);
-            MixedTyped inputs = example.first;
-            const MixedTyped& golden = example.second;
-
-            Compilation compilation(&model);
-            compilation.finish();
-            Execution execution(&compilation);
-
-            // Set all inputs
-            for_all(inputs, [&execution](int idx, const void* p, size_t s) {
-                ASSERT_EQ(Result::NO_ERROR, execution.setInput(idx, p, s));
-            });
-
-            MixedTyped test;
-            // Go through all typed outputs
-            resize_accordingly(golden, test);
-            for_all(test, [&execution](int idx, void* p, size_t s) {
-                ASSERT_EQ(Result::NO_ERROR, execution.setOutput(idx, p, s));
-            });
-
-            Result r = execution.compute();
-            ASSERT_EQ(Result::NO_ERROR, r);
-            // Filter out don't cares
-            MixedTyped filtered_golden = filter(golden, is_ignored);
-            MixedTyped filtered_test = filter(test, is_ignored);
-            // We want "close-enough" results for float
-            compare(filtered_golden, filtered_test);
+static void print(std::ostream& os, const MixedTyped& test) {
+    // dump T-typed inputs
+    for_each<T>(test, [&os](int idx, const std::vector<T>& f) {
+        os << "    aliased_output" << idx << ": [";
+        for (size_t i = 0; i < f.size(); ++i) {
+            os << (i == 0 ? "" : ", ") << +f[i];
         }
+        os << "],\n";
+    });
+}
+
+static void printAll(std::ostream& os, const MixedTyped& test) {
+    print<float>(os, test);
+    print<int32_t>(os, test);
+    print<uint8_t>(os, test);
+}
+
+// Test driver for those generated from ml/nn/runtime/test/spec
+static void execute(std::function<void(Model*)> createModel,
+             std::function<bool(int)> isIgnored,
+             std::vector<MixedTypedExampleType>& examples,
+             std::string dumpFile = "") {
+    Model model;
+    createModel(&model);
+    model.finish();
+    bool dumpToFile = !dumpFile.empty();
+
+    std::ofstream s;
+    if (dumpToFile) {
+        s.open(dumpFile, std::ofstream::trunc);
+        ASSERT_TRUE(s.is_open());
     }
-};
+
+    int exampleNo = 0;
+    Compilation compilation(&model);
+    compilation.finish();
+    for (auto& example : examples) {
+        SCOPED_TRACE(exampleNo);
+        // TODO: We leave it as a copy here.
+        // Should verify if the input gets modified by the test later.
+        MixedTyped inputs = example.first;
+        const MixedTyped& golden = example.second;
+
+        Execution execution(&compilation);
+
+        // Set all inputs
+        for_all(inputs, [&execution](int idx, const void* p, size_t s) {
+            ASSERT_EQ(Result::NO_ERROR, execution.setInput(idx, p, s));
+        });
+
+        MixedTyped test;
+        // Go through all typed outputs
+        resize_accordingly(golden, test);
+        for_all(test, [&execution](int idx, void* p, size_t s) {
+            ASSERT_EQ(Result::NO_ERROR, execution.setOutput(idx, p, s));
+        });
+
+        Result r = execution.compute();
+        ASSERT_EQ(Result::NO_ERROR, r);
+
+        // Dump all outputs for the slicing tool
+        if (dumpToFile) {
+            s << "output" << exampleNo << " = {\n";
+            printAll(s, test);
+            // all outputs are done
+            s << "}\n";
+        }
+
+        // Filter out don't cares
+        MixedTyped filteredGolden = filter(golden, isIgnored);
+        MixedTyped filteredTest = filter(test, isIgnored);
+        // We want "close-enough" results for float
+        compare(filteredGolden, filteredTest);
+        exampleNo++;
+    }
+}
+
 };  // namespace generated_tests
 
 using namespace android::nn::wrapper;
+
 // Mixed-typed examples
 typedef generated_tests::MixedTypedExampleType MixedTypedExample;
-
-void Execute(std::function<void(Model*)> create_model,
-             std::function<bool(int)> is_ignored,
-             std::vector<MixedTypedExample>& examples) {
-    generated_tests::Example<float>::Execute(create_model, is_ignored,
-                                             examples);
-}
 
 class GeneratedTests : public ::testing::Test {
    protected:
@@ -90,6 +120,7 @@ class GeneratedTests : public ::testing::Test {
 };
 
 // Testcases generated from runtime/test/specs/*.mod.py
+using namespace generated_tests;
 #include "generated/all_generated_tests.cpp"
 // End of testcases generated from runtime/test/specs/*.mod.py
 

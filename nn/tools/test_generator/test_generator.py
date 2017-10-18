@@ -29,6 +29,7 @@ import os
 import struct
 import sys
 import contextlib
+import pprint
 
 @contextlib.contextmanager
 def smart_open(filename=None):
@@ -171,6 +172,9 @@ class Type(object):
     for key, value in sorted(Type.__types.items()):
       print ("  OperandType " + str(value.__name) + "(Type::" + str(key) + ");", file=filename)
 
+  def get_raw_shape(self):
+    return self.__shape
+
   def get_parsed_shape(self):
     # Parse shape
     if (self.__shape != "" and self.__shape != "{}"):
@@ -188,8 +192,7 @@ class Type(object):
     else:
       return "", "0", "0"
 
-  def get_size(self):
-    element_size = TypeLookup.get_size(self.__vt)
+  def get_nr_elements(self):
     # Parse shape
     nr_elements = 1
     real_shape, scale, zero_point = self.get_parsed_shape()
@@ -197,7 +200,11 @@ class Type(object):
     if (real_shape != "" and real_shape != "{}"):
       shape = [int(x) for x in real_shape.split(",")]
       nr_elements = reduce((lambda x, y: x*y), shape)
-    return element_size * nr_elements
+    return nr_elements
+
+  def get_size(self):
+    element_size = TypeLookup.get_size(self.__vt)
+    return self.get_nr_elements() * element_size
 
 # A value is a typed, named object
 class Value(NamedObject):
@@ -400,6 +407,16 @@ class Operation(Definitions, Uses, Traversable):
     return "model->addOperation(ANEURALNETWORKS_"+self.optype+", " + \
         "{"+", ".join(inputs)+"}, {" + ", ".join(outputs) + "});"
 
+  # Get Python-ish dump for the op
+  def PyDefinition(self):
+    py_op_string = """Operation("{optype}", {inputs}).To({outputs})"""
+    inputs = [str(x) for x in Operand.print_operands(self.ins)]
+    inputs = ", ".join(inputs)
+    assert len(self.outs) <= 1
+    outputs = str(Operand.print_operands(self.outs)[0])
+    ops = {"optype": self.optype, "inputs": inputs, "outputs": outputs}
+    return py_op_string.format(**ops)
+
 # Main interface
 class Model(object):
   def __init__(self):
@@ -558,7 +575,8 @@ class Example():
     uint8_dict = {}
 
     for k, v in d.items():
-      ty = Operand.operands.search(k.ID()).type.get_element_type()
+      key_id = k.ID() if type(k) is not int else k
+      ty = Operand.operands.search(key_id).type.get_element_type()
       # find out type of the operand addressed by the key
       if (ty == "TENSOR_FLOAT32"):
         float32_dict[k] = v
@@ -601,13 +619,56 @@ class Example():
       print ('//Output(s)\n%s' % outputs, file = example_file)
       print ('}, // End of an example', file = example_file)
 
+  # Similar to dump_dict, but in python. Used by the slicing tool
+  # if referenced is not None, only print operands that are present there
+  def py_dump_dict(d, referenced):
+    ret = []
+    for k, v in d.items():
+      if referenced != None and k not in referenced:
+        continue
+      key = str(k)
+      init = pprint.pformat(v)
+      ret.append("%s: %s" % (key, init))
+    return ", ".join(ret)
+
+  # similar to dump, but in python. Used by the slicing tool
+  # if referenced is not None, only print operands that are present there
+  def py_dump(example_file, override, referenced):
+    if len(Example.__examples) > 0:
+      example_no = 0
+      example_template = """\
+input{no} = {{{inputs}}}
+# Only executed during data collection phase
+if collecting_data is True:
+  Example((input{no}, {{{outputs}}}))
+"""
+      for i, o in Example.__examples:
+        print ('# Begin of an example', file = example_file)
+        inputs = Example.py_dump_dict(i, referenced)
+        output_list = []
+        for k, v in override.items():
+          output_list.append("%s: [0] * %d" % (k, v))
+        outputs = ",".join(output_list)
+
+        # TODO: handle >1 outputs
+        for k, v in o.items():
+          assert k.number == 0
+        example_contents = {
+            'no': example_no,
+            'inputs': inputs,
+            'outputs': outputs
+        }
+        print (example_template.format(**example_contents), file = example_file)
+
+
 def TopologicalSort(format_op):
   start = Input.get_inputs().copy()
   deps = { x: set(x.ins) for x in Uses.all_uses }
 
   while len(start) > 0:
     cur = start.pop()
-    format_op(cur) #cur.Definition()
+    if format_op(cur) is False:
+      return
     distinct_outs = set(cur.outs)
     for o in distinct_outs:
       deps[o].remove(cur)
@@ -727,6 +788,7 @@ class VTSOps(object):
         'outs': ", ".join([str(x.ID()) for x in op.outs]),
     }
     VTSOps.vts_ops.append(op_fmt.format(**op_content))
+    return True
 
 def generate_vts_operations(model_file):
   TopologicalSort(lambda x: VTSOps.generate_vts_operation(x))
@@ -774,6 +836,7 @@ def print_cts_op(model_file, op):
   fmt = op.Definition()
   if fmt is not None:
     print ("  %s" % fmt, file = model_file)
+  return True
 
 if __name__ == '__main__':
   (model, example) = import_source()
