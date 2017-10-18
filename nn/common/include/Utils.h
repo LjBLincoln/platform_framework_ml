@@ -106,6 +106,9 @@ hidl_memory allocateSharedMemory(int64_t size);
 // to determine what this should be.
 uint32_t alignBytesNeeded(uint32_t index, size_t length);
 
+// Does a detailed LOG(INFO) of the model
+void logModelToInfo(const Model& model);
+
 inline void setFromIntList(hidl_vec<uint32_t>* vec, uint32_t count, const uint32_t* data) {
     vec->resize(count);
     for (uint32_t i = 0; i < count; i++) {

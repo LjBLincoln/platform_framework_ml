@@ -25,7 +25,7 @@ void CreateModel(Model *model) {
   model->setOperandValue(b7, b7_init, sizeof(int32_t) * 1);
   static float op0_init[] = {-0.966213f, -0.467474f, -0.82203f, -0.579455f, 0.0278809f, -0.79946f, -0.684259f, 0.563238f, 0.37289f, 0.738216f, 0.386045f, -0.917775f, 0.184325f, -0.270568f, 0.82236f, 0.0973683f, -0.941308f, -0.144706f};
   model->setOperandValue(op0, op0_init, sizeof(float) * 18);
-  static float op1_init[] = {0f};
+  static float op1_init[] = {0.0f};
   model->setOperandValue(op1, op1_init, sizeof(float) * 1);
   model->addOperation(ANEURALNETWORKS_CONV_2D, {op2, op0, op1, b4, b5, b6, b7}, {op3});
   // Phase 3, inputs and outputs

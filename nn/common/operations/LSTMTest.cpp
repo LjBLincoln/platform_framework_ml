@@ -66,10 +66,10 @@ std::vector<Matcher<float>> ArrayFloatNear(const std::vector<float>& values,
 
 // For all output and intermediate states
 #define FOR_ALL_OUTPUT_TENSORS(ACTION)          \
-    ACTION(Output)                              \
+    ACTION(ScratchBuffer)                       \
     ACTION(OutputStateOut)                      \
     ACTION(CellStateOut)                        \
-    ACTION(ScratchBuffer)
+    ACTION(Output)                              \
 
 class LSTMOpModel {
 public:
@@ -86,10 +86,11 @@ public:
           activation_(ActivationFn::kActivationTanh),
           cell_clip_(cell_clip), proj_clip_(proj_clip) {
         std::vector<uint32_t> inputs;
-        std::vector<std::vector<uint32_t>> input_shapes(input_shapes0.begin(), input_shapes0.end());
-        auto it = input_shapes.begin();
+        std::vector<std::vector<uint32_t>> input_shapes(input_shapes0);
+
         input_shapes.push_back({n_batch, n_output});
         input_shapes.push_back({n_batch, n_cell});
+        auto it = input_shapes.begin();
 
         // Input and weights
 #define AddInput(X)                                                     \
@@ -110,10 +111,10 @@ public:
 
         // Output and other intermediate state
         std::vector<std::vector<uint32_t>> output_shapes{
-            {n_batch, n_output},
+            {n_batch, n_cell * (use_cifg ? 3 : 4)},
             {n_batch, n_output},
             {n_batch, n_cell},
-            {n_batch, n_cell, 4}
+            {n_batch, n_output},
         };
         std::vector<uint32_t> outputs;
 
@@ -131,6 +132,8 @@ public:
         model_.identifyInputsAndOutputs(inputs, outputs);
 
         Input_.insert(Input_.end(), n_batch * n_input, 0.f);
+        OutputStateIn_.insert(OutputStateIn_.end(), n_batch * n_output, 0.f);
+        CellStateIn_.insert(CellStateIn_.end(), n_batch * n_cell, 0.f);
 
         auto multiAll = [](const std::vector<uint32_t> &dims) -> uint32_t {
             uint32_t sz = 1;
@@ -160,10 +163,12 @@ public:
 
     void ResetOutputState() {
         std::fill(OutputStateIn_.begin(), OutputStateIn_.end(), 0.f);
+        std::fill(OutputStateOut_.begin(), OutputStateOut_.end(), 0.f);
     }
 
     void ResetCellState() {
         std::fill(CellStateIn_.begin(), CellStateIn_.end(), 0.f);
+        std::fill(CellStateOut_.begin(), CellStateOut_.end(), 0.f);
     }
 
     void SetInput(int offset, float *begin, float *end) {
@@ -180,12 +185,15 @@ public:
     void Invoke() {
         ASSERT_TRUE(model_.isValid());
 
+        OutputStateIn_.swap(OutputStateOut_);
+        CellStateIn_.swap(CellStateOut_);
+
         Compilation compilation(&model_);
         compilation.finish();
         Execution execution(&compilation);
 #define SetInputOrWeight(X)                                               \
         ASSERT_EQ(execution.setInput(LSTMCell::k##X##Tensor, X##_.data(), \
-                                     sizeof(X##_)),                       \
+                                     sizeof(float)*X##_.size()),          \
                   Result::NO_ERROR);
 
         FOR_ALL_INPUT_AND_WEIGHT_TENSORS(SetInputOrWeight);
@@ -194,7 +202,7 @@ public:
 
 #define SetOutput(X)                                                       \
         ASSERT_EQ(execution.setOutput(LSTMCell::k##X##Tensor, X##_.data(), \
-                                      sizeof(X##_)),                       \
+                                      sizeof(float)*X##_.size()),          \
                   Result::NO_ERROR);
 
         FOR_ALL_OUTPUT_TENSORS(SetOutput);

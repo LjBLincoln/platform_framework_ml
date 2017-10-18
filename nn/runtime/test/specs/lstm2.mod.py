@@ -56,8 +56,8 @@ cell_clip_param = Input("cell_clip_param", "TENSOR_FLOAT32", "{1}")
 proj_clip_param = Input("proj_clip_param", "TENSOR_FLOAT32", "{1}")
 
 scratch_buffer = IgnoredOutput("scratch_buffer", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell * 3))
-output_state_out = IgnoredOutput("output_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
-cell_state_out = IgnoredOutput("cell_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
+output_state_out = Output("output_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
+cell_state_out = Output("cell_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
 
 model = model.Operation("LSTM",
@@ -134,25 +134,13 @@ input0 = {input_to_input_weights:[],
 
 output0 = {
     scratch_buffer: [ 0 for x in range(n_batch * n_cell * 4) ],
-    cell_state_out: [ 0 for x in range(n_batch * n_cell) ],
-    output_state_out: [ 0 for x in range(n_batch * n_output) ],
+    cell_state_out: [ -0.760444, -0.0180416, 0.182264, -0.0649371 ],
+    output_state_out: [ -0.364445, -0.00352185, 0.128866, -0.0516365 ],
 }
 
-# Instantiate examples
-# TODO: Add more examples after fixing the reference issue
-test_inputs = [
-    [2., 3.],
-#    [3., 4.],[1., 1.]
-]
-golden_outputs = [
-    [-0.36444446, -0.00352185, 0.12886585, -0.05163646],
-#    [-0.42312205, -0.01218222, 0.24201041, -0.08124574],
-#    [-0.358325,   -0.04621704, 0.21641694, -0.06471302]
-]
+input0[input] = [2., 3.]
+input0[output_state_in] = [ 0 for _ in range(n_batch * n_output) ]
+input0[cell_state_in] = [ 0 for _ in range(n_batch * n_cell) ]
+output0[output] = [-0.36444446, -0.00352185, 0.12886585, -0.05163646]
 
-for (input_tensor, output_tensor) in zip(test_inputs, golden_outputs):
-  input0[input] = input_tensor
-  input0[cell_state_in] = [ 0 for _ in range(n_batch * n_cell) ]
-  input0[output_state_in] = [ 0 for _ in range(n_batch * n_output) ]
-  output0[output] = output_tensor
-  Example((input0, output0))
+Example((input0, output0))

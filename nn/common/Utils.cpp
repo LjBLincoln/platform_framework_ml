@@ -245,6 +245,16 @@ uint32_t alignBytesNeeded(uint32_t index, size_t length) {
     return extra;
 }
 
+void logModelToInfo(const Model& model) {
+    LOG(INFO) << "Model start";
+    LOG(INFO) << "operands" << toString(model.operands);
+    LOG(INFO) << "operations" << toString(model.operations);
+    LOG(INFO) << "inputIndexes" << toString(model.inputIndexes);
+    LOG(INFO) << "outputIndexes" << toString(model.outputIndexes);
+    LOG(INFO) << "operandValues size" << model.operandValues.size();
+    LOG(INFO) << "pools" << toString(model.pools);
+}
+
 // Validates the type. The used dimensions can be underspecified.
 int validateOperandType(const ANeuralNetworksOperandType& type, const char* tag,
                         bool allowPartial) {

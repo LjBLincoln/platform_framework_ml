@@ -56,8 +56,8 @@ cell_clip_param = Input("cell_clip_param", "TENSOR_FLOAT32", "{1}")
 proj_clip_param = Input("proj_clip_param", "TENSOR_FLOAT32", "{1}")
 
 scratch_buffer = IgnoredOutput("scratch_buffer", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, (n_cell * 4)))
-output_state_out = IgnoredOutput("output_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
-cell_state_out = IgnoredOutput("cell_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
+output_state_out = Output("output_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
+cell_state_out = Output("cell_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
 
 # TODO: need support for more than one output
@@ -616,74 +616,51 @@ input0 = {input_to_input_weights: [
           proj_clip_param: [0.],
 }
 
-# Instantiate examples
-# TODO: Add more examples after fixing the reference issue
-test_inputs_batch0 = [
-    # Batch0: 4 (input_sequence_size) * 5 (n_input)
-    [0.787926, 0.151646, 0.071352, 0.118426, 0.458058],
-#    [0.596268, 0.998386, 0.568695, 0.864524, 0.571277],
-#    [0.073204, 0.296072, 0.743333, 0.069199, 0.045348],
-#    [0.867394, 0.291279, 0.013714, 0.482521, 0.626339]
-    ]
-
-test_inputs_batch1 = [
-    # Batch1: 4 (input_sequence_size) * 5 (n_input)
-    [0.295743, 0.544053, 0.690064, 0.858138, 0.497181],
-#    [0.642421, 0.524260, 0.134799, 0.003639, 0.162482],
-#    [0.640394, 0.930399, 0.050782, 0.432485, 0.988078],
-#    [0.082922, 0.563329, 0.865614, 0.333232, 0.259916]
-]
-
-golden_outputs_batch0 = [
-    # Batch0: 4 (input_sequence_size) * 16 (n_output)
-    [-0.00396806, 0.029352,     -0.00279226, 0.0159977,   -0.00835576,
-     -0.0211779,  0.0283512,    -0.0114597,  0.00907307,  -0.0244004,
-     -0.0152191,  -0.0259063,   0.00914318,  0.00415118,  0.017147,
-     0.0134203],
-#   [-0.0166936,   0.0381209,   0.000889694, 0.0143363,
-#    -0.0328911,  -0.0234288,   0.0333051,   -0.012229,   0.0110322,
-#    -0.0457725,  -0.000832209, -0.0202817,  0.0327257,   0.0121308,
-#    0.0155969,   0.0312091],
-#   [-0.0213783,  0.0350169,   0.000324794,
-#    0.0276012,   -0.0263374,   -0.0371449,  0.0446149,   -0.0205474,
-#    0.0103729,   -0.0576349,   -0.0150052,  -0.0292043,  0.0376827,
-#    0.0136115,   0.0243435,    0.0354492],
-#   [-0.0189322,  0.0464512,
-#    -0.00251373, 0.0225745,    -0.0308346,  -0.0317124,  0.0460407,
-#    -0.0189395,  0.0149363,    -0.0530162,  -0.0150767,  -0.0340193,
-#    0.0286833,   0.00824207,   0.0264887,   0.0305169]
-]
-
-golden_outputs_batch1 = [
-    # Batch1: 4 (input_sequence_size) * 16 (n_output)
+# Batch0: 4 (input_sequence_size) * 5 (n_input)
+input0[input] = [0.787926, 0.151646, 0.071352, 0.118426, 0.458058]
+# Batch1: 4 (input_sequence_size) * 5 (n_input)
+input0[input].extend(
+  [0.295743, 0.544053, 0.690064, 0.858138, 0.497181],
+)
+input0[cell_state_in] = [ 0 for _ in range(n_batch * n_cell) ]
+input0[output_state_in] = [ 0 for _ in range(n_batch * n_output) ]
+output0 = {
+  scratch_buffer: [ 0 for x in range(n_batch * n_cell * 4) ],
+  cell_state_out: [
+      -0.0531632, -0.0118138, 0.0870833, 0.0347929,
+      -0.076144, -0.0659219, -0.0463811, 0.0141307,
+      -0.0127706, -0.03782, -0.00402401, -0.00571876,
+      -0.187957, -0.0247127, 0.0711425, 0.008244,
+      0.0492649, 0.126972, 0.0933097, 0.29848,
+      -0.0966178, -0.114417, 0.0387229, 0.0453255,
+      -0.181286, -0.0651251, -0.0996879, -0.00276995,
+      0.0617558, -0.0100728, 0.056304, -0.077416,
+      -0.162858, -0.0541251, 0.0571202, -0.0525331,
+      0.0724297, 0.171029, 0.141738, 0.295483,
+  ],
+  output_state_out: [
+      -0.00396806, 0.029352, -0.00279226, 0.0159977,
+      -0.00835577, -0.0211779, 0.0283512, -0.0114597,
+      0.00907307, -0.0244004, -0.0152191, -0.0259063,
+      0.00914318, 0.00415119, 0.017147, 0.0134203,
+      -0.013869, 0.0287268, -0.00334694, 0.00733397,
+      -0.0287926, -0.0186926, 0.0193662, -0.0115437,
+      0.00422612, -0.0345232, 0.00223253, -0.00957321,
+      0.0210624, 0.013331, 0.0150954, 0.0216801
+  ],
+}
+# Batch0: 4 (input_sequence_size) * 16 (n_output)
+output0[output] = [
+  -0.00396806, 0.029352,     -0.00279226, 0.0159977,   -0.00835576,
+  -0.0211779,  0.0283512,    -0.0114597,  0.00907307,  -0.0244004,
+  -0.0152191,  -0.0259063,   0.00914318,  0.00415118,  0.017147,
+  0.0134203]
+# Batch1: 4 (input_sequence_size) * 16 (n_output)
+output0[output].extend(
     [-0.013869,    0.0287268,   -0.00334693, 0.00733398,  -0.0287926,
      -0.0186926,   0.0193662,   -0.0115437,  0.00422612,  -0.0345232,
      0.00223253,   -0.00957321, 0.0210624,   0.013331,    0.0150954,
      0.02168],
-#    [-0.0141913,  0.0322082,   0.00227024,  0.0260507,
-#     -0.0188721,   -0.0296489,  0.0399134,   -0.0160509,  0.0116039,
-#     -0.0447318,   -0.0150515,  -0.0277406,  0.0316596,   0.0118233,
-#     0.0214762,    0.0293641],
-#    [-0.0204549,  0.0450315,   -0.00117378,
-#     0.0167673,    -0.0375007,  -0.0238314,  0.038784,    -0.0174034,
-#     0.0131743,    -0.0506589,  -0.0048447,  -0.0240239,  0.0325789,
-#     0.00790065,   0.0220157,   0.0333314],
-#    [-0.0264787,  0.0387855,
-#     -0.000764675, 0.0217599,   -0.037537,   -0.0335206,  0.0431679,
-#     -0.0211424,   0.010203,    -0.062785,   -0.00832363, -0.025181,
-#     0.0412031,    0.0118723,   0.0239643,   0.0394009]
-]
+  )
 
-for (input_tensor0, input_tensor1, output_tensor0, output_tensor1) in zip(test_inputs_batch0, test_inputs_batch1, golden_outputs_batch0, golden_outputs_batch1):
-  input_tensor0.extend(input_tensor1)
-  input0[input] = input_tensor0
-  input0[cell_state_in] = [ 0 for _ in range(n_batch * n_cell) ]
-  input0[output_state_in] = [ 0 for _ in range(n_batch * n_output) ]
-  output_tensor0.extend(output_tensor1)
-  output0 = {
-      scratch_buffer: [ 0 for x in range(n_batch * n_cell * 4) ],
-      cell_state_out: [ 0 for x in range(n_batch * n_cell) ],
-      output_state_out: [ 0 for x in range(n_batch * n_output) ],
-      output: output_tensor0
-  }
-  Example((input0, output0))
+Example((input0, output0))

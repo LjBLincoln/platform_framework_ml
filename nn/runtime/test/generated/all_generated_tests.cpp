@@ -463,6 +463,20 @@ TEST_F(GeneratedTests, depth_to_space_float_2) {
             depth_to_space_float_2::examples);
 }
 
+namespace depth_to_space_float_3 {
+std::vector<MixedTypedExample> examples = {
+// Generated depth_to_space_float_3 test
+#include "generated/examples/depth_to_space_float_3.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depth_to_space_float_3.model.cpp"
+} // namespace depth_to_space_float_3
+TEST_F(GeneratedTests, depth_to_space_float_3) {
+    Execute(depth_to_space_float_3::CreateModel,
+            depth_to_space_float_3::is_ignored,
+            depth_to_space_float_3::examples);
+}
+
 namespace depth_to_space_quant8_1 {
 std::vector<MixedTypedExample> examples = {
 // Generated depth_to_space_quant8_1 test
@@ -1037,6 +1051,34 @@ TEST_F(GeneratedTests, lstm2) {
             lstm2::examples);
 }
 
+namespace lstm2_state2 {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm2_state2 test
+#include "generated/examples/lstm2_state2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lstm2_state2.model.cpp"
+} // namespace lstm2_state2
+TEST_F(GeneratedTests, lstm2_state2) {
+    Execute(lstm2_state2::CreateModel,
+            lstm2_state2::is_ignored,
+            lstm2_state2::examples);
+}
+
+namespace lstm2_state {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm2_state test
+#include "generated/examples/lstm2_state.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lstm2_state.model.cpp"
+} // namespace lstm2_state
+TEST_F(GeneratedTests, lstm2_state) {
+    Execute(lstm2_state::CreateModel,
+            lstm2_state::is_ignored,
+            lstm2_state::examples);
+}
+
 namespace lstm3 {
 std::vector<MixedTypedExample> examples = {
 // Generated lstm3 test
@@ -1051,6 +1093,48 @@ TEST_F(GeneratedTests, lstm3) {
             lstm3::examples);
 }
 
+namespace lstm3_state2 {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm3_state2 test
+#include "generated/examples/lstm3_state2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lstm3_state2.model.cpp"
+} // namespace lstm3_state2
+TEST_F(GeneratedTests, lstm3_state2) {
+    Execute(lstm3_state2::CreateModel,
+            lstm3_state2::is_ignored,
+            lstm3_state2::examples);
+}
+
+namespace lstm3_state3 {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm3_state3 test
+#include "generated/examples/lstm3_state3.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lstm3_state3.model.cpp"
+} // namespace lstm3_state3
+TEST_F(GeneratedTests, lstm3_state3) {
+    Execute(lstm3_state3::CreateModel,
+            lstm3_state3::is_ignored,
+            lstm3_state3::examples);
+}
+
+namespace lstm3_state {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm3_state test
+#include "generated/examples/lstm3_state.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lstm3_state.model.cpp"
+} // namespace lstm3_state
+TEST_F(GeneratedTests, lstm3_state) {
+    Execute(lstm3_state::CreateModel,
+            lstm3_state::is_ignored,
+            lstm3_state::examples);
+}
+
 namespace lstm {
 std::vector<MixedTypedExample> examples = {
 // Generated lstm test
@@ -1063,6 +1147,34 @@ TEST_F(GeneratedTests, lstm) {
     Execute(lstm::CreateModel,
             lstm::is_ignored,
             lstm::examples);
+}
+
+namespace lstm_state2 {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm_state2 test
+#include "generated/examples/lstm_state2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lstm_state2.model.cpp"
+} // namespace lstm_state2
+TEST_F(GeneratedTests, lstm_state2) {
+    Execute(lstm_state2::CreateModel,
+            lstm_state2::is_ignored,
+            lstm_state2::examples);
+}
+
+namespace lstm_state {
+std::vector<MixedTypedExample> examples = {
+// Generated lstm_state test
+#include "generated/examples/lstm_state.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/lstm_state.model.cpp"
+} // namespace lstm_state
+TEST_F(GeneratedTests, lstm_state) {
+    Execute(lstm_state::CreateModel,
+            lstm_state::is_ignored,
+            lstm_state::examples);
 }
 
 namespace max_pool_float_1 {
@@ -1471,6 +1583,20 @@ TEST_F(GeneratedTests, rnn) {
             rnn::examples);
 }
 
+namespace rnn_state {
+std::vector<MixedTypedExample> examples = {
+// Generated rnn_state test
+#include "generated/examples/rnn_state.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/rnn_state.model.cpp"
+} // namespace rnn_state
+TEST_F(GeneratedTests, rnn_state) {
+    Execute(rnn_state::CreateModel,
+            rnn_state::is_ignored,
+            rnn_state::examples);
+}
+
 namespace softmax_float_1 {
 std::vector<MixedTypedExample> examples = {
 // Generated softmax_float_1 test
@@ -1555,6 +1681,20 @@ TEST_F(GeneratedTests, space_to_depth_float_2) {
             space_to_depth_float_2::examples);
 }
 
+namespace space_to_depth_float_3 {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_depth_float_3 test
+#include "generated/examples/space_to_depth_float_3.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/space_to_depth_float_3.model.cpp"
+} // namespace space_to_depth_float_3
+TEST_F(GeneratedTests, space_to_depth_float_3) {
+    Execute(space_to_depth_float_3::CreateModel,
+            space_to_depth_float_3::is_ignored,
+            space_to_depth_float_3::examples);
+}
+
 namespace space_to_depth_quant8_1 {
 std::vector<MixedTypedExample> examples = {
 // Generated space_to_depth_quant8_1 test
@@ -1597,6 +1737,20 @@ TEST_F(GeneratedTests, svdf) {
             svdf::examples);
 }
 
+namespace svdf_state {
+std::vector<MixedTypedExample> examples = {
+// Generated svdf_state test
+#include "generated/examples/svdf_state.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/svdf_state.model.cpp"
+} // namespace svdf_state
+TEST_F(GeneratedTests, svdf_state) {
+    Execute(svdf_state::CreateModel,
+            svdf_state::is_ignored,
+            svdf_state::examples);
+}
+
 namespace tanh {
 std::vector<MixedTypedExample> examples = {
 // Generated tanh test
@@ -1610,3 +1764,4 @@ TEST_F(GeneratedTests, tanh) {
             tanh::is_ignored,
             tanh::examples);
 }
+

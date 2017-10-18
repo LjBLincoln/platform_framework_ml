@@ -79,6 +79,19 @@ bool RunTimePoolInfo::update() {
     return true;
 }
 
+bool setRunTimePoolInfosFromHidlMemories(std::vector<RunTimePoolInfo>* poolInfos,
+                                         const hidl_vec<hidl_memory>& pools) {
+    poolInfos->resize(pools.size());
+    for (size_t i = 0; i < pools.size(); i++) {
+        auto& poolInfo = (*poolInfos)[i];
+        if (!poolInfo.set(pools[i])) {
+            LOG(ERROR) << "Could not map pool";
+            return false;
+        }
+    }
+    return true;
+}
+
 // Updates the RunTimeOperandInfo with the newly calculated shape.
 // Allocate the buffer if we need to.
 static bool setInfoAndAllocateIfNeeded(RunTimeOperandInfo* info, const Shape& shape) {
@@ -113,14 +126,15 @@ static bool setInfoAndAllocateIfNeeded(RunTimeOperandInfo* info, const Shape& sh
 // Ignore the .pools entry in model and request.  This will have been taken care of
 // by the caller.
 int CpuExecutor::run(const Model& model, const Request& request,
-                     const std::vector<RunTimePoolInfo>& runTimePoolInfos) {
+                     const std::vector<RunTimePoolInfo>& modelPoolInfos,
+                     const std::vector<RunTimePoolInfo>& requestPoolInfos) {
     VLOG(CPUEXE) << "CpuExecutor::run()";
     // VLOG(CPUEXE) << "model: " << toString(model);
     VLOG(CPUEXE) << "request: " << toString(request);
 
     mModel = &model;
     mRequest = &request; // TODO check if mRequest is needed
-    initializeRunTimeInfo(runTimePoolInfos);
+    initializeRunTimeInfo(modelPoolInfos, requestPoolInfos);
     // The model has serialized the operation in execution order.
     for (const auto& operation : model.operations) {
         int n = executeOperation(operation);
@@ -128,7 +142,10 @@ int CpuExecutor::run(const Model& model, const Request& request,
             return n;
         }
     }
-    for (auto runtimeInfo : runTimePoolInfos) {
+    for (auto runtimeInfo : modelPoolInfos) {
+        runtimeInfo.update();
+    }
+    for (auto runtimeInfo : requestPoolInfos) {
         runtimeInfo.update();
     }
     mModel = nullptr;
@@ -137,7 +154,8 @@ int CpuExecutor::run(const Model& model, const Request& request,
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runTimePoolInfos) {
+bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& modelPoolInfos,
+                                        const std::vector<RunTimePoolInfo>& requestPoolInfos) {
     VLOG(CPUEXE) << "CpuExecutor::initializeRunTimeInfo";
     const size_t count = mModel->operands.size();
     mOperands.resize(count);
@@ -163,8 +181,8 @@ bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runT
                 break;
             case OperandLifeTime::CONSTANT_REFERENCE: {
                 auto poolIndex = from.location.poolIndex;
-                nnAssert(poolIndex < runTimePoolInfos.size());
-                auto& r = runTimePoolInfos[poolIndex];
+                nnAssert(poolIndex < modelPoolInfos.size());
+                auto& r = modelPoolInfos[poolIndex];
                 to.buffer = r.buffer + from.location.offset;
                 to.numberOfUsesLeft = 0;
                 break;
@@ -183,7 +201,7 @@ bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runT
 
     // Adjust the runtime info for the arguments passed to the model,
     // modifying the buffer location, and possibly the dimensions.
-    auto updateForArguments = [this, &runTimePoolInfos](const std::vector<uint32_t>& indexes,
+    auto updateForArguments = [this, &requestPoolInfos](const std::vector<uint32_t>& indexes,
                                   const hidl_vec<RequestArgument>& arguments) {
         nnAssert(indexes.size() == arguments.size());
         for (size_t i = 0; i < indexes.size(); i++) {
@@ -203,8 +221,8 @@ bool CpuExecutor::initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runT
                 nnAssert(to.buffer == nullptr);
             } else {
                 auto poolIndex = from.location.poolIndex;
-                nnAssert(poolIndex < runTimePoolInfos.size());
-                auto& r = runTimePoolInfos[poolIndex];
+                nnAssert(poolIndex < requestPoolInfos.size());
+                auto& r = requestPoolInfos[poolIndex];
                 to.buffer = r.buffer + from.location.offset;
             }
         }
@@ -1206,7 +1224,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                 rnn_cell.Eval();
         } break;
         case OperationType::SVDF: {
-            RunTimeOperandInfo &state =
+            RunTimeOperandInfo &stateOut =
                 mOperands[outs[SVDF::kStateOutTensor]];
             RunTimeOperandInfo &output =
                 mOperands[outs[SVDF::kOutputTensor]];
@@ -1216,7 +1234,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
 
             success = SVDF::Prepare(operation, mOperands,
                                     &stateShape, &outputShape) &&
-                setInfoAndAllocateIfNeeded(&state, stateShape) &&
+                setInfoAndAllocateIfNeeded(&stateOut, stateShape) &&
                 setInfoAndAllocateIfNeeded(&output, outputShape) &&
                 svdf.Eval();
         } break;

@@ -37,6 +37,7 @@ public:
 };
 
 Return<void> SampleDriverFloatSlow::getCapabilities(getCapabilities_cb cb) {
+    android::nn::initVLogMask();
     VLOG(DRIVER) << "getCapabilities()";
     Capabilities capabilities = {.float32Performance = {.execTime = 1.3f, .powerUsage = 0.7f},
                                  .quantized8Performance = {.execTime = 1.0f, .powerUsage = 1.0f}};
@@ -73,7 +74,6 @@ using android::nn::sample_driver::SampleDriverFloatSlow;
 using android::sp;
 
 int main() {
-    android::nn::initVLogMask();
     sp<SampleDriverFloatSlow> driver(new SampleDriverFloatSlow());
     return driver->run();
 }
