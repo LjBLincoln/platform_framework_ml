@@ -1764,4 +1764,3 @@ TEST_F(GeneratedTests, tanh) {
             tanh::is_ignored,
             tanh::examples);
 }
-
