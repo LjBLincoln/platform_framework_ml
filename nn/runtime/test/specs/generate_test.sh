@@ -17,12 +17,6 @@ function generate_one_testcase {
   # Generate one testcase
   BASENAME=`basename -s .mod.py $1`
   EXAMPLE="-e ../generated/examples/$BASENAME.example.cpp"
-  # Mobilenet quantized has its example file generated elsewhere, so we
-  # need make sure it does not get overwritten.
-  if [ $1 = "mobilenet_quantized.mod.py" ]; then
-    (>&2 echo "Skipping mobilenet quantized example generation")
-    EXAMPLE=
-  fi
 
   ../../../tools/test_generator/test_generator.py ./`basename $1`\
     -m ../generated/models/$BASENAME.model.cpp $EXAMPLE
