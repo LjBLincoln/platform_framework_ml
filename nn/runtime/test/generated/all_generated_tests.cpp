@@ -239,6 +239,62 @@ TEST_F(GeneratedTests, concat_quant8_3) {
             concat_quant8_3::examples);
 }
 
+namespace conv_1_h3_w2_SAME {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_1_h3_w2_SAME test
+#include "generated/examples/conv_1_h3_w2_SAME.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_1_h3_w2_SAME.model.cpp"
+} // namespace conv_1_h3_w2_SAME
+TEST_F(GeneratedTests, conv_1_h3_w2_SAME) {
+    Execute(conv_1_h3_w2_SAME::CreateModel,
+            conv_1_h3_w2_SAME::is_ignored,
+            conv_1_h3_w2_SAME::examples);
+}
+
+namespace conv_1_h3_w2_VALID {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_1_h3_w2_VALID test
+#include "generated/examples/conv_1_h3_w2_VALID.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_1_h3_w2_VALID.model.cpp"
+} // namespace conv_1_h3_w2_VALID
+TEST_F(GeneratedTests, conv_1_h3_w2_VALID) {
+    Execute(conv_1_h3_w2_VALID::CreateModel,
+            conv_1_h3_w2_VALID::is_ignored,
+            conv_1_h3_w2_VALID::examples);
+}
+
+namespace conv_3_h3_w2_SAME {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_3_h3_w2_SAME test
+#include "generated/examples/conv_3_h3_w2_SAME.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_3_h3_w2_SAME.model.cpp"
+} // namespace conv_3_h3_w2_SAME
+TEST_F(GeneratedTests, conv_3_h3_w2_SAME) {
+    Execute(conv_3_h3_w2_SAME::CreateModel,
+            conv_3_h3_w2_SAME::is_ignored,
+            conv_3_h3_w2_SAME::examples);
+}
+
+namespace conv_3_h3_w2_VALID {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_3_h3_w2_VALID test
+#include "generated/examples/conv_3_h3_w2_VALID.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_3_h3_w2_VALID.model.cpp"
+} // namespace conv_3_h3_w2_VALID
+TEST_F(GeneratedTests, conv_3_h3_w2_VALID) {
+    Execute(conv_3_h3_w2_VALID::CreateModel,
+            conv_3_h3_w2_VALID::is_ignored,
+            conv_3_h3_w2_VALID::examples);
+}
+
 namespace conv_float_channels {
 std::vector<MixedTypedExample> examples = {
 // Generated conv_float_channels test
@@ -643,6 +699,20 @@ TEST_F(GeneratedTests, depthwise_conv2d_quant8_weights_as_inputs) {
     Execute(depthwise_conv2d_quant8_weights_as_inputs::CreateModel,
             depthwise_conv2d_quant8_weights_as_inputs::is_ignored,
             depthwise_conv2d_quant8_weights_as_inputs::examples);
+}
+
+namespace depthwise_conv {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv test
+#include "generated/examples/depthwise_conv.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv.model.cpp"
+} // namespace depthwise_conv
+TEST_F(GeneratedTests, depthwise_conv) {
+    Execute(depthwise_conv::CreateModel,
+            depthwise_conv::is_ignored,
+            depthwise_conv::examples);
 }
 
 namespace dequantize {

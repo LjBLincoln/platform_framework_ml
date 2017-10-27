@@ -31,74 +31,6 @@ using namespace android::nn::wrapper;
 template <typename T>
 class Example {
    public:
-    typedef T ElementType;
-    typedef std::pair<std::map<int, std::vector<T>>,
-                      std::map<int, std::vector<T>>>
-        ExampleType;
-
-    static bool Execute(std::function<void(Model*)> create_model,
-                        std::vector<ExampleType>& examples,
-                        std::function<bool(const T, const T)> compare) {
-        Model model;
-        create_model(&model);
-        model.finish();
-
-        int example_no = 1;
-        bool error = false;
-        for (auto& example : examples) {
-            Compilation compilation(&model);
-            compilation.finish();
-            Execution execution(&compilation);
-
-            // Go through all inputs
-            for (auto& i : example.first) {
-                std::vector<T>& input = i.second;
-                // We interpret an empty vector as an optional argument
-                // that has been omitted.
-                if (input.size() == 0) {
-                    execution.setInput(i.first, nullptr, 0);
-                } else {
-                    execution.setInput(i.first, (const void*)input.data(),
-                                       input.size() * sizeof(T));
-                }
-            }
-
-            std::map<int, std::vector<T>> test_outputs;
-
-            assert(example.second.size() == 1);
-            int output_no = 0;
-            for (auto& i : example.second) {
-                std::vector<T>& output = i.second;
-                test_outputs[i.first].resize(output.size());
-                std::vector<T>& test_output = test_outputs[i.first];
-                execution.setOutput(output_no++, (void*)test_output.data(),
-                                    test_output.size() * sizeof(T));
-            }
-            Result r = execution.compute();
-            if (r != Result::NO_ERROR)
-                std::cerr << "Execution was not completed normally\n";
-            bool mismatch = false;
-            for (auto& i : example.second) {
-                const std::vector<T>& test = test_outputs[i.first];
-                const std::vector<T>& golden = i.second;
-                for (unsigned i = 0; i < golden.size(); i++) {
-                    if (compare(golden[i], test[i])) {
-                        std::cerr << " output[" << i << "] = " << (float)test[i]
-                                  << " (should be " << (float)golden[i]
-                                  << ")\n";
-                        error = error || true;
-                        mismatch = mismatch || true;
-                    }
-                }
-            }
-            if (mismatch) {
-                std::cerr << "Example: " << example_no++;
-                std::cerr << " failed\n";
-            }
-        }
-        return error;
-    }
-
     // Test driver for those generated from ml/nn/runtime/test/spec
     static void Execute(std::function<void(Model*)> create_model,
                         std::function<bool(int)> is_ignored,
@@ -142,8 +74,6 @@ class Example {
 };  // namespace generated_tests
 
 using namespace android::nn::wrapper;
-// Float32 examples
-typedef generated_tests::Example<float>::ExampleType Example;
 // Mixed-typed examples
 typedef generated_tests::MixedTypedExampleType MixedTypedExample;
 
@@ -162,89 +92,4 @@ class GeneratedTests : public ::testing::Test {
 // Testcases generated from runtime/test/specs/*.mod.py
 #include "generated/all_generated_tests.cpp"
 // End of testcases generated from runtime/test/specs/*.mod.py
-
-// Below are testcases geneated from TFLite testcases.
-namespace conv_1_h3_w2_SAME {
-std::vector<Example> examples = {
-// Converted examples
-#include "generated/examples/conv_1_h3_w2_SAME_tests.example.cc"
-};
-// Generated model constructor
-#include "generated/models/conv_1_h3_w2_SAME.model.cpp"
-}  // namespace conv_1_h3_w2_SAME
-
-namespace conv_1_h3_w2_VALID {
-std::vector<Example> examples = {
-// Converted examples
-#include "generated/examples/conv_1_h3_w2_VALID_tests.example.cc"
-};
-// Generated model constructor
-#include "generated/models/conv_1_h3_w2_VALID.model.cpp"
-}  // namespace conv_1_h3_w2_VALID
-
-namespace conv_3_h3_w2_SAME {
-std::vector<Example> examples = {
-// Converted examples
-#include "generated/examples/conv_3_h3_w2_SAME_tests.example.cc"
-};
-// Generated model constructor
-#include "generated/models/conv_3_h3_w2_SAME.model.cpp"
-}  // namespace conv_3_h3_w2_SAME
-
-namespace conv_3_h3_w2_VALID {
-std::vector<Example> examples = {
-// Converted examples
-#include "generated/examples/conv_3_h3_w2_VALID_tests.example.cc"
-};
-// Generated model constructor
-#include "generated/models/conv_3_h3_w2_VALID.model.cpp"
-}  // namespace conv_3_h3_w2_VALID
-
-namespace depthwise_conv {
-std::vector<Example> examples = {
-// Converted examples
-#include "generated/examples/depthwise_conv_tests.example.cc"
-};
-// Generated model constructor
-#include "generated/models/depthwise_conv.model.cpp"
-}  // namespace depthwise_conv
-
-namespace {
-bool Execute(std::function<void(Model*)> create_model,
-             std::vector<Example>& examples) {
-    return generated_tests::Example<float>::Execute(
-        create_model, examples, [](float golden, float test) {
-            return std::fabs(golden - test) > 1.5e-5f;
-        });
-}
-}  // namespace
-
-TEST_F(GeneratedTests, conv_1_h3_w2_SAME) {
-    ASSERT_EQ(
-        Execute(conv_1_h3_w2_SAME::CreateModel, conv_1_h3_w2_SAME::examples),
-        0);
-}
-
-TEST_F(GeneratedTests, conv_1_h3_w2_VALID) {
-    ASSERT_EQ(
-        Execute(conv_1_h3_w2_VALID::CreateModel, conv_1_h3_w2_VALID::examples),
-        0);
-}
-
-TEST_F(GeneratedTests, conv_3_h3_w2_SAME) {
-    ASSERT_EQ(
-        Execute(conv_3_h3_w2_SAME::CreateModel, conv_3_h3_w2_SAME::examples),
-        0);
-}
-
-TEST_F(GeneratedTests, conv_3_h3_w2_VALID) {
-    ASSERT_EQ(
-        Execute(conv_3_h3_w2_VALID::CreateModel, conv_3_h3_w2_VALID::examples),
-        0);
-}
-
-TEST_F(GeneratedTests, depthwise_conv) {
-    ASSERT_EQ(Execute(depthwise_conv::CreateModel, depthwise_conv::examples),
-              0);
-}
 
