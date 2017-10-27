@@ -209,15 +209,6 @@ std::vector<Example> examples = {
 #include "generated/models/depthwise_conv.model.cpp"
 }  // namespace depthwise_conv
 
-namespace mobilenet {
-std::vector<Example> examples = {
-// Converted examples
-#include "generated/examples/mobilenet_224_gender_basic_fixed_tests.example.cc"
-};
-// Generated model constructor
-#include "generated/models/mobilenet_224_gender_basic_fixed.model.cpp"
-}  // namespace mobilenet
-
 namespace {
 bool Execute(std::function<void(Model*)> create_model,
              std::vector<Example>& examples) {
@@ -257,6 +248,3 @@ TEST_F(GeneratedTests, depthwise_conv) {
               0);
 }
 
-TEST_F(GeneratedTests, mobilenet) {
-    ASSERT_EQ(Execute(mobilenet::CreateModel, mobilenet::examples), 0);
-}

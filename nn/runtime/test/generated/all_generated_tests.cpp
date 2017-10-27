@@ -1261,6 +1261,20 @@ TEST_F(GeneratedTests, max_pool_quant8_3) {
             max_pool_quant8_3::examples);
 }
 
+namespace mobilenet_224_gender_basic_fixed {
+std::vector<MixedTypedExample> examples = {
+// Generated mobilenet_224_gender_basic_fixed test
+#include "generated/examples/mobilenet_224_gender_basic_fixed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/mobilenet_224_gender_basic_fixed.model.cpp"
+} // namespace mobilenet_224_gender_basic_fixed
+TEST_F(GeneratedTests, mobilenet_224_gender_basic_fixed) {
+    Execute(mobilenet_224_gender_basic_fixed::CreateModel,
+            mobilenet_224_gender_basic_fixed::is_ignored,
+            mobilenet_224_gender_basic_fixed::examples);
+}
+
 namespace mobilenet_quantized {
 std::vector<MixedTypedExample> examples = {
 // Generated mobilenet_quantized test
