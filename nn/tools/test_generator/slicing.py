@@ -154,7 +154,6 @@ aliased_output{number} = {operand_name}
 
 if __name__ == "__main__":
   (model, example, number) = import_source()
-  # Hardcode to slice the first two operations
   s = slicing(int(number))
 
   with smart_open(model) as model_file:

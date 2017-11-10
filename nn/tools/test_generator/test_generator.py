@@ -16,7 +16,7 @@
 
 """NN model compiler
 
-Compile models and examples into VTS and NDK-based CTS unit tests
+Compile models and examples into NDK-based CTS unit tests
 """
 
 from __future__ import absolute_import
@@ -355,7 +355,10 @@ class Parameter(Input):
   def is_weight(self):
     return True
   def lifetime(self):
-    return "CONSTANT_COPY"
+    if Configuration.useSHM():
+      return "CONSTANT_REFERENCE"
+    else:
+      return "CONSTANT_COPY"
 
 class Int32Scalar(Parameter):
   def __init__(self, name, value):
@@ -676,25 +679,19 @@ def TopologicalSort(format_op):
         start.add(o)
 
 class Configuration:
-  vts = False
+  use_shm_for_weights = False
+  def useSHM():
+    return Configuration.use_shm_for_weights
 
 # Take a model from command line
 def import_source():
   parser = argparse.ArgumentParser()
   parser.add_argument("spec", help="the spec file")
   parser.add_argument(
-      "-v",
-      "--vts",
-      help="generate VTS model instead",
-      default=False,
-      action="store_true")
-  parser.add_argument(
       "-m", "--model", help="the output model file", default="-")
   parser.add_argument(
       "-e", "--example", help="the output example file", default="-")
   args = parser.parse_args()
-
-  Configuration.vts = args.vts
 
   if os.path.exists(args.spec):
     FileNames.SpecFile = os.path.basename(args.spec)
@@ -702,135 +699,6 @@ def import_source():
 
   return (args.model, args.example)
 
-
-# Generate operands in VTS format
-def generate_vts_operands():
-  # Dump operand definitions
-  op_def = """\
-        {{
-            .type = OperandType::{operand_type},
-            .dimensions = {shape},
-            .numberOfConsumers = {no_consumers},
-            .scale = {scale},
-            .zeroPoint = {zero_point},
-            .lifetime = OperandLifeTime::{lifetime},
-            .location = {{.poolIndex = 0, .offset = {offset}, .length = {length}}},
-        }}"""
-  offset = 0
-  op_definitions = []
-  for o in Operand.operands.objects():
-    ty = o.type
-    no_consumers = len(o.outs) if o.traversable() else 0
-    lifetime = o.lifetime()
-    length = ty.get_size() if o.is_weight() else 0
-    real_shape, scale, zero_point = ty.get_parsed_shape()
-    scale = float(scale)
-    zero_point = int(zero_point)
-    op = {
-        "operand_type": ty.get_element_type(),
-        "shape": "{%s}" % real_shape,
-        "no_consumers": no_consumers,
-        "scale": pretty_print_as_float(scale),
-        "zero_point": str(int(zero_point)),
-        "lifetime": lifetime,
-        "offset": offset if o.is_weight() else 0,
-        "length": length
-    }
-    offset += length
-    op_definitions.append(op_def.format(**op))
-
-  op_vec = """\
-    const std::vector<Operand> operands = {{
-{0}
-    }};""".format(",\n".join(op_definitions))
-  return op_vec
-
-# Generate VTS operand values
-def generate_vts_operand_values():
-  weights = [o for o in Operand.operands.objects() if o.is_weight()]
-  binit = []
-  for w in weights:
-    ty = w.type.get_element_type()
-    if ty == "TENSOR_QUANT8_ASYMM":
-      binit += w.initializer
-    elif ty in {"TENSOR_FLOAT32", "FLOAT32", "TENSOR_INT32", "INT32"}:
-      fmt = "f" if (ty == "TENSOR_FLOAT32" or ty == "FLOAT32") else "i"
-      for f in w.initializer:
-        binit += [int(x) for x in struct.pack(fmt, f)]
-    else:
-      assert 0 and "Unsupported VTS operand type"
-
-  init_defs = ", ".join([str(x) for x in binit])
-  if (init_defs != ""):
-    init_defs = "\n      %s\n    " % init_defs
-  byte_vec_fmt = """\
-    std::vector<uint8_t> operandValues = {%s};""" % init_defs
-  return byte_vec_fmt
-
-# Generate VTS operations
-class VTSOps(object):
-  vts_ops = []
-  def generate_vts_operation(op):
-    try:
-      opcode =op.optype
-    except AttributeError: # not an op, but things like weights
-      return
-    op_fmt = """\
-        {{
-            .type = OperationType::{op_code},
-            .inputs = {{{ins}}},
-            .outputs = {{{outs}}},
-        }}"""
-    op_content = {
-        'op_code': op.optype,
-        'op_type': op.type.get_element_type(),
-        'ins': ", ".join([str(x.ID()) for x in op.ins]),
-        'outs': ", ".join([str(x.ID()) for x in op.outs]),
-    }
-    VTSOps.vts_ops.append(op_fmt.format(**op_content))
-    return True
-
-def generate_vts_operations(model_file):
-  TopologicalSort(lambda x: VTSOps.generate_vts_operation(x))
-  return ",\n".join(VTSOps.vts_ops)
-
-def generate_vts_model(model_file):
-  model_fmt = """\
-// Generated code. Do not edit
-// Create the model
-Model createTestModel() {{
-{operand_decls}
-
-    const std::vector<Operation> operations = {{
-{operations}
-    }};
-
-    const std::vector<uint32_t> inputIndexes = {{{input_indices}}};
-    const std::vector<uint32_t> outputIndexes = {{{output_indices}}};
-{operand_values}
-    const std::vector<hidl_memory> pools = {{}};
-
-    return {{
-        .operands = operands,
-        .operations = operations,
-        .inputIndexes = inputIndexes,
-        .outputIndexes = outputIndexes,
-        .operandValues = operandValues,
-        .pools = pools,
-    }};
-}}"""
-  model = {
-      "operations": generate_vts_operations(sys.stdout),
-      "operand_decls": generate_vts_operands(),
-      "operand_values": generate_vts_operand_values(),
-      "output_indices": ", ".join([str(i.ID()) for i in Output.get_outputs()]),
-      "input_indices": ", ".join([str(i.ID()) for i in Input.get_inputs(True)])
-  }
-  print(model_fmt.format(**model), file = model_file)
-
-def generate_vts(model_file):
-  generate_vts_model(model_file)
-  print (IgnoredOutput.gen_ignored(), file=model_file)
 
 def print_cts_op(model_file, op):
   fmt = op.Definition()
@@ -845,42 +713,36 @@ if __name__ == '__main__':
   if len(ModelArgument.get_arguments()) > 0:
     args = ", " + ", ".join(ModelArgument.get_arguments())
 
-  print(
-      "Output %s model: %s" % ("VTS" if Configuration.vts else "CTS", model),
-      file=sys.stderr)
-  print ("Output example:" + example, file = sys.stderr)
+  print("Output CTS model: %s" % model, file=sys.stderr)
+  print("Output example:" + example, file=sys.stderr)
 
-  if Configuration.vts:
-    with smart_open(model) as model_file:
-      generate_vts(model_file)
-  else:
-    with smart_open(model) as model_file:
-      spec_file = " (from: %s)" % (FileNames.SpecFile)
+  with smart_open(model) as model_file:
+    spec_file = " (from: %s)" % (FileNames.SpecFile)
 
-      print ('// Generated file%s. Do not edit'%(spec_file), file = model_file)
-      print ("void CreateModel(Model *model" + args + ") {", file=model_file)
+    print ('// Generated file%s. Do not edit'%(spec_file), file = model_file)
+    print ("void CreateModel(Model *model" + args + ") {", file=model_file)
 
-      # Phase 0: types
-      Type.dump(model_file)
-      # Phase 1: add operands
-      print ("  // Phase 1, operands", file=model_file)
-      Operand.operands.dump(model_file)
+    # Phase 0: types
+    Type.dump(model_file)
+    # Phase 1: add operands
+    print ("  // Phase 1, operands", file=model_file)
+    Operand.operands.dump(model_file)
 
-      # Phase 2: operations
-      print ("  // Phase 2, operations", file=model_file)
-      TopologicalSort(lambda x: print_cts_op(model_file, x))
+    # Phase 2: operations
+    print ("  // Phase 2, operations", file=model_file)
+    TopologicalSort(lambda x: print_cts_op(model_file, x))
 
-      # Phase 3: add inputs and outputs
-      print ("  // Phase 3, inputs and outputs", file=model_file)
-      inputs = Operand.print_operands(Input.get_inputs(True));
-      outputs = Operand.print_operands(Output.get_outputs());
-      print ("  model->identifyInputsAndOutputs(\n" +
-             "    {"+", ".join(inputs)+"},\n    {" + ", ".join(outputs) + "});",
-             file=model_file)
-      # Boilerplate
-      print ("  assert(model->isValid());", file=model_file);
-      print ("}", file=model_file)
-      print (IgnoredOutput.gen_ignored(), file=model_file)
+    # Phase 3: add inputs and outputs
+    print ("  // Phase 3, inputs and outputs", file=model_file)
+    inputs = Operand.print_operands(Input.get_inputs(True));
+    outputs = Operand.print_operands(Output.get_outputs());
+    print ("  model->identifyInputsAndOutputs(\n" +
+           "    {"+", ".join(inputs)+"},\n    {" + ", ".join(outputs) + "});",
+           file=model_file)
+    # Boilerplate
+    print ("  assert(model->isValid());", file=model_file);
+    print ("}", file=model_file)
+    print (IgnoredOutput.gen_ignored(), file=model_file)
 
   with smart_open(example) as example_file:
     Example.dump(example_file)
