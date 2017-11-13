@@ -95,6 +95,7 @@ int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
 ExecutionBuilder::ExecutionBuilder(const CompilationBuilder* compilation) :
         mModel(compilation->mModel),
         mPlan(&compilation->mPlan),
+        mPartitioning(compilation->mPartitioning),
         mInputs(mModel->inputCount()),
         mOutputs(mModel->outputCount()) {
     VLOG(EXECUTION) << "ExecutionBuilder::ExecutionBuilder";
@@ -317,9 +318,8 @@ int ExecutionBuilder::startCompute(sp<ExecutionCallback>* synchronizationCallbac
         // TODO: Entire plan-based-path should run in an asynchronous thread --
         // take the asynchronous thread logic out of startComputeOnCpu() and use
         // it to wrap the plan-based-path.
-        const uint32_t partitioning = DeviceManager::get()->getPartitioning();
-        if (partitioning > 0) {
-            const bool allowFallback = DeviceManager::partitioningAllowsFallback(partitioning);
+        if (mPartitioning > 0) {
+            const bool allowFallback = DeviceManager::partitioningAllowsFallback(mPartitioning);
             std::shared_ptr<ExecutionPlan::Controller> controller = mPlan->makeController(this);
             if (controller == nullptr) {
                 if (!allowFallback) {

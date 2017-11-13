@@ -83,6 +83,10 @@ private:
     const ModelBuilder* mModel;
     const ExecutionPlan* mPlan;
 
+    // This is a DeviceManager::kPartitioning* value captured from
+    // CompilationBuilder when the ExecutionBuilder is constructed.
+    uint32_t mPartitioning;
+
     // The information we'll send to the driver about the inputs and outputs.
     // Note that we build this in two steps:
     // 1. As the arguments are specified, set the corresponding mInputs or mOutputs element.
