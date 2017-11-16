@@ -21,6 +21,7 @@
 #include "NeuralNetworks.h"
 #include "NeuralNetworksWrapper.h"
 #include "Utils.h"
+#include "ValidateHal.h"
 
 #include <gtest/gtest.h>
 
