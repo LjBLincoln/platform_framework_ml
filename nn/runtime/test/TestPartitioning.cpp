@@ -90,15 +90,17 @@
 // - It finds model inputs, model outputs, and submodel inputs in
 //   the order the corresponding operands were added to the subgraph
 //   (see ExecutionStep methods getModelInputs(), getModelOutputs(),
-//   getSubModelInputs()).
-// - It finds submodel outputs in numerical order of corresponding
+//   getTempsAsSubModelInputs(), getOutputsAsSubModelInputs()).
+// - It finds temps as submodel outputs in numerical order of corresponding
 //   operand number in the original model (see ExecutionStep method
-//   getSubModelOutputs()).
+//   getTempsAsSubModelOutputs()).
 // - When it calls identifyInputsAndOutputs() on the submodel, it
-//   passes inputs from getModelInputs() in order followed by submodel
-//   inputs from getSubModelInputs() in order; and it passes outputs
-//   from getModelOutputs() in order followed by submodel outputs from
-//   getSubModelOutputs() in order.
+//   passes inputs from getModelInputs() in order, followed by temps as
+//   submodel inputs from getTempsAsSubModelInputs() in order,
+//   followed by outputs as submodel inputs from
+//   getOutputsAsSubModelInputs() in order; and it passes outputs from
+//   getModelOutputs() in order followed by submodel outputs from
+//   getTempsAsSubModelOutputs() in order.
 //
 // TODO: Maybe the logic for comparing a partition to an expected
 //       model should be changed to tolerate reorderings of inputs and
@@ -369,9 +371,8 @@ private:
 
 class PartitioningTest : public ::testing::Test {
 protected:
-    // workaround for private types in ExecutionStep
-    using RemapVectorType = decltype(static_cast<ExecutionStep*>(nullptr)->getModelInputs());
-    using SubModelOutputSetType = decltype(static_cast<ExecutionStep*>(nullptr)->getSubModelOutputs());
+    using RemapVectorType = ExecutionStep::RemapVectorType;
+    using SubModelOutputSetType = ExecutionStep::SubModelOutputSetType;
 
     virtual void SetUp() {
     }
@@ -732,10 +733,12 @@ TEST_F(PartitioningTest, SimpleModel) {
                   (RemapVectorType{ { opnd0, b0Opnd0 }, { opnd1, b0Opnd1 } }));
         ASSERT_EQ(stepsB[0]->getModelOutputs(),
                   (RemapVectorType{}));
-        ASSERT_EQ(stepsB[0]->getSubModelInputs(),
+        ASSERT_EQ(stepsB[0]->getTempsAsSubModelInputs(),
                   (RemapVectorType{}));
-        ASSERT_EQ(stepsB[0]->getSubModelOutputs(),
+        ASSERT_EQ(stepsB[0]->getTempsAsSubModelOutputs(),
                   (SubModelOutputSetType{ { opnd2, b0Opnd2 } }));
+        ASSERT_EQ(stepsB[0]->getOutputsAsSubModelInputs(),
+                  (RemapVectorType{}));
     }
     {
         // Build a model to compare against the submodel from stepsB[1].
@@ -756,10 +759,12 @@ TEST_F(PartitioningTest, SimpleModel) {
                   (RemapVectorType{ { opnd3, b1Opnd3 } }));
         ASSERT_EQ(stepsB[1]->getModelOutputs(),
                   (RemapVectorType{ { opnd4, b1Opnd4 } }));
-        ASSERT_EQ(stepsB[1]->getSubModelInputs(),
+        ASSERT_EQ(stepsB[1]->getTempsAsSubModelInputs(),
                   (RemapVectorType{ { opnd2, b1Opnd2 } }));
-        ASSERT_EQ(stepsB[1]->getSubModelOutputs(),
+        ASSERT_EQ(stepsB[1]->getTempsAsSubModelOutputs(),
                   (SubModelOutputSetType{}));
+        ASSERT_EQ(stepsB[1]->getOutputsAsSubModelInputs(),
+                  (RemapVectorType{}));
     }
 }
 
@@ -820,10 +825,12 @@ TEST_F(PartitioningTest, Cpu) {
                   (RemapVectorType{ { opnd0, m0Opnd0 }, { opnd1, m0Opnd1 } }));
         ASSERT_EQ(step0->getModelOutputs(),
                   (RemapVectorType{}));
-        ASSERT_EQ(step0->getSubModelInputs(),
+        ASSERT_EQ(step0->getTempsAsSubModelInputs(),
                   (RemapVectorType{}));
-        ASSERT_EQ(step0->getSubModelOutputs(),
+        ASSERT_EQ(step0->getTempsAsSubModelOutputs(),
                   (SubModelOutputSetType{ { opnd2, m0Opnd2 }, { opnd3, m0Opnd3 } }));
+        ASSERT_EQ(step0->getOutputsAsSubModelInputs(),
+                  (RemapVectorType{}));
     }
     {
         const auto& step1 = steps[1];
@@ -843,10 +850,12 @@ TEST_F(PartitioningTest, Cpu) {
                   (RemapVectorType{ { opnd0, m1Opnd0 } }));
         ASSERT_EQ(step1->getModelOutputs(),
                   (RemapVectorType{ { opnd4, m1Opnd4 } }));
-        ASSERT_EQ(step1->getSubModelInputs(),
+        ASSERT_EQ(step1->getTempsAsSubModelInputs(),
                   (RemapVectorType{ { opnd3, m1Opnd3 }, { opnd2, m1Opnd2 } }));
-        ASSERT_EQ(step1->getSubModelOutputs(),
+        ASSERT_EQ(step1->getTempsAsSubModelOutputs(),
                   (SubModelOutputSetType{ { opnd5, m1Opnd5 } }));
+        ASSERT_EQ(step1->getOutputsAsSubModelInputs(),
+                  (RemapVectorType{}));
     }
     {
         const auto& step2 = steps[2];
@@ -866,10 +875,12 @@ TEST_F(PartitioningTest, Cpu) {
                   (RemapVectorType{ { opnd6, m2Opnd6 } }));
         ASSERT_EQ(step2->getModelOutputs(),
                   (RemapVectorType{ { opnd8, m2Opnd8 } }));
-        ASSERT_EQ(step2->getSubModelInputs(),
+        ASSERT_EQ(step2->getTempsAsSubModelInputs(),
                   (RemapVectorType{ { opnd3, m2Opnd3 }, { opnd5, m2Opnd5 } }));
-        ASSERT_EQ(step2->getSubModelOutputs(),
+        ASSERT_EQ(step2->getTempsAsSubModelOutputs(),
                   (SubModelOutputSetType{}));
+        ASSERT_EQ(step2->getOutputsAsSubModelInputs(),
+                  (RemapVectorType{}));
     }
 }
 
@@ -917,6 +928,78 @@ TEST_F(PartitioningTest, SetPartitioning) {
     ASSERT_EQ(cPWithoutFallback.setPartitioning(DeviceManager::kPartitioningWithoutFallback), Result::NO_ERROR);
     ASSERT_EQ(cPWithoutFallback.finish(devices), Result::OP_FAILED);
     ASSERT_EQ(cPWithoutFallback.getExecutionPlan().forTest_getKind(), ExecutionPlan::Kind::ERROR);
+}
+
+// Regression test for http://b/69166603:
+//     "partitioned compilation and execution yields wrong results when model output is submodel input"
+TEST_F(PartitioningTest, ModelOutputAsSubmodelInput) {
+    PartitioningModel model;
+    uint32_t opnd0 = model.addFloatOperand();
+    uint32_t opnd1 = model.addFloatOperand();
+    uint32_t opnd2 = model.addOperation2To1(0, opnd0, opnd1);
+    uint32_t opnd3 = model.addOperation2To1(1, opnd2, opnd2);
+    model.identifyInputsAndOutputs({ opnd0, opnd1 }, { opnd2, opnd3 });
+    model.finish();
+    ASSERT_TRUE(model.isValid());
+
+    // Compound partition (two devices, each is capable of one of the
+    // two operations).  We could do more extensive checking here --
+    // for example, verify that each step within the plan has the
+    // correct (model and submodel)x(inputs and outputs).
+    const auto devices = makeDevices(
+        {
+            {"0", { .float32Performance = { .execTime = 0.5, .powerUsage = 0.5 },
+                            .quantized8Performance = { .execTime = 0.5, .powerUsage = 0.5 } }, 1<<0},
+            {"1", { .float32Performance = { .execTime = 0.5, .powerUsage = 0.5 },
+                            .quantized8Performance = { .execTime = 0.5, .powerUsage = 0.5 } }, 1<<1}
+        });
+    ExecutionPlan plan;
+    ASSERT_EQ(model.partitionTheWork(devices, ExecutePreference::PREFER_LOW_POWER, &plan),
+              ANEURALNETWORKS_NO_ERROR);
+    ASSERT_EQ(plan.forTest_getKind(), ExecutionPlan::Kind::COMPOUND);
+    const auto& steps = plan.forTest_compoundGetSteps();
+    ASSERT_EQ(steps.size(), size_t(2));
+    {
+        // Build a model to compare against the submodel from steps[0].
+        PartitioningModel model0;
+        uint32_t m0Opnd0 = model0.addFloatOperand();
+        uint32_t m0Opnd1 = model0.addFloatOperand();
+        uint32_t m0Opnd2 = model0.addOperation2To1(0, m0Opnd0, m0Opnd1);
+        model0.identifyInputsAndOutputs({ m0Opnd0, m0Opnd1 }, { m0Opnd2 });
+        model0.finish();
+        ASSERT_TRUE(model0.isValid());
+        ASSERT_NO_FATAL_FAILURE(ASSERT_TRUE(compare(steps[0], &model0, devices[0])));
+        ASSERT_EQ(steps[0]->getModelInputs(),
+                  (RemapVectorType{ { opnd0, m0Opnd0 }, { opnd1, m0Opnd1 } }));
+        ASSERT_EQ(steps[0]->getModelOutputs(),
+                  (RemapVectorType{ { opnd2, m0Opnd2 } }));
+        ASSERT_EQ(steps[0]->getTempsAsSubModelInputs(),
+                  (RemapVectorType{}));
+        ASSERT_EQ(steps[0]->getTempsAsSubModelOutputs(),
+                  (SubModelOutputSetType{}));
+        ASSERT_EQ(steps[0]->getOutputsAsSubModelInputs(),
+                  (RemapVectorType{}));
+    }
+    {
+        // Build a model to compare against the submodel from steps[1].
+        PartitioningModel model1;
+        uint32_t m1Opnd2 = model1.addFloatOperand();
+        uint32_t m1Opnd3 = model1.addOperation2To1(1, m1Opnd2, m1Opnd2);
+        model1.identifyInputsAndOutputs({ m1Opnd2 }, { m1Opnd3 });
+        model1.finish();
+        ASSERT_TRUE(model1.isValid());
+        ASSERT_NO_FATAL_FAILURE(ASSERT_TRUE(compare(steps[1], &model1, devices[1])));
+        ASSERT_EQ(steps[1]->getModelInputs(),
+                  (RemapVectorType{}));
+        ASSERT_EQ(steps[1]->getModelOutputs(),
+                  (RemapVectorType{ { opnd3, m1Opnd3 } }));
+        ASSERT_EQ(steps[1]->getTempsAsSubModelInputs(),
+                  (RemapVectorType{}));
+        ASSERT_EQ(steps[1]->getTempsAsSubModelOutputs(),
+                  (SubModelOutputSetType{}));
+        ASSERT_EQ(steps[1]->getOutputsAsSubModelInputs(),
+                  (RemapVectorType{ { opnd2, m1Opnd2 } }));
+    }
 }
 
 }  // namespace

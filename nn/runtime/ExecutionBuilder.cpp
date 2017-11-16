@@ -466,7 +466,39 @@ int StepExecutor::setInputOrOutputFromTemporaryMemory(const Operand& inputOrOutp
     return inputOrOutputInfo->setFromTemporaryMemory(inputOrOutputOperand, poolIndex, offset);
 }
 
+static void logArguments(const char* kind, const std::vector<ModelArgumentInfo> &args) {
+    for (unsigned i = 0; i < args.size(); i++) {
+        const auto& arg = args[i];
+        std::string prefix = kind + std::string("[") + std::to_string(i) + "] = ";
+        switch (arg.state) {
+            case ModelArgumentInfo::POINTER:
+                VLOG(EXECUTION) << prefix << "POINTER(" << arg.buffer << ")";
+                break;
+            case ModelArgumentInfo::MEMORY:
+                VLOG(EXECUTION) << prefix << "MEMORY("
+                                << "pool=" << arg.locationAndLength.poolIndex
+                                << ", "
+                                << "off=" << arg.locationAndLength.offset
+                                << ")";
+                break;
+            case ModelArgumentInfo::HAS_NO_VALUE:
+                VLOG(EXECUTION) << prefix << "HAS_NO_VALUE";
+                break;
+            case ModelArgumentInfo::UNSPECIFIED:
+                VLOG(EXECUTION) << prefix << "UNSPECIFIED";
+                break;
+            default:
+                VLOG(EXECUTION) << prefix << "state(" << arg.state << ")";
+                break;
+        }
+    }
+}
+
 int StepExecutor::startCompute(sp<ExecutionCallback>* synchronizationCallback) {
+    if (VLOG_IS_ON(EXECUTION)) {
+        logArguments("input", mInputs);
+        logArguments("output", mOutputs);
+    }
     if (mDriver == nullptr) {
         return startComputeOnCpu(synchronizationCallback);
     } else {

@@ -192,12 +192,12 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
                 return n;
             }
         } break;
-        case OperandLifeTime::TEMPORARY_VARIABLE:
+        case OperandLifeTime::TEMPORARY_VARIABLE:  // handled similarly to MODEL_OUTPUT
             if (kind == INPUT) {
                 // The first time we've seen this operand is as an
                 // input.  That means it must be defined by a
                 // different partition, and is an input to this one.
-                mSubModelInputs.push_back(std::make_pair(fromOperandIndex, *toOperandIndex));
+                mTempsAsSubModelInputs.push_back(std::make_pair(fromOperandIndex, *toOperandIndex));
             } else {
                 // The first time we've seen this operand is as an
                 // output.  It may be an input to a different
@@ -208,8 +208,17 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
         case OperandLifeTime::MODEL_INPUT:
             mModelInputs.push_back(std::make_pair(fromOperandIndex, *toOperandIndex));
             break;
-        case OperandLifeTime::MODEL_OUTPUT:
-            mModelOutputs.push_back(std::make_pair(fromOperandIndex, *toOperandIndex));
+        case OperandLifeTime::MODEL_OUTPUT:  // handled similarly to TEMPORARY_VARIABLE
+            if (kind == INPUT) {
+                // The first time we've seen this operand is as an
+                // input.  That means it must be defined by a
+                // different partition, and is an input to this one.
+                mOutputsAsSubModelInputs.push_back(std::make_pair(fromOperandIndex, *toOperandIndex));
+            } else {
+                // The first time we've seen this operand is as an
+                // output.
+                mModelOutputs.push_back(std::make_pair(fromOperandIndex, *toOperandIndex));
+            }
             break;
         default:
             nnAssert(false);
@@ -268,43 +277,86 @@ void ExecutionStep::mapInputsAndOutputs(std::shared_ptr<StepExecutor> stepExecut
     }
 }
 
-void ExecutionPlan::CompoundBody::findSubModelOutputs() {
+void ExecutionPlan::CompoundBody::findTempsAsSubModelOutputs() {
     for (const auto& step : mSteps) {
-        for (const auto& input : step->getSubModelInputs()) {
+        for (const auto& input : step->getTempsAsSubModelInputs()) {
             const uint32_t fromModelIndex = input.first;
             const auto it = mTemporaryToDefiningStep.find(fromModelIndex);
             nnAssert(it != mTemporaryToDefiningStep.end());
             const uint32_t stepIndex = it->second;
             nnAssert(stepIndex < mSteps.size());
-            mSteps[stepIndex]->recordSubModelOutput(fromModelIndex);
+            mSteps[stepIndex]->recordTempAsSubModelOutput(fromModelIndex);
         }
     }
 }
 
-int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutputOfUnknownSize) {
+void ExecutionStep::logSubModel() const {
     VLOG(COMPILATION) << "ExecutionStep::finishSubModel, step " << mIndex;
 
-    auto convertModelInputsOrOutputs = [](
-            // IN: mModel{Inputs|Outputs}
-            const RemapVectorType& myModelInputsOrOutputs,
-            // IN: fromModel->{input|output}Count()
-            uint32_t fromModelInputOrOutputCount,
-            // IN: fromModel->get{Input|Output}OperandIndex
-            std::function<uint32_t(uint32_t)> fromModelGetInputOrOutputOperandIndex,
-            // OUT: for v : mModel{Inputs|Outputs} : v.second
-            std::vector<uint32_t>* inputsOrOutputs,
-            // OUT: submodel input-or-output index to original model input-or-output index
-            std::vector<uint32_t>* inputOrOutputIndexSubModelToFromModel) {
-        std::map<uint32_t, uint32_t> fromModelIndexMap;  // operand index to input-or-output index
-        for (uint32_t i = 0; i < fromModelInputOrOutputCount; i++) {
-            fromModelIndexMap[fromModelGetInputOrOutputOperandIndex(i)] = i;
+    auto logRemapEntry = [](std::string &toLog, const std::pair<uint32_t, uint32_t>& e) {
+        if (!toLog.empty()) {
+            toLog += ", ";
         }
-        for (const auto& myInputOrOutput : myModelInputsOrOutputs) {
-            inputsOrOutputs->push_back(myInputOrOutput.second);
-            const uint32_t fromModelInputOrOutputIndex = fromModelIndexMap[myInputOrOutput.first];
-            inputOrOutputIndexSubModelToFromModel->push_back(fromModelInputOrOutputIndex);
-        }
+        toLog += "(";
+        toLog += std::to_string(e.first);
+        toLog += "->";
+        toLog += std::to_string(e.second);
+        toLog += ")";
     };
+
+    auto logRemapVector = [&logRemapEntry](const char* name, const RemapVectorType& map) {
+        std::string toLog;
+        for (const auto& e : map) {
+            logRemapEntry(toLog, e);
+        }
+        VLOG(COMPILATION) << name << ": " << toLog;
+    };
+    auto logRemapSet = [&logRemapEntry](const char* name, const SubModelOutputSetType& set) {
+        std::string toLog;
+        for (const auto& e : set) {
+            logRemapEntry(toLog, e);
+        }
+        VLOG(COMPILATION) << name << ": " << toLog;
+    };
+
+    logRemapVector("model inputs", mModelInputs);
+    logRemapVector("model outputs", mModelOutputs);
+    logRemapVector("temps as submodel inputs", mTempsAsSubModelInputs);
+    logRemapSet("temps as submodel outputs", mTempsAsSubModelOutputs);
+    logRemapVector("outputs as submodel inputs", mOutputsAsSubModelInputs);
+}
+
+static void convertModelInputsOrOutputs(
+        // IN: mModel{Inputs|Outputs}
+        const ExecutionStep::RemapVectorType& myModelInputsOrOutputs,
+        // IN: fromModel->{input|output}Count()
+        uint32_t                              fromModelInputOrOutputCount,
+        // IN: fromModel->get{Input|Output}OperandIndex
+        std::function<uint32_t(uint32_t)>     fromModelGetInputOrOutputOperandIndex,
+        // OUT: for v : mModel{Inputs|Outputs} : v.second
+        std::vector<uint32_t>*                inputsOrOutputs,
+        // OUT: submodel input-or-output index to original model input-or-output index
+        std::vector<uint32_t>*                inputOrOutputIndexSubModelToFromModel) {
+    std::map<uint32_t, uint32_t> fromModelIndexMap;  // operand index to input-or-output index
+    for (uint32_t i = 0; i < fromModelInputOrOutputCount; i++) {
+        fromModelIndexMap[fromModelGetInputOrOutputOperandIndex(i)] = i;
+    }
+    for (const auto& myInputOrOutput : myModelInputsOrOutputs) {
+        inputsOrOutputs->push_back(myInputOrOutput.second);
+        const uint32_t fromModelInputOrOutputIndex = fromModelIndexMap[myInputOrOutput.first];
+        inputOrOutputIndexSubModelToFromModel->push_back(fromModelInputOrOutputIndex);
+    }
+}
+
+int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutputOfUnknownSize) {
+    if (VLOG_IS_ON(COMPILATION)) {
+        logSubModel();
+    }
+
+    // Input order: mModelInputs, mTempsAsSubModelInputs, mOutputsAsSubModelInputs
+    // Output order: mModelOutputs, mTempsAsSubModelOutputs
+    //
+    // ExecutionPlan::next() depends on these orderings.
 
     std::vector<uint32_t> inputs;
     convertModelInputsOrOutputs(mModelInputs,
@@ -312,7 +364,10 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
                                 [=](uint32_t i) { return fromModel->getInputOperandIndex(i); },
                                 &inputs,
                                 &mInputIndexSubModelToFromModel);
-    for (const auto& subModelInput : mSubModelInputs) {
+    for (const auto& subModelInput : mTempsAsSubModelInputs) {
+        inputs.push_back(subModelInput.second);
+    }
+    for (const auto& subModelInput : mOutputsAsSubModelInputs) {
         inputs.push_back(subModelInput.second);
     }
 
@@ -322,7 +377,7 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
                                 [=](uint32_t i) { return fromModel->getOutputOperandIndex(i); },
                                 &outputs,
                                 &mOutputIndexSubModelToFromModel);
-    for (const auto& subModelOutput : mSubModelOutputs) {
+    for (const auto& subModelOutput : mTempsAsSubModelOutputs) {
         outputs.push_back(subModelOutput.second);
         const Operand& operand = mSubModel->getOperand(subModelOutput.second);
         for (uint32_t dimension : operand.dimensions) {
@@ -337,14 +392,34 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
     }
 
     {
-      int n = mSubModel->identifyInputsAndOutputs(inputs.size(), &inputs[0], outputs.size(), &outputs[0]);
-      if (n != ANEURALNETWORKS_NO_ERROR) {
-          return n;
-      }
-      n = mSubModel->finish();
-      if (n != ANEURALNETWORKS_NO_ERROR) {
-          return n;
-      }
+        int n = mSubModel->identifyInputsAndOutputs(inputs.size(), &inputs[0], outputs.size(), &outputs[0]);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+        n = mSubModel->finish();
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+    }
+
+    {
+        // Compute mOutputsAsSubModelInputsIndexToFromModel.
+
+        std::map<uint32_t, uint32_t> fromModelOperandIndexToOutputIndex;
+        for (unsigned i = 0, e = fromModel->outputCount(); i < e; ++i) {
+            fromModelOperandIndexToOutputIndex[fromModel->getOutputOperandIndex(i)] = i;
+        }
+
+        for (unsigned i = 0, e = mOutputsAsSubModelInputs.size(); i < e; i++) {
+            const uint32_t fromModelOperandIndex = mOutputsAsSubModelInputs[i].first;
+            const auto it = fromModelOperandIndexToOutputIndex.find(fromModelOperandIndex);
+            if (it == fromModelOperandIndexToOutputIndex.end()) {
+                LOG(ERROR) << "Could not find main model output operand " << fromModelOperandIndex
+                           << " in main model output operand list";
+                return ANEURALNETWORKS_BAD_STATE;
+            }
+            mOutputsAsSubModelInputsIndexToFromModel.push_back(it->second);
+        }
     }
 
     // TODO: Move compilation elsewhere?
@@ -368,7 +443,7 @@ void ExecutionStep::dump() const {
 }
 
 int ExecutionPlan::CompoundBody::finish(const ModelBuilder* fromModel) {
-    findSubModelOutputs();
+    findTempsAsSubModelOutputs();
     for (const auto& step : mSteps) {
         int n = step->finishSubModel(fromModel, &mHasSubModelOutputOfUnknownSize);
         if (n != ANEURALNETWORKS_NO_ERROR) {
@@ -451,7 +526,7 @@ std::shared_ptr<ExecutionPlan::Controller> ExecutionPlan::makeController(
     if (mState == COMPOUND) {
         const ModelBuilder* fromModel = executionBuilder->getModel();
         for (const auto& step : compound()->mSteps) {
-            for (const auto& output: step->getSubModelOutputs()) {
+            for (const auto& output: step->getTempsAsSubModelOutputs()) {
                 const uint32_t fromModelOperandIndex = output.first;
                 const Operand& fromModelOperand = fromModel->getOperand(fromModelOperandIndex);
                 if (subModelInputsAndOutputs == nullptr) {
@@ -462,6 +537,12 @@ std::shared_ptr<ExecutionPlan::Controller> ExecutionPlan::makeController(
                 totalSizeOfTemporaries += alignBytesNeeded(totalSizeOfTemporaries, size);
                 subModelInputsAndOutputs->insert(std::make_pair(fromModelOperandIndex, totalSizeOfTemporaries));
                 totalSizeOfTemporaries += size;
+            }
+        }
+        if (VLOG_IS_ON(EXECUTION) && (subModelInputsAndOutputs != nullptr)) {
+            for (const auto& io : *subModelInputsAndOutputs) {
+                VLOG(EXECUTION) << "temp: origOpndIdx = " << io.first
+                                << ", offset = " << io.second;
             }
         }
     }
@@ -538,6 +619,11 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller,
         return ANEURALNETWORKS_NO_ERROR;
     }
 
+    // Input order: model inputs, temps as submodel inputs, outputs as submodel inputs
+    // Output order: model outputs, temps as submodel outputs
+    //
+    // ExecutionStep::finishSubModel() establishes these orderings.
+
     const auto step = compoundBody->mSteps[controller->mNextStepIndex];
     *executor = std::make_shared<StepExecutor>(
         controller->mExecutionBuilder,
@@ -547,10 +633,10 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller,
     step->mapInputsAndOutputs(*executor);
     if (controller->mSubModelInputsAndOutputs != nullptr) {
         {
-            // Tell executor about submodel outputs.
+            // Tell executor about temps as submodel outputs.
 
             const size_t firstSubModelOutputIndex = step->getModelOutputs().size();
-            const auto& subModelOutputs = step->getSubModelOutputs();
+            const auto& subModelOutputs = step->getTempsAsSubModelOutputs();
 
             uint32_t idx = 0;
             for (auto I = subModelOutputs.begin(), E = subModelOutputs.end(); I != E; I++, idx++) {
@@ -568,10 +654,10 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller,
             }
         }
         {
-            // Tell executor about submodel inputs.
+            // Tell executor about temps as submodel inputs.
 
             const size_t firstSubModelInputIndex = step->getModelInputs().size();
-            const auto& subModelInputs = step->getSubModelInputs();
+            const auto& subModelInputs = step->getTempsAsSubModelInputs();
 
             uint32_t idx = 0;
             for (auto I = subModelInputs.begin(), E = subModelInputs.end(); I != E; I++, idx++) {
@@ -589,6 +675,19 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller,
             }
         }
     }
+    {
+        // Tell executor about outputs as submodel inputs.
+
+        const size_t firstOutputsAsSubModelInputIndex =
+                step->getModelInputs().size() + step->getTempsAsSubModelInputs().size();
+        const auto& outputsAsSubModelInputsIndexToFromModel =
+                step->getOutputsAsSubModelInputsIndexToFromModel();
+        for (uint32_t i = 0, e = outputsAsSubModelInputsIndexToFromModel.size(); i < e; i++) {
+            uint32_t o = outputsAsSubModelInputsIndexToFromModel[i];
+            (*executor)->mapOutputToInput(o, firstOutputsAsSubModelInputIndex + i);
+        }
+    }
+
     controller->mNextStepIndex++;
     return ANEURALNETWORKS_NO_ERROR;
 }
@@ -743,7 +842,11 @@ int ModelBuilder::partitionTheWork(const std::vector<std::shared_ptr<Device>>& d
         while (!queue.empty()) {
             uint32_t operationIndex = queue.front();
             queue.pop();
-            step->addOperation(operationIndex, *this);
+            int n = step->addOperation(operationIndex, *this);
+            if (n != ANEURALNETWORKS_NO_ERROR) {
+                LOG(ERROR) << "failed to add operation " << operationIndex << " to step";
+                return n;
+            }
             tracker.markProcessed(operationIndex, enqueueOnAppropriateDevice);
         }
     }

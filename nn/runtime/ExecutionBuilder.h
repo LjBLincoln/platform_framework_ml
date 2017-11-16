@@ -47,7 +47,7 @@ struct ModelArgumentInfo {
     //   dimensions is valid.
     //   buffer is valid
     // If MEMORY then:
-    //   locationAndLength.location.{poolIndex, offset, length} is valid.
+    //   locationAndLength.{poolIndex, offset, length} is valid.
     //   dimensions is valid.
     enum { POINTER, MEMORY, HAS_NO_VALUE, UNSPECIFIED } state = UNSPECIFIED;
     DataLocation locationAndLength;
@@ -136,6 +136,10 @@ public:
     void mapOutput(uint32_t builderIndex, uint32_t executorIndex) {
         mapInputOrOutput(mExecutionBuilder->mOutputs[builderIndex],
                          &mOutputs[executorIndex]);
+    }
+    void mapOutputToInput(uint32_t builderIndex, uint32_t executorIndex) {
+        mapInputOrOutput(mExecutionBuilder->mOutputs[builderIndex],
+                         &mInputs[executorIndex]);
     }
 
     // The input or output is assumed to have the size of the
