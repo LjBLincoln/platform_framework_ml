@@ -95,6 +95,7 @@ int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
 ExecutionBuilder::ExecutionBuilder(const CompilationBuilder* compilation) :
         mModel(compilation->mModel),
         mPlan(&compilation->mPlan),
+        mPartitioning(compilation->mPartitioning),
         mInputs(mModel->inputCount()),
         mOutputs(mModel->outputCount()) {
     VLOG(EXECUTION) << "ExecutionBuilder::ExecutionBuilder";
@@ -317,9 +318,8 @@ int ExecutionBuilder::startCompute(sp<ExecutionCallback>* synchronizationCallbac
         // TODO: Entire plan-based-path should run in an asynchronous thread --
         // take the asynchronous thread logic out of startComputeOnCpu() and use
         // it to wrap the plan-based-path.
-        const uint32_t partitioning = DeviceManager::get()->getPartitioning();
-        if (partitioning > 0) {
-            const bool allowFallback = DeviceManager::partitioningAllowsFallback(partitioning);
+        if (mPartitioning > 0) {
+            const bool allowFallback = DeviceManager::partitioningAllowsFallback(mPartitioning);
             std::shared_ptr<ExecutionPlan::Controller> controller = mPlan->makeController(this);
             if (controller == nullptr) {
                 if (!allowFallback) {
@@ -466,7 +466,39 @@ int StepExecutor::setInputOrOutputFromTemporaryMemory(const Operand& inputOrOutp
     return inputOrOutputInfo->setFromTemporaryMemory(inputOrOutputOperand, poolIndex, offset);
 }
 
+static void logArguments(const char* kind, const std::vector<ModelArgumentInfo> &args) {
+    for (unsigned i = 0; i < args.size(); i++) {
+        const auto& arg = args[i];
+        std::string prefix = kind + std::string("[") + std::to_string(i) + "] = ";
+        switch (arg.state) {
+            case ModelArgumentInfo::POINTER:
+                VLOG(EXECUTION) << prefix << "POINTER(" << arg.buffer << ")";
+                break;
+            case ModelArgumentInfo::MEMORY:
+                VLOG(EXECUTION) << prefix << "MEMORY("
+                                << "pool=" << arg.locationAndLength.poolIndex
+                                << ", "
+                                << "off=" << arg.locationAndLength.offset
+                                << ")";
+                break;
+            case ModelArgumentInfo::HAS_NO_VALUE:
+                VLOG(EXECUTION) << prefix << "HAS_NO_VALUE";
+                break;
+            case ModelArgumentInfo::UNSPECIFIED:
+                VLOG(EXECUTION) << prefix << "UNSPECIFIED";
+                break;
+            default:
+                VLOG(EXECUTION) << prefix << "state(" << arg.state << ")";
+                break;
+        }
+    }
+}
+
 int StepExecutor::startCompute(sp<ExecutionCallback>* synchronizationCallback) {
+    if (VLOG_IS_ON(EXECUTION)) {
+        logArguments("input", mInputs);
+        logArguments("output", mOutputs);
+    }
     if (mDriver == nullptr) {
         return startComputeOnCpu(synchronizationCallback);
     } else {

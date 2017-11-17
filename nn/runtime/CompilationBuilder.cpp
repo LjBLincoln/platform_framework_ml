@@ -28,11 +28,16 @@ namespace android {
 namespace nn {
 
 CompilationBuilder::CompilationBuilder(const ModelBuilder* model) :
-    mModel(model) {
+        mModel(model), mPartitioning(DeviceManager::get()->getPartitioning()) {
     VLOG(COMPILATION) << "CompilationBuilder::CompilationBuilder";
 }
 
 int CompilationBuilder::finish() {
+    // Get the list of HAL devices.
+    return finish(DeviceManager::get()->getDrivers());
+}
+
+int CompilationBuilder::finish(const std::vector<std::shared_ptr<Device>>& devices) {
     if (mFinished) {
         LOG(ERROR) << "ANeuralNetworksCompilation_finish called more than once";
         return ANEURALNETWORKS_BAD_STATE;
@@ -41,12 +46,9 @@ int CompilationBuilder::finish() {
 
     mFinished = true;
 
-    if (uint32_t p = DeviceManager::get()->getPartitioning()) {
-        // Get the list of HAL devices.
-        const std::vector<std::shared_ptr<Device>>& devices = DeviceManager::get()->getDrivers();
-
+    if (mPartitioning) {
         int n = mModel->partitionTheWork(devices, mPreference, &mPlan);
-        if (!DeviceManager::partitioningAllowsFallback(p) &&
+        if (!DeviceManager::partitioningAllowsFallback(mPartitioning) &&
             (n != ANEURALNETWORKS_NO_ERROR)) {
             return n;
         }
@@ -67,6 +69,17 @@ int CompilationBuilder::setPreference(int32_t preference) {
     }
 
     mPreference = preference;
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int CompilationBuilder::setPartitioning(uint32_t partitioning) {
+    if (mFinished) {
+        LOG(ERROR) <<
+                "ANeuralNetworksCompilation_setPartitioning can't modify after compilation finished";
+        return ANEURALNETWORKS_BAD_STATE;
+    }
+
+    mPartitioning = partitioning;
     return ANEURALNETWORKS_NO_ERROR;
 }
 
