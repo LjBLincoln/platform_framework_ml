@@ -80,6 +80,7 @@ public:
 
 private:
     native_handle_t* mHandle = nullptr;
+    mutable uint8_t* mMapping = nullptr;
 };
 
 // A utility class to accumulate mulitple Memory objects and assign each
