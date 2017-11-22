@@ -19,12 +19,13 @@ cc_defaults {
     defaults: ["neuralnetworks_defaults"],
     host_supported: false,
     srcs: [
+        "TestGenerated.cpp",
         "TestMain.cpp",
         "TestMemory.cpp",
-        "TestTrivialModel.cpp",
-        "TestValidation.cpp",
-        "TestGenerated.cpp",
         "TestPartitioning.cpp",
+        "TestTrivialModel.cpp",
+	"TestValidation.cpp",
+	"TestWrapper.cpp",
     ],
     shared_libs: [
         "libandroid",

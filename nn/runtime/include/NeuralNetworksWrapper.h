@@ -138,7 +138,17 @@ public:
         return *this;
     }
 
-    Result finish() { return static_cast<Result>(ANeuralNetworksModel_finish(mModel)); }
+    Result finish() {
+        if (mValid) {
+            auto result = static_cast<Result>(ANeuralNetworksModel_finish(mModel));
+            if (result != Result::NO_ERROR) {
+                mValid = false;
+            }
+            return result;
+        } else {
+            return Result::BAD_STATE;
+        }
+    }
 
     uint32_t addOperand(const OperandType* type) {
         if (ANeuralNetworksModel_addOperand(mModel, &(type->operandType)) !=
