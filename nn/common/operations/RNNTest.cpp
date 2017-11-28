@@ -140,10 +140,12 @@ static float rnn_golden_output[] = {
   ACTION(Weights)                                \
   ACTION(RecurrentWeights)                       \
   ACTION(Bias)                                   \
-  ACTION(HiddenState)
+  ACTION(HiddenStateIn)
 
 // For all output and intermediate states
-#define FOR_ALL_OUTPUT_TENSORS(ACTION) ACTION(Output)
+#define FOR_ALL_OUTPUT_TENSORS(ACTION) \
+  ACTION(HiddenStateOut)               \
+  ACTION(Output)
 
 class BasicRNNOpModel {
  public:
@@ -164,20 +166,24 @@ class BasicRNNOpModel {
     inputs.push_back(model_.addOperand(&BiasTy));
     OperandType HiddenStateTy(Type::TENSOR_FLOAT32, {batches_, units_});
     inputs.push_back(model_.addOperand(&HiddenStateTy));
-    OperandType ActionParamTy(Type::INT32, {});
+    OperandType ActionParamTy(Type::INT32, {1});
     inputs.push_back(model_.addOperand(&ActionParamTy));
 
     std::vector<uint32_t> outputs;
 
+    outputs.push_back(model_.addOperand(&HiddenStateTy));
     OperandType OutputTy(Type::TENSOR_FLOAT32, {batches_, units_});
     outputs.push_back(model_.addOperand(&OutputTy));
 
     Input_.insert(Input_.end(), batches_ * input_size_, 0.f);
-    HiddenState_.insert(HiddenState_.end(), batches_ * units_, 0.f);
+    HiddenStateIn_.insert(HiddenStateIn_.end(), batches_ * units_, 0.f);
+    HiddenStateOut_.insert(HiddenStateOut_.end(), batches_ * units_, 0.f);
     Output_.insert(Output_.end(), batches_ * units_, 0.f);
 
     model_.addOperation(ANEURALNETWORKS_RNN, inputs, outputs);
-    model_.setInputsAndOutputs(inputs, outputs);
+    model_.identifyInputsAndOutputs(inputs, outputs);
+
+    model_.finish();
   }
 
 #define DefineSetter(X)                          \
@@ -196,7 +202,8 @@ class BasicRNNOpModel {
   }
 
   void ResetHiddenState() {
-    std::fill(HiddenState_.begin(), HiddenState_.end(), 0.f);
+    std::fill(HiddenStateIn_.begin(), HiddenStateIn_.end(), 0.f);
+    std::fill(HiddenStateOut_.begin(), HiddenStateOut_.end(), 0.f);
   }
 
   const std::vector<float>& GetOutput() const { return Output_; }
@@ -208,28 +215,34 @@ class BasicRNNOpModel {
   void Invoke() {
     ASSERT_TRUE(model_.isValid());
 
-    Request request(&model_);
-#define SetInputOrWeight(X)                                                 \
-  ASSERT_EQ(request.setInput(RNN::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+    HiddenStateIn_.swap(HiddenStateOut_);
+
+    Compilation compilation(&model_);
+    compilation.finish();
+    Execution execution(&compilation);
+#define SetInputOrWeight(X)                                                   \
+  ASSERT_EQ(execution.setInput(RNN::k##X##Tensor, X##_.data(),                \
+                               sizeof(float) * X##_.size()),                  \
             Result::NO_ERROR);
 
     FOR_ALL_INPUT_AND_WEIGHT_TENSORS(SetInputOrWeight);
 
 #undef SetInputOrWeight
 
-#define SetOutput(X)                                                         \
-  ASSERT_EQ(request.setOutput(RNN::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+#define SetOutput(X)                                                           \
+  ASSERT_EQ(execution.setOutput(RNN::k##X##Tensor, X##_.data(),                \
+                                sizeof(float) * X##_.size()),                  \
             Result::NO_ERROR);
 
     FOR_ALL_OUTPUT_TENSORS(SetOutput);
 
 #undef SetOutput
 
-    ASSERT_EQ(request.setInput(RNN::kActivationParam, &activation_,
-                               sizeof(activation_)),
+    ASSERT_EQ(execution.setInput(RNN::kActivationParam, &activation_,
+                                 sizeof(activation_)),
               Result::NO_ERROR);
 
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
   }
 
  private:

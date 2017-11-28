@@ -42,8 +42,8 @@ class EmbeddingLookup {
 
   bool Eval();
 
-  static constexpr int kValueTensor = 0;
-  static constexpr int kLookupTensor = 1;
+  static constexpr int kLookupTensor = 0;
+  static constexpr int kValueTensor = 1;
 
   static constexpr int kOutputTensor = 0;
 

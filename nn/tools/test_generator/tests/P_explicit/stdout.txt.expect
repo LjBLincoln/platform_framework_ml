@@ -9,8 +9,13 @@ void CreateModel(Model *model) {
   model->addOperation(ANEURALNETWORKS_ADD, {op1, op1}, {op0});
   model->addOperation(ANEURALNETWORKS_ADD, {op0, op1}, {op2});
   // Phase 3, inputs and outputs
-  model->setInputsAndOutputs(
+  model->identifyInputsAndOutputs(
     {op1},
     {op2});
   assert(model->isValid());
+}
+
+bool is_ignored(int i) {
+  static std::set<int> ignore = {};
+  return ignore.find(i) != ignore.end();
 }

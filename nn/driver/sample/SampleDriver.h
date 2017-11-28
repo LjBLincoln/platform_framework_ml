@@ -17,35 +17,51 @@
 #ifndef ANDROID_ML_NN_SAMPLE_DRIVER_SAMPLE_DRIVER_H
 #define ANDROID_ML_NN_SAMPLE_DRIVER_SAMPLE_DRIVER_H
 
+#include "CpuExecutor.h"
 #include "HalInterfaces.h"
 #include "NeuralNetworks.h"
+
+#include <string>
 
 namespace android {
 namespace nn {
 namespace sample_driver {
 
-// This class provides an example of how to implement a driver for the NN HAL.
-// Since it's a simulated driver, it must run the computations on the CPU.
-// An actual driver would not do that.
+// Base class used to create sample drivers for the NN HAL.  This class
+// provides some implementation of the more common functions.
+//
+// Since these drivers simulate hardware, they must run the computations
+// on the CPU.  An actual driver would not do that.
 class SampleDriver : public IDevice {
 public:
-    ~SampleDriver() override;
-    Return<void> initialize(initialize_cb _hidl_cb) override;
-    Return<void> getSupportedSubgraph(const Model& model,
-                                      getSupportedSubgraph_cb _hidl_cb) override;
-    Return<sp<IPreparedModel>> prepareModel(const Model& model) override;
+    SampleDriver(const char* name) : mName(name) {}
+    ~SampleDriver() override {}
+    Return<ErrorStatus> prepareModel(const Model& model,
+                                     const sp<IPreparedModelCallback>& callback) override;
     Return<DeviceStatus> getStatus() override;
+
+    // Starts and runs the driver service.  Typically called from main().
+    // This will return only once the service shuts down.
+    int run();
+protected:
+    std::string mName;
 };
 
 class SamplePreparedModel : public IPreparedModel {
 public:
-    SamplePreparedModel(const Model& model);
-    ~SamplePreparedModel() override;
-    Return<bool> execute(const Request& request, const sp<IEvent>& event) override;
+    SamplePreparedModel(const Model& model)
+          : // Make a copy of the model, as we need to preserve it.
+            mModel(model) {}
+    ~SamplePreparedModel() override {}
+    bool initialize();
+    Return<ErrorStatus> execute(const Request& request,
+                                const sp<IExecutionCallback>& callback) override;
 
 private:
-    void asyncExecute(const Request& request, const sp<IEvent>& event);
+    void asyncExecute(const Request& request, const sp<IExecutionCallback>& callback);
+
     Model mModel;
+    std::vector<RunTimePoolInfo> mPoolInfos;
 };
 
 } // namespace sample_driver

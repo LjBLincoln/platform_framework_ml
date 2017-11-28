@@ -21,6 +21,7 @@
 #include "OperationsUtils.h"
 #include "Utils.h"
 
+#include <algorithm>
 #include <vector>
 
 namespace android {
@@ -38,13 +39,15 @@ struct RunTimeOperandInfo {
     std::vector<uint32_t> dimensions;
 
     float scale;
-    int32_t offset;
+    int32_t zeroPoint;
     // Where the operand's data is stored.  Check the corresponding
     // location information in the model to figure out if this points
     // to memory we have allocated for an temporary operand.
     uint8_t* buffer;
     // The length of the buffer.
     uint32_t length;
+    // Whether this is a temporary variable, a model input, a constant, etc.
+    OperandLifeTime lifetime;
     // Keeps track of how many operations have yet to make use
     // of this temporary variable.  When the count is decremented to 0,
     // we free the buffer.  For non-temporary variables, this count is
@@ -52,20 +55,22 @@ struct RunTimeOperandInfo {
     uint32_t numberOfUsesLeft;
 
     Shape shape() const {
-        return Shape{.type = type,
-                     .dimensions = dimensions,
-                     .scale = scale,
-                     .offset = offset};
+        return Shape{.type = type, .dimensions = dimensions, .scale = scale, .offset = zeroPoint};
     }
 };
 
 // Used to keep a pointer to each of the memory pools.
 struct RunTimePoolInfo {
     sp<IMemory> memory;
+    hidl_memory hidlMemory;
     uint8_t* buffer;
 
     bool set(const hidl_memory& hidlMemory);
+    bool update();
 };
+
+bool setRunTimePoolInfosFromHidlMemories(std::vector<RunTimePoolInfo>* poolInfos,
+                                         const hidl_vec<hidl_memory>& pools);
 
 // This class is used to execute a model on the CPU.
 class CpuExecutor {
@@ -75,24 +80,17 @@ public:
     // The model must outlive the executor.  We prevent it from being modified
     // while this is executing.
     int run(const Model& model, const Request& request,
-            const std::vector<RunTimePoolInfo>& runTimePoolInfos);
+            const std::vector<RunTimePoolInfo>& modelPoolInfos,
+            const std::vector<RunTimePoolInfo>& requestPoolInfos);
 
 private:
-    bool initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& runTimePoolInfos);
+    bool initializeRunTimeInfo(const std::vector<RunTimePoolInfo>& modelPoolInfos,
+                               const std::vector<RunTimePoolInfo>& requestPoolInfos);
     // Runs one operation of the graph.
     int executeOperation(const Operation& entry);
     // Decrement the usage count for the operands listed.  Frees the memory
     // allocated for any temporary variable with a count of zero.
     void freeNoLongerUsedOperands(const std::vector<uint32_t>& inputs);
-    void setLocationAndUses(RunTimeOperandInfo* to, const DataLocation& location,
-                            const std::vector<RunTimePoolInfo>& runTimePoolInfos);
-    bool setRunTimeOperandInfo(uint32_t operandIndex, const std::vector<uint32_t>& dimensions,
-                               const DataLocation& location, uint32_t useCount,
-                               const std::vector<RunTimePoolInfo>& runTimePoolInfos);
-    // The operand is a model input or output.  Override the information that
-    // came with the model with the one passed by the calling program.
-    // void overrideOperand(uint32_t operandIndex, const InputOutputInfo& info);
-    //  void overrideAddress(uint32_t operandIndex, void* buffer);
 
     // The model and the request that we'll execute. Only valid while run()
     // is being executed.
@@ -107,6 +105,54 @@ private:
     // Runtime information about all the operands.
     std::vector<RunTimeOperandInfo> mOperands;
 };
+
+namespace {
+
+template <typename T>
+T getScalarData(const RunTimeOperandInfo& info) {
+  // TODO: Check buffer is at least as long as size of data.
+  T* data = reinterpret_cast<T*>(info.buffer);
+  return data[0];
+}
+
+inline bool IsNullInput(const RunTimeOperandInfo *input) {
+    return input->lifetime == OperandLifeTime::NO_VALUE;
+}
+
+inline int NumInputsWithValues(const Operation &operation,
+                               std::vector<RunTimeOperandInfo> &operands) {
+  const std::vector<uint32_t> &inputs = operation.inputs;
+  return std::count_if(inputs.begin(), inputs.end(),
+                       [&operands](uint32_t i) {
+                         return !IsNullInput(&operands[i]);
+                       });
+}
+
+inline int NumOutputs(const Operation &operation) {
+  return operation.outputs.size();
+}
+
+inline size_t NumDimensions(const RunTimeOperandInfo *operand) {
+  return operand->shape().dimensions.size();
+}
+
+inline uint32_t SizeOfDimension(const RunTimeOperandInfo *operand, int i) {
+  return operand->shape().dimensions[i];
+}
+
+inline RunTimeOperandInfo *GetInput(const Operation &operation,
+                                    std::vector<RunTimeOperandInfo> &operands,
+                                    int index) {
+  return &operands[operation.inputs[index]];
+}
+
+inline RunTimeOperandInfo *GetOutput(const Operation &operation,
+                                     std::vector<RunTimeOperandInfo> &operands,
+                                     int index) {
+  return &operands[operation.outputs[index]];
+}
+
+}  // anonymous namespace
 
 } // namespace nn
 } // namespace android

@@ -16,14 +16,17 @@
 
 """NN model compiler
 
-Compile models and examples into NDK-based unit tests
+Compile models and examples into VTS and NDK-based CTS unit tests
 """
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import argparse
+from functools import reduce
+import math
 import os
+import struct
 import sys
 import contextlib
 
@@ -42,14 +45,24 @@ def smart_open(filename=None):
 
 class Phase(object):
   def __init__(self):
+    self.__objects = []
     self.__contents = []
+    self.__dict_of_objects = {}
 
-  def append(self, x):
+  def append(self, obj, x):
+    self.__objects.append(obj)
     self.__contents.append(x)
+    self.__dict_of_objects[obj.ID()] = obj
 
   def dump(self, filename):
     for x in self.__contents:
       print ("  " + x + ";", file=filename)
+
+  def objects(self):
+    return self.__objects
+
+  def search(self, i):
+    return self.__dict_of_objects[i]
 
 # Tracking objects inside a model with a not necessarily unique name and
 # an unique number
@@ -92,14 +105,33 @@ class Uses(object):
     self.ins = ins.copy()
     Uses.all_uses.add(self)
     for i in ins:
-      i.outs.add(self)
+      i.outs.append(self)
 
 # Object that other objects takes its definition from
 class Definitions(object):
   def __init__(self, outs = []):
-    self.outs = set(outs)
+    self.outs = outs.copy()
     for o in outs:
       o.ins.append(self)
+
+class TypeLookup:
+  __type_lookup = {
+      "INT32": "int32_t",
+      "FLOAT32": "float",
+      "TENSOR_INT32": "int32_t",
+      "TENSOR_FLOAT32": "float",
+      "TENSOR_QUANT8_ASYMM": "uint8_t",
+    }
+
+  def get_cpptype(nnapi_type):
+    return TypeLookup.__type_lookup[nnapi_type]
+
+  def is_float(nnapi_type):
+    return TypeLookup.get_cpptype(nnapi_type) == "float"
+
+  def get_size(nnapi_type):
+    return 1 if TypeLookup.get_cpptype(nnapi_type) == "uint8_t" else 4
+
 
 class Type(object):
   __types =  {}
@@ -120,6 +152,9 @@ class Type(object):
       self.__id = Type.__types[key].__id
     self.__name = "type" + str(self.__id)
 
+  def get_shape(self):
+    return self.__shape
+
   def get_element_type(self):
     return self.__vt
 
@@ -136,7 +171,33 @@ class Type(object):
     for key, value in sorted(Type.__types.items()):
       print ("  OperandType " + str(value.__name) + "(Type::" + str(key) + ");", file=filename)
 
+  def get_parsed_shape(self):
+    # Parse shape
+    if (self.__shape != "" and self.__shape != "{}"):
+      left, sep, right = self.__shape.partition('{')
+      real_shape, sep, right = right.partition('}')
+      shape = [int(x) for x in real_shape.split(",")]
+      # left now looks like "0.0f, 127.5f, "
+      scale, sep, zero_point = right.rpartition(',')
+      if scale == "":
+        if zero_point == "":
+          return real_shape, "0", "0"
+        return real_shape, zero_point, "0"
+      left, sep, scale = scale.partition(',')
+      return real_shape, scale.replace("f", ""), zero_point
+    else:
+      return "", "0", "0"
 
+  def get_size(self):
+    element_size = TypeLookup.get_size(self.__vt)
+    # Parse shape
+    nr_elements = 1
+    real_shape, scale, zero_point = self.get_parsed_shape()
+
+    if (real_shape != "" and real_shape != "{}"):
+      shape = [int(x) for x in real_shape.split(",")]
+      nr_elements = reduce((lambda x, y: x*y), shape)
+    return element_size * nr_elements
 
 # A value is a typed, named object
 class Value(NamedObject):
@@ -155,7 +216,7 @@ class Operand(Value):
     def_string = (
         "auto " + self.get_name() + " = "\
             "model->addOperand(&" + vt.get_name() + ")")
-    Operand.operands.append(def_string)
+    Operand.operands.append(self, def_string)
 
   # By default, produce nothing (when asked by the Topological Sort phase)
   def Definition(self):
@@ -168,6 +229,10 @@ class Operand(Value):
   def print_operands(operands):
     return [ x.Reference() for x in operands ]
 
+  # Defined with the model or not
+  def is_weight(self):
+    return False
+
 # A user-declared input operand
 class Input(Operand, Definitions, Traversable):
   # for enumerating inputs
@@ -175,12 +240,16 @@ class Input(Operand, Definitions, Traversable):
   # Holds reference to all Inputs; used by Topoligcal sort as starting nodes.
   __inputs = set()
 
-  def __init__(self, name, vt, shape):
+  def __init__(self, name, vt, shape, increase_next_number=True):
     Operand.__init__(self, name, Type(vt, shape))
     Definitions.__init__(self)
     Input.__inputs.add(self)
     self.number = Input.__next_number
-    Input.__next_number += 1
+    if increase_next_number is True:
+      Input.__next_number += 1
+
+  def lifetime(self):
+    return "MODEL_INPUT"
 
   def is_internal(self):
     return False
@@ -196,17 +265,37 @@ class Input(Operand, Definitions, Traversable):
 class Output(Operand, Uses, Nontraversable):
   # for enumerating outputs
   __next_number = 0
-  __outputs = set()
+  __outputs = []
 
   def __init__(self, name, vt, shape):
     Operand.__init__(self, name, Type(vt, shape))
     Uses.__init__(self)
-    Output.__outputs.add(self)
+    Output.__outputs.append(self)
     self.number = Output.__next_number
     Output.__next_number += 1
 
+  def lifetime(self):
+    return "MODEL_OUTPUT"
+
+  # return all unique outputs in the original order
   def get_outputs():
-    return Output.__outputs
+    saw = set()
+    unique = [x for x in Output.__outputs if x not in saw and (saw.add(x) or True)]
+    return unique
+
+# An output that we don't want to compare the results
+class IgnoredOutput(Output):
+  __ignored = set()
+  def __init__(self, name, vt, shape):
+    Output.__init__(self, name, vt, shape)
+    IgnoredOutput.__ignored.add(self)
+  def gen_ignored():
+    ignored_func = """
+bool is_ignored(int i) {
+  static std::set<int> ignore = {%s};
+  return ignore.find(i) != ignore.end();
+}""" % ", ".join([str(x.number) for x in IgnoredOutput.__ignored])
+    return ignored_func
 
 class ModelArgument:
   __arguments = []
@@ -225,24 +314,21 @@ class ModelArgument:
   def get_arguments():
     return ModelArgument.__arguments
 
-class TypeLookup:
-  __type_lookup = {
-      "INT32": "int32_t",
-      "FLOAT32": "float",
-      "TENSOR_INT32": "int32_t",
-      "TENSOR_FLOAT32": "float",
-      "TENSOR_QUANT8_ASYMM": "uint8_t",
-    }
+  def lifetime(self):
+    return "CONSTANT_COPY"
 
-  def get_cpptype(nnapi_type):
-    return TypeLookup.__type_lookup[nnapi_type]
-
-  def is_float(nnapi_type):
-    return TypeLookup.get_cpptype(nnapi_type) == "float"
+# Print in C float literal format
+def pretty_print_as_float(x):
+  s = str(float(x))
+  if s.find(".") >= 0 or s.find("e") >= 0:
+    return s + "f"
+  else:
+    return s + ".0f"
 
 class Parameter(Input):
+  # TODO seems wrong that's an Input.
   def __init__(self, name, vt, shape, initializer):
-    Input.__init__(self, name, vt, shape)
+    Input.__init__(self, name, vt, shape, False)
     self.initializer = initializer
     self.cpptype = TypeLookup.get_cpptype(vt)
   def is_internal(self):
@@ -251,7 +337,7 @@ class Parameter(Input):
     init_name = self.get_name() + "_init"
     initializer = [str(x) for x in self.initializer]
     if self.cpptype == "float":
-      initializer = [ x+"f" for x in initializer]
+      initializer = [ pretty_print_as_float(x) for x in initializer]
     init = self.cpptype + " " + init_name + "[]"
     init = "static " + init + " = {" + ", ".join(initializer) + "};"
     args = [ self.get_name(), init_name,
@@ -259,14 +345,18 @@ class Parameter(Input):
     stmt = "\n  ".join([init,
                       "model->setOperandValue(" + ", ".join(args)+");"])
     return stmt
+  def is_weight(self):
+    return True
+  def lifetime(self):
+    return "CONSTANT_COPY"
 
 class Int32Scalar(Parameter):
   def __init__(self, name, value):
-    Parameter.__init__(self, name, "INT32", "{1}", [value])
+    Parameter.__init__(self, name, "INT32", "{}", [value])
 
 class Float32Scalar(Parameter):
   def __init__(self, name, value):
-    Parameter.__init__(self, name, "FLOAT32", "{1}", [value])
+    Parameter.__init__(self, name, "FLOAT32", "{}", [value])
 
 # A compiler-generated intermediate result from an operation
 class IntermediateResult(Operand, Definitions, Uses, Traversable):
@@ -276,6 +366,9 @@ class IntermediateResult(Operand, Definitions, Uses, Traversable):
     Definitions.__init__(self)
     Uses.__init__(self, [src])
 
+  def lifetime(self):
+    return "TEMPORARY_VARIABLE"
+
 # An explicitly declared intermediate result
 class Internal(Operand, Definitions, Uses, Traversable):
   def __init__(self, name, vt, shape):
@@ -283,10 +376,13 @@ class Internal(Operand, Definitions, Uses, Traversable):
     Definitions.__init__(self)
     Uses.__init__(self)
 
+  def lifetime(self):
+    return "TEMPORARY_VARIABLE"
+
 # An operation in a model
-class Operation(Value, Definitions, Uses, Traversable):
+class Operation(Definitions, Uses, Traversable):
   def __init__(self, optype, ins, outs):
-    Value.__init__(self, optype, ins[0].type)
+    self.type = ins[0].type
     Definitions.__init__(self, outs)
     Uses.__init__(self, ins)
     self.optype = optype
@@ -346,7 +442,7 @@ class Model(object):
     ins = [input, padding, stride_width,
            stride_height, filter_width, filter_height, activation]
     outs = []
-    op = Operation("AVERAGE_POOL", ins, outs)
+    op = Operation("AVERAGE_POOL_2D", ins, outs)
     self.__currentOp = op
     return self
 
@@ -361,7 +457,7 @@ class Model(object):
     ins = [filter, bias, input, padding, stride_width,
            stride_height, activation]
     outs = []
-    op = Operation("CONV", ins, outs)
+    op = Operation("CONV_2D", ins, outs)
     self.__currentOp = op
     return self
 
@@ -369,7 +465,7 @@ class Model(object):
     ins = [filter, bias, input, padding, stride_width,
            stride_height, depth_multiplier, activation]
     outs = []
-    op = Operation("DEPTHWISE_CONV", ins, outs)
+    op = Operation("DEPTHWISE_CONV_2D", ins, outs)
     self.__currentOp = op
     return self
 
@@ -391,7 +487,7 @@ class Model(object):
     ins = [input, padding, stride_width,
            stride_height, filter_width, filter_height, activation]
     outs = []
-    op = Operation("L2_POOL", ins, outs)
+    op = Operation("L2_POOL_2D", ins, outs)
     self.__currentOp = op
     return self
 
@@ -399,7 +495,7 @@ class Model(object):
     ins = [input, padding, stride_width,
            stride_height, filter_width, filter_height, activation]
     outs = []
-    op = Operation("MAX_POOL", ins, outs)
+    op = Operation("MAX_POOL_2D", ins, outs)
     self.__currentOp = op
     return self
 
@@ -410,9 +506,21 @@ class Model(object):
     self.__currentOp = op
     return self
 
-  def Out(self, o: Value) -> Operation:
-    self.__currentOp.outs.add(o)
-    o.ins.append(self.__currentOp)
+  def Reshape(self, input, shape):
+    ins = [input, shape]
+    outs = []
+    op = Operation("RESHAPE", ins, outs)
+    self.__currentOp = op
+    return self
+
+  def Out(self, o):
+    if (type(o) is list or type(o) is tuple):
+      for i in o:
+        self.__currentOp.outs.append(i)
+        i.ins.append(self.__currentOp)
+    else:
+      self.__currentOp.outs.append(o)
+      o.ins.append(self.__currentOp)
     return self
 
   def To(self, o:Value):
@@ -437,9 +545,47 @@ class Example():
         key = str(k.number)
         if not TypeLookup.is_float(k.type.get_element_type()):
           suffix = ""
-      init = ", ".join([str(i)+suffix for i in v])
-      ret.append('{%s, {%s}}' %(key, init))
+      init = ", ".join(
+          [str(i) + (suffix if str(i).find(".") != -1 else "") for i in v])
+      ret.append("{%s, {%s}}" % (key, init))
     return ", ".join(ret)
+
+  def dump_mixed_types(d):
+    ret = []
+
+    float32_dict = {}
+    int32_dict = {}
+    uint8_dict = {}
+
+    for k, v in d.items():
+      ty = Operand.operands.search(k.ID()).type.get_element_type()
+      # find out type of the operand addressed by the key
+      if (ty == "TENSOR_FLOAT32"):
+        float32_dict[k] = v
+      elif (ty == "TENSOR_INT32"):
+        int32_dict[k] = v
+      elif (ty == "TENSOR_QUANT8_ASYMM"):
+        uint8_dict[k] = v
+      else:
+        print ("Unhandled type %s"%ty,  file = sys.stderr)
+        assert 0 and "unsupported example type"
+
+    tuple_init = """\
+{{ // See tools/test_generator/include/TestHarness.h:MixedTyped
+  // int -> FLOAT32 map
+  {{{float32_dict}}},
+  // int -> INT32 map
+  {{{int32_dict}}},
+  // int -> QUANT8_ASYMM map
+  {{{uint8_dict}}}
+}}"""
+    tuple_contents = {
+        'float32_dict': Example.dump_dict(float32_dict),
+        'int32_dict': Example.dump_dict(int32_dict),
+        'uint8_dict': Example.dump_dict(uint8_dict)
+    }
+    return tuple_init.format(**tuple_contents)
+
 
   def dump(example_file):
     if len(Example.__examples) > 0:
@@ -449,40 +595,185 @@ class Example():
     for i, o in Example.__examples:
       print ('// Begin of an example', file = example_file)
       print ('{', file = example_file)
-      inputs = Example.dump_dict(i)
-      outputs = Example.dump_dict(o)
-      print ('//Input(s)\n{' + inputs + '},', file = example_file)
-      print ('//Output(s)\n{' + outputs + '}', file = example_file)
+      inputs = Example.dump_mixed_types(i)
+      outputs = Example.dump_mixed_types(o)
+      print ('//Input(s)\n%s,' % inputs , file = example_file)
+      print ('//Output(s)\n%s' % outputs, file = example_file)
       print ('}, // End of an example', file = example_file)
 
-def TopologicalSort(model_file):
+def TopologicalSort(format_op):
   start = Input.get_inputs().copy()
   deps = { x: set(x.ins) for x in Uses.all_uses }
 
   while len(start) > 0:
     cur = start.pop()
-    op = cur.Definition()
-    if op is not None:
-      print ("  " + op, file = model_file)
-    for o in cur.outs:
+    format_op(cur) #cur.Definition()
+    distinct_outs = set(cur.outs)
+    for o in distinct_outs:
       deps[o].remove(cur)
       if len(deps[o]) == 0 and o.traversable():
         start.add(o)
 
+class Configuration:
+  vts = False
 
 # Take a model from command line
 def import_source():
   parser = argparse.ArgumentParser()
-  parser.add_argument("spec", help='the spec file')
-  parser.add_argument("-m", "--model", help='the output model file', default='-')
-  parser.add_argument("-e", "--example", help='the output example file', default='-')
+  parser.add_argument("spec", help="the spec file")
+  parser.add_argument(
+      "-v",
+      "--vts",
+      help="generate VTS model instead",
+      default=False,
+      action="store_true")
+  parser.add_argument(
+      "-m", "--model", help="the output model file", default="-")
+  parser.add_argument(
+      "-e", "--example", help="the output example file", default="-")
   args = parser.parse_args()
+
+  Configuration.vts = args.vts
 
   if os.path.exists(args.spec):
     FileNames.SpecFile = os.path.basename(args.spec)
-    exec(open(args.spec).read())
+    exec (open(args.spec).read())
 
   return (args.model, args.example)
+
+
+# Generate operands in VTS format
+def generate_vts_operands():
+  # Dump operand definitions
+  op_def = """\
+        {{
+            .type = OperandType::{operand_type},
+            .dimensions = {shape},
+            .numberOfConsumers = {no_consumers},
+            .scale = {scale},
+            .zeroPoint = {zero_point},
+            .lifetime = OperandLifeTime::{lifetime},
+            .location = {{.poolIndex = 0, .offset = {offset}, .length = {length}}},
+        }}"""
+  offset = 0
+  op_definitions = []
+  for o in Operand.operands.objects():
+    ty = o.type
+    no_consumers = len(o.outs) if o.traversable() else 0
+    lifetime = o.lifetime()
+    length = ty.get_size() if o.is_weight() else 0
+    real_shape, scale, zero_point = ty.get_parsed_shape()
+    scale = float(scale)
+    zero_point = int(zero_point)
+    op = {
+        "operand_type": ty.get_element_type(),
+        "shape": "{%s}" % real_shape,
+        "no_consumers": no_consumers,
+        "scale": pretty_print_as_float(scale),
+        "zero_point": str(int(zero_point)),
+        "lifetime": lifetime,
+        "offset": offset if o.is_weight() else 0,
+        "length": length
+    }
+    offset += length
+    op_definitions.append(op_def.format(**op))
+
+  op_vec = """\
+    const std::vector<Operand> operands = {{
+{0}
+    }};""".format(",\n".join(op_definitions))
+  return op_vec
+
+# Generate VTS operand values
+def generate_vts_operand_values():
+  weights = [o for o in Operand.operands.objects() if o.is_weight()]
+  binit = []
+  for w in weights:
+    ty = w.type.get_element_type()
+    if ty == "TENSOR_QUANT8_ASYMM":
+      binit += w.initializer
+    elif ty in {"TENSOR_FLOAT32", "FLOAT32", "TENSOR_INT32", "INT32"}:
+      fmt = "f" if (ty == "TENSOR_FLOAT32" or ty == "FLOAT32") else "i"
+      for f in w.initializer:
+        binit += [int(x) for x in struct.pack(fmt, f)]
+    else:
+      assert 0 and "Unsupported VTS operand type"
+
+  init_defs = ", ".join([str(x) for x in binit])
+  if (init_defs != ""):
+    init_defs = "\n      %s\n    " % init_defs
+  byte_vec_fmt = """\
+    std::vector<uint8_t> operandValues = {%s};""" % init_defs
+  return byte_vec_fmt
+
+# Generate VTS operations
+class VTSOps(object):
+  vts_ops = []
+  def generate_vts_operation(op):
+    try:
+      opcode =op.optype
+    except AttributeError: # not an op, but things like weights
+      return
+    op_fmt = """\
+        {{
+            .type = OperationType::{op_code},
+            .inputs = {{{ins}}},
+            .outputs = {{{outs}}},
+        }}"""
+    op_content = {
+        'op_code': op.optype,
+        'op_type': op.type.get_element_type(),
+        'ins': ", ".join([str(x.ID()) for x in op.ins]),
+        'outs': ", ".join([str(x.ID()) for x in op.outs]),
+    }
+    VTSOps.vts_ops.append(op_fmt.format(**op_content))
+
+def generate_vts_operations(model_file):
+  TopologicalSort(lambda x: VTSOps.generate_vts_operation(x))
+  return ",\n".join(VTSOps.vts_ops)
+
+def generate_vts_model(model_file):
+  model_fmt = """\
+// Generated code. Do not edit
+// Create the model
+Model createTestModel() {{
+{operand_decls}
+
+    const std::vector<Operation> operations = {{
+{operations}
+    }};
+
+    const std::vector<uint32_t> inputIndexes = {{{input_indices}}};
+    const std::vector<uint32_t> outputIndexes = {{{output_indices}}};
+{operand_values}
+    const std::vector<hidl_memory> pools = {{}};
+
+    return {{
+        .operands = operands,
+        .operations = operations,
+        .inputIndexes = inputIndexes,
+        .outputIndexes = outputIndexes,
+        .operandValues = operandValues,
+        .pools = pools,
+    }};
+}}"""
+  model = {
+      "operations": generate_vts_operations(sys.stdout),
+      "operand_decls": generate_vts_operands(),
+      "operand_values": generate_vts_operand_values(),
+      "output_indices": ", ".join([str(i.ID()) for i in Output.get_outputs()]),
+      "input_indices": ", ".join([str(i.ID()) for i in Input.get_inputs(True)])
+  }
+  print(model_fmt.format(**model), file = model_file)
+
+def generate_vts(model_file):
+  generate_vts_model(model_file)
+  print (IgnoredOutput.gen_ignored(), file=model_file)
+
+def print_cts_op(model_file, op):
+  fmt = op.Definition()
+  if fmt is not None:
+    print ("  %s" % fmt, file = model_file)
 
 if __name__ == '__main__':
   (model, example) = import_source()
@@ -491,37 +782,42 @@ if __name__ == '__main__':
   if len(ModelArgument.get_arguments()) > 0:
     args = ", " + ", ".join(ModelArgument.get_arguments())
 
-  print ("Output model:" + model, file = sys.stderr)
+  print(
+      "Output %s model: %s" % ("VTS" if Configuration.vts else "CTS", model),
+      file=sys.stderr)
   print ("Output example:" + example, file = sys.stderr)
 
-  with smart_open(model) as model_file:
-    spec_file = " (from: %s)" % (FileNames.SpecFile)
+  if Configuration.vts:
+    with smart_open(model) as model_file:
+      generate_vts(model_file)
+  else:
+    with smart_open(model) as model_file:
+      spec_file = " (from: %s)" % (FileNames.SpecFile)
 
-    print ('// Generated file%s. Do not edit'%(spec_file), file = model_file)
-    print ("void CreateModel(Model *model" + args + ") {", file=model_file)
+      print ('// Generated file%s. Do not edit'%(spec_file), file = model_file)
+      print ("void CreateModel(Model *model" + args + ") {", file=model_file)
 
-    # Phase 0: types
-    Type.dump(model_file)
-    # Phase 1: add operands
-    print ("  // Phase 1, operands", file=model_file)
-    Operand.operands.dump(model_file)
+      # Phase 0: types
+      Type.dump(model_file)
+      # Phase 1: add operands
+      print ("  // Phase 1, operands", file=model_file)
+      Operand.operands.dump(model_file)
 
-    # Phase 2: operations
-    print ("  // Phase 2, operations", file=model_file)
-    TopologicalSort(model_file)
+      # Phase 2: operations
+      print ("  // Phase 2, operations", file=model_file)
+      TopologicalSort(lambda x: print_cts_op(model_file, x))
 
-    # Phase 3: add inputs and outputs
-    print ("  // Phase 3, inputs and outputs", file=model_file)
-    inputs = Operand.print_operands(Input.get_inputs(True));
-    outputs = Operand.print_operands(Output.get_outputs());
-    print ("  model->setInputsAndOutputs(\n" +
-           "    {"+", ".join(inputs)+"},\n    {" + ", ".join(outputs) + "});",
-           file=model_file)
-    # Boilerplate
-    print ("  assert(model->isValid());", file=model_file);
-    print ("}", file=model_file)
+      # Phase 3: add inputs and outputs
+      print ("  // Phase 3, inputs and outputs", file=model_file)
+      inputs = Operand.print_operands(Input.get_inputs(True));
+      outputs = Operand.print_operands(Output.get_outputs());
+      print ("  model->identifyInputsAndOutputs(\n" +
+             "    {"+", ".join(inputs)+"},\n    {" + ", ".join(outputs) + "});",
+             file=model_file)
+      # Boilerplate
+      print ("  assert(model->isValid());", file=model_file);
+      print ("}", file=model_file)
+      print (IgnoredOutput.gen_ignored(), file=model_file)
 
   with smart_open(example) as example_file:
     Example.dump(example_file)
-
-

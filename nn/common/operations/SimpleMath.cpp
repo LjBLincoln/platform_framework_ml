@@ -25,46 +25,13 @@
 
 namespace android {
 namespace nn {
-
-bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out) {
-    if (getNumberOfDimensions(in1) > 4 || getNumberOfDimensions(in2) > 4) {
-        LOG(ERROR) << "Only supports upto 4D tensors.";
-        return false;
-    }
-    if (SameShape(in1, in2)) {
-        return SetShape(in1, out);
-    } else {
-        // BroadcastAdd needed
-        uint32_t numberOfDims1 = getNumberOfDimensions(in1);
-        uint32_t numberOfDims2 = getNumberOfDimensions(in2);
-        uint32_t maxDims = std::max(numberOfDims1, numberOfDims2);
-        out->dimensions = std::vector<uint32_t>(maxDims);
-        for (uint32_t i = 1; i <= maxDims; i++) {
-            uint32_t dim1 = 1;
-            if (i <= numberOfDims1) {
-                dim1 = getSizeOfDimension(in1, numberOfDims1 - i);
-            }
-            uint32_t dim2 = 1;
-            if (i <= numberOfDims2) {
-                dim2 = getSizeOfDimension(in2, numberOfDims2 - i);
-            }
-            if (dim1 != dim2 && dim1 != 1 && dim2 != 1) {
-                LOG(ERROR) << "Dimensions mismatch for BroadcastAdd";
-                return false;
-            }
-            out->dimensions[maxDims - i] = std::max(dim1, dim2);
-        }
-    }
-    return true;
-}
-
 bool addFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
                 float* out, const Shape& shapeOut) {
     bool needBroadcast = !SameShape(shape1, shape2);
 
-    #define ANDROID_NN_ADD(activation)                               \
+    #define ANDROID_NN_NORMAL_ADD(activation)                        \
         optimized_ops::Add<FusedActivationFunctionType::activation>( \
                 in1, convertShapeToDims(shape1),                     \
                 in2, convertShapeToDims(shape2),                     \
@@ -77,44 +44,86 @@ bool addFloat32(const float* in1, const Shape& shape1,
                 out, convertShapeToDims(shapeOut))
 
     if (needBroadcast) {
-        switch (activation) {
-            case kActivationNone:
-                ANDROID_NN_BROADCAST_ADD(kNone);
-                break;
-            case kActivationRelu:
-                ANDROID_NN_BROADCAST_ADD(kRelu);
-                break;
-            case kActivationRelu1:
-                ANDROID_NN_BROADCAST_ADD(kRelu1);
-                break;
-            case kActivationRelu6:
-                ANDROID_NN_BROADCAST_ADD(kRelu6);
-                break;
-            default:
-                LOG(ERROR) << "Unsupported activation type";
-                return false;
-        }
+        ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_BROADCAST_ADD)
     } else {
-        switch (activation) {
-            case kActivationNone:
-                ANDROID_NN_ADD(kNone);
-                break;
-            case kActivationRelu:
-                ANDROID_NN_ADD(kRelu);
-                break;
-            case kActivationRelu1:
-                ANDROID_NN_ADD(kRelu1);
-                break;
-            case kActivationRelu6:
-                ANDROID_NN_ADD(kRelu6);
-                break;
-            default:
-                LOG(ERROR) << "Unsupported activation type";
-                return false;
-        }
+        ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_NORMAL_ADD)
     }
 
-    #undef ANDROID_NN_ADD
+    #undef ANDROID_NN_NORMAL_ADD
+    #undef ANDROID_NN_BROADCAST_ADD
+    return true;
+}
+
+bool addQuant8(const uint8_t* in1, const Shape& shape1,
+               const uint8_t* in2, const Shape& shape2,
+               int32_t activation,
+               uint8_t* out, const Shape& shapeOut) {
+    bool needBroadcast = !SameShape(shape1, shape2);
+
+    const int32_t input1_offset = -shape1.offset;
+    const int32_t input2_offset = -shape2.offset;
+    const int32_t output_offset = shapeOut.offset;
+    const int left_shift = 20;
+    const double twice_max_input_scale = 2 * std::max(shape1.scale, shape2.scale);
+    const double real_input1_multiplier = shape1.scale / twice_max_input_scale;
+    const double real_input2_multiplier = shape2.scale / twice_max_input_scale;
+    const double real_output_multiplier =
+            twice_max_input_scale /
+            ((1 << left_shift) * shapeOut.scale);
+
+    int32_t input1_multiplier;
+    int32_t input1_shift;
+    if (!QuantizeMultiplierSmallerThanOne(real_input1_multiplier,
+                                          &input1_multiplier, &input1_shift)) {
+        return false;
+    }
+    int32_t input2_multiplier;
+    int32_t input2_shift;
+    if (!QuantizeMultiplierSmallerThanOne(real_input2_multiplier,
+                                          &input2_multiplier, &input2_shift)) {
+        return false;
+    }
+    int32_t output_multiplier;
+    int32_t output_shift;
+    if (!QuantizeMultiplierSmallerThanOne(real_output_multiplier,
+                                          &output_multiplier, &output_shift)) {
+        return false;
+    }
+    int32_t output_activation_min;
+    int32_t output_activation_max;
+    CalculateActivationRangeUint8(activation, shapeOut,
+                                  &output_activation_min,
+                                  &output_activation_max);
+
+    #define ANDROID_NN_NORMAL_ADD(activation)                           \
+        optimized_ops::Add<FusedActivationFunctionType::activation>(    \
+                left_shift,                                             \
+                in1, convertShapeToDims(shape1),                        \
+                input1_offset, input1_multiplier, input1_shift,         \
+                in2, convertShapeToDims(shape2),                        \
+                input2_offset, input2_multiplier, input2_shift,         \
+                output_offset, output_multiplier, output_shift,         \
+                output_activation_min, output_activation_max,           \
+                out, convertShapeToDims(shapeOut))
+
+    #define ANDROID_NN_BROADCAST_ADD(activation)                                 \
+        optimized_ops::BroadcastAdd<FusedActivationFunctionType::activation>(    \
+                left_shift,                                                      \
+                in1, convertShapeToDims(shape1),                                 \
+                input1_offset, input1_multiplier, input1_shift,                  \
+                in2, convertShapeToDims(shape2),                                 \
+                input2_offset, input2_multiplier, input2_shift,                  \
+                output_offset, output_multiplier, output_shift,                  \
+                output_activation_min, output_activation_max,                    \
+                out, convertShapeToDims(shapeOut))
+
+    if (needBroadcast) {
+        ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_BROADCAST_ADD)
+    } else {
+        ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_NORMAL_ADD)
+    }
+
+    #undef ANDROID_NN_NORMAL_ADD
     #undef ANDROID_NN_BROADCAST_ADD
     return true;
 }
@@ -125,7 +134,7 @@ bool mulFloat32(const float* in1, const Shape& shape1,
                 float* out, const Shape& shapeOut) {
     bool needBroadcast = !SameShape(shape1, shape2);
 
-    #define ANDROID_NN_MUL(activation)                               \
+    #define ANDROID_NN_NORMAL_MUL(activation)                        \
         optimized_ops::Mul<FusedActivationFunctionType::activation>( \
                 in1, convertShapeToDims(shape1),                     \
                 in2, convertShapeToDims(shape2),                     \
@@ -138,50 +147,51 @@ bool mulFloat32(const float* in1, const Shape& shape1,
                 out, convertShapeToDims(shapeOut))
 
     if (needBroadcast) {
-        switch (activation) {
-            case kActivationNone:
-                ANDROID_NN_BROADCAST_MUL(kNone);
-                break;
-            case kActivationRelu:
-                ANDROID_NN_BROADCAST_MUL(kRelu);
-                break;
-            case kActivationRelu1:
-                ANDROID_NN_BROADCAST_MUL(kRelu1);
-                break;
-            case kActivationRelu6:
-                ANDROID_NN_BROADCAST_MUL(kRelu6);
-                break;
-            default:
-                LOG(ERROR) << "Unsupported activation type";
-                return false;
-        }
+        ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_BROADCAST_MUL)
     } else {
-        switch (activation) {
-            case kActivationNone:
-                ANDROID_NN_MUL(kNone);
-                break;
-            case kActivationRelu:
-                ANDROID_NN_MUL(kRelu);
-                break;
-            case kActivationRelu1:
-                ANDROID_NN_MUL(kRelu1);
-                break;
-            case kActivationRelu6:
-                ANDROID_NN_MUL(kRelu6);
-                break;
-            default:
-                LOG(ERROR) << "Unsupported activation type";
-                return false;
-        }
+        ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_NORMAL_MUL)
     }
 
-    #undef ANDROID_NN_MUL
+    #undef ANDROID_NN_NORMAL_MUL
     #undef ANDROID_NN_BROADCAST_MUL
     return true;
 }
 
-bool floorPrepare(const Shape& input, Shape* output) {
-    return SetShape(input, output);
+bool mulQuant8(const uint8_t* in1, const Shape& shape1,
+               const uint8_t* in2, const Shape& shape2,
+               int32_t activation,
+               uint8_t* out, const Shape& shapeOut) {
+    const int32_t input1_offset = -shape1.offset;
+    const int32_t input2_offset = -shape2.offset;
+    const int32_t output_offset = shapeOut.offset;
+    const double input_product_scale = shape1.scale * shape2.scale;
+    const double real_multiplier = input_product_scale / shapeOut.scale;
+    int32 output_multiplier;
+    int output_shift;
+    if (!QuantizeMultiplierSmallerThanOne(real_multiplier, &output_multiplier,
+                                          &output_shift)) {
+        return false;
+    }
+    int32_t output_activation_min;
+    int32_t output_activation_max;
+    CalculateActivationRangeUint8(activation, shapeOut,
+                                  &output_activation_min,
+                                  &output_activation_max);
+
+    // Use BROADCAST version to handle the normal case until we have a optimized Mul.
+    #define ANDROID_NN_BROADCAST_MUL(activation)                                 \
+        optimized_ops::BroadcastMul<FusedActivationFunctionType::activation>(    \
+                in1, convertShapeToDims(shape1), input1_offset,                  \
+                in2, convertShapeToDims(shape2), input2_offset,                  \
+                output_offset, output_multiplier, output_shift,                  \
+                output_activation_min, output_activation_max,                    \
+                out, convertShapeToDims(shapeOut))
+
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_BROADCAST_MUL)
+
+    #undef ANDROID_NN_NORMAL_MUL
+    #undef ANDROID_NN_BROADCAST_MUL
+    return true;
 }
 
 bool floorFloat32(const float* inputData,
@@ -190,15 +200,6 @@ bool floorFloat32(const float* inputData,
     Dims<4> dim = convertShapeToDims(shape);
     optimized_ops::Floor(inputData, dim, outputData, dim);
     return true;
-}
-
-bool dequantizePrepare(const Shape& input, Shape* output) {
-    if (input.type != OperandType::TENSOR_QUANT8_ASYMM ||
-            output->type != OperandType::TENSOR_FLOAT32) {
-        LOG(ERROR) << "bad input / output operand type.";
-        return false;
-    }
-    return SetShape(input, output);
 }
 
 bool dequantizeQuant8ToFloat32(const uint8_t* inputData,

@@ -16,7 +16,6 @@
 
 #include "Manager.h"
 #include "NeuralNetworksWrapper.h"
-//#include "SampleDriver.h"
 #include "Utils.h"
 
 #include <gtest/gtest.h>
@@ -26,13 +25,12 @@ using namespace android::nn::wrapper;
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
 
+    android::nn::initVLogMask();
     // Test with the installed drivers.
     int n1 = RUN_ALL_TESTS();
 
     // Test with the CPU driver only.
-    nnAssert(ANeuralNetworksInitialize() == ANEURALNETWORKS_NO_ERROR);
     android::nn::DeviceManager::get()->setUseCpuOnly(true);
     int n2 = RUN_ALL_TESTS();
-    ANeuralNetworksShutdown();
     return n1 | n2;
 }

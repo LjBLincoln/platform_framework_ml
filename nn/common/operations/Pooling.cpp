@@ -22,50 +22,19 @@
 namespace android {
 namespace nn {
 
-bool genericPoolingPrepare(const Shape& input,
-                           int32_t padding,
-                           int32_t stride_width, int32_t stride_height,
-                           int32_t filter_width, int32_t filter_height,
-                           Shape* output) {
-    DCHECK_EQ(getNumberOfDimensions(input), 4);
-    DCHECK_EQ(stride_width, stride_height);
-
-    uint32_t batches      = getSizeOfDimension(input, 0);
-    uint32_t width        = getSizeOfDimension(input, 2);
-    uint32_t height       = getSizeOfDimension(input, 1);
-    uint32_t channels_out = getSizeOfDimension(input, 3);
-
-    // Matching GetWindowedOutputSize in TensorFlow.
-    auto computeOutSize = [padding](uint32_t imageSize, uint32_t filterSize,
-                                    uint32_t stride) -> int {
-        return padding == kPaddingSame
-                   ? (imageSize + stride - 1) / stride
-                   : padding == kPaddingValid
-                         ? (imageSize - filterSize + stride) / stride
-                         : 0;
-    };
-
-    uint32_t outWidth = computeOutSize(width, filter_width, stride_width);
-    uint32_t outHeight = computeOutSize(height, filter_height, stride_height);
-
-    output->type = input.type;
-    output->dimensions = {batches, outHeight, outWidth, channels_out};
-    return true;
-}
-
 #define ANDROID_NN_POOLING_PARAMETERS                                           \
     uint32_t height       = getSizeOfDimension(inputShape, 1);                  \
     uint32_t width        = getSizeOfDimension(inputShape, 2);                  \
     uint32_t outHeight    = getSizeOfDimension(outputShape, 1);                 \
     uint32_t outWidth     = getSizeOfDimension(outputShape, 2);                 \
                                                                                 \
-    uint32_t paddingHeight =                                                    \
-            ComputePadding(stride_height, height, filter_height, outHeight);    \
-    uint32_t paddingWidth =                                                     \
-            ComputePadding(stride_width, width, filter_width, outWidth);
+    uint32_t paddingHeight = (uint32_t)padding_top;                             \
+    uint32_t paddingWidth = (uint32_t)padding_left;
 
 bool averagePoolFloat32(const float* inputData, const Shape& inputShape,
-                        int32_t padding, int32_t stride_width, int32_t stride_height,
+                        int32_t padding_left, int32_t padding_right,
+                        int32_t padding_top, int32_t padding_bottom,
+                        int32_t stride_width, int32_t stride_height,
                         int32_t filter_width, int32_t filter_height, int32_t activation,
                         float* outputData, const Shape& outputShape) {
 
@@ -74,27 +43,20 @@ bool averagePoolFloat32(const float* inputData, const Shape& inputShape,
     #define ANDROID_NN_AVERAGE_POOL(activation)                                \
         optimized_ops::AveragePool<FusedActivationFunctionType::activation>(   \
             inputData, convertShapeToDims(inputShape),                         \
-            stride_width, paddingWidth, paddingHeight,                         \
+            stride_width, stride_height, paddingWidth, paddingHeight,          \
             filter_width, filter_height,                                       \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_AVERAGE_POOL(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_AVERAGE_POOL(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_AVERAGE_POOL(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_AVERAGE_POOL)
     #undef ANDROID_NN_AVERAGE_POOL
 
     return true;
 }
 
 bool averagePoolQuant8(const uint8_t* inputData, const Shape& inputShape,
-                       int32_t padding, int32_t stride_width, int32_t stride_height,
+                       int32_t padding_left, int32_t padding_right,
+                       int32_t padding_top, int32_t padding_bottom,
+                       int32_t stride_width, int32_t stride_height,
                        int32_t filter_width, int32_t filter_height, int32_t activation,
                        uint8_t* outputData, const Shape& outputShape) {
 
@@ -110,28 +72,21 @@ bool averagePoolQuant8(const uint8_t* inputData, const Shape& inputShape,
     #define ANDROID_NN_AVERAGE_POOL(activation)                                \
         optimized_ops::AveragePool<FusedActivationFunctionType::activation>(   \
             inputData, convertShapeToDims(inputShape),                         \
-            stride_width, paddingWidth, paddingHeight,                         \
+            stride_width, stride_height, paddingWidth, paddingHeight,          \
             filter_width, filter_height,                                       \
             output_activation_min, output_activation_max,                      \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_AVERAGE_POOL(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_AVERAGE_POOL(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_AVERAGE_POOL(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_AVERAGE_POOL)
     #undef ANDROID_NN_AVERAGE_POOL
 
     return true;
 }
 
 bool l2PoolFloat32(const float* inputData, const Shape& inputShape,
-                   int32_t padding, int32_t stride_width, int32_t stride_height,
+                   int32_t padding_left, int32_t padding_right,
+                   int32_t padding_top, int32_t padding_bottom,
+                   int32_t stride_width, int32_t stride_height,
                    int32_t filter_width, int32_t filter_height, int32_t activation,
                    float* outputData, const Shape& outputShape) {
 
@@ -140,27 +95,20 @@ bool l2PoolFloat32(const float* inputData, const Shape& inputShape,
     #define ANDROID_NN_L2_POOL(activation)                                     \
         optimized_ops::L2Pool<FusedActivationFunctionType::activation>(        \
             inputData, convertShapeToDims(inputShape),                         \
-            stride_width, paddingWidth, paddingHeight,                         \
+            stride_width, stride_height, paddingWidth, paddingHeight,          \
             filter_width, filter_height,                                       \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_L2_POOL(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_L2_POOL(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_L2_POOL(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_L2_POOL)
     #undef ANDROID_NN_L2_POOL
 
     return true;
 }
 
 bool maxPoolFloat32(const float* inputData, const Shape& inputShape,
-                    int32_t padding, int32_t stride_width, int32_t stride_height,
+                    int32_t padding_left, int32_t padding_right,
+                    int32_t padding_top, int32_t padding_bottom,
+                    int32_t stride_width, int32_t stride_height,
                     int32_t filter_width, int32_t filter_height, int32_t activation,
                     float* outputData, const Shape& outputShape) {
 
@@ -169,27 +117,20 @@ bool maxPoolFloat32(const float* inputData, const Shape& inputShape,
     #define ANDROID_NN_MAX_POOL(activation)                                    \
         optimized_ops::MaxPool<FusedActivationFunctionType::activation>(       \
             inputData, convertShapeToDims(inputShape),                         \
-            stride_width, paddingWidth, paddingHeight,                         \
+            stride_width, stride_height, paddingWidth, paddingHeight,          \
             filter_width, filter_height,                                       \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_MAX_POOL(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_MAX_POOL(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_MAX_POOL(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_MAX_POOL)
     #undef ANDROID_NN_MAX_POOL
 
     return true;
 }
 
 bool maxPoolQuant8(const uint8_t* inputData, const Shape& inputShape,
-                   int32_t padding, int32_t stride_width, int32_t stride_height,
+                   int32_t padding_left, int32_t padding_right,
+                   int32_t padding_top, int32_t padding_bottom,
+                   int32_t stride_width, int32_t stride_height,
                    int32_t filter_width, int32_t filter_height, int32_t activation,
                    uint8_t* outputData, const Shape& outputShape) {
 
@@ -205,21 +146,12 @@ bool maxPoolQuant8(const uint8_t* inputData, const Shape& inputShape,
     #define ANDROID_NN_MAX_POOL(activation)                                    \
         optimized_ops::MaxPool<FusedActivationFunctionType::activation>(       \
             inputData, convertShapeToDims(inputShape),                         \
-            stride_width, paddingWidth, paddingHeight,                         \
+            stride_width, stride_height, paddingWidth, paddingHeight,          \
             filter_width, filter_height,                                       \
             output_activation_min, output_activation_max,                      \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_MAX_POOL(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_MAX_POOL(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_MAX_POOL(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_MAX_POOL)
     #undef ANDROID_NN_MAX_POOL
 
     return true;

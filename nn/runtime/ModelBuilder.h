@@ -28,8 +28,11 @@
 namespace android {
 namespace nn {
 
+class CompilationBuilder;
+class Device;
+class ExecutionPlan;
+class ExecutionStep;
 class Memory;
-class RequestBuilder;
 
 class ModelBuilder {
 public:
@@ -40,12 +43,15 @@ public:
     int setOperandValueFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
                                   size_t length);
 
-    int addOperation(ANeuralNetworksOperationType type, const ANeuralNetworksIntList* inputs,
-                     const ANeuralNetworksIntList* outputs);
-    int setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
-                            const ANeuralNetworksIntList* outputs);
+    int addOperation(ANeuralNetworksOperationType type, uint32_t inputCount, const uint32_t* inputs,
+                     uint32_t outputCount, const uint32_t* outputs);
+    int identifyInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs, uint32_t outputCount,
+                                 const uint32_t* outputs);
 
-    RequestBuilder* createRequest();
+    int finish();
+    bool isFinished() const { return mCompletedModel; }
+
+    int createCompilation(CompilationBuilder** compilation);
 
     void setHidlModel(Model* model) const;
 
@@ -59,22 +65,43 @@ public:
     }
     uint32_t inputCount() const { return static_cast<uint32_t>(mInputIndexes.size()); }
     uint32_t outputCount() const { return static_cast<uint32_t>(mOutputIndexes.size()); }
-    const Operand& getInputOperand(uint32_t i) const { return mOperands[mInputIndexes[i]]; }
-    const Operand& getOutputOperand(uint32_t i) const { return mOperands[mOutputIndexes[i]]; }
+    uint32_t getInputOperandIndex(uint32_t i) const { return mInputIndexes[i]; }
+    const Operand& getInputOperand(uint32_t i) const {
+        return mOperands[getInputOperandIndex(i)];
+    }
+    uint32_t getOutputOperandIndex(uint32_t i) const { return mOutputIndexes[i]; }
+    const Operand& getOutputOperand(uint32_t i) const {
+        return mOperands[getOutputOperandIndex(i)];
+    }
     const Operand& getOperand(uint32_t index) const { return mOperands[index]; }
+    const Operation& getOperation(uint32_t index) const { return mOperations[index]; }
     const MemoryTracker& getMemories() const { return mMemories; }
+    const std::vector<Operation>& getOperations() const { return mOperations; }
+    const uint8_t* getPointerToOperandValue(uint32_t offset) const {
+        return mSmallOperandValues.data() + offset;
+    }
 
-private:
+    int partitionTheWork(const std::vector<std::shared_ptr<Device>>& devices,
+                         uint32_t preference, ExecutionPlan* plan) const;
+
+ private:
+    // TODO: move partitionTheWork, findBestDeviceForEachOperation,
+    // sortIntoRunOrder to CompilationBuilder?
+
+    int findBestDeviceForEachOperation(uint32_t preference,
+                                       const std::vector<std::shared_ptr<Device>>& devices,
+                                       const size_t operationCount,
+                                       const size_t deviceCount,
+                                       std::vector<int>* bestDeviceForOperation) const;
+    PerformanceInfo getPerformanceInfo(const std::shared_ptr<Device> device,
+                                       uint32_t operationIndex) const;
+
     // Sorts the operations to be in the correct order for single threaded
     // node-at-a-time execution.
     void sortIntoRunOrder();
-    /*
-    int32_t getOperandIndex(const ArrayInfo& info, uint32_t listIndex) const {
-        nnAssert(listIndex < info.count);
-        return mOperandIndexes[info.offset + listIndex];
-    }
-    */
-    void finishTheModel();
+
+    // Copies the large values to a shared memory, if we have any.
+    int copyLargeValuesToSharedMemory();
 
     // The operations of the graph.
     std::vector<Operation> mOperations;
@@ -88,18 +115,25 @@ private:
 
     MemoryTracker mMemories;
 
-    // The value of the operands that are defined at model
+    // The value of the small operands that are defined at model
     // creation time.
-    // TODO We are copying all the values.  Once we support memory
-    // pools, revisit.
-    std::vector<uint8_t> mOperandValues;
+    std::vector<uint8_t> mSmallOperandValues;
 
-    // Once the request has been created, we should not allow further
+    struct LargeValue {
+        uint32_t operandIndex;
+        const void* buffer;
+    };
+    // Operand index and buffer pointer for all the large operand values of this model.
+    std::vector<LargeValue> mLargeOperandValues;
+    // The shared memory region that will contain the large values.
+    Memory mLargeValueMemory;
+
+    // Once the model has been finished, we should not allow further
     // modifications to the model.
     mutable bool mCompletedModel = false;
 };
 
-} // namespace nn
-} // namespace android
+}  // namespace nn
+}  // namespace android
 
-#endif // ANDROID_ML_NN_RUNTIME_MODEL_BUILDER_H
+#endif  // ANDROID_ML_NN_RUNTIME_MODEL_BUILDER_H

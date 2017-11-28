@@ -18,7 +18,7 @@
 
 #include "ModelBuilder.h"
 
-#include "RequestBuilder.h"
+#include "CompilationBuilder.h"
 #include "Utils.h"
 
 #include <map>
@@ -33,8 +33,12 @@ const uint32_t MAX_NUMBER_OF_OPERATIONS = 0xFFFFFFFE;
 
 int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
     if (mCompletedModel) {
-        LOG(ERROR) << "ANeuralNetworksModel_addOperand can't modify after request creation";
+        LOG(ERROR) << "ANeuralNetworksModel_addOperand can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
+    }
+    int n = validateOperandType(type, "ANeuralNetworksModel_addOperand", true);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
     }
     size_t idx = mOperands.size();
     if (idx >= MAX_NUMBER_OF_OPERANDS) {
@@ -42,46 +46,112 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
         return ANEURALNETWORKS_BAD_DATA;
     }
     mOperands.resize(idx + 1);
-    auto& entry = mOperands[idx];
-    entry.type = static_cast<OperandType>(type.type);
-    entry.scale = type.scale;
-    entry.zeroPoint = type.offset;
-
-    // TODO  entry.numberOfConsumers = 0;
-    setFromIntList(&entry.dimensions, type.dimensions);
-    entry.location = {.poolIndex = RUN_TIME, .offset = 0, .length = 0};
-    entry.numberOfConsumers = 0;
-
+    auto& operand = mOperands[idx];
+    operand.type = static_cast<OperandType>(type.type);
+    setFromIntList(&operand.dimensions, type.dimensionCount, type.dimensions);
+    operand.numberOfConsumers = 0;
+    operand.scale = type.scale;
+    operand.zeroPoint = type.zeroPoint;
+    operand.lifetime = OperandLifeTime::TEMPORARY_VARIABLE;
+    operand.location = {.poolIndex = 0, .offset = 0, .length = 0};
     return ANEURALNETWORKS_NO_ERROR;
 }
 
 int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t length) {
-    //    auto roundUp = [](size_t x) { return (x + 0xF) & ~0xF; };
-
+    VLOG(MODEL) << __func__ << " for operand " << index << " size " << length;
     if (index >= operandCount()) {
         LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting operand " << index << " of "
                    << operandCount();
         return ANEURALNETWORKS_BAD_DATA;
     }
     Operand& operand = mOperands[index];
-    uint32_t neededLength = sizeOfData(operand.type, operand.dimensions);
-    if (neededLength != length) {
-        LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting " << length
-                   << " bytes when needing " << neededLength;
-        return ANEURALNETWORKS_BAD_DATA;
+    if (buffer == nullptr) {
+        if (length) {
+            LOG(ERROR) << "ANeuralNetworksModel_setOperandValue buffer is nullptr but length is "
+                          "not 0";
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+        operand.lifetime = OperandLifeTime::NO_VALUE;
+        // The location is unused and is set to zeros.
+        operand.location = {.poolIndex = 0,
+                            .offset = 0,
+                            .length = 0};
+    } else {
+        if (length > 0xFFFFFFFF) {
+            LOG(ERROR) << "ANeuralNetworksModel_setOperandValue value length of " << length
+                       << " exceeds max size";
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+        uint32_t valueLength = static_cast<uint32_t>(length);
+        uint32_t neededLength = sizeOfData(operand.type, operand.dimensions);
+        if (neededLength != valueLength) {
+            LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting " << valueLength
+                       << " bytes when needing " << neededLength;
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+        if (valueLength <= ANEURALNETWORKS_MAX_SIZE_OF_IMMEDIATELY_COPIED_VALUES) {
+            uint32_t existingSize = static_cast<uint32_t>(mSmallOperandValues.size());
+            uint32_t extraBytes = alignBytesNeeded(existingSize, valueLength);
+            mSmallOperandValues.resize(existingSize + extraBytes + valueLength);
+            operand.lifetime = OperandLifeTime::CONSTANT_COPY;
+            operand.location = {
+                .poolIndex = 0, .offset = existingSize + extraBytes, .length = neededLength};
+            memcpy(&mSmallOperandValues[operand.location.offset], buffer, valueLength);
+            VLOG(MODEL) << "Copied small value to offset " << operand.location.offset;
+        } else {
+            VLOG(MODEL) << "Saving large value";
+            operand.lifetime = OperandLifeTime::CONSTANT_REFERENCE;
+            // The values for poolIndex and offset will be set when the model is finished.
+            operand.location = {.poolIndex = 0, .offset = 0, .length = valueLength};
+            // We keep track of the buffers. We'll allocate the shared memory only
+            // once we know the total size, to avoid needless copies.
+            mLargeOperandValues.push_back(LargeValue{.operandIndex = index, .buffer = buffer});
+        }
     }
-    uint32_t existingSize = static_cast<uint32_t>(mOperandValues.size());
-    uint32_t extraBytes = alignBytesNeeded(existingSize, length);
-    mOperandValues.resize(existingSize + extraBytes + length);
-    operand.location = {.poolIndex = SAME_BLOCK,
-                        .offset = existingSize + extraBytes,
-                        .length = neededLength};
-    memcpy(&mOperandValues[operand.location.offset], buffer, length);
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
+int ModelBuilder::copyLargeValuesToSharedMemory() {
+    VLOG(MODEL) << __func__ << " has " << mLargeOperandValues.size() << " values.";
+    if (!mLargeOperandValues.empty()) {
+        // Calculate the size of the shared memory needed for all the large values.
+        // Also sets the offset for each value within the memory.
+        size_t poolSize = 0;
+        for (LargeValue& l: mLargeOperandValues) {
+            Operand& operand = mOperands[l.operandIndex];
+            nnAssert(operand.lifetime == OperandLifeTime::CONSTANT_REFERENCE);
+            poolSize += alignBytesNeeded(poolSize, operand.location.length);
+            operand.location.offset = poolSize;
+            poolSize += operand.location.length;
+        }
+
+        // Allocated the shared memory.
+        int n = mLargeValueMemory.create(poolSize);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+        uint8_t* memoryPointer = nullptr;
+        n = mLargeValueMemory.getPointer(&memoryPointer);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+        uint32_t poolIndex = mMemories.add(&mLargeValueMemory);
+        VLOG(MODEL) << "Allocated large value pool of size " << poolSize << " at index "
+                    << poolIndex;
+
+        // Copy the values to this memory.
+        for (LargeValue& l: mLargeOperandValues) {
+            Operand& operand = mOperands[l.operandIndex];
+            operand.location.poolIndex = poolIndex;
+            memcpy(memoryPointer + operand.location.offset, l.buffer, operand.location.length);
+        }
+    }
     return ANEURALNETWORKS_NO_ERROR;
 }
 
 int ModelBuilder::setOperandValueFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
                                             size_t length) {
+    VLOG(MODEL) << __func__ << " for operand " << index << " offset " << offset << " size " << length;
     if (index >= operandCount()) {
         LOG(ERROR) << "ANeuralNetworksModel_setOperandValueFromMemory setting operand " << index
                    << " of " << operandCount();
@@ -95,19 +165,34 @@ int ModelBuilder::setOperandValueFromMemory(uint32_t index, const Memory* memory
         return ANEURALNETWORKS_BAD_DATA;
     }
     // TODO validate does not exceed length of memory
-    operand.location = {.poolIndex = mMemories.add(memory),
-                        .offset = offset,
-                        .length = neededLength};
+    operand.lifetime = OperandLifeTime::CONSTANT_REFERENCE;
+    operand.location = {
+                .poolIndex = mMemories.add(memory), .offset = offset, .length = neededLength};
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ModelBuilder::addOperation(ANeuralNetworksOperationType type,
-                               const ANeuralNetworksIntList* inputs,
-                               const ANeuralNetworksIntList* outputs) {
+int ModelBuilder::addOperation(ANeuralNetworksOperationType type, uint32_t inputCount,
+                               const uint32_t* inputs, uint32_t outputCount,
+                               const uint32_t* outputs) {
     if (mCompletedModel) {
-        LOG(ERROR) << "ANeuralNetworksModel_addOperation can't modify after request creation";
+        LOG(ERROR) << "ANeuralNetworksModel_addOperation can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
+    if (!validCode(kNumberOfOperationTypes, kNumberOfOperationTypesOEM, type)) {
+        LOG(ERROR) << "ANeuralNetworksModel_addOperation invalid operations type " << type;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+    int n = validateOperandList(inputCount, inputs, operandCount(),
+                                "ANeuralNetworksModel_addOperation inputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    n = validateOperandList(outputCount, outputs, operandCount(),
+                            "ANeuralNetworksModel_addOperation outputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+
     uint32_t operationIndex = operationCount();
     if (operationIndex >= MAX_NUMBER_OF_OPERATIONS) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperation exceed max operations";
@@ -115,11 +200,10 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type,
     }
     mOperations.resize(operationIndex + 1);
     auto& entry = mOperations[operationIndex];
-    entry.opTuple = {static_cast<OperationType>(type),
-                     static_cast<OperandType>(mOperands[inputs->data[0]].type)};
+    entry.type = static_cast<OperationType>(type);
 
-    setFromIntList(&entry.inputs, *inputs);
-    setFromIntList(&entry.outputs, *outputs);
+    setFromIntList(&entry.inputs, inputCount, inputs);
+    setFromIntList(&entry.outputs, outputCount, outputs);
     for (uint32_t i : entry.inputs) {
         mOperands[i].numberOfConsumers++;
         // TODO mOperands[i].consumers.push_back(operationIndex);
@@ -127,42 +211,92 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type,
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ModelBuilder::setInputsAndOutputs(const ANeuralNetworksIntList* inputs,
-                                      const ANeuralNetworksIntList* outputs) {
+int ModelBuilder::identifyInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs,
+                                      uint32_t outputCount, const uint32_t* outputs) {
     if (mCompletedModel) {
-        LOG(ERROR)
-                << "ANeuralNetworksModel_setInputsAndOutputs can't modify after request creation";
+        LOG(ERROR) << "ANeuralNetworksModel_identifyInputsAndOutputs can't modify after model finished";
         return ANEURALNETWORKS_BAD_DATA;
     }
-    // TODO Validate all inputs
-    setFromIntList(&mInputIndexes, *inputs);
-    setFromIntList(&mOutputIndexes, *outputs);
+    int n = validateOperandList(inputCount, inputs, operandCount(),
+                                "ANeuralNetworksModel_identifyInputsAndOutputs inputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+    n = validateOperandList(outputCount, outputs, operandCount(),
+                            "ANeuralNetworksModel_identifyInputsAndOutputs outputs");
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+
+    // Makes a copy of the index list, validates the arguments, and changes
+    // the lifetime info of the corresponding operand.
+    auto setArguments = [&](std::vector<uint32_t>* indexVector, uint32_t indexCount,
+                            const uint32_t* indexList, OperandLifeTime lifetime) -> bool {
+        indexVector->resize(indexCount);
+        for (uint32_t i = 0; i < indexCount; i++) {
+            const uint32_t operandIndex = indexList[i];
+            if (operandIndex >= mOperands.size()) {
+                LOG(ERROR) << "ANeuralNetworksModel_identifyInputsAndOutputs Can't set input or output "
+                              "to be "
+                           << operandIndex << " as this exceeds the numbe of operands "
+                           << mOperands.size();
+                return false;
+            }
+            (*indexVector)[i] = operandIndex;
+            Operand& operand = mOperands[operandIndex];
+            if (operand.lifetime != OperandLifeTime::TEMPORARY_VARIABLE) {
+                LOG(ERROR) << "ANeuralNetworksModel_identifyInputsAndOutputs Can't set operand "
+                           << operandIndex
+                           << " to be an input or output.  Check that it's not a constant or "
+                              "already an input or output";
+                return false;
+            }
+            operand.lifetime = lifetime;
+        }
+        return true;
+    };
+
+    if (!setArguments(&mInputIndexes, inputCount, inputs, OperandLifeTime::MODEL_INPUT) ||
+        !setArguments(&mOutputIndexes, outputCount, outputs, OperandLifeTime::MODEL_OUTPUT)) {
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-RequestBuilder* ModelBuilder::createRequest() {
-    finishTheModel();
-    return new RequestBuilder(this);
+int ModelBuilder::createCompilation(CompilationBuilder** compilation) {
+    if (!mCompletedModel) {
+        LOG(ERROR) << "ANeuralNetworksCompilation_create passed an unfinished model";
+        *compilation = nullptr;
+        return ANEURALNETWORKS_BAD_STATE;
+    }
+    *compilation = new CompilationBuilder(this);
+    return (*compilation ? ANEURALNETWORKS_NO_ERROR : ANEURALNETWORKS_OUT_OF_MEMORY);
 }
 
-void ModelBuilder::finishTheModel() {
-    if (!mCompletedModel) {
-        // We sort the operations so that they will be in the appropriate
-        // order for a single-threaded, op at a time execution.
-        sortIntoRunOrder();
-        mCompletedModel = true;
+int ModelBuilder::finish() {
+    if (mCompletedModel) {
+        LOG(ERROR) << "ANeuralNetworksModel_finish called more than once";
+        return ANEURALNETWORKS_BAD_STATE;
     }
+
+    int n = copyLargeValuesToSharedMemory();
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
+
+    // We sort the operations so that they will be in the appropriate
+    // order for a single-threaded, op at a time execution.
+    // TODO: we don't need this if we always run the partitioner.
+    sortIntoRunOrder();
+    mCompletedModel = true;
+    return ANEURALNETWORKS_NO_ERROR;
 }
 
 void ModelBuilder::sortIntoRunOrder() {
     // Tracks the operations that can be executed.
     std::vector<uint32_t> opsReadyToRun;
     std::vector<Operation> runOrder;
-
-    // Mark the inputs
-    for (auto i : mInputIndexes) {
-        mOperands[i].location.poolIndex = 0; // We'll reset it to unknown aftewards
-    }
 
     // Tracks how many inputs are needed for each operation to be ready to run.
     std::multimap<uint32_t, uint32_t> operandToOperations;
@@ -171,21 +305,17 @@ void ModelBuilder::sortIntoRunOrder() {
         uint32_t& count = unknownInputCount[operationIndex];
         count = 0;
         for (uint32_t operandIndex : mOperations[operationIndex].inputs) {
-            if (mOperands[operandIndex].location.poolIndex == RUN_TIME) {
+            auto lifetime = mOperands[operandIndex].lifetime;
+            if (lifetime == OperandLifeTime::TEMPORARY_VARIABLE ||
+                lifetime == OperandLifeTime::MODEL_OUTPUT) {
                 count++;
                 operandToOperations.insert(
-                        std::pair<uint32_t, uint32_t>(operandIndex, operationIndex));
+                            std::pair<uint32_t, uint32_t>(operandIndex, operationIndex));
             }
         }
         if (count == 0) {
             opsReadyToRun.push_back(operationIndex);
         }
-    }
-    // TODO verify that a modelInput can't be set as output or vice-versa
-    // TODO test what happens when a model output is also used as input to an
-    // op!!!
-    for (auto i : mInputIndexes) {
-        mOperands[i].location.poolIndex = RUN_TIME;
     }
 
     while (opsReadyToRun.size() > 0) {
@@ -196,9 +326,8 @@ void ModelBuilder::sortIntoRunOrder() {
 
         runOrder.push_back(mOperations[opIndex]);
 
-        // Mark all its output as known.
+        // Mark all its outputs as known.
         for (uint32_t operandIndex : operation.outputs) {
-            // const Operand& output = mOperands[operandIndex];
             auto range = operandToOperations.equal_range(operandIndex);
             for (auto i = range.first; i != range.second; i++) {
                 uint32_t& count = unknownInputCount[i->second];
@@ -216,7 +345,7 @@ void ModelBuilder::setHidlModel(Model* model) const {
     model->operations = mOperations;
     model->inputIndexes = mInputIndexes;
     model->outputIndexes = mOutputIndexes;
-    model->operandValues = mOperandValues;
+    model->operandValues = mSmallOperandValues;
 
     uint32_t count = mMemories.size();
     model->pools.resize(count);
@@ -225,5 +354,5 @@ void ModelBuilder::setHidlModel(Model* model) const {
     }
 }
 
-} // namespace nn
-} // namespace android
+}  // namespace nn
+}  // namespace android

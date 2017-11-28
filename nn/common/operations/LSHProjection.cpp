@@ -19,53 +19,61 @@
 #include "CpuExecutor.h"
 #include "HalInterfaces.h"
 #include "util/hash/farmhash.h"
-//#include "farmhash.h"
 
 namespace android {
 namespace nn {
 
-namespace {
-
-template <typename T>
-T getScalarData(RunTimeOperandInfo& info) {
-  T* data = reinterpret_cast<T*>(info.buffer);
-  return data[0];
-}
-
-}  // anonymous namespace
-
 LSHProjection::LSHProjection(const Operation& operation,
                              std::vector<RunTimeOperandInfo>& operands) {
-  auto GetInput = [&operation,
-                   &operands](uint32_t index) -> const RunTimeOperandInfo* {
-    const std::vector<uint32_t>& inputs = operation.inputs;
-    const int index_of_operand = inputs[index];
-    if (index_of_operand < 0) {
-      return nullptr;
-    }
-    return &operands[index_of_operand];
-  };
-
-  auto GetOutput = [&operation,
-                    &operands](uint32_t index) -> RunTimeOperandInfo* {
-    const std::vector<uint32_t>& outputs = operation.outputs;
-    const int index_of_operand = outputs[index];
-    // Expects index of operand in range.
-    return &operands[index_of_operand];
-  };
-
-  input_ = GetInput(kInputTensor);
-  weight_ = GetInput(kWeightTensor);
-  hash_ = GetInput(kHashTensor);
+  input_  = GetInput(operation, operands, kInputTensor);
+  weight_ = GetInput(operation, operands, kWeightTensor);
+  hash_   = GetInput(operation, operands, kHashTensor);
 
   type_ = static_cast<LSHProjectionType>(
-      getScalarData<int32_t>(operands[operation.inputs[kTypeParam]]));
+      getScalarData<int32_t>(*GetInput(operation, operands, kTypeParam)));
 
-  output_ = GetOutput(kOutputTensor);
+  output_ = GetOutput(operation, operands, kOutputTensor);
 }
 
-int SizeOfDimension(const RunTimeOperandInfo* operand, int dim) {
-  return operand->shape().dimensions[dim];
+bool LSHProjection::Prepare(const Operation &operation,
+                            std::vector<RunTimeOperandInfo>& operands,
+                            Shape *outputShape) {
+  const int num_inputs = NumInputsWithValues(operation, operands);
+  NN_CHECK(num_inputs == 3 || num_inputs == 4);
+  NN_CHECK_EQ(NumOutputs(operation), 1);
+
+  const RunTimeOperandInfo *hash = GetInput(operation, operands, kHashTensor);
+  NN_CHECK_EQ(NumDimensions(hash), 2);
+  // Support up to 32 bits.
+  NN_CHECK(SizeOfDimension(hash, 1) <= 32);
+
+  const RunTimeOperandInfo* input = GetInput(operation, operands, kInputTensor);
+  NN_CHECK(NumDimensions(input) >= 1);
+
+  auto type = static_cast<LSHProjectionType>(
+      getScalarData<int32_t>(operands[operation.inputs[kTypeParam]]));
+  switch (type) {
+    case LSHProjectionType_SPARSE:
+      NN_CHECK(NumInputsWithValues(operation, operands) == 3);
+      outputShape->dimensions = { SizeOfDimension(hash, 0) };
+      break;
+    case LSHProjectionType_DENSE: {
+      RunTimeOperandInfo *weight = GetInput(operation, operands, kWeightTensor);
+      NN_CHECK_EQ(NumInputsWithValues(operation, operands), 4);
+      NN_CHECK_EQ(NumDimensions(weight), 1);
+      NN_CHECK_EQ(SizeOfDimension(weight, 0), SizeOfDimension(input, 0));
+      outputShape->dimensions = { SizeOfDimension(hash, 0) * SizeOfDimension(hash, 1) };
+      break;
+    }
+    default:
+      return false;
+  }
+
+  outputShape->type = OperandType::TENSOR_INT32;
+  outputShape->offset = 0;
+  outputShape->scale = 0.f;
+
+  return true;
 }
 
 // Compute sign bit of dot product of hash(seed, input) and weight.
@@ -76,14 +84,15 @@ int SizeOfDimension(const RunTimeOperandInfo* operand, int dim) {
 int running_sign_bit(const RunTimeOperandInfo* input,
                      const RunTimeOperandInfo* weight, float seed) {
   double score = 0.0;
-  int input_item_bytes = sizeof(int32_t) * SizeOfDimension(input, 1);
+  int input_item_bytes = sizeOfData(input->type, input->dimensions) /
+      SizeOfDimension(input, 0);
   char* input_ptr = (char*)(input->buffer);
 
   const size_t seed_size = sizeof(float);
   const size_t key_bytes = sizeof(float) + input_item_bytes;
   std::unique_ptr<char[]> key(new char[key_bytes]);
 
-  for (int i = 0; i < SizeOfDimension(input, 0); ++i) {
+  for (uint32_t i = 0; i < SizeOfDimension(input, 0); ++i) {
     // Create running hash id and value for current dimension.
     memcpy(key.get(), &seed, seed_size);
     memcpy(key.get() + seed_size, input_ptr, input_item_bytes);
@@ -91,7 +100,7 @@ int running_sign_bit(const RunTimeOperandInfo* input,
     int64_t hash_signature = farmhash::Fingerprint64(key.get(), key_bytes);
     double running_value = static_cast<double>(hash_signature);
     input_ptr += input_item_bytes;
-    if (weight->buffer == nullptr) {
+    if (weight->lifetime == OperandLifeTime::NO_VALUE) {
       score += running_value;
     } else {
       score += reinterpret_cast<float*>(weight->buffer)[i] * running_value;

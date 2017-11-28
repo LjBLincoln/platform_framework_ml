@@ -20,6 +20,8 @@
 #include "NeuralNetworks.h"
 #include "Utils.h"
 
+#include <cutils/native_handle.h>
+#include <sys/mman.h>
 #include <unordered_map>
 
 namespace android {
@@ -30,45 +32,54 @@ class ModelBuilder;
 // Represents a memory region.
 class Memory {
 public:
+    Memory() {}
+    virtual ~Memory() {}
+
+    // Disallow copy semantics to ensure the runtime object can only be freed
+    // once. Copy semantics could be enabled if some sort of reference counting
+    // or deep-copy system for runtime objects is added later.
+    Memory(const Memory&) = delete;
+    Memory& operator=(const Memory&) = delete;
+
     // Creates a shared memory object of the size specified in bytes.
     int create(uint32_t size);
-
-    /* TODO implement
-    int setFromHidlMemory(hardware::hidl_memory hidlMemory) {
-        mHidlMemory = hidlMemory;
-        mMemory = mapMemory(hidlMemory);
-        if (mMemory == nullptr) {
-            LOG(ERROR) << "setFromHidlMemory failed";
-            return ANEURALNETWORKS_OP_FAILED;
-        }
-        return ANEURALNETWORKS_NO_ERROR;
-    }
-    int setFromFd(int fd) {
-        return ANEURALNETWORKS_NO_ERROR;
-    }
-    int setFromGrallocBuffer(buffer_handle_t buffer,
-                             ANeuralNetworksMemory** memory) {
-        return ANEURALNETWORKS_NO_ERROR;
-    }
-    int setFromHardwareBuffer(AHardwareBuffer* buffer,
-                              ANeuralNetworksMemory** memory) {
-        return ANEURALNETWORKS_NO_ERROR;
-    }
-    */
 
     hardware::hidl_memory getHidlMemory() const { return mHidlMemory; }
 
     // Returns a pointer to the underlying memory of this memory object.
-    int getPointer(uint8_t** buffer) const {
+    virtual int getPointer(uint8_t** buffer) const {
         *buffer = static_cast<uint8_t*>(static_cast<void*>(mMemory->getPointer()));
         return ANEURALNETWORKS_NO_ERROR;
     }
 
-private:
+    virtual bool validateSize(uint32_t offset, uint32_t length) const;
+protected:
     // The hidl_memory handle for this shared memory.  We will pass this value when
     // communicating with the drivers.
     hardware::hidl_memory mHidlMemory;
     sp<IMemory> mMemory;
+};
+
+class MemoryFd : public Memory {
+public:
+    MemoryFd() {}
+    ~MemoryFd();
+
+    // Disallow copy semantics to ensure the runtime object can only be freed
+    // once. Copy semantics could be enabled if some sort of reference counting
+    // or deep-copy system for runtime objects is added later.
+    MemoryFd(const MemoryFd&) = delete;
+    MemoryFd& operator=(const MemoryFd&) = delete;
+
+    // Create the native_handle based on input size, prot, and fd.
+    // Existing native_handle will be deleted, and mHidlMemory will wrap
+    // the newly created native_handle.
+    int set(size_t size, int prot, int fd, size_t offset);
+
+    int getPointer(uint8_t** buffer) const override;
+
+private:
+    native_handle_t* mHandle = nullptr;
 };
 
 // A utility class to accumulate mulitple Memory objects and assign each

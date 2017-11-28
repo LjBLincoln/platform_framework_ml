@@ -23,45 +23,6 @@
 namespace android {
 namespace nn {
 
-bool depthwiseConvPrepare(const Shape& input,
-                          const Shape& filter,
-                          const Shape& bias,
-                          int32_t padding,
-                          int32_t stride_width, int32_t stride_height,
-                          Shape* output) {
-    DCHECK_EQ(getNumberOfDimensions(input), 4);
-    DCHECK_EQ(getNumberOfDimensions(filter), 4);
-    DCHECK_EQ(getNumberOfDimensions(bias), 1);
-
-    DCHECK_EQ(getSizeOfDimension(filter, 3), getSizeOfDimension(bias, 0));
-    DCHECK_EQ(stride_width, stride_height);
-
-    uint32_t channels_out = getSizeOfDimension(filter, 3);
-    uint32_t width        = getSizeOfDimension(input, 2);
-    uint32_t height       = getSizeOfDimension(input, 1);
-    uint32_t filterWidth  = getSizeOfDimension(filter, 2);
-    uint32_t filterHeight = getSizeOfDimension(filter, 1);
-    uint32_t batches      = getSizeOfDimension(input, 0);
-
-    // Matching GetWindowedOutputSize in TensorFlow.
-    auto computeOutSize = [padding](uint32_t imageSize, uint32_t filterSize,
-                                    uint32_t stride) -> int {
-        return padding == kPaddingSame
-                   ? (imageSize + stride - 1) / stride
-                   : padding == kPaddingValid
-                         ? (imageSize - filterSize + stride) / stride
-                         : 0;
-    };
-
-    uint32_t outWidth = computeOutSize(width, filterWidth, stride_width);
-    uint32_t outHeight = computeOutSize(height, filterHeight, stride_height);
-
-    output->type = input.type;
-    output->dimensions = {batches, outHeight, outWidth, channels_out};
-    return true;
-}
-
-
 #define ANDROID_NN_DEPTHWISE_CONV_PARAMETERS                                    \
     uint32_t height       = getSizeOfDimension(inputShape, 1);                  \
     uint32_t width        = getSizeOfDimension(inputShape, 2);                  \
@@ -70,15 +31,15 @@ bool depthwiseConvPrepare(const Shape& input,
     uint32_t outHeight    = getSizeOfDimension(outputShape, 1);                 \
     uint32_t outWidth     = getSizeOfDimension(outputShape, 2);                 \
                                                                                 \
-    uint32_t paddingHeight =                                                    \
-            ComputePadding(stride_height, height, filterHeight, outHeight);     \
-    uint32_t paddingWidth =                                                     \
-            ComputePadding(stride_width, width, filterWidth, outWidth);
+    uint32_t paddingHeight = (uint32_t)padding_top;                             \
+    uint32_t paddingWidth = (uint32_t)padding_left;
 
 bool depthwiseConvFloat32(const float* inputData, const Shape& inputShape,
                           const float* filterData, const Shape& filterShape,
                           const float* biasData, const Shape& biasShape,
-                          int32_t padding, int32_t stride_width, int32_t stride_height,
+                          int32_t padding_left, int32_t padding_right,
+                          int32_t padding_top, int32_t padding_bottom,
+                          int32_t stride_width, int32_t stride_height,
                           int32_t depth_multiplier, int32_t activation,
                           float* outputData, const Shape& outputShape) {
 
@@ -89,19 +50,11 @@ bool depthwiseConvFloat32(const float* inputData, const Shape& inputShape,
             inputData, convertShapeToDims(inputShape),                         \
             filterData, convertShapeToDims(filterShape),                       \
             biasData, convertShapeToDims(biasShape),                           \
-            stride_width, paddingWidth, paddingHeight, depth_multiplier,       \
+            stride_width, stride_height,                                       \
+            paddingWidth, paddingHeight, depth_multiplier,                     \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_DEPTHWISE_CONV(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_DEPTHWISE_CONV(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_DEPTHWISE_CONV(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_DEPTHWISE_CONV)
     #undef ANDROID_NN_DEPTHWISE_CONV
 
     return true;
@@ -111,7 +64,9 @@ bool depthwiseConvFloat32(const float* inputData, const Shape& inputShape,
 bool depthwiseConvQuant8(const uint8_t* inputData, const Shape& inputShape,
                          const uint8_t* filterData, const Shape& filterShape,
                          const int32_t* biasData, const Shape& biasShape,
-                         int32_t padding, int32_t stride_width, int32_t stride_height,
+                         int32_t padding_left, int32_t padding_right,
+                         int32_t padding_top, int32_t padding_bottom,
+                         int32_t stride_width, int32_t stride_height,
                          int32_t depth_multiplier, int32_t activation,
                          uint8_t* outputData, const Shape& outputShape) {
 
@@ -123,10 +78,13 @@ bool depthwiseConvQuant8(const uint8_t* inputData, const Shape& inputShape,
     int32_t output_activation_min = 0;
     int32_t output_activation_max = 0;
 
-    GetQuantizedConvolutionMultipler(inputShape, filterShape, biasShape,
-                                     outputShape, &real_multiplier);
-    QuantizeMultiplierSmallerThanOne(real_multiplier, &output_multiplier,
-                                     &output_shift);
+
+    if (!GetQuantizedConvolutionMultipler(inputShape, filterShape, biasShape,
+                                          outputShape, &real_multiplier) ||
+            !QuantizeMultiplierSmallerThanOne(real_multiplier, &output_multiplier,
+                                              &output_shift)) {
+        return false;
+    }
     CalculateActivationRangeUint8(activation, outputShape,
                                   &output_activation_min,
                                   &output_activation_max);
@@ -139,21 +97,13 @@ bool depthwiseConvQuant8(const uint8_t* inputData, const Shape& inputShape,
             inputData, convertShapeToDims(inputShape), inputOffset,            \
             filterData, convertShapeToDims(filterShape), filterOffset,         \
             biasData, convertShapeToDims(biasShape),                           \
-            stride_width, paddingWidth, paddingHeight, depth_multiplier,       \
+            stride_width, stride_height,                                       \
+            paddingWidth, paddingHeight, depth_multiplier,                     \
             outputOffset, output_multiplier, output_shift,                     \
             output_activation_min, output_activation_max,                      \
             outputData, convertShapeToDims(outputShape))
 
-    if (activation == kActivationNone) {
-        ANDROID_NN_DEPTHWISE_CONV(kNone);
-    }
-    if (activation == kActivationRelu) {
-        ANDROID_NN_DEPTHWISE_CONV(kRelu);
-    }
-    if (activation == kActivationRelu6) {
-        ANDROID_NN_DEPTHWISE_CONV(kRelu6);
-    }
-
+    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_DEPTHWISE_CONV)
     #undef ANDROID_NN_DEPTHWISE_CONV
 
     return true;

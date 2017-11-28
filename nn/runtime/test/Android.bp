@@ -24,8 +24,10 @@ cc_defaults {
         "TestTrivialModel.cpp",
         "TestValidation.cpp",
         "TestGenerated.cpp",
+        "TestPartitioning.cpp",
     ],
     shared_libs: [
+        "libandroid",
         "libbase",
         "libhidlbase",
         "libhidltransport",
@@ -40,6 +42,7 @@ cc_defaults {
     ],
     header_libs: [
         "libneuralnetworks_private_headers",
+        "libneuralnetworks_generated_test_harness_headers",
     ],
 }
 
@@ -62,4 +65,8 @@ cc_test {
         "libneuralnetworks",
         "libneuralnetworks_common",
     ],
+
+    shared_libs: [
+        "libcutils",
+    ]
 }

@@ -27,7 +27,8 @@ namespace reference_ops {
 template <FusedActivationFunctionType Ac>
 void DepthwiseConv(const float* input_data, const Dims<4>& input_dims,
                    const float* filter_data, const Dims<4>& filter_dims,
-                   const float* bias_data, const Dims<4>& bias_dims, int stride,
+                   const float* bias_data, const Dims<4>& bias_dims,
+                   int stride_width, int stride_height,
                    int pad_width, int pad_height, int depth_multiplier,
                    float* output_data, const Dims<4>& output_dims) {
   const int batches = MatchingArraySize(input_dims, 3, output_dims, 3);
@@ -47,8 +48,8 @@ void DepthwiseConv(const float* input_data, const Dims<4>& input_dims,
         for (int ic = 0; ic < input_depth; ++ic) {
           for (int m = 0; m < depth_multiplier; m++) {
             const int oc = m + ic * depth_multiplier;
-            const int in_x_origin = (out_x * stride) - pad_width;
-            const int in_y_origin = (out_y * stride) - pad_height;
+            const int in_x_origin = (out_x * stride_width) - pad_width;
+            const int in_y_origin = (out_y * stride_height) - pad_height;
             float total = 0.f;
             for (int filter_y = 0; filter_y < filter_height; ++filter_y) {
               for (int filter_x = 0; filter_x < filter_width; ++filter_x) {

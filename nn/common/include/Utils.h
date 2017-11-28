@@ -26,16 +26,48 @@
 namespace android {
 namespace nn {
 
-// The number of data types defined in NeuralNetworks.h.
-const int kNumberOfDataTypes = 12;
+// The number of data types (OperandCode) defined in NeuralNetworks.h.
+const int kNumberOfDataTypes = 6;
 
-// The number of operation types defined in NeuralNetworks.h.
-const int kNumberOfOperationTypes = 34;
+// The number of operation types (OperationCode) defined in NeuralNetworks.h.
+const int kNumberOfOperationTypes = 30;
 
 // The number of execution preferences defined in NeuralNetworks.h.
 const int kNumberOfPreferences = 3;
 
-// TODO Remove all the LOG(DEBUG) statements in all the files.
+// The number of data types (OperandCode) defined in NeuralNetworksOEM.h.
+const int kNumberOfDataTypesOEM = 2;
+
+// The number of operation types (OperationCode) defined in NeuralNetworksOEM.h.
+const int kNumberOfOperationTypesOEM = 1;
+
+// The lowest number assigned to any OEM Code in NeuralNetworksOEM.h.
+const int kOEMCodeBase = 10000;
+
+/* IMPORTANT: if you change the following list, don't
+ * forget to update the corresponding 'tags' table in
+ * the initVlogMask() function implemented in Utils.cpp.
+ */
+enum VLogFlags {
+    MODEL = 0,
+    COMPILATION,
+    EXECUTION,
+    CPUEXE,
+    MANAGER,
+    DRIVER
+};
+
+#define VLOG_IS_ON(TAG) \
+    ((vLogMask & (1 << (TAG))) != 0)
+
+#define VLOG(TAG)         \
+    if (LIKELY(!VLOG_IS_ON(TAG))) \
+        ;                 \
+    else                  \
+        LOG(INFO)
+
+extern int vLogMask;
+void initVLogMask();
 
 // Assert macro, as Android does not generally support assert.
 #define nnAssert(v)                                                                            \
@@ -47,13 +79,22 @@ const int kNumberOfPreferences = 3;
         }                                                                                      \
     } while (0)
 
-// Returns the the amount of space needed to store a tensor of the specified
+// Returns the amount of space needed to store a value of the specified
 // dimensions and type.
 uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions);
+
+// Returns the amount of space needed to store a value of the dimensions and
+// type of this operand.
+inline uint32_t sizeOfData(const Operand& operand) {
+    return sizeOfData(operand.type, operand.dimensions);
+}
 
 // Returns the name of the operation in ASCII.
 const char* getOperationName(OperationType opCode);
 
+// Memory is unmapped.
+// Memory is reference counted by hidl_memory instances, and is deallocated
+// once there are no more references.
 hidl_memory allocateSharedMemory(int64_t size);
 
 // Returns the number of padding bytes needed to align data of the
@@ -65,17 +106,20 @@ hidl_memory allocateSharedMemory(int64_t size);
 // to determine what this should be.
 uint32_t alignBytesNeeded(uint32_t index, size_t length);
 
-inline void setFromIntList(hidl_vec<uint32_t>* vec, const ANeuralNetworksIntList& list) {
-    vec->resize(list.count);
-    for (uint32_t i = 0; i < list.count; i++) {
-        (*vec)[i] = list.data[i];
+// Does a detailed LOG(INFO) of the model
+void logModelToInfo(const Model& model);
+
+inline void setFromIntList(hidl_vec<uint32_t>* vec, uint32_t count, const uint32_t* data) {
+    vec->resize(count);
+    for (uint32_t i = 0; i < count; i++) {
+        (*vec)[i] = data[i];
     }
 }
 
-inline void setFromIntList(std::vector<uint32_t>* vec, const ANeuralNetworksIntList& list) {
-    vec->resize(list.count);
-    for (uint32_t i = 0; i < list.count; i++) {
-        (*vec)[i] = list.data[i];
+inline void setFromIntList(std::vector<uint32_t>* vec, uint32_t count, const uint32_t* data) {
+    vec->resize(count);
+    for (uint32_t i = 0; i < count; i++) {
+        (*vec)[i] = data[i];
     }
 }
 
@@ -92,9 +136,25 @@ std::string toString(const std::vector<Type>& range) {
     return os += "]";
 }
 
+inline bool validCode(uint32_t codeCount, uint32_t codeCountOEM, uint32_t code) {
+    return (code < codeCount) || (code >= kOEMCodeBase && (code - kOEMCodeBase) < codeCountOEM);
+}
+
+int validateOperandType(const ANeuralNetworksOperandType& type, const char* tag, bool allowPartial);
+int validateOperandList(uint32_t count, const uint32_t* list, uint32_t operandCount,
+                        const char* tag);
 bool validateModel(const Model& model);
+bool validateRequest(const Request& request, const Model& model);
 
-} // namespace nn
-} // namespace android
+inline size_t getSizeFromInts(int lower, int higher) {
+    return (uint32_t)(lower) + ((uint64_t)(uint32_t)(higher) << 32);
+}
 
-#endif // ANDROID_ML_NN_COMMON_UTILS_H
+#ifdef NN_DEBUGGABLE
+uint32_t getProp(const char* str, uint32_t defaultValue = 0);
+#endif  // NN_DEBUGGABLE
+
+}  // namespace nn
+}  // namespace android
+
+#endif  // ANDROID_ML_NN_COMMON_UTILS_H

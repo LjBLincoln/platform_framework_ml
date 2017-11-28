@@ -1,8 +1,22 @@
-// Generated file (from: averpoolfloat.mod.py). Do not edit
+// Generated file (from: avg_pool_quant8.mod.py). Do not edit
 // Begin of an example
 {
 //Input(s)
-{{0, {1, 2, 3, 4}}},
+{ // See tools/test_generator/include/TestHarness.h:MixedTyped
+  // int -> FLOAT32 map
+  {},
+  // int -> INT32 map
+  {},
+  // int -> QUANT8_ASYMM map
+  {{0, {1, 2, 3, 4}}}
+},
 //Output(s)
-{{0, {1, 2, 3, 4}}}
+{ // See tools/test_generator/include/TestHarness.h:MixedTyped
+  // int -> FLOAT32 map
+  {},
+  // int -> INT32 map
+  {},
+  // int -> QUANT8_ASYMM map
+  {{0, {1, 2, 3, 4}}}
+}
 }, // End of an example

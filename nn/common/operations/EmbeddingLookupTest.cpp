@@ -44,12 +44,12 @@ std::vector<Matcher<float>> ArrayFloatNear(const std::vector<float>& values,
 using ::testing::ElementsAreArray;
 
 #define FOR_ALL_INPUT_AND_WEIGHT_TENSORS(ACTION) \
-  ACTION(Value)                                  \
-  ACTION(Lookup)
+  ACTION(Value, float)                           \
+  ACTION(Lookup, int)
 
 // For all output and intermediate states
 #define FOR_ALL_OUTPUT_TENSORS(ACTION) \
-  ACTION(Output)                       \
+  ACTION(Output, float)
 
 class EmbeddingLookupOpModel {
  public:
@@ -62,11 +62,11 @@ class EmbeddingLookupOpModel {
 
     std::vector<uint32_t> inputs;
 
+    OperandType LookupTy(Type::TENSOR_INT32, index_shape);
+    inputs.push_back(model_.addOperand(&LookupTy));
+
     OperandType ValueTy(Type::TENSOR_FLOAT32, weight_shape);
     inputs.push_back(model_.addOperand(&ValueTy));
-
-    OperandType LookupTy(Type::TENSOR_FLOAT32, index_shape);
-    inputs.push_back(model_.addOperand(&LookupTy));
 
     std::vector<uint32_t> outputs;
 
@@ -83,35 +83,41 @@ class EmbeddingLookupOpModel {
     Output_.insert(Output_.end(), multiAll(weight_shape), 0.f);
 
     model_.addOperation(ANEURALNETWORKS_EMBEDDING_LOOKUP, inputs, outputs);
-    model_.setInputsAndOutputs(inputs, outputs);
+    model_.identifyInputsAndOutputs(inputs, outputs);
+
+    model_.finish();
   }
 
   void Invoke() {
     ASSERT_TRUE(model_.isValid());
 
-    Request request(&model_);
+    Compilation compilation(&model_);
+    compilation.finish();
+    Execution execution(&compilation);
 
-#define SetInputOrWeight(X)                                                  \
-  ASSERT_EQ(request.setInput(EmbeddingLookup::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+#define SetInputOrWeight(X, T)                                               \
+  ASSERT_EQ(execution.setInput(EmbeddingLookup::k##X##Tensor, X##_.data(),   \
+                               sizeof(T) * X##_.size()),                     \
             Result::NO_ERROR);
 
     FOR_ALL_INPUT_AND_WEIGHT_TENSORS(SetInputOrWeight);
 
 #undef SetInputOrWeight
 
-#define SetOutput(X)                                                          \
-  ASSERT_EQ(request.setOutput(EmbeddingLookup::k##X##Tensor, X##_.data(), sizeof(X##_)), \
+#define SetOutput(X, T)                                                       \
+  ASSERT_EQ(execution.setOutput(EmbeddingLookup::k##X##Tensor, X##_.data(),   \
+                                sizeof(T) * X##_.size()),                     \
             Result::NO_ERROR);
 
     FOR_ALL_OUTPUT_TENSORS(SetOutput);
 
 #undef SetOutput
 
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
   }
 
-#define DefineSetter(X)                          \
-  void Set##X(const std::vector<float>& f) {     \
+#define DefineSetter(X, T)                       \
+  void Set##X(const std::vector<T>& f) {         \
     X##_.insert(X##_.end(), f.begin(), f.end()); \
   }
 
@@ -137,7 +143,7 @@ class EmbeddingLookupOpModel {
   uint32_t columns_;
   uint32_t features_;
 
-#define DefineTensor(X) std::vector<float> X##_;
+#define DefineTensor(X, T) std::vector<T> X##_;
 
   FOR_ALL_INPUT_AND_WEIGHT_TENSORS(DefineTensor);
   FOR_ALL_OUTPUT_TENSORS(DefineTensor);

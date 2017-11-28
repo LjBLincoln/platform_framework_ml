@@ -60,14 +60,16 @@ std::vector<Matcher<float>> ArrayFloatNear(const std::vector<float>& values,
     ACTION(ForgetGateBias)                              \
     ACTION(OutputGateBias)                              \
     ACTION(ProjectionWeights)                           \
-    ACTION(ProjectionBias)
+    ACTION(ProjectionBias)                              \
+    ACTION(OutputStateIn)                               \
+    ACTION(CellStateIn)
 
 // For all output and intermediate states
 #define FOR_ALL_OUTPUT_TENSORS(ACTION)          \
+    ACTION(ScratchBuffer)                       \
+    ACTION(OutputStateOut)                      \
+    ACTION(CellStateOut)                        \
     ACTION(Output)                              \
-    ACTION(OutputState)                         \
-    ACTION(CellState)                           \
-    ACTION(ScratchBuffer)
 
 class LSTMOpModel {
 public:
@@ -75,7 +77,7 @@ public:
                 uint32_t n_cell, uint32_t n_output, bool use_cifg,
                 bool use_peephole, bool use_projection_weights,
                 bool use_projection_bias, float cell_clip, float proj_clip,
-                const std::vector<std::vector<uint32_t>>& input_shapes)
+                const std::vector<std::vector<uint32_t>>& input_shapes0)
         : n_batch_(n_batch), n_input_(n_input),
           n_cell_(n_cell), n_output_(n_output),
           use_cifg_(use_cifg), use_peephole_(use_peephole),
@@ -84,6 +86,10 @@ public:
           activation_(ActivationFn::kActivationTanh),
           cell_clip_(cell_clip), proj_clip_(proj_clip) {
         std::vector<uint32_t> inputs;
+        std::vector<std::vector<uint32_t>> input_shapes(input_shapes0);
+
+        input_shapes.push_back({n_batch, n_output});
+        input_shapes.push_back({n_batch, n_cell});
         auto it = input_shapes.begin();
 
         // Input and weights
@@ -105,10 +111,10 @@ public:
 
         // Output and other intermediate state
         std::vector<std::vector<uint32_t>> output_shapes{
-            {n_batch, n_output},
+            {n_batch, n_cell * (use_cifg ? 3 : 4)},
             {n_batch, n_output},
             {n_batch, n_cell},
-            {n_batch, n_cell, 4}
+            {n_batch, n_output},
         };
         std::vector<uint32_t> outputs;
 
@@ -123,9 +129,11 @@ public:
 #undef AddOutput
 
         model_.addOperation(ANEURALNETWORKS_LSTM, inputs, outputs);
-        model_.setInputsAndOutputs(inputs, outputs);
+        model_.identifyInputsAndOutputs(inputs, outputs);
 
         Input_.insert(Input_.end(), n_batch * n_input, 0.f);
+        OutputStateIn_.insert(OutputStateIn_.end(), n_batch * n_output, 0.f);
+        CellStateIn_.insert(CellStateIn_.end(), n_batch * n_cell, 0.f);
 
         auto multiAll = [](const std::vector<uint32_t> &dims) -> uint32_t {
             uint32_t sz = 1;
@@ -140,6 +148,8 @@ public:
         FOR_ALL_OUTPUT_TENSORS(ReserveOutput);
 
 #undef ReserveOutput
+
+        model_.finish();
     }
 
 #define DefineSetter(X)                                 \
@@ -152,11 +162,13 @@ public:
 #undef DefineSetter
 
     void ResetOutputState() {
-        std::fill(OutputState_.begin(), OutputState_.end(), 0.f);
+        std::fill(OutputStateIn_.begin(), OutputStateIn_.end(), 0.f);
+        std::fill(OutputStateOut_.begin(), OutputStateOut_.end(), 0.f);
     }
 
     void ResetCellState() {
-        std::fill(CellState_.begin(), CellState_.end(), 0.f);
+        std::fill(CellStateIn_.begin(), CellStateIn_.end(), 0.f);
+        std::fill(CellStateOut_.begin(), CellStateOut_.end(), 0.f);
     }
 
     void SetInput(int offset, float *begin, float *end) {
@@ -173,19 +185,24 @@ public:
     void Invoke() {
         ASSERT_TRUE(model_.isValid());
 
-        Request request(&model_);
-#define SetInputOrWeight(X)                                             \
-        ASSERT_EQ(request.setInput(LSTMCell::k##X##Tensor, X##_.data(), \
-                                   sizeof(X##_)),                       \
+        OutputStateIn_.swap(OutputStateOut_);
+        CellStateIn_.swap(CellStateOut_);
+
+        Compilation compilation(&model_);
+        compilation.finish();
+        Execution execution(&compilation);
+#define SetInputOrWeight(X)                                               \
+        ASSERT_EQ(execution.setInput(LSTMCell::k##X##Tensor, X##_.data(), \
+                                     sizeof(float)*X##_.size()),          \
                   Result::NO_ERROR);
 
         FOR_ALL_INPUT_AND_WEIGHT_TENSORS(SetInputOrWeight);
 
 #undef SetInputOrWeight
 
-#define SetOutput(X)                                                    \
-        ASSERT_EQ(request.setOutput(LSTMCell::k##X##Tensor, X##_.data(), \
-                                    sizeof(X##_)),                      \
+#define SetOutput(X)                                                       \
+        ASSERT_EQ(execution.setOutput(LSTMCell::k##X##Tensor, X##_.data(), \
+                                      sizeof(float)*X##_.size()),          \
                   Result::NO_ERROR);
 
         FOR_ALL_OUTPUT_TENSORS(SetOutput);
@@ -193,45 +210,45 @@ public:
 #undef SetOutput
 
         if (use_cifg_) {
-            request.setInput(LSTMCell::kInputToInputWeightsTensor, nullptr, 0);
-            request.setInput(LSTMCell::kRecurrentToInputWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kInputToInputWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kRecurrentToInputWeightsTensor, nullptr, 0);
         }
 
         if (use_peephole_) {
             if (use_cifg_) {
-                request.setInput(LSTMCell::kCellToInputWeightsTensor, nullptr, 0);
+                execution.setInput(LSTMCell::kCellToInputWeightsTensor, nullptr, 0);
             }
         } else {
-            request.setInput(LSTMCell::kCellToInputWeightsTensor, nullptr, 0);
-            request.setInput(LSTMCell::kCellToForgetWeightsTensor, nullptr, 0);
-            request.setInput(LSTMCell::kCellToOutputWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kCellToInputWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kCellToForgetWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kCellToOutputWeightsTensor, nullptr, 0);
         }
 
         if (use_projection_weights_) {
             if (!use_projection_bias_) {
-                request.setInput(LSTMCell::kProjectionBiasTensor, nullptr, 0);
+                execution.setInput(LSTMCell::kProjectionBiasTensor, nullptr, 0);
             }
         } else {
-            request.setInput(LSTMCell::kProjectionWeightsTensor, nullptr, 0);
-            request.setInput(LSTMCell::kProjectionBiasTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kProjectionWeightsTensor, nullptr, 0);
+            execution.setInput(LSTMCell::kProjectionBiasTensor, nullptr, 0);
         }
 
-        ASSERT_EQ(request.setInput(LSTMCell::kActivationParam,
-                                   &activation_, sizeof(activation_)),
+        ASSERT_EQ(execution.setInput(LSTMCell::kActivationParam,
+                                     &activation_, sizeof(activation_)),
                   Result::NO_ERROR);
-        ASSERT_EQ(request.setInput(LSTMCell::kCellClipParam,
-                                   &cell_clip_, sizeof(cell_clip_)),
+        ASSERT_EQ(execution.setInput(LSTMCell::kCellClipParam,
+                                     &cell_clip_, sizeof(cell_clip_)),
                   Result::NO_ERROR);
-        ASSERT_EQ(request.setInput(LSTMCell::kProjClipParam,
-                                   &proj_clip_, sizeof(proj_clip_)),
+        ASSERT_EQ(execution.setInput(LSTMCell::kProjClipParam,
+                                     &proj_clip_, sizeof(proj_clip_)),
                   Result::NO_ERROR);
 
-        ASSERT_EQ(request.compute(), Result::NO_ERROR);
+        ASSERT_EQ(execution.compute(), Result::NO_ERROR);
     }
 
 private:
     Model model_;
-    // Request request_;
+    // Execution execution_;
     const uint32_t n_batch_;
     const uint32_t n_input_;
     const uint32_t n_cell_;
@@ -415,8 +432,6 @@ TEST(LSTMOpTest, BlackBoxTestWithCifgWithPeepholeNoProjectionNoClipping) {
   lstm.SetInputToOutputWeights({0.10725588, -0.02335852, -0.55932593,
                                 -0.09426838, -0.44257352, 0.54939759,
                                 0.01533556, 0.42751634});
-
-  lstm.SetInputGateBias({0., 0., 0., 0.});
 
   lstm.SetCellGateBias({0., 0., 0., 0.});
 

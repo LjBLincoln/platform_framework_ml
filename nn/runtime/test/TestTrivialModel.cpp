@@ -16,6 +16,7 @@
 
 #include "NeuralNetworksWrapper.h"
 
+//#include <android-base/logging.h>
 #include <gtest/gtest.h>
 
 using namespace android::nn::wrapper;
@@ -27,8 +28,7 @@ typedef float Matrix4[4];
 
 class TrivialTest : public ::testing::Test {
 protected:
-    virtual void SetUp() { ASSERT_EQ(Initialize(), Result::NO_ERROR); }
-    virtual void TearDown() { Shutdown(); }
+    virtual void SetUp() {}
 
     const Matrix3x4 matrix1 = {{1.f, 2.f, 3.f, 4.f}, {5.f, 6.f, 7.f, 8.f}, {9.f, 10.f, 11.f, 12.f}};
     const Matrix3x4 matrix2 = {{100.f, 200.f, 300.f, 400.f},
@@ -60,15 +60,16 @@ protected:
 void CreateAddTwoTensorModel(Model* model) {
     OperandType matrixType(Type::TENSOR_FLOAT32, {3, 4});
     OperandType scalarType(Type::INT32, {});
-    int32_t activation(0);
+    int32_t activation(ANEURALNETWORKS_FUSED_NONE);
     auto a = model->addOperand(&matrixType);
     auto b = model->addOperand(&matrixType);
     auto c = model->addOperand(&matrixType);
     auto d = model->addOperand(&scalarType);
     model->setOperandValue(d, &activation, sizeof(activation));
     model->addOperation(ANEURALNETWORKS_ADD, {a, b, d}, {c});
-    model->setInputsAndOutputs({a, b}, {c});
+    model->identifyInputsAndOutputs({a, b}, {c});
     ASSERT_TRUE(model->isValid());
+    model->finish();
 }
 
 // Create a model that can add three tensors using a two node graph,
@@ -76,7 +77,7 @@ void CreateAddTwoTensorModel(Model* model) {
 void CreateAddThreeTensorModel(Model* model, const Matrix3x4 bias) {
     OperandType matrixType(Type::TENSOR_FLOAT32, {3, 4});
     OperandType scalarType(Type::INT32, {});
-    int32_t activation(0);
+    int32_t activation(ANEURALNETWORKS_FUSED_NONE);
     auto a = model->addOperand(&matrixType);
     auto b = model->addOperand(&matrixType);
     auto c = model->addOperand(&matrixType);
@@ -87,8 +88,9 @@ void CreateAddThreeTensorModel(Model* model, const Matrix3x4 bias) {
     model->setOperandValue(f, &activation, sizeof(activation));
     model->addOperation(ANEURALNETWORKS_ADD, {a, c, f}, {b});
     model->addOperation(ANEURALNETWORKS_ADD, {b, e, f}, {d});
-    model->setInputsAndOutputs({c, a}, {d});
+    model->identifyInputsAndOutputs({c, a}, {d});
     ASSERT_TRUE(model->isValid());
+    model->finish();
 }
 
 // Check that the values are the same. This works only if dealing with integer
@@ -114,11 +116,13 @@ TEST_F(TrivialTest, AddTwo) {
     // Test the one node model.
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
-    Request request(&modelAdd2);
-    ASSERT_EQ(request.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    Compilation compilation(&modelAdd2);
+    compilation.finish();
+    Execution execution(&compilation);
+    ASSERT_EQ(execution.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected2, actual), 0);
 }
 
@@ -129,27 +133,31 @@ TEST_F(TrivialTest, AddThree) {
     // Test the three node model.
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
-    Request request2(&modelAdd3);
-    ASSERT_EQ(request2.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request2.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request2.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request2.compute(), Result::NO_ERROR);
+    Compilation compilation2(&modelAdd3);
+    compilation2.finish();
+    Execution execution2(&compilation2);
+    ASSERT_EQ(execution2.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution2.setInput(1, matrix2, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution2.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution2.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected3, actual), 0);
 
     // Test it a second time to make sure the model is reusable.
     memset(&actual, 0, sizeof(actual));
-    Request request3(&modelAdd3);
-    ASSERT_EQ(request3.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request3.setInput(1, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request3.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request3.compute(), Result::NO_ERROR);
+    Compilation compilation3(&modelAdd3);
+    compilation3.finish();
+    Execution execution3(&compilation3);
+    ASSERT_EQ(execution3.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution3.setInput(1, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution3.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution3.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected3b, actual), 0);
 }
 
 TEST_F(TrivialTest, BroadcastAddTwo) {
     Model modelBroadcastAdd2;
     // activation: NONE.
-    int32_t activation_init[] = {0};
+    int32_t activation_init[] = {ANEURALNETWORKS_FUSED_NONE};
     OperandType scalarType(Type::INT32, {1});
     auto activation = modelBroadcastAdd2.addOperand(&scalarType);
     modelBroadcastAdd2.setOperandValue(activation, activation_init, sizeof(int32_t) * 1);
@@ -161,24 +169,27 @@ TEST_F(TrivialTest, BroadcastAddTwo) {
     auto b = modelBroadcastAdd2.addOperand(&matrixType2);
     auto c = modelBroadcastAdd2.addOperand(&matrixType);
     modelBroadcastAdd2.addOperation(ANEURALNETWORKS_ADD, {a, b, activation}, {c});
-    modelBroadcastAdd2.setInputsAndOutputs({a, b}, {c});
+    modelBroadcastAdd2.identifyInputsAndOutputs({a, b}, {c});
     ASSERT_TRUE(modelBroadcastAdd2.isValid());
+    modelBroadcastAdd2.finish();
 
     // Test the one node model.
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
-    Request request(&modelBroadcastAdd2);
-    ASSERT_EQ(request.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    Compilation compilation(&modelBroadcastAdd2);
+    compilation.finish();
+    Execution execution(&compilation);
+    ASSERT_EQ(execution.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected2b, actual), 0);
 }
 
 TEST_F(TrivialTest, BroadcastMulTwo) {
     Model modelBroadcastMul2;
     // activation: NONE.
-    int32_t activation_init[] = {0};
+    int32_t activation_init[] = {ANEURALNETWORKS_FUSED_NONE};
     OperandType scalarType(Type::INT32, {1});
     auto activation = modelBroadcastMul2.addOperand(&scalarType);
     modelBroadcastMul2.setOperandValue(activation, activation_init, sizeof(int32_t) * 1);
@@ -190,17 +201,20 @@ TEST_F(TrivialTest, BroadcastMulTwo) {
     auto b = modelBroadcastMul2.addOperand(&matrixType2);
     auto c = modelBroadcastMul2.addOperand(&matrixType);
     modelBroadcastMul2.addOperation(ANEURALNETWORKS_MUL, {a, b, activation}, {c});
-    modelBroadcastMul2.setInputsAndOutputs({a, b}, {c});
+    modelBroadcastMul2.identifyInputsAndOutputs({a, b}, {c});
     ASSERT_TRUE(modelBroadcastMul2.isValid());
+    modelBroadcastMul2.finish();
 
     // Test the one node model.
     Matrix3x4 actual;
     memset(&actual, 0, sizeof(actual));
-    Request request(&modelBroadcastMul2);
-    ASSERT_EQ(request.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
-    ASSERT_EQ(request.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
-    ASSERT_EQ(request.compute(), Result::NO_ERROR);
+    Compilation compilation(&modelBroadcastMul2);
+    compilation.finish();
+    Execution execution(&compilation);
+    ASSERT_EQ(execution.setInput(0, matrix1, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setInput(1, matrix2b, sizeof(Matrix4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.setOutput(0, actual, sizeof(Matrix3x4)), Result::NO_ERROR);
+    ASSERT_EQ(execution.compute(), Result::NO_ERROR);
     ASSERT_EQ(CompareMatrices(expected2c, actual), 0);
 }
 
