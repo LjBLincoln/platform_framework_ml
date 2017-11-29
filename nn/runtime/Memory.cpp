@@ -116,7 +116,7 @@ int MemoryFd::getPointer(uint8_t** buffer) const {
     size_t offset = getSizeFromInts(mHandle->data[2], mHandle->data[3]);
     void* data = mmap(nullptr, mHidlMemory.size(), prot, MAP_SHARED, fd, offset);
     if (data == MAP_FAILED) {
-        LOG(ERROR) << "Can't mmap the file descriptor.";
+        LOG(ERROR) << "MemoryFd::getPointer(): Can't mmap the file descriptor.";
         return ANEURALNETWORKS_UNMAPPABLE;
     } else {
         mMapping = *buffer = static_cast<uint8_t*>(data);

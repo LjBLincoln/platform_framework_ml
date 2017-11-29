@@ -52,7 +52,7 @@ public:
     SamplePreparedModel(const Model& model)
           : // Make a copy of the model, as we need to preserve it.
             mModel(model) {}
-    ~SamplePreparedModel() override {}
+    ~SamplePreparedModel() override;
     bool initialize();
     Return<ErrorStatus> execute(const Request& request,
                                 const sp<IExecutionCallback>& callback) override;

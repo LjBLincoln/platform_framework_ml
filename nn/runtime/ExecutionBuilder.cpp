@@ -595,7 +595,8 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
     // maybe the HIDL infrastructure handles this magically? At worst,
     // it seems like this is a small memory leak, if the Callback stays
     // alive forever.
-    if (mPreparedModel->execute(request, executionCallback) != ErrorStatus::NONE) {
+    Return<ErrorStatus> executeStatus = mPreparedModel->execute(request, executionCallback);
+    if (!executeStatus.isOk() || executeStatus != ErrorStatus::NONE) {
         VLOG(EXECUTION) << "**Execute failed**";
         return ANEURALNETWORKS_OP_FAILED;
     }
@@ -603,8 +604,8 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
     // TODO: Remove this synchronization point when the block of code below is
     // removed.
     executionCallback->wait();
-    Return<ErrorStatus> executionStatus = executionCallback->getStatus();
-    if (!executionStatus.isOk() || executionStatus != ErrorStatus::NONE) {
+    Return<ErrorStatus> callbackStatus = executionCallback->getStatus();
+    if (!callbackStatus.isOk() || callbackStatus != ErrorStatus::NONE) {
         VLOG(EXECUTION) << "**Execute async failed**";
         return ANEURALNETWORKS_OP_FAILED;
     }
@@ -636,6 +637,8 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
                                    const sp<IExecutionCallback>& executionCallback) {
     CpuExecutor executor;
     int err = executor.run(model, request, modelPoolInfos, requestPoolInfos);
+    releaseRunTimePoolInfos(const_cast<std::vector<RunTimePoolInfo>*>(&modelPoolInfos));
+    releaseRunTimePoolInfos(const_cast<std::vector<RunTimePoolInfo>*>(&requestPoolInfos));
     ErrorStatus status = err == ANEURALNETWORKS_NO_ERROR ?
             ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
     executionCallback->notify(status);
@@ -665,6 +668,10 @@ int StepExecutor::startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallba
     for (uint32_t i = 0; i < count; i++) {
         const Memory* mem = mMemories[i];
         if (!requestPoolInfos[i].set(mem->getHidlMemory())) {
+            for (uint32_t j = 0; j < i; j++) {
+                requestPoolInfos[j].release();
+            }
+            releaseRunTimePoolInfos(&modelPoolInfos);
             return ANEURALNETWORKS_UNMAPPABLE;
         }
     }

@@ -52,10 +52,22 @@ protected:
     const Matrix3x4 expected3 = {{121.f, 232.f, 343.f, 454.f},
                                  {526.f, 628.f, 730.f, 832.f},
                                  {940.f, 1042.f, 1144.f, 1246.f}};
-    const Matrix3x4 expected3b = {{22.f, 34.f, 46.f, 58.f},
-                                  {31.f, 34.f, 37.f, 40.f},
-                                  {49.f, 52.f, 55.f, 58.f}};
 };
+
+// Tests to ensure that various kinds of memory leaks do not occur.
+class MemoryLeakTest : public MemoryTest {
+protected:
+    void SetUp() override;
+
+    int mMaxMapCount = 0;
+};
+
+void MemoryLeakTest::SetUp() {
+    std::ifstream maxMapCountStream("/proc/sys/vm/max_map_count");
+    if (maxMapCountStream) {
+        maxMapCountStream >> mMaxMapCount;
+    }
+}
 
 // Check that the values are the same. This works only if dealing with integer
 // value, otherwise we should accept values that are similar if not exact.
@@ -73,8 +85,14 @@ int CompareMatrices(const Matrix3x4& expected, const Matrix3x4& actual) {
     return errors;
 }
 
+// As well as serving as a functional test for ASharedMemory, also
+// serves as a regression test for http://b/69685100 "RunTimePoolInfo
+// leaks shared memory regions".
+//
 // TODO: test non-zero offset.
-TEST_F(MemoryTest, TestASharedMemory) {
+TEST_F(MemoryLeakTest, TestASharedMemory) {
+    ASSERT_GT(mMaxMapCount, 0);
+
     // Layout where to place matrix2 and matrix3 in the memory we'll allocate.
     // We have gaps to test that we don't assume contiguity.
     constexpr uint32_t offsetForMatrix2 = 20;
@@ -135,13 +153,18 @@ TEST_F(MemoryTest, TestASharedMemory) {
     WrapperCompilation compilation2(&model);
     ASSERT_EQ(compilation2.finish(), WrapperResult::NO_ERROR);
 
-    WrapperExecution execution2(&compilation2);
-    ASSERT_EQ(execution2.setInputFromMemory(0, &input, offsetForMatrix1, sizeof(Matrix3x4)),
-              WrapperResult::NO_ERROR);
-    ASSERT_EQ(execution2.setOutputFromMemory(0, &actual, offsetForActual, sizeof(Matrix3x4)),
-              WrapperResult::NO_ERROR);
-    ASSERT_EQ(execution2.compute(), WrapperResult::NO_ERROR);
-    ASSERT_EQ(CompareMatrices(expected3, *reinterpret_cast<Matrix3x4*>(outputData + offsetForActual)), 0);
+    for (int i = 0, e = mMaxMapCount + 10; i < e; i++) {
+        SCOPED_TRACE(i);
+        WrapperExecution execution2(&compilation2);
+        ASSERT_EQ(execution2.setInputFromMemory(0, &input, offsetForMatrix1, sizeof(Matrix3x4)),
+                  WrapperResult::NO_ERROR);
+        ASSERT_EQ(execution2.setOutputFromMemory(0, &actual, offsetForActual, sizeof(Matrix3x4)),
+                  WrapperResult::NO_ERROR);
+        ASSERT_EQ(execution2.compute(), WrapperResult::NO_ERROR);
+        ASSERT_EQ(CompareMatrices(expected3,
+                                  *reinterpret_cast<Matrix3x4*>(outputData + offsetForActual)), 0);
+    }
+
     close(weightsFd);
     close(inputFd);
     close(outputFd);
@@ -199,20 +222,6 @@ TEST_F(MemoryTest, TestFd) {
 }
 
 // Regression test for http://b/69621433 "MemoryFd leaks shared memory regions".
-class MemoryLeakTest : public ::testing::Test {
-protected:
-    void SetUp() override;
-
-    int mMaxMapCount = 0;
-};
-
-void MemoryLeakTest::SetUp() {
-    std::ifstream maxMapCountStream("/proc/sys/vm/max_map_count");
-    if (maxMapCountStream) {
-        maxMapCountStream >> mMaxMapCount;
-    }
-}
-
 TEST_F(MemoryLeakTest, IterativelyGetPointer) {
     ASSERT_GT(mMaxMapCount, 0);
 
@@ -252,6 +261,7 @@ TEST_F(MemoryLeakTest, IterativelyGetPointer) {
     close(fd);
 }
 
+// Regression test for http://b/69621433 "MemoryFd leaks shared memory regions".
 TEST_F(MemoryLeakTest, IterativelyInstantiate) {
     ASSERT_GT(mMaxMapCount, 0);
 

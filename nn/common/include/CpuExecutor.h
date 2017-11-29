@@ -63,14 +63,20 @@ struct RunTimeOperandInfo {
 struct RunTimePoolInfo {
     sp<IMemory> memory;
     hidl_memory hidlMemory;
-    uint8_t* buffer;
+    uint8_t* buffer = nullptr;
 
     bool set(const hidl_memory& hidlMemory);
+
+    // Release resources owned by this info (acquired by set()).
+    void release();
+
     bool update();
 };
 
 bool setRunTimePoolInfosFromHidlMemories(std::vector<RunTimePoolInfo>* poolInfos,
                                          const hidl_vec<hidl_memory>& pools);
+
+void releaseRunTimePoolInfos(std::vector<RunTimePoolInfo>* poolInfos);
 
 // This class is used to execute a model on the CPU.
 class CpuExecutor {

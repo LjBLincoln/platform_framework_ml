@@ -29,6 +29,10 @@ namespace nn {
 // TODO: short term, make share memory mapping and updating a utility function.
 // TODO: long term, implement mmap_fd as a hidl IMemory service.
 bool RunTimePoolInfo::set(const hidl_memory& hidlMemory) {
+    if (buffer != nullptr) {
+        release();
+    }
+
     this->hidlMemory = hidlMemory;
     auto memType = hidlMemory.name();
     if (memType == "ashmem") {
@@ -52,14 +56,38 @@ bool RunTimePoolInfo::set(const hidl_memory& hidlMemory) {
                                         hidlMemory.handle()->data[3]);
         buffer = static_cast<uint8_t*>(mmap(nullptr, size, prot, MAP_SHARED, fd, offset));
         if (buffer == MAP_FAILED) {
-            LOG(ERROR) << "Can't mmap the file descriptor.";
+            LOG(ERROR) << "RunTimePoolInfo::set(): Can't mmap the file descriptor.";
             return false;
         }
         return true;
     } else {
-        LOG(ERROR) << "unsupported hidl_memory type";
+        LOG(ERROR) << "RunTimePoolInfo::set(): unsupported hidl_memory type";
         return false;
     }
+}
+
+void RunTimePoolInfo::release() {
+    if (buffer == nullptr) {
+        // Never initialized, or already released.
+        LOG(ERROR) << "RunTimePoolInfo::release(): incorrect RunTimePoolInfo resource management";
+    }
+
+    auto memType = hidlMemory.name();
+    if (memType == "ashmem") {
+        // nothing to do
+    } else if (memType == "mmap_fd") {
+        size_t size = hidlMemory.size();
+        if (munmap(buffer, size)) {
+            LOG(ERROR) << "RunTimePoolInfo::release(): Can't munmap";
+        }
+    } else if (memType == "") {
+        // Represents a POINTER argument; nothing to do
+    } else {
+        LOG(ERROR) << "RunTimePoolInfo::release(): unsupported hidl_memory type";
+    }
+    memory = nullptr;
+    hidlMemory = hidl_memory();
+    buffer = nullptr;
 }
 
 // Making sure the output data are correctly updated after execution.
@@ -86,10 +114,19 @@ bool setRunTimePoolInfosFromHidlMemories(std::vector<RunTimePoolInfo>* poolInfos
         auto& poolInfo = (*poolInfos)[i];
         if (!poolInfo.set(pools[i])) {
             LOG(ERROR) << "Could not map pool";
+            for (size_t j = 0; j < i; j++) {
+                (*poolInfos)[j].release();
+            }
             return false;
         }
     }
     return true;
+}
+
+void releaseRunTimePoolInfos(std::vector<RunTimePoolInfo>* poolInfos) {
+    for (auto& info : *poolInfos) {
+        info.release();
+    }
 }
 
 // Updates the RunTimeOperandInfo with the newly calculated shape.

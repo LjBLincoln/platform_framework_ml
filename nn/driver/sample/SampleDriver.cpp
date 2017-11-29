@@ -86,6 +86,7 @@ void SamplePreparedModel::asyncExecute(const Request& request,
     CpuExecutor executor;
     int n = executor.run(mModel, request, mPoolInfos, requestPoolInfos);
     VLOG(DRIVER) << "executor.run returned " << n;
+    releaseRunTimePoolInfos(&requestPoolInfos);
     ErrorStatus executionStatus =
             n == ANEURALNETWORKS_NO_ERROR ? ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
     Return<void> returned = callback->notify(executionStatus);
@@ -111,6 +112,10 @@ Return<ErrorStatus> SamplePreparedModel::execute(const Request& request,
     std::thread([this, request, callback]{ asyncExecute(request, callback); }).detach();
 
     return ErrorStatus::NONE;
+}
+
+SamplePreparedModel::~SamplePreparedModel() {
+    releaseRunTimePoolInfos(&mPoolInfos);
 }
 
 } // namespace sample_driver
