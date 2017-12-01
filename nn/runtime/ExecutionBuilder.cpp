@@ -637,8 +637,6 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
                                    const sp<IExecutionCallback>& executionCallback) {
     CpuExecutor executor;
     int err = executor.run(model, request, modelPoolInfos, requestPoolInfos);
-    releaseRunTimePoolInfos(const_cast<std::vector<RunTimePoolInfo>*>(&modelPoolInfos));
-    releaseRunTimePoolInfos(const_cast<std::vector<RunTimePoolInfo>*>(&requestPoolInfos));
     ErrorStatus status = err == ANEURALNETWORKS_NO_ERROR ?
             ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
     executionCallback->notify(status);
@@ -663,28 +661,22 @@ int StepExecutor::startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallba
     }
 
     std::vector<RunTimePoolInfo> requestPoolInfos;
-    uint32_t count = mMemories.size();
-    requestPoolInfos.resize(count);
-    for (uint32_t i = 0; i < count; i++) {
-        const Memory* mem = mMemories[i];
-        if (!requestPoolInfos[i].set(mem->getHidlMemory())) {
-            for (uint32_t j = 0; j < i; j++) {
-                requestPoolInfos[j].release();
-            }
-            releaseRunTimePoolInfos(&modelPoolInfos);
-            return ANEURALNETWORKS_UNMAPPABLE;
-        }
+    requestPoolInfos.reserve(mMemories.size());
+    bool fail = false;
+    for (const Memory* mem : mMemories) {
+        requestPoolInfos.emplace_back(mem->getHidlMemory(), &fail);
+    }
+    if (fail) {
+        return ANEURALNETWORKS_UNMAPPABLE;
     }
     // Create as many pools as there are input / output.
     auto fixPointerArguments = [&requestPoolInfos](std::vector<ModelArgumentInfo>& argumentInfos) {
         for (ModelArgumentInfo& argumentInfo : argumentInfos) {
             if (argumentInfo.state == ModelArgumentInfo::POINTER) {
-                RunTimePoolInfo runTimeInfo = {
-                            .buffer = static_cast<uint8_t*>(argumentInfo.buffer)};
                 argumentInfo.locationAndLength.poolIndex =
                             static_cast<uint32_t>(requestPoolInfos.size());
                 argumentInfo.locationAndLength.offset = 0;
-                requestPoolInfos.push_back(runTimeInfo);
+                requestPoolInfos.emplace_back(static_cast<uint8_t*>(argumentInfo.buffer));
             }
         }
     };
