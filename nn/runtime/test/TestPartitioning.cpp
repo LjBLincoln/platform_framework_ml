@@ -16,6 +16,7 @@
 
 #include "CompilationBuilder.h"
 #include "ExecutionPlan.h"
+#include "GraphDump.h"
 #include "HalInterfaces.h"
 #include "Manager.h"
 #include "ModelBuilder.h"
@@ -33,6 +34,10 @@
 // may be useful when analyzing failures:
 //
 // #define VERBOSE VERBOSE
+
+// Uncomment the following line to generate DOT graphs.
+//
+// #define GRAPH GRAPH
 
 // These tests do whitebox testing of the graph partitioning
 // algorithm.  It is "whitebox" in the sense that we're not evaluating
@@ -194,6 +199,20 @@ void dump(const char* name, const ModelBuilder* model) {
     }
 }
 #endif
+
+#ifdef GRAPH
+inline void hidlGraphDump(const char* name, const HidlModel& model) {
+    ::android::nn::graphDump(name, model);
+}
+#endif
+
+void graphDump([[maybe_unused]] const char* name, [[maybe_unused]] const WrapperModel& model) {
+#ifdef GRAPH
+    HidlModel hidlModel;
+    reinterpret_cast<const ModelBuilder*>(model.getHandle())->setHidlModel(&hidlModel);
+    hidlGraphDump(name, hidlModel);
+#endif
+}
 
 // This is an IDevice for testing purposes.  It only has two
 // interesting properties, both of which are specified as constructor
@@ -688,6 +707,7 @@ TEST_F(PartitioningTest, SimpleModel) {
     model.identifyInputsAndOutputs({ opnd0, opnd1, opnd3 }, { opnd4 });
     model.finish();
     ASSERT_TRUE(model.isValid());
+    graphDump("SimpleModel", model);
 
     // Simple partition (two devices are each capable of everything, one is the best).
     const auto devicesA = makeDevices(
