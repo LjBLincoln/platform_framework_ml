@@ -324,7 +324,7 @@ typedef enum {
      * * 10: An INT32 value, and has to be one of the {@link FuseCode} values.
      *       Specifies the activation to invoke on the result of each addition.
      *
-     * Inputs (explicit padding):
+     * Inputs (implicit padding):
      * * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
      * * 1: A 4-D tensor, of shape [1, filter_height, filter_width, depth_out],
      *      specifying the filter.
