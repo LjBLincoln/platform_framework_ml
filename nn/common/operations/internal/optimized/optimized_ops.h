@@ -30,6 +30,7 @@
 #include "Eigen/Core"
 #include "fixedpoint.h"
 #include "gemmlowp.h"
+#include "unsupported/Eigen/CXX11/Tensor"
 #include "../common.h"
 #include "../types.h"
 
