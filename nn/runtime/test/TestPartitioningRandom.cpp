@@ -16,6 +16,7 @@
 
 #undef NDEBUG
 
+#include "Bridge.h"
 #include "CompilationBuilder.h"
 #include "Manager.h"
 #include "ModelBuilder.h"
@@ -44,6 +45,10 @@
 // may be useful when analyzing failures:
 //
 // #define VERBOSE VERBOSE
+
+// Uncomment the following line to generate graphs from models:
+//
+// #define GRAPH GRAPH
 
 // We randomly generate tests (model + input data) at runtime, and verify
 // that we get the same results whether we do partitioned compilation/execution
@@ -331,6 +336,8 @@ public:
     static Signature getSignature(const HidlModel& model, const Operation& operation);
 
 protected:
+    void graphDump(const WrapperModel& model);
+
     bool randBool() {
         return randUInt(2) == 1;
     }
@@ -444,6 +451,14 @@ Signature RandomPartitioningTest::getSignature(const HidlModel& model, const Ope
            &model.operandValues[operand.location.offset],
            operand.location.length);
     return Signature(operationType, value);
+}
+
+void RandomPartitioningTest::graphDump([[maybe_unused]] const WrapperModel& model) {
+#ifdef GRAPH
+    const std::string name = "Test-" + std::to_string(GetParam());
+    nn::bridge_tests::graphDump(name.c_str(),
+                                reinterpret_cast<const ModelBuilder*>(model.getHandle()));
+#endif
 }
 
 class TestDriver : public SampleDriver {
@@ -857,6 +872,7 @@ TEST_P(RandomPartitioningTest, Test) {
     }
 #endif
     ASSERT_EQ(model.finish(), Result::NO_ERROR);
+    graphDump(model);
 
     // Non-partitioned compilation.
     TestCompilation c(&model);

@@ -29,6 +29,7 @@ cc_library_static {
 
     srcs: [
         "CpuExecutor.cpp",
+        "GraphDump.cpp",
         "OperationsUtils.cpp",
         "Utils.cpp",
         "ValidateHal.cpp",
