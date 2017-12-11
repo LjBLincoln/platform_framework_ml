@@ -120,7 +120,19 @@ static const unsigned kMaxNumOperations = 100;
 // not exceed this size.
 static const unsigned kMaxProblemSize = 8;
 
+// First seed for pseudorandom test generation.
+static const unsigned kFirstSeed = 0;
+
+// Number of test cases.
 static const unsigned kNumTestCases = 200;
+
+// Force all graph weights into a single pool (as we recommend to users)
+// or allow them to be distributed across multiple pools (more stress
+// on the partitioning algorithm and the rest of the runtime)?
+// Forcing all graph weights into a single pool may be necessary to
+// prevent large graphs from running up against http://b/70302693
+// "NNAPI overuses (?) fds".
+static const bool kAllWeightsInOnePool = false;
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -522,7 +534,8 @@ private:
     const std::set<Signature> mSignatures;
 };
 
-INSTANTIATE_TEST_CASE_P(Seed, RandomPartitioningTest, ::testing::Range(0U, kNumTestCases));
+INSTANTIATE_TEST_CASE_P(Seed, RandomPartitioningTest,
+                        ::testing::Range(kFirstSeed, kFirstSeed + kNumTestCases));
 
 TEST_P(RandomPartitioningTest, Test) {
     LOG(INFO) << "RandomPartitioningTest: GetParam() = " << GetParam();
@@ -747,7 +760,8 @@ TEST_P(RandomPartitioningTest, Test) {
                             valueOperands.push_back(std::make_pair(operandIndex, ~0U));
                         } else {
                             unsigned memoryIndex = ~0U;
-                            if ((weights.memoryCount() != 0) && (randFrac() < 0.5)) {
+                            if ((weights.memoryCount() != 0) &&
+                                (kAllWeightsInOnePool || (randFrac() < 0.5))) {
                                 memoryIndex = randUInt(weights.memoryCount());
                             } else {
                                 memoryIndex = weights.addMemory();
