@@ -70,3 +70,5 @@ cc_test {
         "libcutils",
     ]
 }
+
+subdirs = ["benchmark"]
