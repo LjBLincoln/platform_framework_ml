@@ -24,7 +24,7 @@ LOCAL_JAVA_LIBRARIES := android.test.runner
 LOCAL_MODULE_TAGS := tests
 
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
-LOCAL_PACKAGE_NAME := NNAPIBenchmark
+LOCAL_PACKAGE_NAME := NeuralNetworksApiBenchmark
 LOCAL_JNI_SHARED_LIBRARIES := libnnbenchmark
 
 LOCAL_SDK_VERSION := 27
