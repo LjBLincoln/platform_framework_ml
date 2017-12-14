@@ -15,9 +15,9 @@
  */
 
 #include "Operations.h"
-#include "OperationsUtils.h"
+#include "CpuOperationUtils.h"
 
-#include "internal/optimized/optimized_ops.h"
+#include "tensorflow/contrib/lite/kernels/internal/optimized/optimized_ops.h"
 
 namespace android {
 namespace nn {
@@ -38,7 +38,7 @@ static char static_scratch_buffer[kStaticBufferSize];
     uint32_t paddingHeight = (uint32_t)padding_top;                             \
     uint32_t paddingWidth = (uint32_t)padding_left;                             \
                                                                                 \
-    Dims<4> im2colDim;                                                          \
+    tflite::Dims<4> im2colDim;                                                  \
     im2colDim.sizes[3] = (int)getSizeOfDimension(outputShape, 0);               \
     im2colDim.sizes[2] = (int)getSizeOfDimension(outputShape, 1);               \
     im2colDim.sizes[1] = (int)getSizeOfDimension(outputShape, 2);               \
@@ -71,17 +71,18 @@ bool convFloat32(const float* inputData, const Shape& inputShape,
 
     ANDROID_NN_CONV_PARAMETERS(float)
 
-    #define ANDROID_NN_CONV(activation)                                        \
-        optimized_ops::Conv<FusedActivationFunctionType::activation>(          \
-            inputData, convertShapeToDims(inputShape),                         \
-            filterData, convertShapeToDims(filterShape),                       \
-            biasData, convertShapeToDims(biasShape),                           \
-            stride_width, stride_height, paddingWidth, paddingHeight,          \
-            outputData, convertShapeToDims(outputShape),                       \
-            im2colData, im2colDim)
+    float output_activation_min, output_activation_max;
+    CalculateActivationRangeFloat(activation, &output_activation_min,
+                                  &output_activation_max);
 
-    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_CONV)
-    #undef ANDROID_NN_CONV
+    tflite::optimized_ops::Conv(
+            inputData, convertShapeToDims(inputShape),
+            filterData, convertShapeToDims(filterShape),
+            biasData, convertShapeToDims(biasShape),
+            stride_width, stride_height, paddingWidth, paddingHeight,
+            output_activation_min, output_activation_max,
+            outputData, convertShapeToDims(outputShape),
+            im2colData, im2colDim);
 
     if (im2colByteSize > kStaticBufferSize) {
         delete[] im2colData;
@@ -124,19 +125,15 @@ bool convQuant8(const uint8_t* inputData, const Shape& inputShape,
     // Alow gemmlowp automatcally decide how many threads to use.
     gemm_context.set_max_num_threads(0);
 
-    #define ANDROID_NN_CONV(activation)                                        \
-        optimized_ops::Conv<FusedActivationFunctionType::activation>(          \
-            inputData, convertShapeToDims(inputShape), inputOffset,            \
-            filterData, convertShapeToDims(filterShape), filterOffset,         \
-            biasData, convertShapeToDims(biasShape),                           \
-            stride_width, stride_height, paddingWidth, paddingHeight,          \
-            outputOffset, output_multiplier, output_shift,                     \
-            output_activation_min, output_activation_max,                      \
-            outputData, convertShapeToDims(outputShape),                       \
-            im2colData, im2colDim, &gemm_context)
-
-    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_CONV)
-    #undef ANDROID_NN_CONV
+    tflite::optimized_ops::Conv(
+            inputData, convertShapeToDims(inputShape), inputOffset,
+            filterData, convertShapeToDims(filterShape), filterOffset,
+            biasData, convertShapeToDims(biasShape),
+            stride_width, stride_height, paddingWidth, paddingHeight,
+            outputOffset, output_multiplier, output_shift,
+            output_activation_min, output_activation_max,
+            outputData, convertShapeToDims(outputShape),
+            im2colData, im2colDim, &gemm_context);
 
     if (im2colByteSize > kStaticBufferSize) {
         delete[] im2colData;
