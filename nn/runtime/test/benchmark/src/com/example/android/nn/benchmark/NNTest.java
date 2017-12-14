@@ -109,14 +109,14 @@ public class NNTest extends ActivityInstrumentationTestCase2<NNBenchmark> {
         getInstrumentation().sendStatus(Activity.RESULT_OK, results);
     }
 
-    // Test case 0: SGEMM Test Small
+    // Test case 0: MobileNet float32
     @MediumTest
     public void testMobileNetFloat() {
         TestAction ta = new TestAction(TestName.MobileNet_FLOAT);
         runTest(ta, TestName.MobileNet_FLOAT.name());
     }
 
-    // Test case 1: SGEMM Test Medium
+    // Test case 1: MobileNet quantized
     @MediumTest
     public void testMobileNetQuantized() {
         TestAction ta = new TestAction(TestName.MobileNet_QUANT8);
