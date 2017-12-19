@@ -77,6 +77,7 @@ cc_library_static {
         "-Wextra",
         "-Wno-unused-parameter",
         "-Wno-unused-variable",
+        "-Wno-invalid-partial-specialization",
     ],
 
 }
