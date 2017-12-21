@@ -18,6 +18,7 @@ cc_defaults {
     name: "NeuralNetworksTest_defaults",
     defaults: ["neuralnetworks_defaults"],
     host_supported: false,
+    openmp: true,
     srcs: [
         "Bridge.cpp",
         "TestGenerated.cpp",

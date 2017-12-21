@@ -47,6 +47,7 @@ cc_library_static {
     defaults: ["neuralnetworks_defaults"],
     host_supported: false,
     vendor_available: true,
+    openmp: true,
     export_include_dirs: ["include"],
 
     srcs: [
@@ -95,6 +96,7 @@ cc_library_static {
     whole_static_libs: [
         "libtflite_kernel_utils",
     ],
+
     cflags: [
         "-DNAMESPACE_FOR_HASH_FUNCTIONS=farmhash",
         "-Werror",

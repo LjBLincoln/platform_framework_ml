@@ -31,6 +31,7 @@ cc_library {
     name: "libneuralnetworks",
     defaults: ["neuralnetworks_defaults"],
     host_supported: false,
+    openmp: true,
 
     srcs: [
         "Callbacks.cpp",
