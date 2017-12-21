@@ -173,6 +173,7 @@ DeviceManager::DeviceManager() {
     findAvailableDevices();
 #ifdef NN_DEBUGGABLE
     mPartitioning = getProp("debug.nn.partition", kPartitioningDefault);
+    mDebugNNCpuOnly = (getProp("debug.nn.cpuonly") != 0);
 #endif  // NN_DEBUGGABLE
 }
 

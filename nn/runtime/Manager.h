@@ -61,14 +61,14 @@ private:
 class DeviceManager {
 public:
     const std::vector<std::shared_ptr<Device>>& getDrivers() const {
-        if (mUseCpuOnly) {
+        if (mSetCpuOnly || mDebugNNCpuOnly) {
             return mNoDevices;
         }
         return mDevices;
     }
 
     // For testing only:
-    void setUseCpuOnly(bool useCpuOnly) { mUseCpuOnly = useCpuOnly; }
+    void setUseCpuOnly(bool useCpuOnly) { mSetCpuOnly = useCpuOnly; }
 
     // How to handle graph partitioning?
     // 0 - Don't do graph partitioning.
@@ -103,9 +103,10 @@ private:
     // We leave this one always empty. To be used when mUseCpuOnly is true.
     std::vector<std::shared_ptr<Device>> mNoDevices;
 
-    // If true, we'll ignore the drivers that are on the device and run everything
-    // on the CPU.
-    bool mUseCpuOnly = false;
+    // If either of these is true, we'll ignore the drivers that are
+    // on the device and run everything on the CPU.
+    bool mSetCpuOnly = false;      // set by setUseCpuOnly()
+    bool mDebugNNCpuOnly = false;  // derived from system property debug.nn.cpuonly
 
     static const uint32_t kPartitioningDefault = kPartitioningWithFallback;
     uint32_t mPartitioning = kPartitioningDefault;
