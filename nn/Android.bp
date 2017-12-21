@@ -26,6 +26,7 @@ cc_defaults {
         "-Wall",
         "-Wextra",
         "-Werror",
+        "-O3",
     ],
     product_variables: {
         debuggable: {  // eng and userdebug builds
