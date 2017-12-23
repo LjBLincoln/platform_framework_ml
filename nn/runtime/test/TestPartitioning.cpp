@@ -712,8 +712,8 @@ TEST_F(PartitioningTest, SimpleModel) {
     // Simple partition (two devices are each capable of everything, one is the best).
     const auto devicesA = makeDevices(
         {
-            {"bad", { .float32Performance = { .execTime = 1.5, .powerUsage = 1.5 },
-                            .quantized8Performance = { .execTime = 1.5, .powerUsage = 1.5 } }, ~0},
+            {"bad", { .float32Performance = { .execTime = 0.9, .powerUsage = 0.9 },
+                            .quantized8Performance = { .execTime = 0.9, .powerUsage = 0.9 } }, ~0},
             {"good", { .float32Performance = { .execTime = 0.5, .powerUsage = 0.5 },
                             .quantized8Performance = { .execTime = 0.5, .powerUsage = 0.5 } }, ~0}
         });
@@ -723,14 +723,28 @@ TEST_F(PartitioningTest, SimpleModel) {
     ASSERT_EQ(planA.forTest_getKind(), ExecutionPlan::Kind::SIMPLE);
     ASSERT_EQ(planA.forTest_simpleGetDevice()->getName(), "good");
 
+    // Simple partition (two devices are each capable of everything, none better than CPU).
+    const auto devicesC = makeDevices(
+        {
+            {"bad", { .float32Performance = { .execTime = 1.1, .powerUsage = 1.1 },
+                            .quantized8Performance = { .execTime = 1.1, .powerUsage = 1.1 } }, ~0},
+            {"bad2", { .float32Performance = { .execTime = 1.0, .powerUsage = 1.0 },
+                            .quantized8Performance = { .execTime = 1.0, .powerUsage = 1.0 } }, ~0}
+        });
+    ExecutionPlan planC;
+    ASSERT_EQ(model.partitionTheWork(devicesC, ExecutePreference::PREFER_LOW_POWER, &planC),
+              ANEURALNETWORKS_NO_ERROR);
+    ASSERT_EQ(planC.forTest_getKind(), ExecutionPlan::Kind::SIMPLE);
+    ASSERT_EQ(planC.forTest_simpleGetDevice(), nullptr);
+
     // Compound partition (two devices, each is capable of one of the
     // two operations).  We could do more extensive checking here --
     // for example, verify that each step within the plan has the
     // correct (model and submodel)x(inputs and outputs).
     const auto devicesB = makeDevices(
         {
-            {"0", { .float32Performance = { .execTime = 1.5, .powerUsage = 1.5 },
-                            .quantized8Performance = { .execTime = 1.5, .powerUsage = 1.5 } }, 1<<0},
+            {"0", { .float32Performance = { .execTime = 0.9, .powerUsage = 0.9 },
+                            .quantized8Performance = { .execTime = 0.9, .powerUsage = 0.9 } }, 1<<0},
             {"1", { .float32Performance = { .execTime = 0.5, .powerUsage = 0.5 },
                             .quantized8Performance = { .execTime = 0.5, .powerUsage = 0.5 } }, 1<<1}
         });
@@ -1021,6 +1035,13 @@ TEST_F(PartitioningTest, ModelOutputAsSubmodelInput) {
         ASSERT_EQ(steps[1]->getOutputsAsSubModelInputs(),
                   (RemapVectorType{ { opnd2, m1Opnd2 } }));
     }
+}
+
+TEST_F(PartitioningTest, OemOperations) {
+    // TODO: Test that:
+    // - the best driver that can run an OEM operation is used,
+    // - that if it's not better than the CPU, we still use that driver,
+    // - that an error is reported if no driver can do the OEM operation.
 }
 
 }  // namespace
