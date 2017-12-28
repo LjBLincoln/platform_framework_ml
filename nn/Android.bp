@@ -46,3 +46,9 @@ cc_library_headers {
     host_supported: false,
     export_include_dirs: ["runtime/test/generated"],
 }
+
+cc_library_headers {
+    name: "libneuralnetworks_generated_test_harness",
+    host_supported: false,
+    export_include_dirs: ["runtime/test/"],
+}
