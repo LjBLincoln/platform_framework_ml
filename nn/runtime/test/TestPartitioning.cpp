@@ -21,6 +21,7 @@
 #include "Manager.h"
 #include "ModelBuilder.h"
 #include "NeuralNetworks.h"
+#include "NeuralNetworksOEM.h"
 #include "NeuralNetworksWrapper.h"
 #include "Utils.h"
 #include "ValidateHal.h"
@@ -214,15 +215,18 @@ void graphDump([[maybe_unused]] const char* name, [[maybe_unused]] const Wrapper
 #endif
 }
 
-// This is an IDevice for testing purposes.  It only has two
-// interesting properties, both of which are specified as constructor
-// arguments: device capabilities, and which subset of operation kinds
-// (0..7) does the device support.  The subset is represented with a
-// bitmask, in which operation kind K corresponds to the bit (1 << K).
+// This is an IDevice for testing purposes.  It only has a few
+// interesting properties, all of which are specified as constructor
+// arguments: device capabilities; which subset of operation kinds
+// (0..7) does the device support; does the device support the OEM
+// operation.  The subset is represented with a bitmask, in which
+// operation kind K corresponds to the bit (1 << K).
 class PartitioningIDevice : public IDevice {
 public:
-    PartitioningIDevice(Capabilities capabilities, uint32_t operationMask) :
-            mCapabilities(capabilities), mOperationMask(operationMask) {}
+    enum OEM { OEMNo, OEMYes };
+
+    PartitioningIDevice(Capabilities capabilities, uint32_t operationMask, OEM oem = OEMNo) :
+            mCapabilities(capabilities), mOperationMask(operationMask), mOEM(oem) {}
     ~PartitioningIDevice() override {}
 
     Return<ErrorStatus> prepareModel(const HidlModel&,
@@ -248,6 +252,10 @@ public:
         const size_t count = model.operations.size();
         std::vector<bool> supported(count);
         for (size_t i = 0; i < count; i++) {
+            if (model.operations[i].type == OperationType::OEM_OPERATION) {
+                supported[i] = (mOEM == OEMYes);
+                continue;
+            }
             supported[i] = false;
             uint32_t operation = lookupOperation(model, i);
             if ((operation != kBadOperation) && (mOperationMask & (1 << operation))) {
@@ -260,6 +268,7 @@ public:
 private:
     Capabilities mCapabilities;
     uint32_t mOperationMask;
+    OEM mOEM;
 };
 
 // This class adds some simple abstractions and utilities on top of
@@ -292,6 +301,16 @@ public:
         uint32_t input2 = addIntOperand(fuseCode);
         uint32_t output = addOperandOfSameType(input0, dimensionedOutput);
         addOperation(type, { input0, input1, input2 }, { output });
+        return output;
+    }
+
+    // Create an OEM operation with one input and one output,
+    // specifying the input operand index.  Returns the output operand
+    // index.
+    uint32_t addOperationOEM1To1(const uint32_t input,
+                                 Dimensioned dimensionedOutput = Dimensioned::YES) {
+        uint32_t output = addOperandOfSameType(input, dimensionedOutput);
+        addOperation(ANEURALNETWORKS_OEM_OPERATION, { input }, { output });
         return output;
     }
 
@@ -397,16 +416,28 @@ protected:
     virtual void SetUp() {
     }
 
-    // From a vector of triples (tuples), each of the form (name,
-    // capabilities, bitmask of supported operation kinds), create a
-    // vector of Devices.
+    // From a vector of DeviceSpecification, create a vector of
+    // Devices.
+    struct DeviceSpecification {
+        DeviceSpecification(const std::string &name, Capabilities capabilities,
+                            uint32_t operationMask,
+                            PartitioningIDevice::OEM oem = PartitioningIDevice::OEMNo) :
+                mName(name), mCapabilities(capabilities),
+                mOperationMask(operationMask), mOEM(oem) { }
+        std::string mName;
+        Capabilities mCapabilities;
+        uint32_t mOperationMask;
+        PartitioningIDevice::OEM mOEM;
+    };
     static std::vector<std::shared_ptr<Device>>
-    makeDevices(std::vector<std::tuple<std::string, Capabilities, uint32_t>> specifications) {
+    makeDevices(std::vector<DeviceSpecification> specifications) {
         std::vector<std::shared_ptr<Device>> devices;
         for (const auto& specification : specifications) {
             devices.push_back(std::make_shared<Device>(
-                std::get<0>(specification),
-                new PartitioningIDevice(std::get<1>(specification), std::get<2>(specification))));
+                specification.mName,
+                new PartitioningIDevice(specification.mCapabilities,
+                                        specification.mOperationMask,
+                                        specification.mOEM)));
             devices.back()->initialize();
         }
         return devices;
@@ -713,9 +744,9 @@ TEST_F(PartitioningTest, SimpleModel) {
     const auto devicesA = makeDevices(
         {
             {"bad", { .float32Performance = { .execTime = 0.9, .powerUsage = 0.9 },
-                            .quantized8Performance = { .execTime = 0.9, .powerUsage = 0.9 } }, ~0},
+                            .quantized8Performance = { .execTime = 0.9, .powerUsage = 0.9 } }, ~0U},
             {"good", { .float32Performance = { .execTime = 0.5, .powerUsage = 0.5 },
-                            .quantized8Performance = { .execTime = 0.5, .powerUsage = 0.5 } }, ~0}
+                            .quantized8Performance = { .execTime = 0.5, .powerUsage = 0.5 } }, ~0U}
         });
     ExecutionPlan planA;
     ASSERT_EQ(model.partitionTheWork(devicesA, ExecutePreference::PREFER_LOW_POWER, &planA),
@@ -727,9 +758,9 @@ TEST_F(PartitioningTest, SimpleModel) {
     const auto devicesC = makeDevices(
         {
             {"bad", { .float32Performance = { .execTime = 1.1, .powerUsage = 1.1 },
-                            .quantized8Performance = { .execTime = 1.1, .powerUsage = 1.1 } }, ~0},
+                            .quantized8Performance = { .execTime = 1.1, .powerUsage = 1.1 } }, ~0U},
             {"bad2", { .float32Performance = { .execTime = 1.0, .powerUsage = 1.0 },
-                            .quantized8Performance = { .execTime = 1.0, .powerUsage = 1.0 } }, ~0}
+                            .quantized8Performance = { .execTime = 1.0, .powerUsage = 1.0 } }, ~0U}
         });
     ExecutionPlan planC;
     ASSERT_EQ(model.partitionTheWork(devicesC, ExecutePreference::PREFER_LOW_POWER, &planC),
@@ -1038,10 +1069,47 @@ TEST_F(PartitioningTest, ModelOutputAsSubmodelInput) {
 }
 
 TEST_F(PartitioningTest, OemOperations) {
-    // TODO: Test that:
-    // - the best driver that can run an OEM operation is used,
-    // - that if it's not better than the CPU, we still use that driver,
-    // - that an error is reported if no driver can do the OEM operation.
+    // Trivial model consisting solely of OEM operation.
+    PartitioningModel model;
+    uint32_t opndIn = model.addFloatOperand();
+    uint32_t opndOut = model.addOperationOEM1To1(opndIn);
+    model.identifyInputsAndOutputs({ opndIn }, { opndOut });
+    model.finish();
+    ASSERT_TRUE(model.isValid());
+
+    // Verify that the best driver than can run an OEM operation is
+    // used, even if it is not better than the CPU.
+    const auto devicesBestOEM = makeDevices(
+        {
+            {"badOEM", { .float32Performance = { .execTime = 1.5, .powerUsage = 1.5 },
+                         .quantized8Performance = { .execTime = 1.5, .powerUsage = 1.5 } },
+                        ~0U, PartitioningIDevice::OEMYes},
+            {"noOEM", { .float32Performance = { .execTime = 0.5, .powerUsage = 0.5 },
+                        .quantized8Performance = { .execTime = 0.5, .powerUsage = 0.5 } },
+                        ~0U, PartitioningIDevice::OEMNo},
+            {"goodOEM", { .float32Performance = { .execTime = 1.2, .powerUsage = 1.2 },
+                          .quantized8Performance = { .execTime = 1.2, .powerUsage = 1.2 } },
+                        ~0U, PartitioningIDevice::OEMYes}
+        });
+    PartitioningCompilation compilationBestOEM(&model);
+    ASSERT_EQ(compilationBestOEM.finish(devicesBestOEM), Result::NO_ERROR);
+    const auto& planBestOEM = compilationBestOEM.getExecutionPlan();
+    ASSERT_EQ(planBestOEM.forTest_getKind(), ExecutionPlan::Kind::SIMPLE);
+    ASSERT_EQ(planBestOEM.forTest_simpleGetDevice()->getName(), "goodOEM");
+
+    // Verify that we get an error if no driver can run an OEM operation.
+    const auto devicesNoOEM = makeDevices(
+        {
+            {"noOEM", { .float32Performance = { .execTime = 0.5, .powerUsage = 0.5 },
+                        .quantized8Performance = { .execTime = 0.5, .powerUsage = 0.5 } },
+                        ~0U, PartitioningIDevice::OEMNo}
+        });
+    PartitioningCompilation compilationNoOEM(&model);
+    ASSERT_EQ(compilationNoOEM.finish(devicesNoOEM), Result::BAD_DATA);
+
+    // Verify that we get an error if there are no drivers (only CPU fallback).
+    PartitioningCompilation compilationNoDrivers(&model);
+    ASSERT_EQ(compilationNoDrivers.finish({} /* no drivers */), Result::BAD_DATA);
 }
 
 }  // namespace
