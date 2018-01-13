@@ -23,6 +23,7 @@ cc_defaults {
         "TestGenerated.cpp",
         "TestMain.cpp",
         "TestMemory.cpp",
+        "TestMemoryInternal.cpp",
         "TestPartitioning.cpp",
         "TestPartitioningRandom.cpp",
         "TestTrivialModel.cpp",
