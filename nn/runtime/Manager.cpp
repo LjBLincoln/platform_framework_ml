@@ -61,22 +61,36 @@ bool Device::initialize() {
 
 void Device::getSupportedOperations(const Model& hidlModel,
                                     hidl_vec<bool>* outSupportedOperations) const {
-    auto ret = mInterface->getSupportedOperations(
-        hidlModel,
-        [outSupportedOperations](ErrorStatus status, const hidl_vec<bool>& supportedOperations) {
-            if (status != ErrorStatus::NONE) {
-                LOG(ERROR)
-                        << "IDevice::getSupportedOperations returned the error "
-                        << toString(status);
-            }
-            *outSupportedOperations = supportedOperations;
-        });
+    bool success = false;
+    auto queryDriver = [outSupportedOperations, &success,
+                        &hidlModel](ErrorStatus status, const hidl_vec<bool>& supportedOperations) {
+        if (status != ErrorStatus::NONE) {
+            LOG(ERROR) << "IDevice::getSupportedOperations returned the error " << toString(status);
+            return;
+        }
+        if (supportedOperations.size() != hidlModel.operations.size()) {
+            LOG(ERROR) << "IDevice::getSupportedOperations returned a vector of length "
+                       << supportedOperations.size() << " when expecting "
+                       << hidlModel.operations.size();
+            return;
+        }
+        success = true;
+        *outSupportedOperations = supportedOperations;
+    };
 
-    if (!ret.isOk()) {
-        LOG(ERROR) << "IDevice::getSupportedOperations failed for " << getName()
-                   << ": " << ret.description();
+    // Query the driver for what it can do.
+    auto ret = mInterface->getSupportedOperations(hidlModel, queryDriver);
+
+    if (!success) {
+        // Set the supported operation vectors to all false, so we won't use this driver.
         outSupportedOperations->resize(hidlModel.operations.size());
         std::fill(outSupportedOperations->begin(), outSupportedOperations->end(), false);
+
+        // If the failure is in the call, log the error.
+        if (!ret.isOk()) {
+            LOG(ERROR) << "IDevice::getSupportedOperations failed for " << getName() << ": "
+                       << ret.description();
+        }
         return;
     }
 
@@ -159,6 +173,7 @@ DeviceManager::DeviceManager() {
     findAvailableDevices();
 #ifdef NN_DEBUGGABLE
     mPartitioning = getProp("debug.nn.partition", kPartitioningDefault);
+    mDebugNNCpuOnly = (getProp("debug.nn.cpuonly") != 0);
 #endif  // NN_DEBUGGABLE
 }
 

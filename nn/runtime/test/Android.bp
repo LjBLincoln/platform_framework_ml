@@ -19,12 +19,16 @@ cc_defaults {
     defaults: ["neuralnetworks_defaults"],
     host_supported: false,
     srcs: [
+        "Bridge.cpp",
+        "TestGenerated.cpp",
         "TestMain.cpp",
         "TestMemory.cpp",
+        "TestMemoryInternal.cpp",
+        "TestPartitioning.cpp",
+        "TestPartitioningRandom.cpp",
         "TestTrivialModel.cpp",
         "TestValidation.cpp",
-        "TestGenerated.cpp",
-        "TestPartitioning.cpp",
+        "TestWrapper.cpp",
     ],
     shared_libs: [
         "libandroid",
@@ -39,6 +43,10 @@ cc_defaults {
         "android.hardware.neuralnetworks@1.0",
         "android.hidl.allocator@1.0",
         "android.hidl.memory@1.0",
+    ],
+    static_libs: [
+        "libneuralnetworks_common",
+        "libSampleDriver",
     ],
     header_libs: [
         "libneuralnetworks_private_headers",

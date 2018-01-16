@@ -324,7 +324,7 @@ typedef enum {
      * * 10: An INT32 value, and has to be one of the {@link FuseCode} values.
      *       Specifies the activation to invoke on the result of each addition.
      *
-     * Inputs (explicit padding):
+     * Inputs (implicit padding):
      * * 0: A 4-D tensor, of shape [batches, height, width, depth_in], specifying the input.
      * * 1: A 4-D tensor, of shape [1, filter_height, filter_width, depth_out],
      *      specifying the filter.
@@ -686,104 +686,165 @@ typedef enum {
     ANEURALNETWORKS_LSH_PROJECTION = 15,
 
     /**
-     * Long short-term memory unit (LSTM) recurrent network layer.
+     * Performs a single time step in a Long Short-Term Memory (LSTM) layer
      *
-     * The default non-peephole implementation is based on:
-     * http://deeplearning.cs.cmu.edu/pdfs/Hochreiter97_lstm.pdf
+     * The LSTM operation is described by the following equations.
+     *
+     * \f{eqnarray*}{
+     * i_t =& \sigma(W_{xi}x_t+W_{hi}h_{t-1}+W_{ci}C_{t-1}+b_i) & \\
+     * f_t =& \sigma(W_{xf}x_t+W_{hf}h_{t-1}+W_{cf}C_{t-1}+b_f) & \\
+     * C_t =& clip(f_t \odot C_{t-1} + i_t \odot g(W_{xc}x_t+W_{hc}h_{t-1}+b_c),\ t_{cell})& \\
+     * o_t =& \sigma(W_{xo}x_t+W_{ho}h_{t-1}+W_{co}C_t+b_o)& \\
+     *      & clip(W_{proj}(o_t \odot g(C_t))+b_{proj},\ t_{proj}) & if\ there\ is\ a\ projection; \\
+     * h_t =& & \\
+     *      & o_t \odot g(C_t) & otherwise. \\
+     * \f}
+     * Where:
+     * * \f$x_t\f$ is the input,
+     * * \f$i_t\f$ is the input gate,
+     * * \f$f_t\f$ is the forget gate,
+     * * \f$C_t\f$ is the cell state,
+     * * \f$o_t\f$ is the output,
+     * * \f$h_t\f$ is the output state,
+     * * \f$\sigma\f$ is the logistic sigmoid function,
+     * * \f$g\f$ is the cell input and cell output activation function, usually \f$tahn\f$,
+     * * \f$W_{xi}\f$ is the input-to-input weight matrix,
+     * * \f$W_{hi}\f$ is the recurrent to input weight matrix,
+     * * \f$W_{ci}\f$ is the cell-to-input weight matrix,
+     * * \f$b_i\f$ is the input gate bias,
+     * * \f$W_{xf}\f$ is the input-to-forget weight matrix,
+     * * \f$W_{hf}\f$ is the recurrent-to-forget weight matrix,
+     * * \f$W_{cf}\f$ is the cell-to-forget weight matrix,
+     * * \f$b_f\f$ is the forget gate bias,
+     * * \f$W_{xc}\f$ is the input-to-cell weight matrix,
+     * * \f$W_{hc}\f$ is the recurrent-to-cell weight matrix,
+     * * \f$b_c\f$ is the cell bias,
+     * * \f$W_{xo}\f$ is the input-to-output weight matrix,
+     * * \f$W_{ho}\f$ is the recurrent-to-output weight matrix,
+     * * \f$W_{co}\f$ is the cell-to-output weight matrix,
+     * * \f$b_o\f$ is the output gate bias,
+     * * \f$W_{proj}\f$ is the projection weight matrix,
+     * * \f$b_{proj}\f$ is the projection bias,
+     * * \f$t_{cell}\f$ is the threshold for clipping the cell state, and
+     * * \f$t_{proj}\f$ is the threshold for clipping the projected output.
+     * * \f$\odot\f$ is the <a href="https://en.wikipedia.org/wiki/Hadamard_product_(matrices)">
+     *   Hadamard product</a> that takes two matrices and produces another
+     *   matrix, each element of which is the product of the corresponding
+     *   elements of the input matrices.
+     *
+     * The operation has the following independently optional inputs:
+     * * The input-to-input weights (\f$W_{xi}\f$), recurrent-to-input weights (\f$W_{hi}\f$),
+     *   cell-to-input (\f$W_{ci}\f$) weights, and input gate bias (\f$b_i\f$) either all have values,
+     *   or none of them have values (i.e., all set to null). If they have no
+     *   values, coupling of input and forget gates (CIFG) is used, in which case
+     *   the input gate (\f$i_t\f$) is calculated using the following equation instead.
+     *   \f{eqnarray*}{
+     *   i_t = 1 - f_t
+     *   \f}
+     * * The cell-to-input weights (\f$W_{ci}\f$), cell-to-forget weights (\f$W_{cf}\f$), and cell-to-output
+     *   weights (\f$W_{co}\f$) either all have values or none of them have values.
+     *   If they have values, the peephole optimization is used.
+     * * The projection weights (\f$W_{proj}\f$) is required only for the recurrent projection
+     *   layer, and should otherwise have no value.
+     * * The projection bias (\f$b_{proj}\f$) may (but not required to) have a value if the
+     *   recurrent projection layer exists, and should otherwise have no value.
+     *
+     * References:
+     *
+     * The default non-peephole non-CIFG implementation is based on:
+     * http://www.bioinf.jku.at/publications/older/2604.pdf
      * S. Hochreiter and J. Schmidhuber. "Long Short-Term Memory". Neural
      * Computation, 9(8):1735-1780, 1997.
      *
-     * The peephole implementation is based on:
+     * The peephole implementation and projection layer is based on:
      * https://research.google.com/pubs/archive/43905.pdf
      * Hasim Sak, Andrew Senior, and Francoise Beaufays. "Long short-term memory
      * recurrent neural network architectures for large scale acoustic modeling."
      * INTERSPEECH, 2014.
+     * (However, the concept of peephole optimization was introduced in work
+     * prior to this paper.)
      *
      * The coupling of input and forget gate (CIFG) is based on:
      * http://arxiv.org/pdf/1503.04069.pdf
      * Greff et al. "LSTM: A Search Space Odyssey"
      *
-     * The class has the following independently optional inputs:
-     * * If input gate (if CIFG): “input_to_forget_weights”,
-     *   “recurrent_to_input_weights”, “cell_to_input_weights”, “input_gate_bias”.
-     * * If no peephole connections: “cell_to_input_weights”,
-     *   “cell_to_forget_weights”, “cell_to_output_weights”.
-     * * If no projection layer: “projection_weights” and “projection_bias”.
-     * * If no projection bias: “projection_bias”.
-     *
      * Supported tensor types (type T):
      * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
      *
      * Inputs:
-     * * 0: Input.
+     * * 0: The input (\f$x_t\f$).
      *      A 2-D tensor of type T, of shape [batch_size, input_size], where
      *      “batch_size” corresponds to the batching dimension, and “input_size”
      *      is the size of the input.
-     * * 1: input_to_input_weights.
+     * * 1: The input-to-input weights (\f$W_{xi}\f$). Optional.
      *      A 2-D tensor of type T, of shape [num_units, input_size], where
      *      “num_units” corresponds to the number of cell units.
-     * * 2: input_to_forget_weights.
+     * * 2: The input-to-forget weights (\f$W_{xf}\f$).
      *      A 2-D tensor of type T, of shape [num_units, input_size].
-     * * 3: input_to_cell_weights.
+     * * 3: The input-to-cell weights (\f$W_{xc}\f$).
      *      A 2-D tensor of type T, of shape [num_units, input_size].
-     * * 4: input_to_output_weights.
+     * * 4: The input-to-output weights (\f$W_{xo}\f$).
      *      A 2-D tensor of type T, of shape [num_units, input_size].
-     * * 5: recurrent_to_input_weights.
+     * * 5: The recurrent-to-input weights (\f$W_{hi}\f$). Optional.
      *      A 2-D tensor of type T, of shape [num_units, output_size], where
      *      “output_size” corresponds to either the number of cell units (i.e.,
      *      “num_units”), or the second dimension of the “projection_weights”, if
      *      defined.
-     * * 6: recurrent_to_forget_weights.
+     * * 6: The recurrent-to-forget weights (\f$W_{hf}\f$).
      *      A 2-D tensor of type T, of shape [num_units, output_size].
-     * * 7: recurrent_to_cell_weights.
+     * * 7: The recurrent-to-cell weights (\f$W_{hc}\f$).
      *      A 2-D tensor of type T, of shape [num_units, output_size].
-     * * 8: recurrent_to_output_weights.
+     * * 8: The recurrent-to-output weights (\f$W_{ho}\f$).
      *      A 2-D tensor of type T, of shape [num_units, output_size].
-     * * 9: cell_to_input_weights.
+     * * 9: The cell-to-input weights (\f$W_{ci}\f$). Optional.
      *      A 1-D tensor of type T, of shape [num_units].
-     * * 10:cell_to_forget_weights.
+     * * 10:The cell-to-forget weights (\f$W_{cf}\f$). Optional.
      *      A 1-D tensor of type T, of shape [num_units].
-     * * 11:cell_to_output_weights.
+     * * 11:The cell-to-output weights (\f$W_{co}\f$). Optional.
      *      A 1-D tensor of type T, of shape [num_units].
-     * * 12:input_gate_bias.
+     * * 12:The input gate bias (\f$b_i\f$). Optional.
      *      A 1-D tensor of type T, of shape [num_units].
-     * * 13:forget_gate_bias.
+     * * 13:The forget gate bias (\f$b_f\f$).
      *      A 1-D tensor of type T, of shape [num_units].
-     * * 14:cell_bias.
+     * * 14:The cell bias (\f$b_c\f$).
      *      A 1-D tensor of type T, of shape [num_units].
-     * * 15:output_gate_bias.
+     * * 15:The output gate bias (\f$b_o\f$).
      *      A 1-D tensor of type T, of shape [num_units].
-     * * 16:projection_weights.
+     * * 16:The projection weights (\f$W_{proj}\f$). Optional.
      *      A 2-D tensor of type T, of shape [output_size, num_units].
-     * * 17:projection_bias.
+     * * 17:The projection bias (\f$b_{proj}\f$). Optional.
      *      A 1-D tensor of type T, of shape [output_size].
-     * * 18: output_state (in).
+     * * 18:The output state (in) (\f$h_{t-1}\f$).
      *      A 2-D tensor of type T, of shape [batch_size, output_size].
-     * * 19: cell_state (in).
+     * * 19:The cell state (in) (\f$C_{t-1}\f$).
      *      A 2-D tensor of type T, of shape [batch_size, num_units].
-     * * 20:fused_activation_function.
-     *      An optional {@link FuseCode} value indicating the activation
-     *      function.
-     *      If “NONE” is specified then it results in a linear activation.
-     * * 21:cell_clip.
-     *      A clipping threshold for the cell state, such that values are bound
+     * * 20:The activation function (\f$g\f$).
+     *      A value indicating the activation function:
+     *      <ul>
+     *      <li>0: None;
+     *      <li>1: Relu;
+     *      <li>3: Relu6;
+     *      <li>4: Tanh;
+     *      <li>6: Sigmoid.
+     *      </ul>
+     * * 21:The clipping threshold (\f$t_{cell}\f$) for the cell state, such that values are bound
      *      within [-cell_clip, cell_clip]. If set to 0.0 then clipping is
      *      disabled.
-     * * 22:proj_clip.
-     *      A clipping threshold for the output from the projection layer, such
+     * * 22:The clipping threshold (\f$t_{proj}\f$) for the output from the projection layer, such
      *      that values are bound within [-proj_clip, proj_clip]. If set to 0.0
      *      then clipping is disabled.
      *
      * Outputs:
-     * * 0: scratch_buffer.
-     *      A 3-D tensor of type T, of shape [batch_size, num_cell, 4].
-     * * 1: output_state (out).
+     * * 0: The scratch buffer.
+     *      A 2-D tensor of type T, of shape [batch_size, num_units * 4] with
+     *      CIFG, or [batch_size, num_units * 3] without CIFG.
+     * * 1: The output state (out) (\f$h_t\f$).
      *      A 2-D tensor of type T, of shape [batch_size, output_size].
-     * * 2: cell_state (out).
+     * * 2: The cell state (out) (\f$C_t\f$).
      *      A 2-D tensor of type T, of shape [batch_size, num_units].
-     * * 3: output.
+     * * 3: The output (\f$o_t\f$).
      *      A 2-D tensor of type T, of shape [batch_size, output_size]. This is
-     *      effectively the same as the current “output_state” value.
+     *      effectively the same as the current “output state (out)” value.
      */
     ANEURALNETWORKS_LSTM = 16,
 
@@ -1093,9 +1154,8 @@ typedef enum {
      *
      * Specifically, for rank 1, this layer implements the operation:
      *
-     *    memory = push(conv1d(inputs, weights_feature, feature_dim,
-     *                  "ANEURALNETWORKS_PADDING_VALID"));
-     *    outputs = activation(memory * weights_time + bias);
+     *     memory = push(conv1d(inputs, weights_feature, feature_dim, "ANEURALNETWORKS_PADDING_VALID"));
+     *     outputs = activation(memory * weights_time + bias);
      *
      * Where:
      * * “weights_feature” is a weights matrix that processes the inputs (by
@@ -1279,10 +1339,10 @@ typedef struct ANeuralNetworksMemory ANeuralNetworksMemory;
  * ANeuralNetworksModel is an opaque type that contains a description of the
  * mathematical operations that constitute the model.
  *
- * <p>The model will be built by calling<ul>
- * <li>{@link ANeuralNetworksModel_create},</li>
- * <li>{@link ANeuralNetworksModel_addOperation},</li>
- * <li>{@link ANeuralNetworksModel_addOperand},</li>
+ * <p>Build the model by calling<ul>
+ * <li>{@link ANeuralNetworksModel_create}</li>
+ * <li>{@link ANeuralNetworksModel_addOperation}</li>
+ * <li>{@link ANeuralNetworksModel_addOperand}</li>
  * </ul>
  *
  * A model is completed by calling {@link ANeuralNetworksModel_finish}.
@@ -1779,7 +1839,7 @@ int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32
  * <p>The provided memory must outlive the execution.</p>
  *
  * If the input is optional, you can indicate that it is omitted by
- * using @{Link ANeuralNetworks_setInput} instead, passing nullptr for buffer
+ * using {@link ANeuralNetworks_setInput} instead, passing nullptr for buffer
  * and 0 for length.
  *
  * See {@link ANeuralNetworksExecution} for information on multithreaded usage.
@@ -1843,7 +1903,7 @@ int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int3
  * {@link ANeuralNetworksExecution}.
  *
  * If the output is optional, you can indicate that it is omitted by
- * using @{Link ANeuralNetworks_setOutput} instead, passing nullptr for buffer
+ * using {@link ANeuralNetworks_setOutput} instead, passing nullptr for buffer
  * and 0 for length.
  *
  * <p>The provided memory must outlive the execution.</p>
