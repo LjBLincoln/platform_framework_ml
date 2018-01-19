@@ -47,7 +47,7 @@ struct ModelArgumentInfo {
     //   dimensions is valid.
     //   buffer is valid
     // If MEMORY then:
-    //   locationAndLength.location.{poolIndex, offset, length} is valid.
+    //   locationAndLength.{poolIndex, offset, length} is valid.
     //   dimensions is valid.
     enum { POINTER, MEMORY, HAS_NO_VALUE, UNSPECIFIED } state = UNSPECIFIED;
     DataLocation locationAndLength;
@@ -82,6 +82,10 @@ public:
 private:
     const ModelBuilder* mModel;
     const ExecutionPlan* mPlan;
+
+    // This is a DeviceManager::kPartitioning* value captured from
+    // CompilationBuilder when the ExecutionBuilder is constructed.
+    uint32_t mPartitioning;
 
     // The information we'll send to the driver about the inputs and outputs.
     // Note that we build this in two steps:
@@ -132,6 +136,10 @@ public:
     void mapOutput(uint32_t builderIndex, uint32_t executorIndex) {
         mapInputOrOutput(mExecutionBuilder->mOutputs[builderIndex],
                          &mOutputs[executorIndex]);
+    }
+    void mapOutputToInput(uint32_t builderIndex, uint32_t executorIndex) {
+        mapInputOrOutput(mExecutionBuilder->mOutputs[builderIndex],
+                         &mInputs[executorIndex]);
     }
 
     // The input or output is assumed to have the size of the

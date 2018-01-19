@@ -19,9 +19,9 @@
 #define LOG_TAG "Operations"
 
 #include "Operations.h"
-#include "OperationsUtils.h"
+#include "CpuOperationUtils.h"
 
-#include "internal/optimized/optimized_ops.h"
+#include "tensorflow/contrib/lite/kernels/internal/optimized/optimized_ops.h"
 
 namespace android {
 namespace nn {
@@ -43,7 +43,7 @@ bool resizeBilinearFloat32(const float* inputData, const Shape& inputShape,
     Shape outDimShape;
     outDimShape.dimensions = {1, 1, 1, 2};
 
-    optimized_ops::ResizeBilinear(
+    tflite::optimized_ops::ResizeBilinear(
             inputData, convertShapeToDims(inputShape),
             outDimData, convertShapeToDims(outDimShape),
             outputData, convertShapeToDims(outputShape));
@@ -54,14 +54,14 @@ bool depthToSpaceGeneric(const uint8_t* inputData, const Shape& inputShape,
                          int32_t blockSize,
                          uint8_t* outputData, const Shape& outputShape) {
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
-        optimized_ops::DepthToSpace(
+       tflite::optimized_ops::DepthToSpace(
                 reinterpret_cast<const float*>(inputData),
                 convertShapeToDims(inputShape),
                 blockSize,
                 reinterpret_cast<float*>(outputData),
                 convertShapeToDims(outputShape));
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
-        optimized_ops::DepthToSpace(
+        tflite::optimized_ops::DepthToSpace(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),
                 blockSize,
@@ -78,14 +78,14 @@ bool spaceToDepthGeneric(const uint8_t* inputData, const Shape& inputShape,
                          int32_t blockSize,
                          uint8_t* outputData, const Shape& outputShape) {
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
-        optimized_ops::SpaceToDepth(
+        tflite::optimized_ops::SpaceToDepth(
                 reinterpret_cast<const float*>(inputData),
                 convertShapeToDims(inputShape),
                 blockSize,
                 reinterpret_cast<float*>(outputData),
                 convertShapeToDims(outputShape));
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
-        optimized_ops::SpaceToDepth(
+        tflite::optimized_ops::SpaceToDepth(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),
                 blockSize,

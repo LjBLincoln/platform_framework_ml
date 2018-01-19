@@ -89,8 +89,11 @@ inline uint32_t sizeOfData(const Operand& operand) {
     return sizeOfData(operand.type, operand.dimensions);
 }
 
-// Returns the name of the operation in ASCII.
+// Returns the name of the operation type in ASCII.
 const char* getOperationName(OperationType opCode);
+
+// Returns the name of the operand type in ASCII.
+const char* getOperandTypeName(OperandType type);
 
 // Memory is unmapped.
 // Memory is reference counted by hidl_memory instances, and is deallocated
@@ -143,8 +146,6 @@ inline bool validCode(uint32_t codeCount, uint32_t codeCountOEM, uint32_t code) 
 int validateOperandType(const ANeuralNetworksOperandType& type, const char* tag, bool allowPartial);
 int validateOperandList(uint32_t count, const uint32_t* list, uint32_t operandCount,
                         const char* tag);
-bool validateModel(const Model& model);
-bool validateRequest(const Request& request, const Model& model);
 
 inline size_t getSizeFromInts(int lower, int higher) {
     return (uint32_t)(lower) + ((uint64_t)(uint32_t)(higher) << 32);
