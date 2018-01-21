@@ -47,6 +47,7 @@ cc_library_static {
         "operations/Reshape.cpp",
         "operations/RNN.cpp",
         "operations/SimpleMath.cpp",
+        "operations/StridedSlice.cpp",
         "operations/SVDF.cpp",
     ],
     shared_libs: [

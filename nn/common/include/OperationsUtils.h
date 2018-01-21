@@ -140,6 +140,35 @@ inline PaddingScheme getPaddingScheme(int32_t inWidth, int32_t inHeight,
     }
 }
 
+// TODO: add more documentation from upstream.
+// Reverse order of bits in the mask to match the expected order in kernel
+inline int ReverseMaskBits(int mask, int num_dimensions) {
+  int out = 0;
+  for (int dim = 0; dim < num_dimensions; dim++) {
+    out <<= 1;
+    out += (mask & 1);
+    mask >>= 1;
+  }
+  return out;
+}
+
+// TODO: add more documentation from upstream.
+inline int32_t PositiveRemainder(int32_t dividend, int32_t divisor) {
+  return (divisor + (dividend % divisor)) % divisor;
+}
+
+// TODO: add more documentation from upstream.
+inline int32_t ClampedIndex(int32_t index, int dim, bool pos_stride) {
+  return pos_stride
+             ? (index >= dim ? dim
+                             : PositiveRemainder(
+                                   std::min(std::max(index, -dim), dim), dim))
+             : (index < -dim
+                    ? -1
+                    : PositiveRemainder(
+                          std::min(std::max(index, -dim), dim - 1), dim));
+}
+
 // Preparation functions for the corresponding ops
 bool addMulPrepare(const Shape& in1, const Shape& in2, Shape* out1);
 
@@ -211,6 +240,44 @@ bool hashtableLookupPrepare(const Shape &lookupShape,
                             Shape *outputShape,
                             Shape *hitShape);
 
+bool padPrepare(const Shape& input,
+                const int32_t* paddingsData,
+                const Shape& paddingsShape,
+                Shape* output);
+
+bool batchToSpacePrepare(const Shape& input,
+                         const int32_t* blockSizeData,
+                         const Shape& blockSizeShape,
+                         Shape* output);
+
+bool spaceToBatchPrepare(const Shape& input,
+                         const int32_t* blockSizeData,
+                         const Shape& blockSizeShape,
+                         const int32_t* paddingsData,
+                         const Shape& paddingsShape,
+                         Shape* output);
+
+bool squeezePrepare(const Shape& input,
+                    const int32_t* squeezeDims,
+                    const Shape& squeezeDimsShape,
+                    Shape* output);
+
+bool transposePrepare(const Shape& input,
+                      const int32_t* permData,
+                      const Shape& permShape,
+                      Shape* output);
+
+bool meanPrepare(const Shape& input,
+                 const int32_t* axisData,
+                 const Shape& axisShape,
+                 bool keepDims,
+                 Shape* output);
+
+bool stridedSlicePrepare(const Shape& input,
+                         const int32_t* beginData, const Shape& beginShape, int32_t beginMask,
+                         const int32_t* endData, const Shape& endShape, int32_t endMask,
+                         const int32_t* stridesData, const Shape& stridesShape,
+                         Shape* output);
 } // namespace nn
 } // namespace android
 
