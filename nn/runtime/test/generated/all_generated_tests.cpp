@@ -10,7 +10,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/add_broadcast_quant8.model.cpp"
 } // namespace add_broadcast_quant8
 TEST_F(GeneratedTests, add_broadcast_quant8) {
-    Execute(add_broadcast_quant8::CreateModel,
+    execute(add_broadcast_quant8::CreateModel,
             add_broadcast_quant8::is_ignored,
             add_broadcast_quant8::examples);
 }
@@ -24,7 +24,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/add.model.cpp"
 } // namespace add
 TEST_F(GeneratedTests, add) {
-    Execute(add::CreateModel,
+    execute(add::CreateModel,
             add::is_ignored,
             add::examples);
 }
@@ -38,7 +38,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/add_quant8.model.cpp"
 } // namespace add_quant8
 TEST_F(GeneratedTests, add_quant8) {
-    Execute(add_quant8::CreateModel,
+    execute(add_quant8::CreateModel,
             add_quant8::is_ignored,
             add_quant8::examples);
 }
@@ -52,7 +52,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/avg_pool_float_1.model.cpp"
 } // namespace avg_pool_float_1
 TEST_F(GeneratedTests, avg_pool_float_1) {
-    Execute(avg_pool_float_1::CreateModel,
+    execute(avg_pool_float_1::CreateModel,
             avg_pool_float_1::is_ignored,
             avg_pool_float_1::examples);
 }
@@ -66,7 +66,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/avg_pool_float_2.model.cpp"
 } // namespace avg_pool_float_2
 TEST_F(GeneratedTests, avg_pool_float_2) {
-    Execute(avg_pool_float_2::CreateModel,
+    execute(avg_pool_float_2::CreateModel,
             avg_pool_float_2::is_ignored,
             avg_pool_float_2::examples);
 }
@@ -80,7 +80,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/avg_pool_float_3.model.cpp"
 } // namespace avg_pool_float_3
 TEST_F(GeneratedTests, avg_pool_float_3) {
-    Execute(avg_pool_float_3::CreateModel,
+    execute(avg_pool_float_3::CreateModel,
             avg_pool_float_3::is_ignored,
             avg_pool_float_3::examples);
 }
@@ -94,7 +94,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/avg_pool_float_4.model.cpp"
 } // namespace avg_pool_float_4
 TEST_F(GeneratedTests, avg_pool_float_4) {
-    Execute(avg_pool_float_4::CreateModel,
+    execute(avg_pool_float_4::CreateModel,
             avg_pool_float_4::is_ignored,
             avg_pool_float_4::examples);
 }
@@ -108,7 +108,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/avg_pool_quant8_1.model.cpp"
 } // namespace avg_pool_quant8_1
 TEST_F(GeneratedTests, avg_pool_quant8_1) {
-    Execute(avg_pool_quant8_1::CreateModel,
+    execute(avg_pool_quant8_1::CreateModel,
             avg_pool_quant8_1::is_ignored,
             avg_pool_quant8_1::examples);
 }
@@ -122,7 +122,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/avg_pool_quant8_2.model.cpp"
 } // namespace avg_pool_quant8_2
 TEST_F(GeneratedTests, avg_pool_quant8_2) {
-    Execute(avg_pool_quant8_2::CreateModel,
+    execute(avg_pool_quant8_2::CreateModel,
             avg_pool_quant8_2::is_ignored,
             avg_pool_quant8_2::examples);
 }
@@ -136,7 +136,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/avg_pool_quant8_3.model.cpp"
 } // namespace avg_pool_quant8_3
 TEST_F(GeneratedTests, avg_pool_quant8_3) {
-    Execute(avg_pool_quant8_3::CreateModel,
+    execute(avg_pool_quant8_3::CreateModel,
             avg_pool_quant8_3::is_ignored,
             avg_pool_quant8_3::examples);
 }
@@ -150,7 +150,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/avg_pool_quant8_4.model.cpp"
 } // namespace avg_pool_quant8_4
 TEST_F(GeneratedTests, avg_pool_quant8_4) {
-    Execute(avg_pool_quant8_4::CreateModel,
+    execute(avg_pool_quant8_4::CreateModel,
             avg_pool_quant8_4::is_ignored,
             avg_pool_quant8_4::examples);
 }
@@ -164,7 +164,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/concat_float_1.model.cpp"
 } // namespace concat_float_1
 TEST_F(GeneratedTests, concat_float_1) {
-    Execute(concat_float_1::CreateModel,
+    execute(concat_float_1::CreateModel,
             concat_float_1::is_ignored,
             concat_float_1::examples);
 }
@@ -178,7 +178,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/concat_float_2.model.cpp"
 } // namespace concat_float_2
 TEST_F(GeneratedTests, concat_float_2) {
-    Execute(concat_float_2::CreateModel,
+    execute(concat_float_2::CreateModel,
             concat_float_2::is_ignored,
             concat_float_2::examples);
 }
@@ -192,7 +192,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/concat_float_3.model.cpp"
 } // namespace concat_float_3
 TEST_F(GeneratedTests, concat_float_3) {
-    Execute(concat_float_3::CreateModel,
+    execute(concat_float_3::CreateModel,
             concat_float_3::is_ignored,
             concat_float_3::examples);
 }
@@ -206,7 +206,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/concat_quant8_1.model.cpp"
 } // namespace concat_quant8_1
 TEST_F(GeneratedTests, concat_quant8_1) {
-    Execute(concat_quant8_1::CreateModel,
+    execute(concat_quant8_1::CreateModel,
             concat_quant8_1::is_ignored,
             concat_quant8_1::examples);
 }
@@ -220,7 +220,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/concat_quant8_2.model.cpp"
 } // namespace concat_quant8_2
 TEST_F(GeneratedTests, concat_quant8_2) {
-    Execute(concat_quant8_2::CreateModel,
+    execute(concat_quant8_2::CreateModel,
             concat_quant8_2::is_ignored,
             concat_quant8_2::examples);
 }
@@ -234,9 +234,65 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/concat_quant8_3.model.cpp"
 } // namespace concat_quant8_3
 TEST_F(GeneratedTests, concat_quant8_3) {
-    Execute(concat_quant8_3::CreateModel,
+    execute(concat_quant8_3::CreateModel,
             concat_quant8_3::is_ignored,
             concat_quant8_3::examples);
+}
+
+namespace conv_1_h3_w2_SAME {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_1_h3_w2_SAME test
+#include "generated/examples/conv_1_h3_w2_SAME.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_1_h3_w2_SAME.model.cpp"
+} // namespace conv_1_h3_w2_SAME
+TEST_F(GeneratedTests, conv_1_h3_w2_SAME) {
+    execute(conv_1_h3_w2_SAME::CreateModel,
+            conv_1_h3_w2_SAME::is_ignored,
+            conv_1_h3_w2_SAME::examples);
+}
+
+namespace conv_1_h3_w2_VALID {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_1_h3_w2_VALID test
+#include "generated/examples/conv_1_h3_w2_VALID.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_1_h3_w2_VALID.model.cpp"
+} // namespace conv_1_h3_w2_VALID
+TEST_F(GeneratedTests, conv_1_h3_w2_VALID) {
+    execute(conv_1_h3_w2_VALID::CreateModel,
+            conv_1_h3_w2_VALID::is_ignored,
+            conv_1_h3_w2_VALID::examples);
+}
+
+namespace conv_3_h3_w2_SAME {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_3_h3_w2_SAME test
+#include "generated/examples/conv_3_h3_w2_SAME.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_3_h3_w2_SAME.model.cpp"
+} // namespace conv_3_h3_w2_SAME
+TEST_F(GeneratedTests, conv_3_h3_w2_SAME) {
+    execute(conv_3_h3_w2_SAME::CreateModel,
+            conv_3_h3_w2_SAME::is_ignored,
+            conv_3_h3_w2_SAME::examples);
+}
+
+namespace conv_3_h3_w2_VALID {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_3_h3_w2_VALID test
+#include "generated/examples/conv_3_h3_w2_VALID.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_3_h3_w2_VALID.model.cpp"
+} // namespace conv_3_h3_w2_VALID
+TEST_F(GeneratedTests, conv_3_h3_w2_VALID) {
+    execute(conv_3_h3_w2_VALID::CreateModel,
+            conv_3_h3_w2_VALID::is_ignored,
+            conv_3_h3_w2_VALID::examples);
 }
 
 namespace conv_float_channels {
@@ -248,7 +304,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_float_channels.model.cpp"
 } // namespace conv_float_channels
 TEST_F(GeneratedTests, conv_float_channels) {
-    Execute(conv_float_channels::CreateModel,
+    execute(conv_float_channels::CreateModel,
             conv_float_channels::is_ignored,
             conv_float_channels::examples);
 }
@@ -262,7 +318,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_float_channels_weights_as_inputs.model.cpp"
 } // namespace conv_float_channels_weights_as_inputs
 TEST_F(GeneratedTests, conv_float_channels_weights_as_inputs) {
-    Execute(conv_float_channels_weights_as_inputs::CreateModel,
+    execute(conv_float_channels_weights_as_inputs::CreateModel,
             conv_float_channels_weights_as_inputs::is_ignored,
             conv_float_channels_weights_as_inputs::examples);
 }
@@ -276,7 +332,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_float_large.model.cpp"
 } // namespace conv_float_large
 TEST_F(GeneratedTests, conv_float_large) {
-    Execute(conv_float_large::CreateModel,
+    execute(conv_float_large::CreateModel,
             conv_float_large::is_ignored,
             conv_float_large::examples);
 }
@@ -290,7 +346,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_float_large_weights_as_inputs.model.cpp"
 } // namespace conv_float_large_weights_as_inputs
 TEST_F(GeneratedTests, conv_float_large_weights_as_inputs) {
-    Execute(conv_float_large_weights_as_inputs::CreateModel,
+    execute(conv_float_large_weights_as_inputs::CreateModel,
             conv_float_large_weights_as_inputs::is_ignored,
             conv_float_large_weights_as_inputs::examples);
 }
@@ -304,7 +360,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_float.model.cpp"
 } // namespace conv_float
 TEST_F(GeneratedTests, conv_float) {
-    Execute(conv_float::CreateModel,
+    execute(conv_float::CreateModel,
             conv_float::is_ignored,
             conv_float::examples);
 }
@@ -318,7 +374,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_float_weights_as_inputs.model.cpp"
 } // namespace conv_float_weights_as_inputs
 TEST_F(GeneratedTests, conv_float_weights_as_inputs) {
-    Execute(conv_float_weights_as_inputs::CreateModel,
+    execute(conv_float_weights_as_inputs::CreateModel,
             conv_float_weights_as_inputs::is_ignored,
             conv_float_weights_as_inputs::examples);
 }
@@ -332,7 +388,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_quant8_channels.model.cpp"
 } // namespace conv_quant8_channels
 TEST_F(GeneratedTests, conv_quant8_channels) {
-    Execute(conv_quant8_channels::CreateModel,
+    execute(conv_quant8_channels::CreateModel,
             conv_quant8_channels::is_ignored,
             conv_quant8_channels::examples);
 }
@@ -346,7 +402,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_quant8_channels_weights_as_inputs.model.cpp"
 } // namespace conv_quant8_channels_weights_as_inputs
 TEST_F(GeneratedTests, conv_quant8_channels_weights_as_inputs) {
-    Execute(conv_quant8_channels_weights_as_inputs::CreateModel,
+    execute(conv_quant8_channels_weights_as_inputs::CreateModel,
             conv_quant8_channels_weights_as_inputs::is_ignored,
             conv_quant8_channels_weights_as_inputs::examples);
 }
@@ -360,7 +416,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_quant8_large.model.cpp"
 } // namespace conv_quant8_large
 TEST_F(GeneratedTests, conv_quant8_large) {
-    Execute(conv_quant8_large::CreateModel,
+    execute(conv_quant8_large::CreateModel,
             conv_quant8_large::is_ignored,
             conv_quant8_large::examples);
 }
@@ -374,7 +430,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_quant8_large_weights_as_inputs.model.cpp"
 } // namespace conv_quant8_large_weights_as_inputs
 TEST_F(GeneratedTests, conv_quant8_large_weights_as_inputs) {
-    Execute(conv_quant8_large_weights_as_inputs::CreateModel,
+    execute(conv_quant8_large_weights_as_inputs::CreateModel,
             conv_quant8_large_weights_as_inputs::is_ignored,
             conv_quant8_large_weights_as_inputs::examples);
 }
@@ -388,7 +444,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_quant8.model.cpp"
 } // namespace conv_quant8
 TEST_F(GeneratedTests, conv_quant8) {
-    Execute(conv_quant8::CreateModel,
+    execute(conv_quant8::CreateModel,
             conv_quant8::is_ignored,
             conv_quant8::examples);
 }
@@ -402,7 +458,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_quant8_overflow.model.cpp"
 } // namespace conv_quant8_overflow
 TEST_F(GeneratedTests, conv_quant8_overflow) {
-    Execute(conv_quant8_overflow::CreateModel,
+    execute(conv_quant8_overflow::CreateModel,
             conv_quant8_overflow::is_ignored,
             conv_quant8_overflow::examples);
 }
@@ -416,7 +472,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_quant8_overflow_weights_as_inputs.model.cpp"
 } // namespace conv_quant8_overflow_weights_as_inputs
 TEST_F(GeneratedTests, conv_quant8_overflow_weights_as_inputs) {
-    Execute(conv_quant8_overflow_weights_as_inputs::CreateModel,
+    execute(conv_quant8_overflow_weights_as_inputs::CreateModel,
             conv_quant8_overflow_weights_as_inputs::is_ignored,
             conv_quant8_overflow_weights_as_inputs::examples);
 }
@@ -430,7 +486,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/conv_quant8_weights_as_inputs.model.cpp"
 } // namespace conv_quant8_weights_as_inputs
 TEST_F(GeneratedTests, conv_quant8_weights_as_inputs) {
-    Execute(conv_quant8_weights_as_inputs::CreateModel,
+    execute(conv_quant8_weights_as_inputs::CreateModel,
             conv_quant8_weights_as_inputs::is_ignored,
             conv_quant8_weights_as_inputs::examples);
 }
@@ -444,7 +500,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depth_to_space_float_1.model.cpp"
 } // namespace depth_to_space_float_1
 TEST_F(GeneratedTests, depth_to_space_float_1) {
-    Execute(depth_to_space_float_1::CreateModel,
+    execute(depth_to_space_float_1::CreateModel,
             depth_to_space_float_1::is_ignored,
             depth_to_space_float_1::examples);
 }
@@ -458,7 +514,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depth_to_space_float_2.model.cpp"
 } // namespace depth_to_space_float_2
 TEST_F(GeneratedTests, depth_to_space_float_2) {
-    Execute(depth_to_space_float_2::CreateModel,
+    execute(depth_to_space_float_2::CreateModel,
             depth_to_space_float_2::is_ignored,
             depth_to_space_float_2::examples);
 }
@@ -472,7 +528,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depth_to_space_float_3.model.cpp"
 } // namespace depth_to_space_float_3
 TEST_F(GeneratedTests, depth_to_space_float_3) {
-    Execute(depth_to_space_float_3::CreateModel,
+    execute(depth_to_space_float_3::CreateModel,
             depth_to_space_float_3::is_ignored,
             depth_to_space_float_3::examples);
 }
@@ -486,7 +542,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depth_to_space_quant8_1.model.cpp"
 } // namespace depth_to_space_quant8_1
 TEST_F(GeneratedTests, depth_to_space_quant8_1) {
-    Execute(depth_to_space_quant8_1::CreateModel,
+    execute(depth_to_space_quant8_1::CreateModel,
             depth_to_space_quant8_1::is_ignored,
             depth_to_space_quant8_1::examples);
 }
@@ -500,7 +556,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depth_to_space_quant8_2.model.cpp"
 } // namespace depth_to_space_quant8_2
 TEST_F(GeneratedTests, depth_to_space_quant8_2) {
-    Execute(depth_to_space_quant8_2::CreateModel,
+    execute(depth_to_space_quant8_2::CreateModel,
             depth_to_space_quant8_2::is_ignored,
             depth_to_space_quant8_2::examples);
 }
@@ -514,7 +570,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depthwise_conv2d_float_large_2.model.cpp"
 } // namespace depthwise_conv2d_float_large_2
 TEST_F(GeneratedTests, depthwise_conv2d_float_large_2) {
-    Execute(depthwise_conv2d_float_large_2::CreateModel,
+    execute(depthwise_conv2d_float_large_2::CreateModel,
             depthwise_conv2d_float_large_2::is_ignored,
             depthwise_conv2d_float_large_2::examples);
 }
@@ -528,7 +584,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depthwise_conv2d_float_large_2_weights_as_inputs.model.cpp"
 } // namespace depthwise_conv2d_float_large_2_weights_as_inputs
 TEST_F(GeneratedTests, depthwise_conv2d_float_large_2_weights_as_inputs) {
-    Execute(depthwise_conv2d_float_large_2_weights_as_inputs::CreateModel,
+    execute(depthwise_conv2d_float_large_2_weights_as_inputs::CreateModel,
             depthwise_conv2d_float_large_2_weights_as_inputs::is_ignored,
             depthwise_conv2d_float_large_2_weights_as_inputs::examples);
 }
@@ -542,7 +598,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depthwise_conv2d_float_large.model.cpp"
 } // namespace depthwise_conv2d_float_large
 TEST_F(GeneratedTests, depthwise_conv2d_float_large) {
-    Execute(depthwise_conv2d_float_large::CreateModel,
+    execute(depthwise_conv2d_float_large::CreateModel,
             depthwise_conv2d_float_large::is_ignored,
             depthwise_conv2d_float_large::examples);
 }
@@ -556,7 +612,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depthwise_conv2d_float_large_weights_as_inputs.model.cpp"
 } // namespace depthwise_conv2d_float_large_weights_as_inputs
 TEST_F(GeneratedTests, depthwise_conv2d_float_large_weights_as_inputs) {
-    Execute(depthwise_conv2d_float_large_weights_as_inputs::CreateModel,
+    execute(depthwise_conv2d_float_large_weights_as_inputs::CreateModel,
             depthwise_conv2d_float_large_weights_as_inputs::is_ignored,
             depthwise_conv2d_float_large_weights_as_inputs::examples);
 }
@@ -570,7 +626,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depthwise_conv2d_float.model.cpp"
 } // namespace depthwise_conv2d_float
 TEST_F(GeneratedTests, depthwise_conv2d_float) {
-    Execute(depthwise_conv2d_float::CreateModel,
+    execute(depthwise_conv2d_float::CreateModel,
             depthwise_conv2d_float::is_ignored,
             depthwise_conv2d_float::examples);
 }
@@ -584,7 +640,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depthwise_conv2d_float_weights_as_inputs.model.cpp"
 } // namespace depthwise_conv2d_float_weights_as_inputs
 TEST_F(GeneratedTests, depthwise_conv2d_float_weights_as_inputs) {
-    Execute(depthwise_conv2d_float_weights_as_inputs::CreateModel,
+    execute(depthwise_conv2d_float_weights_as_inputs::CreateModel,
             depthwise_conv2d_float_weights_as_inputs::is_ignored,
             depthwise_conv2d_float_weights_as_inputs::examples);
 }
@@ -598,7 +654,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depthwise_conv2d_quant8_large.model.cpp"
 } // namespace depthwise_conv2d_quant8_large
 TEST_F(GeneratedTests, depthwise_conv2d_quant8_large) {
-    Execute(depthwise_conv2d_quant8_large::CreateModel,
+    execute(depthwise_conv2d_quant8_large::CreateModel,
             depthwise_conv2d_quant8_large::is_ignored,
             depthwise_conv2d_quant8_large::examples);
 }
@@ -612,7 +668,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depthwise_conv2d_quant8_large_weights_as_inputs.model.cpp"
 } // namespace depthwise_conv2d_quant8_large_weights_as_inputs
 TEST_F(GeneratedTests, depthwise_conv2d_quant8_large_weights_as_inputs) {
-    Execute(depthwise_conv2d_quant8_large_weights_as_inputs::CreateModel,
+    execute(depthwise_conv2d_quant8_large_weights_as_inputs::CreateModel,
             depthwise_conv2d_quant8_large_weights_as_inputs::is_ignored,
             depthwise_conv2d_quant8_large_weights_as_inputs::examples);
 }
@@ -626,7 +682,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depthwise_conv2d_quant8.model.cpp"
 } // namespace depthwise_conv2d_quant8
 TEST_F(GeneratedTests, depthwise_conv2d_quant8) {
-    Execute(depthwise_conv2d_quant8::CreateModel,
+    execute(depthwise_conv2d_quant8::CreateModel,
             depthwise_conv2d_quant8::is_ignored,
             depthwise_conv2d_quant8::examples);
 }
@@ -640,9 +696,23 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/depthwise_conv2d_quant8_weights_as_inputs.model.cpp"
 } // namespace depthwise_conv2d_quant8_weights_as_inputs
 TEST_F(GeneratedTests, depthwise_conv2d_quant8_weights_as_inputs) {
-    Execute(depthwise_conv2d_quant8_weights_as_inputs::CreateModel,
+    execute(depthwise_conv2d_quant8_weights_as_inputs::CreateModel,
             depthwise_conv2d_quant8_weights_as_inputs::is_ignored,
             depthwise_conv2d_quant8_weights_as_inputs::examples);
+}
+
+namespace depthwise_conv {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv test
+#include "generated/examples/depthwise_conv.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv.model.cpp"
+} // namespace depthwise_conv
+TEST_F(GeneratedTests, depthwise_conv) {
+    execute(depthwise_conv::CreateModel,
+            depthwise_conv::is_ignored,
+            depthwise_conv::examples);
 }
 
 namespace dequantize {
@@ -654,7 +724,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/dequantize.model.cpp"
 } // namespace dequantize
 TEST_F(GeneratedTests, dequantize) {
-    Execute(dequantize::CreateModel,
+    execute(dequantize::CreateModel,
             dequantize::is_ignored,
             dequantize::examples);
 }
@@ -668,7 +738,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/embedding_lookup.model.cpp"
 } // namespace embedding_lookup
 TEST_F(GeneratedTests, embedding_lookup) {
-    Execute(embedding_lookup::CreateModel,
+    execute(embedding_lookup::CreateModel,
             embedding_lookup::is_ignored,
             embedding_lookup::examples);
 }
@@ -682,7 +752,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/floor.model.cpp"
 } // namespace floor
 TEST_F(GeneratedTests, floor) {
-    Execute(floor::CreateModel,
+    execute(floor::CreateModel,
             floor::is_ignored,
             floor::examples);
 }
@@ -696,7 +766,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/fully_connected_float_large.model.cpp"
 } // namespace fully_connected_float_large
 TEST_F(GeneratedTests, fully_connected_float_large) {
-    Execute(fully_connected_float_large::CreateModel,
+    execute(fully_connected_float_large::CreateModel,
             fully_connected_float_large::is_ignored,
             fully_connected_float_large::examples);
 }
@@ -710,7 +780,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/fully_connected_float_large_weights_as_inputs.model.cpp"
 } // namespace fully_connected_float_large_weights_as_inputs
 TEST_F(GeneratedTests, fully_connected_float_large_weights_as_inputs) {
-    Execute(fully_connected_float_large_weights_as_inputs::CreateModel,
+    execute(fully_connected_float_large_weights_as_inputs::CreateModel,
             fully_connected_float_large_weights_as_inputs::is_ignored,
             fully_connected_float_large_weights_as_inputs::examples);
 }
@@ -724,7 +794,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/fully_connected_float.model.cpp"
 } // namespace fully_connected_float
 TEST_F(GeneratedTests, fully_connected_float) {
-    Execute(fully_connected_float::CreateModel,
+    execute(fully_connected_float::CreateModel,
             fully_connected_float::is_ignored,
             fully_connected_float::examples);
 }
@@ -738,7 +808,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/fully_connected_float_weights_as_inputs.model.cpp"
 } // namespace fully_connected_float_weights_as_inputs
 TEST_F(GeneratedTests, fully_connected_float_weights_as_inputs) {
-    Execute(fully_connected_float_weights_as_inputs::CreateModel,
+    execute(fully_connected_float_weights_as_inputs::CreateModel,
             fully_connected_float_weights_as_inputs::is_ignored,
             fully_connected_float_weights_as_inputs::examples);
 }
@@ -752,7 +822,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/fully_connected_quant8_large.model.cpp"
 } // namespace fully_connected_quant8_large
 TEST_F(GeneratedTests, fully_connected_quant8_large) {
-    Execute(fully_connected_quant8_large::CreateModel,
+    execute(fully_connected_quant8_large::CreateModel,
             fully_connected_quant8_large::is_ignored,
             fully_connected_quant8_large::examples);
 }
@@ -766,7 +836,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/fully_connected_quant8_large_weights_as_inputs.model.cpp"
 } // namespace fully_connected_quant8_large_weights_as_inputs
 TEST_F(GeneratedTests, fully_connected_quant8_large_weights_as_inputs) {
-    Execute(fully_connected_quant8_large_weights_as_inputs::CreateModel,
+    execute(fully_connected_quant8_large_weights_as_inputs::CreateModel,
             fully_connected_quant8_large_weights_as_inputs::is_ignored,
             fully_connected_quant8_large_weights_as_inputs::examples);
 }
@@ -780,7 +850,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/fully_connected_quant8.model.cpp"
 } // namespace fully_connected_quant8
 TEST_F(GeneratedTests, fully_connected_quant8) {
-    Execute(fully_connected_quant8::CreateModel,
+    execute(fully_connected_quant8::CreateModel,
             fully_connected_quant8::is_ignored,
             fully_connected_quant8::examples);
 }
@@ -794,7 +864,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/fully_connected_quant8_weights_as_inputs.model.cpp"
 } // namespace fully_connected_quant8_weights_as_inputs
 TEST_F(GeneratedTests, fully_connected_quant8_weights_as_inputs) {
-    Execute(fully_connected_quant8_weights_as_inputs::CreateModel,
+    execute(fully_connected_quant8_weights_as_inputs::CreateModel,
             fully_connected_quant8_weights_as_inputs::is_ignored,
             fully_connected_quant8_weights_as_inputs::examples);
 }
@@ -808,7 +878,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/hashtable_lookup_float.model.cpp"
 } // namespace hashtable_lookup_float
 TEST_F(GeneratedTests, hashtable_lookup_float) {
-    Execute(hashtable_lookup_float::CreateModel,
+    execute(hashtable_lookup_float::CreateModel,
             hashtable_lookup_float::is_ignored,
             hashtable_lookup_float::examples);
 }
@@ -822,7 +892,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/hashtable_lookup_quant8.model.cpp"
 } // namespace hashtable_lookup_quant8
 TEST_F(GeneratedTests, hashtable_lookup_quant8) {
-    Execute(hashtable_lookup_quant8::CreateModel,
+    execute(hashtable_lookup_quant8::CreateModel,
             hashtable_lookup_quant8::is_ignored,
             hashtable_lookup_quant8::examples);
 }
@@ -836,7 +906,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/l2_normalization_large.model.cpp"
 } // namespace l2_normalization_large
 TEST_F(GeneratedTests, l2_normalization_large) {
-    Execute(l2_normalization_large::CreateModel,
+    execute(l2_normalization_large::CreateModel,
             l2_normalization_large::is_ignored,
             l2_normalization_large::examples);
 }
@@ -850,7 +920,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/l2_normalization.model.cpp"
 } // namespace l2_normalization
 TEST_F(GeneratedTests, l2_normalization) {
-    Execute(l2_normalization::CreateModel,
+    execute(l2_normalization::CreateModel,
             l2_normalization::is_ignored,
             l2_normalization::examples);
 }
@@ -864,7 +934,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/l2_pool_float_large.model.cpp"
 } // namespace l2_pool_float_large
 TEST_F(GeneratedTests, l2_pool_float_large) {
-    Execute(l2_pool_float_large::CreateModel,
+    execute(l2_pool_float_large::CreateModel,
             l2_pool_float_large::is_ignored,
             l2_pool_float_large::examples);
 }
@@ -878,7 +948,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/l2_pool_float.model.cpp"
 } // namespace l2_pool_float
 TEST_F(GeneratedTests, l2_pool_float) {
-    Execute(l2_pool_float::CreateModel,
+    execute(l2_pool_float::CreateModel,
             l2_pool_float::is_ignored,
             l2_pool_float::examples);
 }
@@ -892,7 +962,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/local_response_norm_float_1.model.cpp"
 } // namespace local_response_norm_float_1
 TEST_F(GeneratedTests, local_response_norm_float_1) {
-    Execute(local_response_norm_float_1::CreateModel,
+    execute(local_response_norm_float_1::CreateModel,
             local_response_norm_float_1::is_ignored,
             local_response_norm_float_1::examples);
 }
@@ -906,7 +976,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/local_response_norm_float_2.model.cpp"
 } // namespace local_response_norm_float_2
 TEST_F(GeneratedTests, local_response_norm_float_2) {
-    Execute(local_response_norm_float_2::CreateModel,
+    execute(local_response_norm_float_2::CreateModel,
             local_response_norm_float_2::is_ignored,
             local_response_norm_float_2::examples);
 }
@@ -920,7 +990,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/local_response_norm_float_3.model.cpp"
 } // namespace local_response_norm_float_3
 TEST_F(GeneratedTests, local_response_norm_float_3) {
-    Execute(local_response_norm_float_3::CreateModel,
+    execute(local_response_norm_float_3::CreateModel,
             local_response_norm_float_3::is_ignored,
             local_response_norm_float_3::examples);
 }
@@ -934,7 +1004,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/local_response_norm_float_4.model.cpp"
 } // namespace local_response_norm_float_4
 TEST_F(GeneratedTests, local_response_norm_float_4) {
-    Execute(local_response_norm_float_4::CreateModel,
+    execute(local_response_norm_float_4::CreateModel,
             local_response_norm_float_4::is_ignored,
             local_response_norm_float_4::examples);
 }
@@ -948,7 +1018,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/logistic_float_1.model.cpp"
 } // namespace logistic_float_1
 TEST_F(GeneratedTests, logistic_float_1) {
-    Execute(logistic_float_1::CreateModel,
+    execute(logistic_float_1::CreateModel,
             logistic_float_1::is_ignored,
             logistic_float_1::examples);
 }
@@ -962,7 +1032,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/logistic_float_2.model.cpp"
 } // namespace logistic_float_2
 TEST_F(GeneratedTests, logistic_float_2) {
-    Execute(logistic_float_2::CreateModel,
+    execute(logistic_float_2::CreateModel,
             logistic_float_2::is_ignored,
             logistic_float_2::examples);
 }
@@ -976,7 +1046,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/logistic_quant8_1.model.cpp"
 } // namespace logistic_quant8_1
 TEST_F(GeneratedTests, logistic_quant8_1) {
-    Execute(logistic_quant8_1::CreateModel,
+    execute(logistic_quant8_1::CreateModel,
             logistic_quant8_1::is_ignored,
             logistic_quant8_1::examples);
 }
@@ -990,7 +1060,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/logistic_quant8_2.model.cpp"
 } // namespace logistic_quant8_2
 TEST_F(GeneratedTests, logistic_quant8_2) {
-    Execute(logistic_quant8_2::CreateModel,
+    execute(logistic_quant8_2::CreateModel,
             logistic_quant8_2::is_ignored,
             logistic_quant8_2::examples);
 }
@@ -1004,7 +1074,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lsh_projection_2.model.cpp"
 } // namespace lsh_projection_2
 TEST_F(GeneratedTests, lsh_projection_2) {
-    Execute(lsh_projection_2::CreateModel,
+    execute(lsh_projection_2::CreateModel,
             lsh_projection_2::is_ignored,
             lsh_projection_2::examples);
 }
@@ -1018,7 +1088,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lsh_projection.model.cpp"
 } // namespace lsh_projection
 TEST_F(GeneratedTests, lsh_projection) {
-    Execute(lsh_projection::CreateModel,
+    execute(lsh_projection::CreateModel,
             lsh_projection::is_ignored,
             lsh_projection::examples);
 }
@@ -1032,7 +1102,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lsh_projection_weights_as_inputs.model.cpp"
 } // namespace lsh_projection_weights_as_inputs
 TEST_F(GeneratedTests, lsh_projection_weights_as_inputs) {
-    Execute(lsh_projection_weights_as_inputs::CreateModel,
+    execute(lsh_projection_weights_as_inputs::CreateModel,
             lsh_projection_weights_as_inputs::is_ignored,
             lsh_projection_weights_as_inputs::examples);
 }
@@ -1046,7 +1116,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lstm2.model.cpp"
 } // namespace lstm2
 TEST_F(GeneratedTests, lstm2) {
-    Execute(lstm2::CreateModel,
+    execute(lstm2::CreateModel,
             lstm2::is_ignored,
             lstm2::examples);
 }
@@ -1060,7 +1130,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lstm2_state2.model.cpp"
 } // namespace lstm2_state2
 TEST_F(GeneratedTests, lstm2_state2) {
-    Execute(lstm2_state2::CreateModel,
+    execute(lstm2_state2::CreateModel,
             lstm2_state2::is_ignored,
             lstm2_state2::examples);
 }
@@ -1074,7 +1144,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lstm2_state.model.cpp"
 } // namespace lstm2_state
 TEST_F(GeneratedTests, lstm2_state) {
-    Execute(lstm2_state::CreateModel,
+    execute(lstm2_state::CreateModel,
             lstm2_state::is_ignored,
             lstm2_state::examples);
 }
@@ -1088,7 +1158,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lstm3.model.cpp"
 } // namespace lstm3
 TEST_F(GeneratedTests, lstm3) {
-    Execute(lstm3::CreateModel,
+    execute(lstm3::CreateModel,
             lstm3::is_ignored,
             lstm3::examples);
 }
@@ -1102,7 +1172,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lstm3_state2.model.cpp"
 } // namespace lstm3_state2
 TEST_F(GeneratedTests, lstm3_state2) {
-    Execute(lstm3_state2::CreateModel,
+    execute(lstm3_state2::CreateModel,
             lstm3_state2::is_ignored,
             lstm3_state2::examples);
 }
@@ -1116,7 +1186,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lstm3_state3.model.cpp"
 } // namespace lstm3_state3
 TEST_F(GeneratedTests, lstm3_state3) {
-    Execute(lstm3_state3::CreateModel,
+    execute(lstm3_state3::CreateModel,
             lstm3_state3::is_ignored,
             lstm3_state3::examples);
 }
@@ -1130,7 +1200,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lstm3_state.model.cpp"
 } // namespace lstm3_state
 TEST_F(GeneratedTests, lstm3_state) {
-    Execute(lstm3_state::CreateModel,
+    execute(lstm3_state::CreateModel,
             lstm3_state::is_ignored,
             lstm3_state::examples);
 }
@@ -1144,7 +1214,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lstm.model.cpp"
 } // namespace lstm
 TEST_F(GeneratedTests, lstm) {
-    Execute(lstm::CreateModel,
+    execute(lstm::CreateModel,
             lstm::is_ignored,
             lstm::examples);
 }
@@ -1158,7 +1228,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lstm_state2.model.cpp"
 } // namespace lstm_state2
 TEST_F(GeneratedTests, lstm_state2) {
-    Execute(lstm_state2::CreateModel,
+    execute(lstm_state2::CreateModel,
             lstm_state2::is_ignored,
             lstm_state2::examples);
 }
@@ -1172,7 +1242,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/lstm_state.model.cpp"
 } // namespace lstm_state
 TEST_F(GeneratedTests, lstm_state) {
-    Execute(lstm_state::CreateModel,
+    execute(lstm_state::CreateModel,
             lstm_state::is_ignored,
             lstm_state::examples);
 }
@@ -1186,7 +1256,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/max_pool_float_1.model.cpp"
 } // namespace max_pool_float_1
 TEST_F(GeneratedTests, max_pool_float_1) {
-    Execute(max_pool_float_1::CreateModel,
+    execute(max_pool_float_1::CreateModel,
             max_pool_float_1::is_ignored,
             max_pool_float_1::examples);
 }
@@ -1200,7 +1270,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/max_pool_float_2.model.cpp"
 } // namespace max_pool_float_2
 TEST_F(GeneratedTests, max_pool_float_2) {
-    Execute(max_pool_float_2::CreateModel,
+    execute(max_pool_float_2::CreateModel,
             max_pool_float_2::is_ignored,
             max_pool_float_2::examples);
 }
@@ -1214,7 +1284,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/max_pool_float_3.model.cpp"
 } // namespace max_pool_float_3
 TEST_F(GeneratedTests, max_pool_float_3) {
-    Execute(max_pool_float_3::CreateModel,
+    execute(max_pool_float_3::CreateModel,
             max_pool_float_3::is_ignored,
             max_pool_float_3::examples);
 }
@@ -1228,7 +1298,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/max_pool_quant8_1.model.cpp"
 } // namespace max_pool_quant8_1
 TEST_F(GeneratedTests, max_pool_quant8_1) {
-    Execute(max_pool_quant8_1::CreateModel,
+    execute(max_pool_quant8_1::CreateModel,
             max_pool_quant8_1::is_ignored,
             max_pool_quant8_1::examples);
 }
@@ -1242,7 +1312,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/max_pool_quant8_2.model.cpp"
 } // namespace max_pool_quant8_2
 TEST_F(GeneratedTests, max_pool_quant8_2) {
-    Execute(max_pool_quant8_2::CreateModel,
+    execute(max_pool_quant8_2::CreateModel,
             max_pool_quant8_2::is_ignored,
             max_pool_quant8_2::examples);
 }
@@ -1256,9 +1326,23 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/max_pool_quant8_3.model.cpp"
 } // namespace max_pool_quant8_3
 TEST_F(GeneratedTests, max_pool_quant8_3) {
-    Execute(max_pool_quant8_3::CreateModel,
+    execute(max_pool_quant8_3::CreateModel,
             max_pool_quant8_3::is_ignored,
             max_pool_quant8_3::examples);
+}
+
+namespace mobilenet_224_gender_basic_fixed {
+std::vector<MixedTypedExample> examples = {
+// Generated mobilenet_224_gender_basic_fixed test
+#include "generated/examples/mobilenet_224_gender_basic_fixed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/mobilenet_224_gender_basic_fixed.model.cpp"
+} // namespace mobilenet_224_gender_basic_fixed
+TEST_F(GeneratedTests, mobilenet_224_gender_basic_fixed) {
+    execute(mobilenet_224_gender_basic_fixed::CreateModel,
+            mobilenet_224_gender_basic_fixed::is_ignored,
+            mobilenet_224_gender_basic_fixed::examples);
 }
 
 namespace mobilenet_quantized {
@@ -1270,7 +1354,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/mobilenet_quantized.model.cpp"
 } // namespace mobilenet_quantized
 TEST_F(GeneratedTests, mobilenet_quantized) {
-    Execute(mobilenet_quantized::CreateModel,
+    execute(mobilenet_quantized::CreateModel,
             mobilenet_quantized::is_ignored,
             mobilenet_quantized::examples);
 }
@@ -1284,7 +1368,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/mul_broadcast_quant8.model.cpp"
 } // namespace mul_broadcast_quant8
 TEST_F(GeneratedTests, mul_broadcast_quant8) {
-    Execute(mul_broadcast_quant8::CreateModel,
+    execute(mul_broadcast_quant8::CreateModel,
             mul_broadcast_quant8::is_ignored,
             mul_broadcast_quant8::examples);
 }
@@ -1298,7 +1382,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/mul.model.cpp"
 } // namespace mul
 TEST_F(GeneratedTests, mul) {
-    Execute(mul::CreateModel,
+    execute(mul::CreateModel,
             mul::is_ignored,
             mul::examples);
 }
@@ -1312,7 +1396,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/mul_quant8.model.cpp"
 } // namespace mul_quant8
 TEST_F(GeneratedTests, mul_quant8) {
-    Execute(mul_quant8::CreateModel,
+    execute(mul_quant8::CreateModel,
             mul_quant8::is_ignored,
             mul_quant8::examples);
 }
@@ -1326,7 +1410,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/mul_relu.model.cpp"
 } // namespace mul_relu
 TEST_F(GeneratedTests, mul_relu) {
-    Execute(mul_relu::CreateModel,
+    execute(mul_relu::CreateModel,
             mul_relu::is_ignored,
             mul_relu::examples);
 }
@@ -1340,7 +1424,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu1_float_1.model.cpp"
 } // namespace relu1_float_1
 TEST_F(GeneratedTests, relu1_float_1) {
-    Execute(relu1_float_1::CreateModel,
+    execute(relu1_float_1::CreateModel,
             relu1_float_1::is_ignored,
             relu1_float_1::examples);
 }
@@ -1354,7 +1438,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu1_float_2.model.cpp"
 } // namespace relu1_float_2
 TEST_F(GeneratedTests, relu1_float_2) {
-    Execute(relu1_float_2::CreateModel,
+    execute(relu1_float_2::CreateModel,
             relu1_float_2::is_ignored,
             relu1_float_2::examples);
 }
@@ -1368,7 +1452,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu1_quant8_1.model.cpp"
 } // namespace relu1_quant8_1
 TEST_F(GeneratedTests, relu1_quant8_1) {
-    Execute(relu1_quant8_1::CreateModel,
+    execute(relu1_quant8_1::CreateModel,
             relu1_quant8_1::is_ignored,
             relu1_quant8_1::examples);
 }
@@ -1382,7 +1466,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu1_quant8_2.model.cpp"
 } // namespace relu1_quant8_2
 TEST_F(GeneratedTests, relu1_quant8_2) {
-    Execute(relu1_quant8_2::CreateModel,
+    execute(relu1_quant8_2::CreateModel,
             relu1_quant8_2::is_ignored,
             relu1_quant8_2::examples);
 }
@@ -1396,7 +1480,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu6_float_1.model.cpp"
 } // namespace relu6_float_1
 TEST_F(GeneratedTests, relu6_float_1) {
-    Execute(relu6_float_1::CreateModel,
+    execute(relu6_float_1::CreateModel,
             relu6_float_1::is_ignored,
             relu6_float_1::examples);
 }
@@ -1410,7 +1494,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu6_float_2.model.cpp"
 } // namespace relu6_float_2
 TEST_F(GeneratedTests, relu6_float_2) {
-    Execute(relu6_float_2::CreateModel,
+    execute(relu6_float_2::CreateModel,
             relu6_float_2::is_ignored,
             relu6_float_2::examples);
 }
@@ -1424,7 +1508,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu6_quant8_1.model.cpp"
 } // namespace relu6_quant8_1
 TEST_F(GeneratedTests, relu6_quant8_1) {
-    Execute(relu6_quant8_1::CreateModel,
+    execute(relu6_quant8_1::CreateModel,
             relu6_quant8_1::is_ignored,
             relu6_quant8_1::examples);
 }
@@ -1438,7 +1522,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu6_quant8_2.model.cpp"
 } // namespace relu6_quant8_2
 TEST_F(GeneratedTests, relu6_quant8_2) {
-    Execute(relu6_quant8_2::CreateModel,
+    execute(relu6_quant8_2::CreateModel,
             relu6_quant8_2::is_ignored,
             relu6_quant8_2::examples);
 }
@@ -1452,7 +1536,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu_float_1.model.cpp"
 } // namespace relu_float_1
 TEST_F(GeneratedTests, relu_float_1) {
-    Execute(relu_float_1::CreateModel,
+    execute(relu_float_1::CreateModel,
             relu_float_1::is_ignored,
             relu_float_1::examples);
 }
@@ -1466,7 +1550,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu_float_2.model.cpp"
 } // namespace relu_float_2
 TEST_F(GeneratedTests, relu_float_2) {
-    Execute(relu_float_2::CreateModel,
+    execute(relu_float_2::CreateModel,
             relu_float_2::is_ignored,
             relu_float_2::examples);
 }
@@ -1480,7 +1564,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu_quant8_1.model.cpp"
 } // namespace relu_quant8_1
 TEST_F(GeneratedTests, relu_quant8_1) {
-    Execute(relu_quant8_1::CreateModel,
+    execute(relu_quant8_1::CreateModel,
             relu_quant8_1::is_ignored,
             relu_quant8_1::examples);
 }
@@ -1494,7 +1578,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/relu_quant8_2.model.cpp"
 } // namespace relu_quant8_2
 TEST_F(GeneratedTests, relu_quant8_2) {
-    Execute(relu_quant8_2::CreateModel,
+    execute(relu_quant8_2::CreateModel,
             relu_quant8_2::is_ignored,
             relu_quant8_2::examples);
 }
@@ -1508,7 +1592,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/reshape.model.cpp"
 } // namespace reshape
 TEST_F(GeneratedTests, reshape) {
-    Execute(reshape::CreateModel,
+    execute(reshape::CreateModel,
             reshape::is_ignored,
             reshape::examples);
 }
@@ -1522,7 +1606,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/reshape_quant8.model.cpp"
 } // namespace reshape_quant8
 TEST_F(GeneratedTests, reshape_quant8) {
-    Execute(reshape_quant8::CreateModel,
+    execute(reshape_quant8::CreateModel,
             reshape_quant8::is_ignored,
             reshape_quant8::examples);
 }
@@ -1536,7 +1620,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/reshape_quant8_weights_as_inputs.model.cpp"
 } // namespace reshape_quant8_weights_as_inputs
 TEST_F(GeneratedTests, reshape_quant8_weights_as_inputs) {
-    Execute(reshape_quant8_weights_as_inputs::CreateModel,
+    execute(reshape_quant8_weights_as_inputs::CreateModel,
             reshape_quant8_weights_as_inputs::is_ignored,
             reshape_quant8_weights_as_inputs::examples);
 }
@@ -1550,7 +1634,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/reshape_weights_as_inputs.model.cpp"
 } // namespace reshape_weights_as_inputs
 TEST_F(GeneratedTests, reshape_weights_as_inputs) {
-    Execute(reshape_weights_as_inputs::CreateModel,
+    execute(reshape_weights_as_inputs::CreateModel,
             reshape_weights_as_inputs::is_ignored,
             reshape_weights_as_inputs::examples);
 }
@@ -1564,7 +1648,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/resize_bilinear.model.cpp"
 } // namespace resize_bilinear
 TEST_F(GeneratedTests, resize_bilinear) {
-    Execute(resize_bilinear::CreateModel,
+    execute(resize_bilinear::CreateModel,
             resize_bilinear::is_ignored,
             resize_bilinear::examples);
 }
@@ -1578,7 +1662,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/rnn.model.cpp"
 } // namespace rnn
 TEST_F(GeneratedTests, rnn) {
-    Execute(rnn::CreateModel,
+    execute(rnn::CreateModel,
             rnn::is_ignored,
             rnn::examples);
 }
@@ -1592,7 +1676,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/rnn_state.model.cpp"
 } // namespace rnn_state
 TEST_F(GeneratedTests, rnn_state) {
-    Execute(rnn_state::CreateModel,
+    execute(rnn_state::CreateModel,
             rnn_state::is_ignored,
             rnn_state::examples);
 }
@@ -1606,7 +1690,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/softmax_float_1.model.cpp"
 } // namespace softmax_float_1
 TEST_F(GeneratedTests, softmax_float_1) {
-    Execute(softmax_float_1::CreateModel,
+    execute(softmax_float_1::CreateModel,
             softmax_float_1::is_ignored,
             softmax_float_1::examples);
 }
@@ -1620,7 +1704,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/softmax_float_2.model.cpp"
 } // namespace softmax_float_2
 TEST_F(GeneratedTests, softmax_float_2) {
-    Execute(softmax_float_2::CreateModel,
+    execute(softmax_float_2::CreateModel,
             softmax_float_2::is_ignored,
             softmax_float_2::examples);
 }
@@ -1634,7 +1718,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/softmax_quant8_1.model.cpp"
 } // namespace softmax_quant8_1
 TEST_F(GeneratedTests, softmax_quant8_1) {
-    Execute(softmax_quant8_1::CreateModel,
+    execute(softmax_quant8_1::CreateModel,
             softmax_quant8_1::is_ignored,
             softmax_quant8_1::examples);
 }
@@ -1648,7 +1732,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/softmax_quant8_2.model.cpp"
 } // namespace softmax_quant8_2
 TEST_F(GeneratedTests, softmax_quant8_2) {
-    Execute(softmax_quant8_2::CreateModel,
+    execute(softmax_quant8_2::CreateModel,
             softmax_quant8_2::is_ignored,
             softmax_quant8_2::examples);
 }
@@ -1662,7 +1746,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/space_to_depth_float_1.model.cpp"
 } // namespace space_to_depth_float_1
 TEST_F(GeneratedTests, space_to_depth_float_1) {
-    Execute(space_to_depth_float_1::CreateModel,
+    execute(space_to_depth_float_1::CreateModel,
             space_to_depth_float_1::is_ignored,
             space_to_depth_float_1::examples);
 }
@@ -1676,7 +1760,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/space_to_depth_float_2.model.cpp"
 } // namespace space_to_depth_float_2
 TEST_F(GeneratedTests, space_to_depth_float_2) {
-    Execute(space_to_depth_float_2::CreateModel,
+    execute(space_to_depth_float_2::CreateModel,
             space_to_depth_float_2::is_ignored,
             space_to_depth_float_2::examples);
 }
@@ -1690,7 +1774,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/space_to_depth_float_3.model.cpp"
 } // namespace space_to_depth_float_3
 TEST_F(GeneratedTests, space_to_depth_float_3) {
-    Execute(space_to_depth_float_3::CreateModel,
+    execute(space_to_depth_float_3::CreateModel,
             space_to_depth_float_3::is_ignored,
             space_to_depth_float_3::examples);
 }
@@ -1704,7 +1788,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/space_to_depth_quant8_1.model.cpp"
 } // namespace space_to_depth_quant8_1
 TEST_F(GeneratedTests, space_to_depth_quant8_1) {
-    Execute(space_to_depth_quant8_1::CreateModel,
+    execute(space_to_depth_quant8_1::CreateModel,
             space_to_depth_quant8_1::is_ignored,
             space_to_depth_quant8_1::examples);
 }
@@ -1718,7 +1802,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/space_to_depth_quant8_2.model.cpp"
 } // namespace space_to_depth_quant8_2
 TEST_F(GeneratedTests, space_to_depth_quant8_2) {
-    Execute(space_to_depth_quant8_2::CreateModel,
+    execute(space_to_depth_quant8_2::CreateModel,
             space_to_depth_quant8_2::is_ignored,
             space_to_depth_quant8_2::examples);
 }
@@ -1732,7 +1816,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/svdf.model.cpp"
 } // namespace svdf
 TEST_F(GeneratedTests, svdf) {
-    Execute(svdf::CreateModel,
+    execute(svdf::CreateModel,
             svdf::is_ignored,
             svdf::examples);
 }
@@ -1746,7 +1830,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/svdf_state.model.cpp"
 } // namespace svdf_state
 TEST_F(GeneratedTests, svdf_state) {
-    Execute(svdf_state::CreateModel,
+    execute(svdf_state::CreateModel,
             svdf_state::is_ignored,
             svdf_state::examples);
 }
@@ -1760,8 +1844,7 @@ std::vector<MixedTypedExample> examples = {
 #include "generated/models/tanh.model.cpp"
 } // namespace tanh
 TEST_F(GeneratedTests, tanh) {
-    Execute(tanh::CreateModel,
+    execute(tanh::CreateModel,
             tanh::is_ignored,
             tanh::examples);
 }
-

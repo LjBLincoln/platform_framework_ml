@@ -1,7 +1,7 @@
 model = Model()
-i1 = Input("input", "TENSOR_QUANT8_ASYMM", "{1, 4, 4, 1}")
+i1 = Input("input", "TENSOR_QUANT8_ASYMM", "{1, 4, 4, 1}, 0.5f, 0")
 block = Int32Scalar("radius", 2)
-output = Output("output", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 4}")
+output = Output("output", "TENSOR_QUANT8_ASYMM", "{1, 2, 2, 4}, 0.5f, 0")
 
 model = model.Operation("SPACE_TO_DEPTH", i1, block).To(output)
 

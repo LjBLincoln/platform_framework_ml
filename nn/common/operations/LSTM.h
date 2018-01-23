@@ -18,6 +18,7 @@
 #define FRAMEWORKS_ML_NN_LSTMCELL_H
 
 #include "ActivationFunctor.h"
+#include "tensorflow/contrib/lite/kernels/internal/tensor_utils.h"
 
 #include <algorithm>
 #include <cmath>
@@ -36,7 +37,7 @@ namespace android {
 namespace nn {
 
 struct LSTMParams {
-  ActivationFn activation_;
+  TfLiteFusedActivation activation_;
   float cell_clip_;
   float proj_clip_;
 };

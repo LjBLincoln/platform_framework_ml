@@ -29,8 +29,10 @@ cc_library_static {
 
     srcs: [
         "CpuExecutor.cpp",
+        "GraphDump.cpp",
         "OperationsUtils.cpp",
         "Utils.cpp",
+        "ValidateHal.cpp",
         "operations/Activation.cpp",
         "operations/Concatenation.cpp",
         "operations/Conv2D.cpp",
@@ -46,9 +48,6 @@ cc_library_static {
         "operations/RNN.cpp",
         "operations/SimpleMath.cpp",
         "operations/SVDF.cpp",
-        "operations/internal/optimized/neon_tensor_utils.cc",
-        "operations/internal/reference/portable_tensor_utils.cc",
-        "operations/internal/tensor_utils.cc",
     ],
     shared_libs: [
         "libbase",
@@ -64,12 +63,14 @@ cc_library_static {
     ],
     header_libs: [
         "libneuralnetworks_headers",
-        "libgemmlowp",
-        "libfixedpoint",
         "libtextclassifier_hash_headers",
         "libeigen",
+        "gemmlowp_headers",
+        "tensorflow_headers",
     ],
-
+    whole_static_libs: [
+        "libtflite_kernel_utils",
+    ],
     cflags: [
         "-DNAMESPACE_FOR_HASH_FUNCTIONS=farmhash",
         "-Werror",
@@ -80,23 +81,6 @@ cc_library_static {
         "-Wno-invalid-partial-specialization",
     ],
 
-}
-
-cc_test {
-    name: "tensor_utils_test",
-    srcs: [
-        "operations/internal/tensor_utils_test.cc",
-    ],
-    shared_libs: [
-        "libneuralnetworks",
-    ],
-    local_include_dirs: [ "include" ],
-    header_libs: [
-        "libneuralnetworks_headers",
-    ],
-    static_libs: [
-        "libgmock",
-    ],
 }
 
 cc_test {
@@ -131,6 +115,9 @@ cc_test {
         "operations/LSHProjectionTest.cpp",
     ],
     local_include_dirs: [ "include" ],
+    header_libs: [
+        "tensorflow_headers",
+    ],
     shared_libs: [
         "libneuralnetworks",
     ],
@@ -145,6 +132,9 @@ cc_test {
         "operations/LSTMTest.cpp",
     ],
     local_include_dirs: [ "include" ],
+    header_libs: [
+        "tensorflow_headers",
+    ],
     shared_libs: [
         "libneuralnetworks",
     ],

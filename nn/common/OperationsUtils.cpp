@@ -148,9 +148,31 @@ void CalculateActivationRangeUint8(int32_t activation,
     } else if (activation == kActivationRelu1) {
         *act_min = std::max(qmin, quantize(-1.0));
         *act_max = std::min(qmax, quantize(1.0));
-    } else {
+    } else if (activation == kActivationNone){
         *act_min = qmin;
         *act_max = qmax;
+    } else {
+        LOG(ERROR) << "Unsupported fused activation function.";
+    }
+}
+
+void CalculateActivationRangeFloat(int32_t activation,
+                                   float* activation_min,
+                                   float* activation_max) {
+    if (activation == kActivationRelu) {
+        *activation_min = 0.f;
+        *activation_max = std::numeric_limits<float>::max();
+    } else if (activation == kActivationRelu6) {
+        *activation_min = 0.f;
+        *activation_max = 6.f;
+    } else if (activation == kActivationRelu1) {
+        *activation_min = -1.f;
+        *activation_max = 1.f;
+    } else if (activation == kActivationNone){
+        *activation_min = std::numeric_limits<float>::lowest();
+        *activation_max = std::numeric_limits<float>::max();
+    } else {
+        LOG(ERROR) << "Unsupported fused activation function.";
     }
 }
 

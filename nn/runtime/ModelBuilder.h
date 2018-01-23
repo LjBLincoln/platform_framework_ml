@@ -90,7 +90,6 @@ public:
 
     int findBestDeviceForEachOperation(uint32_t preference,
                                        const std::vector<std::shared_ptr<Device>>& devices,
-                                       const size_t operationCount,
                                        const size_t deviceCount,
                                        std::vector<int>* bestDeviceForOperation) const;
     PerformanceInfo getPerformanceInfo(const std::shared_ptr<Device> device,

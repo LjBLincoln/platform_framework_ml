@@ -21,6 +21,7 @@
 #include "HalInterfaces.h"
 #include "NeuralNetworksOEM.h"
 #include "Utils.h"
+#include "ValidateHal.h"
 
 #include <android-base/logging.h>
 #include <hidl/LegacySupport.h>

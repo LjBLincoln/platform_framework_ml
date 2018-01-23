@@ -38,11 +38,10 @@ class ModelBuilder;
 class StepExecutor;
 
 class ExecutionStep {
-private:
+public:
     typedef std::vector<std::pair<uint32_t, uint32_t>> RemapVectorType;
     typedef std::set<std::pair<uint32_t, uint32_t>> SubModelOutputSetType;
 
-public:
     enum OperandKind { INPUT, OUTPUT };
 
     ExecutionStep(ExecutionPlan* plan,
@@ -60,17 +59,23 @@ public:
     const RemapVectorType& getModelOutputs() const {
         return mModelOutputs;
     }
-    const RemapVectorType& getSubModelInputs() const {
-        return mSubModelInputs;
+    const RemapVectorType& getTempsAsSubModelInputs() const {
+        return mTempsAsSubModelInputs;
     }
-    const SubModelOutputSetType& getSubModelOutputs() const {
-        return mSubModelOutputs;
+    const SubModelOutputSetType& getTempsAsSubModelOutputs() const {
+        return mTempsAsSubModelOutputs;
+    }
+    const RemapVectorType& getOutputsAsSubModelInputs() const {
+        return mOutputsAsSubModelInputs;
+    }
+    const std::vector<uint32_t>& getOutputsAsSubModelInputsIndexToFromModel() const {
+        return mOutputsAsSubModelInputsIndexToFromModel;
     }
 
-    void recordSubModelOutput(uint32_t fromModelIndex) {
+    void recordTempAsSubModelOutput(uint32_t fromModelIndex) {
         const auto it = mOperandMap.find(fromModelIndex);
         nnAssert(it != mOperandMap.end());
-        mSubModelOutputs.insert(std::make_pair(fromModelIndex, it->second));
+        mTempsAsSubModelOutputs.insert(std::make_pair(fromModelIndex, it->second));
     }
 
     // If this step has a submodel output of unknown size, sets
@@ -88,7 +93,10 @@ public:
     void mapInputsAndOutputs(std::shared_ptr<StepExecutor> stepExecutor) const;
 
     void dump() const;
+
 private:
+    void logSubModel() const;
+
     // TODO: Some of the data is working state information that
     // shouldn't be needed after we've constructed but not executed
     // the step.
@@ -107,22 +115,38 @@ private:
     RemapVectorType mModelOutputs;
     // Temporaries of original model that are inputs of this submodel:
     //     (fromModel index, subModel index)
-    RemapVectorType mSubModelInputs;
+    RemapVectorType mTempsAsSubModelInputs;
     // Temporaries of original model that are outputs of this submodel:
     //     (fromModel index, subModel index)
-    SubModelOutputSetType mSubModelOutputs;
+    SubModelOutputSetType mTempsAsSubModelOutputs;
+    // Outputs of original model that are inputs of this submodel:
+    //     (fromModel index, subModel index)
+    RemapVectorType mOutputsAsSubModelInputs;
     // Converts operand indexes from the main model to the submodel.
     std::unordered_map<uint32_t, uint32_t> mOperandMap;
     // Converts input indexes from the submodel to the main model
     // (these are input indexes, not operand indexes).  This vector
     // only describes inputs of the submodel that are also inputs of
-    // the main model -- that is, mModelInputs but not mSubModelInputs.
+    // the main model -- that is, mModelInputs but not mTempsAsSubModelInputs.
     std::vector<uint32_t> mInputIndexSubModelToFromModel;
     // Converts output indexes from the submodel to the main model
     // (these are output indexes, not operand indexes).  This vector
     // only describes outputs of the submodel that are also outputs of
-    // the main model -- that is, mModelOutputs but not mSubModelOutputs.
+    // the main model -- that is, mModelOutputs but not mTempsAsSubModelOutputs.
     std::vector<uint32_t> mOutputIndexSubModelToFromModel;
+    // Converts indexes into mOutputsAsSubModelInputs to indexes into
+    // main model outputs (these are input and output indexes, not
+    // operand indexes).  To be specific, if the main model outputs
+    // are mainModelOutputs,
+    //
+    //     mOutputsAsSubModelInputsIndexToFromModel.size() ==
+    //     mOutputsAsSubModelInputs.size()
+    //
+    // and when (0 <= i < mOutputsAsSubModelInputs.size()),
+    //
+    //     mainModelOutputs[mOutputsAsSubModelInputsIndexToFromModel[i]] ==
+    //     mOutputsAsSubModelInputs[i].first
+    std::vector<uint32_t> mOutputsAsSubModelInputsIndexToFromModel;
 };
 
 class ExecutionPlan {
@@ -198,7 +222,7 @@ public:
     const std::vector<std::shared_ptr<ExecutionStep>>& forTest_compoundGetSteps() const;
 
 private:
-    void findSubModelOutputs();
+    void findTempsAsSubModelOutputs();
 
     struct Body {
         virtual ~Body() {}
@@ -235,7 +259,7 @@ private:
 
         bool mHasSubModelOutputOfUnknownSize = false;
     private:
-        void findSubModelOutputs();
+        void findTempsAsSubModelOutputs();
     };
 
     enum { EMPTY, SIMPLE, COMPOUND } mState = EMPTY;
