@@ -127,7 +127,7 @@ using DeviceManager = ::android::nn::DeviceManager;
 using ExecutePreference = ::android::nn::wrapper::ExecutePreference;
 using ExecutionPlan = ::android::nn::ExecutionPlan;
 using ExecutionStep = ::android::nn::ExecutionStep;
-using HidlModel = ::android::hardware::neuralnetworks::V1_0::Model;
+using HidlModel = ::android::hardware::neuralnetworks::V1_1::Model;
 using ModelBuilder = ::android::nn::ModelBuilder;
 using Result = ::android::nn::wrapper::Result;
 using WrapperCompilation = ::android::nn::wrapper::Compilation;
@@ -221,7 +221,7 @@ void graphDump([[maybe_unused]] const char* name, [[maybe_unused]] const Wrapper
 // (0..7) does the device support; does the device support the OEM
 // operation.  The subset is represented with a bitmask, in which
 // operation kind K corresponds to the bit (1 << K).
-class PartitioningIDevice : public IDevice {
+class PartitioningIDevice : public V1_0::IDevice {
 public:
     enum OEM { OEMNo, OEMYes };
 
@@ -229,7 +229,7 @@ public:
             mCapabilities(capabilities), mOperationMask(operationMask), mOEM(oem) {}
     ~PartitioningIDevice() override {}
 
-    Return<ErrorStatus> prepareModel(const HidlModel&,
+    Return<ErrorStatus> prepareModel(const V1_0::Model&,
                                      const sp<IPreparedModelCallback>& cb) override {
         cb->notify(ErrorStatus::NONE, nullptr);
         return ErrorStatus::NONE;
@@ -242,8 +242,10 @@ public:
         cb(ErrorStatus::NONE, mCapabilities);
         return Void();
     }
-    Return<void> getSupportedOperations(const HidlModel& model,
+    Return<void> getSupportedOperations(const V1_0::Model& modelV1_0,
                                         getSupportedOperations_cb cb) override {
+        V1_1::Model model = android::nn::convertToV1_1(modelV1_0);
+
         if (!android::nn::validateModel(model)) {
             cb(ErrorStatus::INVALID_ARGUMENT, std::vector<bool>());
             return Void();

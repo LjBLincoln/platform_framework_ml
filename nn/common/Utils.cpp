@@ -260,8 +260,18 @@ uint32_t alignBytesNeeded(uint32_t index, size_t length) {
     return extra;
 }
 
-void logModelToInfo(const Model& model) {
-    LOG(INFO) << "Model start";
+void logModelToInfo(const V1_0::Model& model) {
+    LOG(INFO) << "V1_0::Model start";
+    LOG(INFO) << "operands" << toString(model.operands);
+    LOG(INFO) << "operations" << toString(model.operations);
+    LOG(INFO) << "inputIndexes" << toString(model.inputIndexes);
+    LOG(INFO) << "outputIndexes" << toString(model.outputIndexes);
+    LOG(INFO) << "operandValues size" << model.operandValues.size();
+    LOG(INFO) << "pools" << toString(model.pools);
+}
+
+void logModelToInfo(const V1_1::Model& model) {
+    LOG(INFO) << "V1_1::Model start";
     LOG(INFO) << "operands" << toString(model.operands);
     LOG(INFO) << "operations" << toString(model.operations);
     LOG(INFO) << "inputIndexes" << toString(model.inputIndexes);
@@ -309,6 +319,185 @@ int validateOperandList(uint32_t count, const uint32_t* list, uint32_t operandCo
         }
     }
     return ANEURALNETWORKS_NO_ERROR;
+}
+
+// Versioning
+
+bool compliantWithV1_0(V1_0::OperationType) {
+    return true;
+}
+
+bool compliantWithV1_0(V1_1::OperationType operation) {
+    switch (static_cast<V1_0::OperationType>(operation)) {
+        case V1_0::OperationType::ADD:
+        case V1_0::OperationType::AVERAGE_POOL_2D:
+        case V1_0::OperationType::CONCATENATION:
+        case V1_0::OperationType::CONV_2D:
+        case V1_0::OperationType::DEPTHWISE_CONV_2D:
+        case V1_0::OperationType::DEPTH_TO_SPACE:
+        case V1_0::OperationType::DEQUANTIZE:
+        case V1_0::OperationType::EMBEDDING_LOOKUP:
+        case V1_0::OperationType::FLOOR:
+        case V1_0::OperationType::FULLY_CONNECTED:
+        case V1_0::OperationType::HASHTABLE_LOOKUP:
+        case V1_0::OperationType::L2_NORMALIZATION:
+        case V1_0::OperationType::L2_POOL_2D:
+        case V1_0::OperationType::LOCAL_RESPONSE_NORMALIZATION:
+        case V1_0::OperationType::LOGISTIC:
+        case V1_0::OperationType::LSH_PROJECTION:
+        case V1_0::OperationType::LSTM:
+        case V1_0::OperationType::MAX_POOL_2D:
+        case V1_0::OperationType::MUL:
+        case V1_0::OperationType::RELU:
+        case V1_0::OperationType::RELU1:
+        case V1_0::OperationType::RELU6:
+        case V1_0::OperationType::RESHAPE:
+        case V1_0::OperationType::RESIZE_BILINEAR:
+        case V1_0::OperationType::RNN:
+        case V1_0::OperationType::SOFTMAX:
+        case V1_0::OperationType::SPACE_TO_DEPTH:
+        case V1_0::OperationType::SVDF:
+        case V1_0::OperationType::TANH:
+        case V1_0::OperationType::OEM_OPERATION:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool compliantWithV1_1(V1_0::OperationType) {
+    return true;
+}
+
+bool compliantWithV1_1(V1_1::OperationType) {
+    return true;
+}
+
+bool compliantWithV1_0(const V1_0::Operation&) {
+    return true;
+}
+
+bool compliantWithV1_0(const V1_1::Operation& operation) {
+    return compliantWithV1_0(operation.type);
+}
+
+bool compliantWithV1_1(const V1_0::Operation&) {
+    return true;
+}
+
+bool compliantWithV1_1(const V1_1::Operation&) {
+    return true;
+}
+
+static bool compliantWithV1_0(const hidl_vec<V1_1::Operation>& operations) {
+    return std::all_of(operations.begin(), operations.end(),
+                       [](const V1_1::Operation& operation) {
+                           return compliantWithV1_0(operation);
+                       });
+}
+
+bool compliantWithV1_0(const V1_0::Model&) {
+    return true;
+}
+
+bool compliantWithV1_0(const V1_1::Model& model) {
+    return compliantWithV1_0(model.operations);
+}
+
+bool compliantWithV1_1(const V1_0::Model&) {
+    return true;
+}
+
+bool compliantWithV1_1(const V1_1::Model&) {
+    return true;
+}
+
+V1_0::OperationType convertToV1_0(V1_0::OperationType type) {
+    return type;
+}
+
+V1_0::OperationType convertToV1_0(V1_1::OperationType type) {
+    if (!compliantWithV1_0(type)) {
+        LOG(ERROR) << "Upcasting non-compliant type " << toString(type)
+                   << " from V1_1::OperationType to V1_0::OperationType";
+    }
+    return static_cast<V1_0::OperationType>(type);
+}
+
+V1_1::OperationType convertToV1_1(V1_0::OperationType type) {
+    return static_cast<V1_1::OperationType>(type);
+}
+
+V1_1::OperationType convertToV1_1(V1_1::OperationType type) {
+    return type;
+}
+
+V1_0::Operation convertToV1_0(const V1_0::Operation& operation) {
+    return operation;
+}
+
+V1_0::Operation convertToV1_0(const V1_1::Operation& operation) {
+    if (!compliantWithV1_0(operation)) {
+        LOG(ERROR) << "Upcasting non-compliant operation " << toString(operation)
+                   << " from V1_1::Operation to V1_0::Operation";
+    }
+    return {.type = convertToV1_0(operation.type),
+            .inputs = operation.inputs,
+            .outputs = operation.outputs};
+}
+
+V1_1::Operation convertToV1_1(const V1_0::Operation& operation) {
+    return {.type = convertToV1_1(operation.type),
+            .inputs = operation.inputs,
+            .outputs = operation.outputs};
+}
+
+V1_1::Operation convertToV1_1(const V1_1::Operation& operation) {
+    return operation;
+}
+
+static hidl_vec<V1_0::Operation> convertToV1_0(const hidl_vec<V1_1::Operation>& operations) {
+    hidl_vec<V1_0::Operation> result(operations.size());
+    std::transform(operations.begin(), operations.end(), result.begin(),
+                   [](const V1_1::Operation& operation) { return convertToV1_0(operation); });
+    return result;
+}
+
+static hidl_vec<V1_1::Operation> convertToV1_1(const hidl_vec<V1_0::Operation>& operations) {
+    hidl_vec<V1_1::Operation> result(operations.size());
+    std::transform(operations.begin(), operations.end(), result.begin(),
+                   [](const V1_0::Operation& operation) { return convertToV1_1(operation); });
+    return result;
+}
+
+V1_0::Model convertToV1_0(const V1_0::Model& model) {
+    return model;
+}
+
+V1_0::Model convertToV1_0(const V1_1::Model& model) {
+    if (!compliantWithV1_0(model)) {
+        LOG(ERROR) << "Upcasting non-compliant model " << toString(model)
+                   << " from V1_1::Model to V1_0::Model";
+    }
+    return {.operands = model.operands,
+            .operations = convertToV1_0(model.operations),
+            .inputIndexes = model.inputIndexes,
+            .outputIndexes = model.outputIndexes,
+            .operandValues = model.operandValues,
+            .pools = model.pools};
+}
+
+V1_1::Model convertToV1_1(const V1_0::Model& model) {
+    return {.operands = model.operands,
+            .operations = convertToV1_1(model.operations),
+            .inputIndexes = model.inputIndexes,
+            .outputIndexes = model.outputIndexes,
+            .operandValues = model.operandValues,
+            .pools = model.pools};
+}
+
+V1_1::Model convertToV1_1(const V1_1::Model& model) {
+    return model;
 }
 
 #ifdef NN_DEBUGGABLE

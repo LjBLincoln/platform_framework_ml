@@ -110,7 +110,8 @@ hidl_memory allocateSharedMemory(int64_t size);
 uint32_t alignBytesNeeded(uint32_t index, size_t length);
 
 // Does a detailed LOG(INFO) of the model
-void logModelToInfo(const Model& model);
+void logModelToInfo(const V1_0::Model& model);
+void logModelToInfo(const V1_1::Model& model);
 
 inline void setFromIntList(hidl_vec<uint32_t>* vec, uint32_t count, const uint32_t* data) {
     vec->resize(count);
@@ -150,6 +151,40 @@ int validateOperandList(uint32_t count, const uint32_t* list, uint32_t operandCo
 inline size_t getSizeFromInts(int lower, int higher) {
     return (uint32_t)(lower) + ((uint64_t)(uint32_t)(higher) << 32);
 }
+
+
+// Versioning
+
+bool compliantWithV1_0(V1_0::OperationType type);
+bool compliantWithV1_0(V1_1::OperationType type);
+bool compliantWithV1_1(V1_0::OperationType type);
+bool compliantWithV1_1(V1_1::OperationType type);
+
+bool compliantWithV1_0(const V1_0::Operation& operation);
+bool compliantWithV1_0(const V1_1::Operation& operation);
+bool compliantWithV1_1(const V1_0::Operation& operation);
+bool compliantWithV1_1(const V1_1::Operation& operation);
+
+bool compliantWithV1_0(const V1_0::Model& model);
+bool compliantWithV1_0(const V1_1::Model& model);
+bool compliantWithV1_1(const V1_0::Model& model);
+bool compliantWithV1_1(const V1_1::Model& model);
+
+V1_0::OperationType convertToV1_0(V1_0::OperationType type);
+V1_0::OperationType convertToV1_0(V1_1::OperationType type);
+V1_1::OperationType convertToV1_1(V1_0::OperationType type);
+V1_1::OperationType convertToV1_1(V1_1::OperationType type);
+
+V1_0::Operation convertToV1_0(const V1_0::Operation& operation);
+V1_0::Operation convertToV1_0(const V1_1::Operation& operation);
+V1_1::Operation convertToV1_1(const V1_0::Operation& operation);
+V1_1::Operation convertToV1_1(const V1_1::Operation& operation);
+
+V1_0::Model convertToV1_0(const V1_0::Model& model);
+V1_0::Model convertToV1_0(const V1_1::Model& model);
+V1_1::Model convertToV1_1(const V1_0::Model& model);
+V1_1::Model convertToV1_1(const V1_1::Model& model);
+
 
 #ifdef NN_DEBUGGABLE
 uint32_t getProp(const char* str, uint32_t defaultValue = 0);

@@ -34,7 +34,8 @@ class SampleDriverFloatFast : public SampleDriver {
 public:
     SampleDriverFloatFast() : SampleDriver("sample-float-fast") {}
     Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override;
-    Return<void> getSupportedOperations(const Model& model, getSupportedOperations_cb cb) override;
+    Return<void> getSupportedOperations(const V1_0::Model& model,
+                                        getSupportedOperations_cb cb) override;
 };
 
 Return<void> SampleDriverFloatFast::getCapabilities(getCapabilities_cb cb) {
@@ -46,14 +47,14 @@ Return<void> SampleDriverFloatFast::getCapabilities(getCapabilities_cb cb) {
     return Void();
 }
 
-Return<void> SampleDriverFloatFast::getSupportedOperations(const Model& model,
+Return<void> SampleDriverFloatFast::getSupportedOperations(const V1_0::Model& model,
                                                            getSupportedOperations_cb cb) {
     VLOG(DRIVER) << "getSupportedOperations()";
     if (validateModel(model)) {
         const size_t count = model.operations.size();
         std::vector<bool> supported(count);
         for (size_t i = 0; i < count; i++) {
-            const Operation& operation = model.operations[i];
+            const V1_0::Operation& operation = model.operations[i];
             if (operation.inputs.size() > 0) {
                 const Operand& firstOperand = model.operands[operation.inputs[0]];
                 supported[i] = firstOperand.type == OperandType::TENSOR_FLOAT32;

@@ -34,7 +34,8 @@ class SampleDriverAll : public SampleDriver {
 public:
     SampleDriverAll() : SampleDriver("sample-all") {}
     Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override;
-    Return<void> getSupportedOperations(const Model& model, getSupportedOperations_cb cb) override;
+    Return<void> getSupportedOperations(const V1_0::Model& model,
+                                        getSupportedOperations_cb cb) override;
 };
 
 Return<void> SampleDriverAll::getCapabilities(getCapabilities_cb cb) {
@@ -46,7 +47,7 @@ Return<void> SampleDriverAll::getCapabilities(getCapabilities_cb cb) {
     return Void();
 }
 
-Return<void> SampleDriverAll::getSupportedOperations(const Model& model,
+Return<void> SampleDriverAll::getSupportedOperations(const V1_0::Model& model,
                                                      getSupportedOperations_cb cb) {
     VLOG(DRIVER) << "getSupportedOperations()";
     if (validateModel(model)) {

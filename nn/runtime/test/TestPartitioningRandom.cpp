@@ -95,7 +95,7 @@ using CompilationBuilder = nn::CompilationBuilder;
 using Device = nn::Device;
 using DeviceManager = nn::DeviceManager;
 using ExecutionPlan = nn::ExecutionPlan;
-using HidlModel = hardware::neuralnetworks::V1_0::Model;
+using HidlModel = hardware::neuralnetworks::V1_1::Model;
 using MemoryBuilder = nn::Memory;
 using ModelBuilder = nn::ModelBuilder;
 using Result = nn::wrapper::Result;
@@ -489,7 +489,10 @@ public:
         return Void();
     }
 
-    Return<void> getSupportedOperations(const Model& model, getSupportedOperations_cb cb) override {
+    Return<void> getSupportedOperations(const V1_0::Model& modelV1_0,
+                                        getSupportedOperations_cb cb) override {
+        V1_1::Model model = android::nn::convertToV1_1(modelV1_0);
+
         if (nn::validateModel(model)) {
             const size_t count = model.operations.size();
             std::vector<bool> supported(count);
@@ -508,7 +511,7 @@ public:
         return Void();
     }
 
-    Return<ErrorStatus> prepareModel(const Model& model,
+    Return<ErrorStatus> prepareModel(const V1_0::Model& model,
                                      const sp<IPreparedModelCallback>& callback) override {
         // NOTE: We verify that all operations in the model are supported.
         ErrorStatus outStatus = ErrorStatus::INVALID_ARGUMENT;

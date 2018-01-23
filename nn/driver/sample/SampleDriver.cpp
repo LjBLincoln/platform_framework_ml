@@ -30,7 +30,7 @@ namespace android {
 namespace nn {
 namespace sample_driver {
 
-Return<ErrorStatus> SampleDriver::prepareModel(const Model& model,
+Return<ErrorStatus> SampleDriver::prepareModel(const V1_0::Model& model,
                                                const sp<IPreparedModelCallback>& callback) {
     if (VLOG_IS_ON(DRIVER)) {
         VLOG(DRIVER) << "prepareModel";
@@ -84,7 +84,8 @@ void SamplePreparedModel::asyncExecute(const Request& request,
     }
 
     CpuExecutor executor;
-    int n = executor.run(mModel, request, mPoolInfos, requestPoolInfos);
+    V1_1::Model model = convertToV1_1(mModel);
+    int n = executor.run(model, request, mPoolInfos, requestPoolInfos);
     VLOG(DRIVER) << "executor.run returned " << n;
     ErrorStatus executionStatus =
             n == ANEURALNETWORKS_NO_ERROR ? ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;

@@ -19,7 +19,9 @@
 
 #include "HalInterfaces.h"
 #include "Utils.h"
+#include "VersionedIDevice.h"
 
+#include <android-base/macros.h>
 #include <map>
 #include <unordered_set>
 #include <vector>
@@ -30,21 +32,22 @@ namespace nn {
 class ModelBuilder;
 
 class Device {
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Device);
 public:
-    Device(const std::string& name, const sp<IDevice>& device) : mName(name), mInterface(device) {}
-    sp<IDevice> getInterface() { return mInterface; }
+    Device(std::string name, const sp<V1_0::IDevice>& device);
+    VersionedIDevice* getInterface() { return &mInterface; }
     const std::string& getName() const { return mName; }
     // Returns true if succesfully initialized.
     bool initialize();
 
-    void getSupportedOperations(const Model& hidlModel, hidl_vec<bool>* supportedOperations) const;
+    void getSupportedOperations(const Model& hidlModel, hidl_vec<bool>* supportedOperations);
 
     PerformanceInfo getFloat32Performance() const { return mFloat32Performance; }
     PerformanceInfo getQuantized8Performance() const { return mQuantized8Performance; }
 
 private:
     std::string mName;
-    sp<IDevice> mInterface;
+    VersionedIDevice mInterface;
     PerformanceInfo mFloat32Performance;
     PerformanceInfo mQuantized8Performance;
 
@@ -93,7 +96,7 @@ private:
     DeviceManager();
 
     // Adds a device for the manager to use.
-    void registerDevice(const char* name, const sp<IDevice>& device);
+    void registerDevice(const char* name, const sp<V1_0::IDevice>& device);
 
     void findAvailableDevices();
 

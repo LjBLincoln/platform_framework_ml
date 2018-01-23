@@ -28,13 +28,15 @@ namespace nn {
 // IMPORTANT: This function cannot validate that OEM operation and operands
 // are correctly defined, as these are specific to each implementation.
 // Each driver should do their own validation of OEM types.
-bool validateModel(const Model& model);
+bool validateModel(const V1_0::Model& model);
+bool validateModel(const V1_1::Model& model);
 
 // Verfies that the request for the given model is valid.
 // IMPORTANT: This function cannot validate that OEM operation and operands
 // are correctly defined, as these are specific to each implementation.
 // Each driver should do their own validation of OEM types.
-bool validateRequest(const Request& request, const Model& model);
+bool validateRequest(const Request& request, const V1_0::Model& model);
+bool validateRequest(const Request& request, const V1_1::Model& model);
 
 }  // namespace nn
 }  // namespace android
