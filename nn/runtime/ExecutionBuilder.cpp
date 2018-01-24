@@ -85,6 +85,8 @@ int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
             LOG(ERROR) << "ANeuralNetworksExecution_setInput/Output incompatible types";
             return ANEURALNETWORKS_BAD_DATA;
         }
+
+        dimensions = hidl_vec<uint32_t>(count);
         for (uint32_t i = 0; i < count; i++) {
             dimensions[i] = newType->dimensions[i];
         }
