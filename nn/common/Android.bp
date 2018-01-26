@@ -163,6 +163,9 @@ cc_test {
         "operations/SVDFTest.cpp",
     ],
     local_include_dirs: [ "include" ],
+    header_libs: [
+        "tensorflow_headers",
+    ],
     shared_libs: [
         "libneuralnetworks",
     ],

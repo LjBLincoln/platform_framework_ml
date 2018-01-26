@@ -1807,6 +1807,20 @@ TEST_F(GeneratedTests, space_to_depth_quant8_2) {
             space_to_depth_quant8_2::examples);
 }
 
+namespace svdf2 {
+std::vector<MixedTypedExample> examples = {
+// Generated svdf2 test
+#include "generated/examples/svdf2.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/svdf2.model.cpp"
+} // namespace svdf2
+TEST_F(GeneratedTests, svdf2) {
+    execute(svdf2::CreateModel,
+            svdf2::is_ignored,
+            svdf2::examples);
+}
+
 namespace svdf {
 std::vector<MixedTypedExample> examples = {
 // Generated svdf test
