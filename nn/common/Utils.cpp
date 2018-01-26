@@ -221,11 +221,12 @@ uint32_t sizeOfData(OperandType type, const std::vector<uint32_t>& dimensions) {
 }
 
 hidl_memory allocateSharedMemory(int64_t size) {
+    static const std::string type = "ashmem";
+    static sp<IAllocator> allocator = IAllocator::getService(type);
+
     hidl_memory memory;
 
     // TODO: should we align memory size to nearest page? doesn't seem necessary...
-    const std::string& type = "ashmem";
-    sp<IAllocator> allocator = IAllocator::getService(type);
     allocator->allocate(size, [&](bool success, const hidl_memory& mem) {
         if (!success) {
             LOG(ERROR) << "unable to allocate " << size << " bytes of " << type;
