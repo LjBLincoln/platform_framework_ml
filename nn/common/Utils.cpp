@@ -151,6 +151,15 @@ const char* kOperationNames[kNumberOfOperationTypes] = {
         "SPACE_TO_DEPTH",
         "SVDF",
         "TANH",
+        "BATCH_TO_SPACE_ND",
+        "DIV",
+        "MEAN",
+        "PAD",
+        "SPACE_TO_BATCH_ND",
+        "SQUEEZE",
+        "STRIDED_SLICE",
+        "SUB",
+        "TRANSPOSE",
 };
 
 static_assert(COUNT(kOperationNames) == kNumberOfOperationTypes, "kOperationNames is incorrect");

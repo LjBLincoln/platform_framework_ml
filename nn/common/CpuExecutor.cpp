@@ -1297,6 +1297,221 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                 setInfoAndAllocateIfNeeded(&output, outputShape) &&
                 svdf.Eval();
         } break;
+        case OperationType::BATCH_TO_SPACE_ND: {
+            if (!allParametersPresent(3, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            const RunTimeOperandInfo& blockSize = mOperands[ins[1]];
+            const RunTimeOperandInfo& crops = mOperands[ins[2]];
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = batchToSpacePrepare(input.shape(),
+                                          reinterpret_cast<const int32_t*>(blockSize.buffer),
+                                          blockSize.shape(),
+                                          &outShape) &&
+                      setInfoAndAllocateIfNeeded(&output, outShape) &&
+                      batchToSpaceGeneric(input.buffer,
+                                          input.shape(),
+                                          reinterpret_cast<const int32_t*>(blockSize.buffer),
+                                          output.buffer,
+                                          outShape);
+        } break;
+        case OperationType::SPACE_TO_BATCH_ND: {
+            if (!allParametersPresent(3, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            const RunTimeOperandInfo& blockSize = mOperands[ins[1]];
+            const RunTimeOperandInfo& paddings = mOperands[ins[2]];
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = spaceToBatchPrepare(input.shape(),
+                                          reinterpret_cast<const int32_t*>(blockSize.buffer),
+                                          blockSize.shape(),
+                                          reinterpret_cast<const int32_t*>(paddings.buffer),
+                                          paddings.shape(),
+                                          &outShape) &&
+                      setInfoAndAllocateIfNeeded(&output, outShape) &&
+                      spaceToBatchGeneric(input.buffer,
+                                          input.shape(),
+                                          reinterpret_cast<const int32_t*>(blockSize.buffer),
+                                          reinterpret_cast<const int32_t*>(paddings.buffer),
+                                          paddings.shape(),
+                                          output.buffer,
+                                          outShape);
+        } break;
+        case OperationType::PAD: {
+            if (!allParametersPresent(2, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            const RunTimeOperandInfo& paddings = mOperands[ins[1]];
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = padPrepare(input.shape(),
+                                 reinterpret_cast<const int32_t*>(paddings.buffer),
+                                 paddings.shape(),
+                                 &outShape) &&
+                      setInfoAndAllocateIfNeeded(&output, outShape) &&
+                      padGeneric(input.buffer,
+                                 input.shape(),
+                                 reinterpret_cast<const int32_t*>(paddings.buffer),
+                                 output.buffer,
+                                 outShape);
+        } break;
+        case OperationType::SQUEEZE: {
+            if (!allParametersPresent(2, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            const RunTimeOperandInfo& squeezeDims = mOperands[ins[1]];
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = squeezePrepare(input.shape(),
+                                     reinterpret_cast<const int32_t*>(squeezeDims.buffer),
+                                     squeezeDims.shape(),
+                                     &outShape) &&
+                      setInfoAndAllocateIfNeeded(&output, outShape) &&
+                      squeezeGeneric(input.buffer,
+                                     input.shape(),
+                                     output.buffer,
+                                     outShape);
+        } break;
+        case OperationType::TRANSPOSE: {
+            if (!allParametersPresent(2, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            const RunTimeOperandInfo& perms = mOperands[ins[1]];
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = transposePrepare(input.shape(),
+                                       reinterpret_cast<const int32_t*>(perms.buffer),
+                                       perms.shape(),
+                                       &outShape) &&
+                      setInfoAndAllocateIfNeeded(&output, outShape) &&
+                      transposeGeneric(input.buffer,
+                                       input.shape(),
+                                       reinterpret_cast<const int32_t*>(perms.buffer),
+                                       perms.shape(),
+                                       output.buffer,
+                                       outShape);
+        } break;
+        case OperationType::STRIDED_SLICE: {
+            if (!allParametersPresent(6, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            const RunTimeOperandInfo& begins = mOperands[ins[1]];
+            const RunTimeOperandInfo& ends = mOperands[ins[2]];
+            const RunTimeOperandInfo& strides = mOperands[ins[3]];
+            int32_t beginMask = getScalarData<int32_t>(mOperands[ins[4]]);
+            int32_t endMask = getScalarData<int32_t>(mOperands[ins[5]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = stridedSlicePrepare(input.shape(),
+                                          reinterpret_cast<const int32_t*>(begins.buffer),
+                                          begins.shape(), beginMask,
+                                          reinterpret_cast<const int32_t*>(ends.buffer),
+                                          ends.shape(), endMask,
+                                          reinterpret_cast<const int32_t*>(strides.buffer),
+                                          strides.shape(),
+                                          &outShape) &&
+                      setInfoAndAllocateIfNeeded(&output, outShape) &&
+                      stridedSliceGeneric(input.buffer,
+                                          input.shape(),
+                                          reinterpret_cast<const int32_t*>(begins.buffer),
+                                          beginMask,
+                                          reinterpret_cast<const int32_t*>(ends.buffer),
+                                          endMask ,
+                                          reinterpret_cast<const int32_t*>(strides.buffer),
+                                          output.buffer,
+                                          outShape);
+        } break;
+        case OperationType::DIV: {
+            if (!allParametersPresent(3, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& in1 = mOperands[ins[0]];
+            const RunTimeOperandInfo& in2 = mOperands[ins[1]];
+            int32_t activation = getScalarData<int32_t>(mOperands[ins[2]]);
+
+            RunTimeOperandInfo& out = mOperands[outs[0]];
+            Shape outShape = out.shape();
+
+            if (in1.type == OperandType::TENSOR_FLOAT32) {
+                success = addMulPrepare(in1.shape(), in2.shape(), &outShape) &&
+                          setInfoAndAllocateIfNeeded(&out, outShape) &&
+                          divFloat32(reinterpret_cast<const float*>(in1.buffer),
+                                     in1.shape(),
+                                     reinterpret_cast<const float*>(in2.buffer),
+                                     in2.shape(),
+                                     activation,
+                                     reinterpret_cast<float*>(out.buffer),
+                                     outShape);
+            }
+        } break;
+        case OperationType::SUB: {
+            if (!allParametersPresent(3, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& in1 = mOperands[ins[0]];
+            const RunTimeOperandInfo& in2 = mOperands[ins[1]];
+            int32_t activation = getScalarData<int32_t>(mOperands[ins[2]]);
+
+            RunTimeOperandInfo& out = mOperands[outs[0]];
+            Shape outShape = out.shape();
+
+            if (in1.type == OperandType::TENSOR_FLOAT32) {
+                success = addMulPrepare(in1.shape(), in2.shape(), &outShape) &&
+                          setInfoAndAllocateIfNeeded(&out, outShape) &&
+                          subFloat32(reinterpret_cast<const float*>(in1.buffer),
+                                     in1.shape(),
+                                     reinterpret_cast<const float*>(in2.buffer),
+                                     in2.shape(),
+                                     activation,
+                                     reinterpret_cast<float*>(out.buffer),
+                                     outShape);
+            }
+        } break;
+        case OperationType::MEAN: {
+            if (!allParametersPresent(3, 1)) {
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            const RunTimeOperandInfo& input = mOperands[ins[0]];
+            const RunTimeOperandInfo& axis = mOperands[ins[1]];
+            int32_t keepDims = getScalarData<int32_t>(mOperands[ins[2]]);
+
+            RunTimeOperandInfo& output = mOperands[outs[0]];
+            Shape outShape = output.shape();
+
+            success = meanPrepare(input.shape(),
+                                  reinterpret_cast<const int32_t*>(axis.buffer),
+                                  axis.shape(),
+                                  keepDims > 0,
+                                  &outShape) &&
+                      setInfoAndAllocateIfNeeded(&output, outShape) &&
+                      meanGeneric(input.buffer,
+                                  input.shape(),
+                                  reinterpret_cast<const int32_t*>(axis.buffer),
+                                  axis.shape(),
+                                  keepDims > 0,
+                                  output.buffer,
+                                  outShape);
+        } break;
         default:
             nnAssert(false);
             break;
