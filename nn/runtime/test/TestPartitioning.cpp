@@ -247,6 +247,7 @@ public:
         cb->notify(ErrorStatus::NONE, new PartitioningPreparedModel);
         return ErrorStatus::NONE;
     }
+
     Return<DeviceStatus> getStatus() override {
         return DeviceStatus::AVAILABLE;
     }
@@ -255,6 +256,7 @@ public:
         cb(ErrorStatus::NONE, mCapabilities);
         return Void();
     }
+
     Return<void> getSupportedOperations_1_1(const Model& model,
                                             getSupportedOperations_cb cb) override {
         if (!android::nn::validateModel(model)) {
@@ -278,6 +280,7 @@ public:
         cb(ErrorStatus::NONE, supported);
         return Void();
     }
+
 private:
     Capabilities mCapabilities;
     uint32_t mOperationMask;

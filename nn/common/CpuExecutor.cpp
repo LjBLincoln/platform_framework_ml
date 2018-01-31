@@ -184,7 +184,13 @@ static bool setInfoAndAllocateIfNeeded(RunTimeOperandInfo* info, const Shape& sh
 
 // Ignore the .pools entry in model and request.  This will have been taken care of
 // by the caller.
-int CpuExecutor::run(const Model& model, const Request& request,
+int CpuExecutor::run(const V1_0::Model& model, const Request& request,
+                     const std::vector<RunTimePoolInfo>& modelPoolInfos,
+                     const std::vector<RunTimePoolInfo>& requestPoolInfos) {
+    return run(convertToV1_1(model), request, modelPoolInfos, requestPoolInfos);
+}
+
+int CpuExecutor::run(const V1_1::Model& model, const Request& request,
                      const std::vector<RunTimePoolInfo>& modelPoolInfos,
                      const std::vector<RunTimePoolInfo>& requestPoolInfos) {
     VLOG(CPUEXE) << "CpuExecutor::run()";
