@@ -489,10 +489,8 @@ public:
         return Void();
     }
 
-    Return<void> getSupportedOperations(const V1_0::Model& modelV1_0,
-                                        getSupportedOperations_cb cb) override {
-        V1_1::Model model = android::nn::convertToV1_1(modelV1_0);
-
+    Return<void> getSupportedOperations_1_1(const HidlModel& model,
+                                            getSupportedOperations_cb cb) override {
         if (nn::validateModel(model)) {
             const size_t count = model.operations.size();
             std::vector<bool> supported(count);
@@ -511,11 +509,11 @@ public:
         return Void();
     }
 
-    Return<ErrorStatus> prepareModel(const V1_0::Model& model,
-                                     const sp<IPreparedModelCallback>& callback) override {
+    Return<ErrorStatus> prepareModel_1_1(const HidlModel& model,
+                                         const sp<IPreparedModelCallback>& callback) override {
         // NOTE: We verify that all operations in the model are supported.
         ErrorStatus outStatus = ErrorStatus::INVALID_ARGUMENT;
-        auto ret = getSupportedOperations(
+        auto ret = getSupportedOperations_1_1(
             model,
             [&outStatus](ErrorStatus inStatus, const hidl_vec<bool>& supportedOperations) {
                 if (inStatus == ErrorStatus::NONE) {
@@ -526,7 +524,7 @@ public:
                 }
             });
         if (ret.isOk() && (outStatus == ErrorStatus::NONE)) {
-            return SampleDriver::prepareModel(model, callback);
+            return SampleDriver::prepareModel_1_1(model, callback);
         } else {
             callback->notify(ErrorStatus::INVALID_ARGUMENT, nullptr);
             return ErrorStatus::INVALID_ARGUMENT;

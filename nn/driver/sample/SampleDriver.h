@@ -32,12 +32,16 @@ namespace sample_driver {
 //
 // Since these drivers simulate hardware, they must run the computations
 // on the CPU.  An actual driver would not do that.
-class SampleDriver : public V1_0::IDevice {
+class SampleDriver : public IDevice {
 public:
     SampleDriver(const char* name) : mName(name) {}
     ~SampleDriver() override {}
+    Return<void> getSupportedOperations(const V1_0::Model& model,
+                                        getSupportedOperations_cb cb) override;
     Return<ErrorStatus> prepareModel(const V1_0::Model& model,
                                      const sp<IPreparedModelCallback>& callback) override;
+    Return<ErrorStatus> prepareModel_1_1(const V1_1::Model& model,
+                                         const sp<IPreparedModelCallback>& callback) override;
     Return<DeviceStatus> getStatus() override;
 
     // Starts and runs the driver service.  Typically called from main().
@@ -49,7 +53,7 @@ protected:
 
 class SamplePreparedModel : public IPreparedModel {
 public:
-    SamplePreparedModel(const V1_0::Model& model) : mModel(model) {}
+    SamplePreparedModel(const Model& model) : mModel(model) {}
     ~SamplePreparedModel() override {}
     bool initialize();
     Return<ErrorStatus> execute(const Request& request,
@@ -58,7 +62,7 @@ public:
 private:
     void asyncExecute(const Request& request, const sp<IExecutionCallback>& callback);
 
-    V1_0::Model mModel;
+    Model mModel;
     std::vector<RunTimePoolInfo> mPoolInfos;
 };
 
