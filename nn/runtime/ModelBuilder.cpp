@@ -84,7 +84,7 @@ int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t len
         }
         uint32_t valueLength = static_cast<uint32_t>(length);
         uint32_t neededLength = sizeOfData(operand.type, operand.dimensions);
-        if (neededLength != valueLength) {
+        if (operand.type != OperandType::OEM && neededLength != valueLength) {
             LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting " << valueLength
                        << " bytes when needing " << neededLength;
             return ANEURALNETWORKS_BAD_DATA;
@@ -95,7 +95,7 @@ int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t len
             mSmallOperandValues.resize(existingSize + extraBytes + valueLength);
             operand.lifetime = OperandLifeTime::CONSTANT_COPY;
             operand.location = {
-                .poolIndex = 0, .offset = existingSize + extraBytes, .length = neededLength};
+                .poolIndex = 0, .offset = existingSize + extraBytes, .length = valueLength};
             memcpy(&mSmallOperandValues[operand.location.offset], buffer, valueLength);
             VLOG(MODEL) << "Copied small value to offset " << operand.location.offset;
         } else {

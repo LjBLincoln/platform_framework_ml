@@ -15,6 +15,7 @@
  */
 
 #include "NeuralNetworks.h"
+#include "NeuralNetworksOEM.h"
 
 //#include <android-base/logging.h>
 #include <gtest/gtest.h>
@@ -122,6 +123,25 @@ TEST_F(ValidationTestModel, SetOperandValue) {
     // TODO lots of validation of type
     // EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 0, buffer,
     // sizeof(buffer)), ANEURALNETWORKS_UNEXPECTED_NULL);
+}
+
+TEST_F(ValidationTestModel, AddOEMOperand) {
+    ANeuralNetworksOperandType OEMScalarType{
+                .type = ANEURALNETWORKS_OEM_SCALAR, .dimensionCount = 0, .dimensions = nullptr};
+    EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, &OEMScalarType), ANEURALNETWORKS_NO_ERROR);
+    char buffer[20];
+    EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 0, buffer, sizeof(buffer)),
+              ANEURALNETWORKS_NO_ERROR);
+
+    const size_t kByteSizeOfOEMTensor = 4;
+    uint32_t dimensions[]{kByteSizeOfOEMTensor};
+    ANeuralNetworksOperandType OEMTensorType{
+                .type = ANEURALNETWORKS_TENSOR_OEM_BYTE,
+                .dimensionCount = 1,
+                .dimensions = dimensions};
+    EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, &OEMTensorType), ANEURALNETWORKS_NO_ERROR);
+    EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 1, buffer, kByteSizeOfOEMTensor),
+              ANEURALNETWORKS_NO_ERROR);
 }
 
 TEST_F(ValidationTestModel, AddOperation) {
