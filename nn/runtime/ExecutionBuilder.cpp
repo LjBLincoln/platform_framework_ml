@@ -190,7 +190,7 @@ static void cpuFallbackFull(const ExecutionBuilder* executionBuilder,
                             const sp<ExecutionCallback>& executionCallback) {
     VLOG(EXECUTION) << "cpuFallbackFull";
     StepExecutor executor(executionBuilder, executionBuilder->getModel(),
-                          nullptr /* no IDevice, so CPU */,
+                          nullptr /* no VersionedIDevice, so CPU */,
                           nullptr /* no IPreparedModel */);
     executor.mapInputsAndOutputsTrivially();
     sp<ExecutionCallback> fallbackCallback;
@@ -375,7 +375,7 @@ int ExecutionBuilder::startCompute(sp<ExecutionCallback>* synchronizationCallbac
     // Run on the CPU.
     VLOG(EXECUTION) << "ExecutionBuilder::startCompute (without plan) on CPU";
     StepExecutor executor(this, mModel,
-                          nullptr /* no IDevice, so CPU */,
+                          nullptr /* no VersionedIDevice, so CPU */,
                           nullptr /* no IPreparedModel */);
     executor.mapInputsAndOutputsTrivially();
     return executor.startCompute(synchronizationCallback);
@@ -425,7 +425,7 @@ static void setRequestArgumentArray(const std::vector<ModelArgumentInfo>& argume
 
 StepExecutor::StepExecutor(const ExecutionBuilder* executionBuilder,
                            const ModelBuilder* model,
-                           sp<IDevice> driver, sp<IPreparedModel> preparedModel) :
+                           VersionedIDevice* driver, sp<IPreparedModel> preparedModel) :
     mExecutionBuilder(executionBuilder), mModel(model),
     mDriver(driver), mPreparedModel(preparedModel),
     mInputs(model->inputCount()), mOutputs(model->outputCount()) {}
@@ -521,9 +521,8 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
 
         // TODO Dangerous!  In async, the model will outlive it here. Safe for now
         sp<PreparedModelCallback> preparedModelCallback = new PreparedModelCallback();
-        Return<ErrorStatus> prepareLaunchStatus =
-                mDriver->prepareModel(model, preparedModelCallback);
-        if (!prepareLaunchStatus.isOk() || prepareLaunchStatus != ErrorStatus::NONE) {
+        ErrorStatus prepareLaunchStatus = mDriver->prepareModel(model, preparedModelCallback);
+        if (prepareLaunchStatus != ErrorStatus::NONE) {
             return ANEURALNETWORKS_OP_FAILED;
         }
 

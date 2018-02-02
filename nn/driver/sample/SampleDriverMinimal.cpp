@@ -35,7 +35,8 @@ class SampleDriverMinimal : public SampleDriver {
 public:
     SampleDriverMinimal() : SampleDriver("sample-minimal") {}
     Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override;
-    Return<void> getSupportedOperations(const Model& model, getSupportedOperations_cb cb) override;
+    Return<void> getSupportedOperations(const V1_0::Model& model,
+                                        getSupportedOperations_cb cb) override;
 };
 
 Return<void> SampleDriverMinimal::getCapabilities(getCapabilities_cb cb) {
@@ -47,7 +48,7 @@ Return<void> SampleDriverMinimal::getCapabilities(getCapabilities_cb cb) {
     return Void();
 }
 
-Return<void> SampleDriverMinimal::getSupportedOperations(const Model& model,
+Return<void> SampleDriverMinimal::getSupportedOperations(const V1_0::Model& model,
                                                          getSupportedOperations_cb cb) {
     VLOG(DRIVER) << "getSupportedOperations()";
     if (validateModel(model)) {
@@ -56,11 +57,11 @@ Return<void> SampleDriverMinimal::getSupportedOperations(const Model& model,
         // Simulate supporting just a few ops
         for (size_t i = 0; i < count; i++) {
             supported[i] = false;
-            const Operation& operation = model.operations[i];
+            const V1_0::Operation& operation = model.operations[i];
             switch (operation.type) {
-                case OperationType::ADD:
-                case OperationType::CONCATENATION:
-                case OperationType::CONV_2D: {
+                case V1_0::OperationType::ADD:
+                case V1_0::OperationType::CONCATENATION:
+                case V1_0::OperationType::CONV_2D: {
                     const Operand& firstOperand = model.operands[operation.inputs[0]];
                     if (firstOperand.type == OperandType::TENSOR_FLOAT32) {
                         supported[i] = true;

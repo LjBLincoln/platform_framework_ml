@@ -22,6 +22,7 @@
 #include "Memory.h"
 #include "ModelBuilder.h"
 #include "NeuralNetworks.h"
+#include "VersionedIDevice.h"
 
 #include <unordered_map>
 #include <vector>
@@ -119,7 +120,7 @@ public:
     //     case of CPU.)
     StepExecutor(const ExecutionBuilder* executionBuilder,
                  const ModelBuilder* model,
-                 sp<IDevice> driver, sp<IPreparedModel> preparedModel);
+                 VersionedIDevice* driver, sp<IPreparedModel> preparedModel);
 
     // Map inputs and outputs from ExecutionBuilder to StepExecutor,
     // in the case where we have a single-"step" execution (i.e., the executor
@@ -181,7 +182,7 @@ private:
     // model to be executed on the executor, in both original and
     // compiled forms; and device on which to execute it
     const ModelBuilder* mModel;
-    sp<IDevice> mDriver;                // nullptr if CPU execution
+    VersionedIDevice* mDriver;          // nullptr if CPU execution
     sp<IPreparedModel> mPreparedModel;  // nullptr if CPU execution or if bypassing ExecutionPlan
 
     // The information we'll send to the driver about the inputs and outputs.

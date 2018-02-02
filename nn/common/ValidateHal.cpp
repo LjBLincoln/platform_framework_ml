@@ -206,7 +206,8 @@ static bool validateOperands(const hidl_vec<Operand>& operands,
     return true;
 }
 
-static bool validateOperations(const hidl_vec<Operation>& operations,
+template<typename VersionedOperation>
+static bool validateOperations(const hidl_vec<VersionedOperation>& operations,
                                const hidl_vec<Operand>& operands) {
     const size_t operandCount = operands.size();
     // This vector keeps track of whether there's an operation that writes to
@@ -299,7 +300,8 @@ static bool validateModelInputOutputs(const hidl_vec<uint32_t> indexes,
     return true;
 }
 
-bool validateModel(const Model& model) {
+template<typename VersionedModel>
+static bool validateModelVersioned(const VersionedModel& model) {
     return (validateOperands(model.operands, model.operandValues, model.pools) &&
             validateOperations(model.operations, model.operands) &&
             validateModelInputOutputs(model.inputIndexes, model.operands,
@@ -307,6 +309,14 @@ bool validateModel(const Model& model) {
             validateModelInputOutputs(model.outputIndexes, model.operands,
                                       OperandLifeTime::MODEL_OUTPUT) &&
             validatePools(model.pools));
+}
+
+bool validateModel(const V1_0::Model& model) {
+    return validateModelVersioned(model);
+}
+
+bool validateModel(const V1_1::Model& model) {
+    return validateModelVersioned(model);
 }
 
 // Validates the arguments of a request. type is either "input" or "output" and is used
@@ -385,12 +395,21 @@ static bool validateRequestArguments(const hidl_vec<RequestArgument>& requestArg
     return true;
 }
 
-bool validateRequest(const Request& request, const Model& model) {
+template<typename VersionedModel>
+static bool validateRequestVersioned(const Request& request, const VersionedModel& model) {
     return (validateRequestArguments(request.inputs, model.inputIndexes, model.operands,
                                      request.pools, "input") &&
             validateRequestArguments(request.outputs, model.outputIndexes, model.operands,
                                      request.pools, "output") &&
             validatePools(request.pools));
+}
+
+bool validateRequest(const Request& request, const V1_0::Model& model) {
+    return validateRequestVersioned(request, model);
+}
+
+bool validateRequest(const Request& request, const V1_1::Model& model) {
+    return validateRequestVersioned(request, model);
 }
 
 }  // namespace nn

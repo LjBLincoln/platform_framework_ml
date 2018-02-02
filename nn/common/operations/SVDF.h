@@ -25,7 +25,7 @@
 namespace android {
 namespace hardware {
 namespace neuralnetworks {
-namespace V1_0 {
+namespace V1_1 {
 struct Operation;
 }
 }  // namespace neuralnetworks
@@ -45,11 +45,11 @@ struct Shape;
 
 class SVDF {
 public:
-    SVDF(const android::hardware::neuralnetworks::V1_0::Operation &operation,
+    SVDF(const android::hardware::neuralnetworks::V1_1::Operation &operation,
          std::vector<RunTimeOperandInfo>& operands);
 
     static bool Prepare(
-        const hardware::neuralnetworks::V1_0::Operation &operation,
+        const hardware::neuralnetworks::V1_1::Operation &operation,
         std::vector<RunTimeOperandInfo> &operands, Shape *stateShape,
         Shape *outputShape);
     bool Eval();

@@ -47,6 +47,7 @@ cc_library_static {
         "operations/Reshape.cpp",
         "operations/RNN.cpp",
         "operations/SimpleMath.cpp",
+        "operations/StridedSlice.cpp",
         "operations/SVDF.cpp",
     ],
     shared_libs: [
@@ -58,6 +59,7 @@ cc_library_static {
         "liblog",
         "libutils",
         "android.hardware.neuralnetworks@1.0",
+        "android.hardware.neuralnetworks@1.1",
         "android.hidl.allocator@1.0",
         "android.hidl.memory@1.0",
     ],

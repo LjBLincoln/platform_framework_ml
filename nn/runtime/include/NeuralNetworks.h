@@ -1222,6 +1222,267 @@ typedef enum {
      * * 0: The output tensor of same shape as input0.
      */
     ANEURALNETWORKS_TANH = 28,
+
+// TODO: change to __ANDROID_API__ >= __ANDROID_API_P__ once available.
+#if __ANDROID_API__ > __ANDROID_API_O_MR1__
+    // TODO: make the description easier to understand.
+    /**
+     * BatchToSpace for N-dimensional tensors.
+     *
+     * This operation reshapes the batch dimension (dimension 0) into M + 1 dimensions of shape
+     * block_shape + [batch], interleaves these blocks back into the grid defined by the
+     * spatial dimensions [1, ..., M], to obtain a result with the same rank as the input.
+     * The spatial dimensions of this intermediate result are then optionally cropped
+     * according to the amount to crop (input2) to produce the output.
+     *
+     * This is the reverse of SpaceToBatch.
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     *
+     * Supported tensor rank: 4
+     *
+     * Inputs:
+     * 0: An n-D tensor, specifying the tensor to be reshaped
+     * 1: A 1-D Tensor of type TENSOR_INT32, the block sizes for each spatial dimension of the
+     *    input tensor. All values must be >= 1.
+     * 2: A 1-D Tensor of type TENSOR_INT32, the amount to crop for each spatial diemension of the
+     *    input tensor. All values must be >= 0.
+     *
+     * Outputs:
+     * 0: A tensor of the same type as input0.
+     */
+    ANEURALNETWORKS_BATCH_TO_SPACE_ND = 29,
+
+    /**
+     * Element-wise division of two tensors.
+     *
+     * Takes two input tensors of identical type and compatible dimensions. The output
+     * is the result of dividing the first input tensor by the second, optionally
+     * modified by an activation function.
+     *
+     * Two dimensions are compatible when:
+     *     1. they are equal, or
+     *     2. one of them is 1
+     *
+     * The size of the output is the maximum size along each dimension of the input operands.
+     * It starts with the trailing dimensions, and works its way forward.
+     *
+     * Example:
+     *     input1.dimension =    {4, 1, 2}
+     *     input2.dimension = {5, 4, 3, 1}
+     *     output.dimension = {5, 4, 3, 2}
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0: An n-D tensor, specifying the first input.
+     * 1: A tensor of the same type, and compatible dimensions as input0.
+     * 2: An INT32 value, and has to be one of the {@link FusedActivationFunc} values.
+     *    Specifies the activation to invoke on the result of each addition.
+     *
+     * Outputs:
+     * 0: A tensor of the same type as input0.
+     */
+    ANEURALNETWORKS_DIV = 30,
+
+    /**
+     * Computes the mean of elements across dimensions of a tensor.
+     *
+     * Reduces the input tensor along the given dimensions to reduce. Unless keep_dims
+     * is true, the rank of the tensor is reduced by 1 for each entry in axis.
+     * If keep_dims is true, the reduced dimensions are retained with length 1.
+     *
+     * If dimensions to reduce have no entries, all dimensions are reduced, and a tensor with
+     * a single element is returned.
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     *
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0: A tensor, specifying the input.
+     * 1: A 1-D Tensor of type TENSOR_INT32. The dimensions to reduce. If None (the default),
+     *    reduces all dimensions. Must be in the range [-rank(input_tensor), rank(input_tensor)).
+     * 2: An INT32 value, keep_dims. If positive, retains reduced dimensions with length 1.
+     *
+     * Outputs:
+     * 0: A tensor of the same type as input0.
+     */
+    ANEURALNETWORKS_MEAN = 31,
+
+    /**
+     * Pads a tensor.
+     *
+     * This operation pads a tensor according to the specified paddings.
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     *
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0: An n-D tensor, specifying the tensor to be padded.
+     * 1: A 2-D Tensor of type TENSOR_INT32, the paddings for each spatial dimension of the
+     *    input tensor. The shape of the tensor must be {rank(input0), 2}.
+     *    padding[i, 0] specifies the number of element to be padded in the front of dimension i.
+     *    padding[i, 1] specifies the number of element to be padded after the end of dimension i.
+     *
+     * Outputs:
+     * 0: A tensor of the same type as input0.
+     */
+    ANEURALNETWORKS_PAD = 32,
+
+    // TODO: make the description easier to understand.
+    /**
+     * SpaceToBatch for N-Dimensional tensors.
+     *
+     * This operation divides "spatial" dimensions [1, ..., M] of the input into a grid of blocks
+     * of shape block_shape, and interleaves these blocks with the "batch" dimension (0) such that
+     * in the output, the spatial dimensions [1, ..., M] correspond to the position within the grid,
+     * and the batch dimension combines both the position within a spatial block and the original
+     * batch position. Prior to division into blocks, the spatial dimensions of the input are
+     * optionally zero padded according to paddings.
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     *
+     * Supported tensor rank: 4
+     *
+     * Inputs:
+     * 0: An n-D tensor, specifying the input.
+     * 1: A 1-D Tensor of type TENSOR_INT32, the block sizes for each spatial dimension of the
+     *    input tensor. All values must be >= 1.
+     * 2: A 2-D Tensor of type TENSOR_INT32, the paddings for each spatial diemension of the
+     *    input tensor. All values must be >= 0. The shape of the tensor must be {rank(input0), 2}.
+     *    padding[i, 0] specifies the number of element to be padded in the front of dimension i.
+     *    padding[i, 1] specifies the number of element to be padded after the end of dimension i.
+     *
+     * Outputs:
+     * 0: A tensor of the same type as input0.
+     */
+    ANEURALNETWORKS_SPACE_TO_BATCH_ND = 33,
+
+    /**
+     * Removes dimensions of size 1 from the shape of a tensor.
+     *
+     * Given a tensor input, this operation returns a tensor of the same type with all
+     * dimensions of size 1 removed. If you don't want to remove all size 1 dimensions,
+     * you can remove specific size 1 dimensions by specifying the axes (input1).
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     *
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0: An n-D tensor, the tensor to be squeezed.
+     * 1: An optional 1-D tensor of type TENSOR_INT32. The dimensions to squeeze. If specified
+     *    only squeezes the dimensions listed. Otherwise, squeezes all dimensions.
+     *    The dimension index starts at 0. An error will be reported if squeezing a dimension that
+     *    is not 1.
+     *
+     * Outputs:
+     * 0: A tensor of the same type as input0. Contains the same data as input, but has one or more
+     *    dimensions of size 1 removed.
+     */
+    ANEURALNETWORKS_SQUEEZE = 34,
+
+    /**
+     * Extracts a strided slice of a tensor.
+     *
+     * Roughly speaking, this op extracts a slice of size (end - begin) / stride from the given
+     * input tensor. Starting at the location specified by begin the slice continues by adding
+     * stride to the index until all dimensions are not less than end. Note that a stride can
+     * be negative, which causes a reverse slice.
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     *
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0: An n-D tensor, specifying the tensor to be sliced.
+     * 1: A 1-D Tensor of type TENSOR_INT32, the starts of the dimensions of the input
+     *    tensor to be sliced. The length must be of rank(input0).
+     * 2: A 1-D Tensor of type TENSOR_INT32, the ends of the dimensions of the input
+     *    tensor to be sliced. The length must be of rank(input0).
+     * 3: A 1-D Tensor of type TENSOR_INT32, the strides of the dimensions of the input
+     *    tensor to be sliced. The length must be of rank(input0).
+     *
+     * Outputs:
+     * 0: A tensor of the same type as input0.
+     */
+    ANEURALNETWORKS_STRIDED_SLICE = 35,
+
+    /**
+     * Element-wise subtraction of two tensors.
+     *
+     * Takes two input tensors of identical type and compatible dimensions. The output
+     * is the result of subtracting the second input tensor from the first one, optionally
+     * modified by an activation function.
+     *
+     * Two dimensions are compatible when:
+     *     1. they are equal, or
+     *     2. one of them is 1
+     *
+     * The size of the output is the maximum size along each dimension of the input operands.
+     * It starts with the trailing dimensions, and works its way forward.
+     *
+     * Example:
+     *     input1.dimension =    {4, 1, 2}
+     *     input2.dimension = {5, 4, 3, 1}
+     *     output.dimension = {5, 4, 3, 2}
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     *
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0: An n-D tensor, specifying the first input.
+     * 1: A tensor of the same type, and compatible dimensions as input0.
+     * 2: An INT32 value, and has to be one of the {@link FusedActivationFunc} values.
+     *    Specifies the activation to invoke on the result of each addition.
+     *
+     * Outputs:
+     * 0: A tensor of the same type as input0.
+     */
+    ANEURALNETWORKS_SUB = 36,
+
+    /**
+     * Transposes the input tensor, permuting the dimensions according to the perm tensor.
+     *
+     * The returned tensor's dimension i corresponds to the input dimension perm[i].
+     * If perm is not given, it is set to (n-1...0), where n is the rank of the input tensor.
+     * Hence by default, this operation performs a regular matrix transpose on 2-D input Tensors.
+     *
+     * Supported tensor types:
+     * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+     * * {@link ANEURALNETWORKS_TENSOR_QUANT8_ASYMM}
+     *
+     * Supported tensor rank: up to 4
+     *
+     * Inputs:
+     * 0: An n-D tensor, specifying the tensor to be transposed.
+     * 1: An optional 1-D Tensor of type TENSOR_INT32, the permutation of the dimensions of the
+     *    input tensor.
+     *
+     * Outputs:
+     * 0: A tensor of the same type as input0.
+     */
+    ANEURALNETWORKS_TRANSPOSE = 37,
+#endif
 } OperationCode;
 
 /**

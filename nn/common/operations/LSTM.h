@@ -26,7 +26,7 @@
 namespace android {
 namespace hardware {
 namespace neuralnetworks {
-namespace V1_0 {
+namespace V1_1 {
 struct Operation;
 }
 }  // namespace neuralnetworks
@@ -47,10 +47,10 @@ struct Shape;
 
 class LSTMCell {
  public:
-  LSTMCell(const android::hardware::neuralnetworks::V1_0::Operation &operation,
+  LSTMCell(const android::hardware::neuralnetworks::V1_1::Operation &operation,
            std::vector<RunTimeOperandInfo> &operands);
 
-  static bool Prepare(const android::hardware::neuralnetworks::V1_0::Operation &operation,
+  static bool Prepare(const android::hardware::neuralnetworks::V1_1::Operation &operation,
                       std::vector<RunTimeOperandInfo> &operands,
                       Shape *scratchShape,
                       Shape *outputStateShape,
@@ -104,7 +104,7 @@ class LSTMCell {
 
  private:
   static bool CheckInputTensorDimensions(
-      const android::hardware::neuralnetworks::V1_0::Operation &operation,
+      const android::hardware::neuralnetworks::V1_1::Operation &operation,
       std::vector<RunTimeOperandInfo> &operands, uint32_t n_input,
       uint32_t n_output, uint32_t n_cell);
   LSTMParams params_;

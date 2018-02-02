@@ -22,6 +22,7 @@
 #include "CpuOperationUtils.h"
 
 #include "tensorflow/contrib/lite/kernels/internal/optimized/optimized_ops.h"
+#include "tensorflow/contrib/lite/kernels/internal/reference/reference_ops.h"
 
 namespace android {
 namespace nn {
@@ -225,5 +226,75 @@ bool dequantizeQuant8ToFloat32(const uint8_t* inputData,
     return true;
 }
 
+bool subFloat32(const float* in1, const Shape& shape1,
+                const float* in2, const Shape& shape2,
+                int32_t activation,
+                float* out, const Shape& shapeOut) {
+    float output_activation_min, output_activation_max;
+    CalculateActivationRangeFloat(activation, &output_activation_min,
+                                  &output_activation_max);
+
+    tflite::optimized_ops::Sub(
+            in1, convertShapeToDims(shape1),
+            in2, convertShapeToDims(shape2),
+            output_activation_min, output_activation_max,
+            out, convertShapeToDims(shapeOut));
+    return true;
+}
+
+bool divFloat32(const float* in1, const Shape& shape1,
+                const float* in2, const Shape& shape2,
+                int32_t activation,
+                float* out, const Shape& shapeOut) {
+    float output_activation_min, output_activation_max;
+    CalculateActivationRangeFloat(activation, &output_activation_min,
+                                  &output_activation_max);
+
+    tflite::optimized_ops::Div(
+            in1, convertShapeToDims(shape1),
+            in2, convertShapeToDims(shape2),
+            output_activation_min, output_activation_max,
+            out, convertShapeToDims(shapeOut));
+
+    return true;
+}
+
+bool meanGeneric(const uint8_t* inputData, const Shape& inputShape,
+                 const int32_t* axis, const Shape& axisShape, bool keepDims,
+                 uint8_t* outputData, const Shape& outputShape) {
+    // Creates a temp index to iterate through input data.
+    int32_t* scratchBuffer = new int32_t[getNumberOfDimensions(inputShape)];
+
+    // Creates a temp tensor to store resolved axis given input data.
+    int32_t axisSize = static_cast<int32_t>(getSizeOfDimension(axisShape, 0));
+    int32_t* resolvedAxis = new int32_t[axisSize];
+
+    bool result = true;
+    if (inputShape.type == OperandType::TENSOR_FLOAT32) {
+        tflite::reference_ops::Mean<float>(
+                const_cast<float*>(reinterpret_cast<const float*>(inputData)),
+                reinterpret_cast<const int*>(inputShape.dimensions.data()),
+                getNumberOfDimensions(inputShape),
+                reinterpret_cast<float*>(outputData),
+                reinterpret_cast<const int*>(outputShape.dimensions.data()),
+                getNumberOfDimensions(outputShape),
+                axis, axisSize, keepDims, scratchBuffer, resolvedAxis);
+    } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        tflite::reference_ops::Mean<uint8_t>(
+                const_cast<uint8_t*>(inputData),
+                reinterpret_cast<const int*>(inputShape.dimensions.data()),
+                getNumberOfDimensions(inputShape),
+                outputData,
+                reinterpret_cast<const int*>(outputShape.dimensions.data()),
+                getNumberOfDimensions(outputShape),
+                axis, axisSize, keepDims, scratchBuffer, resolvedAxis);
+    } else {
+        LOG(ERROR) << "Unsupported data type";
+        result = false;
+    }
+    delete[] scratchBuffer;
+    delete[] resolvedAxis;
+    return result;
+}
 } // namespace nn
 } // namespace android

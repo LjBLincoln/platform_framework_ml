@@ -599,7 +599,7 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller,
             *executor = std::make_shared<StepExecutor>(
                 controller->mExecutionBuilder,
                 simpleBody->mModel,
-                (simpleBody->mDevice == nullptr ? sp<IDevice>() : simpleBody->mDevice->getInterface()),
+                (simpleBody->mDevice == nullptr ? nullptr : simpleBody->mDevice->getInterface()),
                 simpleBody->mPreparedModel);
             (*executor)->mapInputsAndOutputsTrivially();
             controller->mNextStepIndex = 1;
@@ -628,7 +628,7 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller,
     *executor = std::make_shared<StepExecutor>(
         controller->mExecutionBuilder,
         step->getSubModel().get(),
-        (step->getDevice() == nullptr ? sp<IDevice>() : step->getDevice()->getInterface()),
+        (step->getDevice() == nullptr ? nullptr : step->getDevice()->getInterface()),
         step->getPreparedSubModel());
     step->mapInputsAndOutputs(*executor);
     if (controller->mSubModelInputsAndOutputs != nullptr) {
