@@ -118,10 +118,13 @@ class Definitions(object):
 class TypeLookup:
   __type_lookup = {
       "INT32": "int32_t",
+      "UINT32": "uint32_t",
       "FLOAT32": "float",
       "TENSOR_INT32": "int32_t",
       "TENSOR_FLOAT32": "float",
       "TENSOR_QUANT8_ASYMM": "uint8_t",
+#     "OEM_SCALAR": this is service-defined.
+      "TENSOR_OEM_BYTE": "uint8_t",
     }
 
   def get_cpptype(nnapi_type):
