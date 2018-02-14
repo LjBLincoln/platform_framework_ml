@@ -422,6 +422,8 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
         }
     }
 
+    mSubModel->relaxComputationFloat32toFloat16(fromModel->isComputationFloat32RelaxedToFloat16());
+
     // TODO: Move compilation elsewhere?
 
     if (mDevice == nullptr) {

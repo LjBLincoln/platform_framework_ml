@@ -264,6 +264,17 @@ int ModelBuilder::identifyInputsAndOutputs(uint32_t inputCount, const uint32_t* 
     return ANEURALNETWORKS_NO_ERROR;
 }
 
+int ModelBuilder::relaxComputationFloat32toFloat16(bool allow) {
+    if (mCompletedModel) {
+        LOG(ERROR) << "ANeuralNetworksModel_relaxComputationFloat32toFloat16 can't be set after model finished";
+        return ANEURALNETWORKS_BAD_STATE;
+    }
+
+    mRelaxComputationFloat32toFloat16 = allow;
+
+    return ANEURALNETWORKS_NO_ERROR;
+}
+
 int ModelBuilder::createCompilation(CompilationBuilder** compilation) {
     if (!mCompletedModel) {
         LOG(ERROR) << "ANeuralNetworksCompilation_create passed an unfinished model";
@@ -346,6 +357,7 @@ void ModelBuilder::setHidlModel(Model* model) const {
     model->inputIndexes = mInputIndexes;
     model->outputIndexes = mOutputIndexes;
     model->operandValues = mSmallOperandValues;
+    model->relaxComputationFloat32toFloat16 = mRelaxComputationFloat32toFloat16;
 
     uint32_t count = mMemories.size();
     model->pools.resize(count);

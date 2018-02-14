@@ -421,6 +421,13 @@ bool compliantWithV1_0(const V1_0::Model&) {
 }
 
 bool compliantWithV1_0(const V1_1::Model& model) {
+    // In addition to new enumeration values being introduced in V1_1::Model, a
+    // new flag was introduced to indicate whether or not float32 data can be
+    // calculated using float16 units. This 'relaxComputationFloat32toFloat16'
+    // flag is not relevant in whether a V1_1::Model is compliant with a
+    // V1_0::Model because all 1.0 drivers require strict calculation by default
+    // in the P NN runtime. Even if fp16 calculations are allowed, they can
+    // still be computed by a strict fp32 driver.
     return compliantWithV1_0(model.operations);
 }
 
@@ -536,7 +543,8 @@ V1_1::Model convertToV1_1(const V1_0::Model& model) {
             .inputIndexes = model.inputIndexes,
             .outputIndexes = model.outputIndexes,
             .operandValues = model.operandValues,
-            .pools = model.pools};
+            .pools = model.pools,
+            .relaxComputationFloat32toFloat16 = false};
 }
 
 V1_1::Model convertToV1_1(const V1_1::Model& model) {
