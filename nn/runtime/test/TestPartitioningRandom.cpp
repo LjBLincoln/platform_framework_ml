@@ -943,7 +943,7 @@ TEST_P(RandomPartitioningTest, Test) {
                           << devicesInPlan.size() << " devices" << std::endl;
                 for (unsigned i = 0; i < steps.size(); i++) {
                     std::cout << "Step " << i << ": "
-                              << ModelStats(steps[i]->getSubModel().get()) << std::endl;
+                              << ModelStats(steps[i]->getSubModel()) << std::endl;
                 }
                 break;
             }

@@ -728,7 +728,7 @@ protected:
     bool compare(std::shared_ptr<const ExecutionStep> step,
                  const WrapperModel* model, std::shared_ptr<Device> device) {
         return (step->getDevice() == device) &&
-                compare(step->getSubModel().get(),
+                compare(step->getSubModel(),
                         reinterpret_cast<const ModelBuilder*>(model->getHandle()));
     }
 };

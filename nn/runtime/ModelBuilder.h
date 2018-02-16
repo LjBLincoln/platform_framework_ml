@@ -35,7 +35,6 @@ class Memory;
 
 class ModelBuilder {
 public:
-    virtual ~ModelBuilder() {}
     // Adds an operand to the model.
     int addOperand(const ANeuralNetworksOperandType& type);
     int setOperandValue(uint32_t index, const void* buffer, size_t length);

@@ -129,11 +129,9 @@ void OperandTracker::markProcessed(uint32_t operationIndex, OperationReadyCallba
     }
 }
 
-ExecutionStep::ExecutionStep(ExecutionPlan* plan,
-                             uint32_t stepIndex,
-                             std::shared_ptr<ModelBuilder> model,
+ExecutionStep::ExecutionStep(ExecutionPlan* plan, uint32_t stepIndex,
                              std::shared_ptr<Device> device)
-        : mPlan(plan), mIndex(stepIndex), mSubModel(model), mDevice(device) {}
+        : mPlan(plan), mIndex(stepIndex), mSubModel(), mDevice(device) {}
 
 // Adds an operand if it has not been added already.
 // Sets the index in the submodel for the corresponding operand.
@@ -148,7 +146,7 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
     }
 
     // First time we add this operand.
-    *toOperandIndex = mSubModel->operandCount();
+    *toOperandIndex = mSubModel.operandCount();
     mOperandMap.insert(std::pair<uint32_t, uint32_t>(fromOperandIndex, *toOperandIndex));
 
     // Add the operand to the submodel.
@@ -159,7 +157,7 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
                                        .dimensions = operand.dimensions.data(),
                                        .scale = operand.scale,
                                        .zeroPoint = operand.zeroPoint};
-    int n = mSubModel->addOperand(type);
+    int n = mSubModel.addOperand(type);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         LOG(ERROR) << "Previous error occurred when partitioning the graph";
         return n;
@@ -169,7 +167,7 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
     switch (operand.lifetime) {
         case OperandLifeTime::CONSTANT_COPY: {
             const uint8_t* data = fromModel.getPointerToOperandValue(operand.location.offset);
-            n = mSubModel->setOperandValue(*toOperandIndex, data, operand.location.length);
+            n = mSubModel.setOperandValue(*toOperandIndex, data, operand.location.length);
             if (n != ANEURALNETWORKS_NO_ERROR) {
                 LOG(ERROR) << "Previous error occurred when partitioning the graph";
                 return n;
@@ -177,7 +175,7 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
         } break;
         case OperandLifeTime::CONSTANT_REFERENCE: {
             const Memory* memory = fromModel.getMemories()[operand.location.poolIndex];
-            n = mSubModel->setOperandValueFromMemory(*toOperandIndex, memory,
+            n = mSubModel.setOperandValueFromMemory(*toOperandIndex, memory,
                                                      operand.location.offset,
                                                      operand.location.length);
             if (n != ANEURALNETWORKS_NO_ERROR) {
@@ -186,7 +184,7 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
             }
         } break;
         case OperandLifeTime::NO_VALUE: {
-            n = mSubModel->setOperandValue(*toOperandIndex, nullptr, 0);
+            n = mSubModel.setOperandValue(*toOperandIndex, nullptr, 0);
             if (n != ANEURALNETWORKS_NO_ERROR) {
                 LOG(ERROR) << "Previous error occurred when partitioning the graph";
                 return n;
@@ -264,7 +262,7 @@ int ExecutionStep::addOperation(int operationIndex, const ModelBuilder& fromMode
         return n;
     }
 
-    return mSubModel->addOperation(static_cast<uint32_t>(operation.type), inputCount, inputs.data(),
+    return mSubModel.addOperation(static_cast<uint32_t>(operation.type), inputCount, inputs.data(),
                                    outputCount, outputs.data());
 }
 
@@ -379,7 +377,7 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
                                 &mOutputIndexSubModelToFromModel);
     for (const auto& subModelOutput : mTempsAsSubModelOutputs) {
         outputs.push_back(subModelOutput.second);
-        const Operand& operand = mSubModel->getOperand(subModelOutput.second);
+        const Operand& operand = mSubModel.getOperand(subModelOutput.second);
         for (uint32_t dimension : operand.dimensions) {
             if (dimension == 0) {
                 *hasOutputOfUnknownSize = true;
@@ -392,11 +390,11 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
     }
 
     {
-        int n = mSubModel->identifyInputsAndOutputs(inputs.size(), &inputs[0], outputs.size(), &outputs[0]);
+        int n = mSubModel.identifyInputsAndOutputs(inputs.size(), &inputs[0], outputs.size(), &outputs[0]);
         if (n != ANEURALNETWORKS_NO_ERROR) {
             return n;
         }
-        n = mSubModel->finish();
+        n = mSubModel.finish();
         if (n != ANEURALNETWORKS_NO_ERROR) {
             return n;
         }
@@ -422,7 +420,7 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
         }
     }
 
-    mSubModel->relaxComputationFloat32toFloat16(fromModel->isComputationFloat32RelaxedToFloat16());
+    mSubModel.relaxComputationFloat32toFloat16(fromModel->isComputationFloat32RelaxedToFloat16());
 
     // TODO: Move compilation elsewhere?
 
@@ -431,12 +429,12 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
     }
 
     VLOG(COMPILATION) << "ExecutionStep::finishSubModel, compilation";
-    return compile(mDevice, mSubModel.get(), &mPreparedSubModel);
+    return compile(mDevice, &mSubModel, &mPreparedSubModel);
 }
 
 void ExecutionStep::dump() const {
     Model model;
-    mSubModel->setHidlModel(&model);
+    mSubModel.setHidlModel(&model);
     if (VLOG_IS_ON(COMPILATION)) {
         VLOG(COMPILATION) << "ExecutionStep#" << mIndex
                           << " for " << (mDevice == nullptr ? "CPU" : mDevice->getName());
@@ -629,7 +627,7 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller,
     const auto step = compoundBody->mSteps[controller->mNextStepIndex];
     *executor = std::make_shared<StepExecutor>(
         controller->mExecutionBuilder,
-        step->getSubModel().get(),
+        step->getSubModel(),
         (step->getDevice() == nullptr ? nullptr : step->getDevice()->getInterface()),
         step->getPreparedSubModel());
     step->mapInputsAndOutputs(*executor);
@@ -701,8 +699,7 @@ std::shared_ptr<ExecutionStep> ExecutionPlan::createNewStep(const std::shared_pt
         mState = COMPOUND;
     }
     auto& steps = compound()->mSteps;
-    auto step = std::make_shared<ExecutionStep>(
-        this, steps.size(), std::make_shared<ModelBuilder>(), device);
+    auto step = std::make_shared<ExecutionStep>(this, steps.size(), device);
     steps.push_back(step);
     return step;
 }
