@@ -425,6 +425,8 @@ class Operation(Definitions, Uses, Traversable):
 
 # Main interface
 class Model(object):
+  __isRelaxed = False
+
   def __init__(self):
     self.__currentOp = None
 
@@ -550,6 +552,14 @@ class Model(object):
     ret = Model.Out(self, o)
     self.__currentOp = None
     return self
+
+  def RelaxedExecution(self, isRelaxed):
+    Model.__isRelaxed = isRelaxed
+    return self
+
+  def isRelaxed():
+    return Model.__isRelaxed
+
 
 class FileNames:
   SpecFile = ""
@@ -744,6 +754,12 @@ if __name__ == '__main__':
     print ("  model->identifyInputsAndOutputs(\n" +
            "    {"+", ".join(inputs)+"},\n    {" + ", ".join(outputs) + "});",
            file=model_file)
+
+    # Phase 4: set relaxed execution if needed
+    if (Model.isRelaxed()):
+      print ("  // Phase 4: set relaxed execution", file=model_file)
+      print ("  model->relaxComputationFloat32toFloat16(true);", file=model_file)
+
     # Boilerplate
     print ("  assert(model->isValid());", file=model_file);
     print ("}", file=model_file)

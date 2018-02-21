@@ -190,14 +190,24 @@ public:
             mValid = false;
         }
     }
+
+    void relaxComputationFloat32toFloat16(bool isRelax) {
+        if (ANeuralNetworksModel_relaxComputationFloat32toFloat16(mModel, isRelax) ==
+                ANEURALNETWORKS_NO_ERROR) {
+            mRelaxed = isRelax;
+        }
+    }
+
     ANeuralNetworksModel* getHandle() const { return mModel; }
     bool isValid() const { return mValid; }
+    bool isRelaxed() const { return mRelaxed; }
 
 private:
     ANeuralNetworksModel* mModel = nullptr;
     // We keep track of the operand ID as a convenience to the caller.
     uint32_t mNextOperandId = 0;
     bool mValid = true;
+    bool mRelaxed = false;
 };
 
 class Event {
