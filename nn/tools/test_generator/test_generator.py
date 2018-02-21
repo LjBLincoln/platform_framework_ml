@@ -588,6 +588,8 @@ class Example():
         float32_dict[k] = v
       elif (ty == "TENSOR_INT32"):
         int32_dict[k] = v
+      elif (ty == "TENSOR_OEM_BYTE"):
+        uint8_dict[k] = v
       elif (ty == "TENSOR_QUANT8_ASYMM"):
         uint8_dict[k] = v
       else:
