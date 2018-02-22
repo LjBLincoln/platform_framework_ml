@@ -480,11 +480,12 @@ public:
     TestDriver(const char* name, std::set<Signature> signatures) :
             SampleDriver(name), mSignatures(std::move(signatures)) { }
 
-    Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override {
+    Return<void> getCapabilities_1_1(getCapabilities_1_1_cb _hidl_cb) override {
         android::nn::initVLogMask();
         Capabilities capabilities =
                 {.float32Performance = {.execTime = 0.75f, .powerUsage = 0.75f},
-                 .quantized8Performance = {.execTime = 0.75f, .powerUsage = 0.75f}};
+                 .quantized8Performance = {.execTime = 0.75f, .powerUsage = 0.75f},
+                 .relaxedFloat32toFloat16Performance = {.execTime = 0.75f, .powerUsage = 0.75f}};
         _hidl_cb(ErrorStatus::NONE, capabilities);
         return Void();
     }

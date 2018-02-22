@@ -33,16 +33,18 @@ namespace sample_driver {
 class SampleDriverAll : public SampleDriver {
 public:
     SampleDriverAll() : SampleDriver("sample-all") {}
-    Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override;
+    Return<void> getCapabilities_1_1(getCapabilities_1_1_cb cb) override;
     Return<void> getSupportedOperations_1_1(const V1_1::Model& model,
                                             getSupportedOperations_1_1_cb cb) override;
 };
 
-Return<void> SampleDriverAll::getCapabilities(getCapabilities_cb cb) {
+Return<void> SampleDriverAll::getCapabilities_1_1(getCapabilities_1_1_cb cb) {
     android::nn::initVLogMask();
     VLOG(DRIVER) << "getCapabilities()";
     Capabilities capabilities = {.float32Performance = {.execTime = 1.1f, .powerUsage = 1.1f},
-                                 .quantized8Performance = {.execTime = 1.1f, .powerUsage = 1.1f}};
+                                 .quantized8Performance = {.execTime = 1.1f, .powerUsage = 1.1f},
+                                 .relaxedFloat32toFloat16Performance =
+                                     {.execTime = 1.1f, .powerUsage = 1.1f}};
     cb(ErrorStatus::NONE, capabilities);
     return Void();
 }

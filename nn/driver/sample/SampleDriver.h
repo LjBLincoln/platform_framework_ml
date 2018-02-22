@@ -36,6 +36,7 @@ class SampleDriver : public IDevice {
 public:
     SampleDriver(const char* name) : mName(name) {}
     ~SampleDriver() override {}
+    Return<void> getCapabilities(getCapabilities_cb cb) override;
     Return<void> getSupportedOperations(const V1_0::Model& model,
                                         getSupportedOperations_cb cb) override;
     Return<ErrorStatus> prepareModel(const V1_0::Model& model,

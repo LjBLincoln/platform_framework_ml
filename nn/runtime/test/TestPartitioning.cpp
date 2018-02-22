@@ -23,6 +23,7 @@
 #include "NeuralNetworks.h"
 #include "NeuralNetworksOEM.h"
 #include "NeuralNetworksWrapper.h"
+#include "SampleDriver.h"
 #include "Utils.h"
 #include "ValidateHal.h"
 
@@ -130,6 +131,7 @@ using ExecutionStep = ::android::nn::ExecutionStep;
 using HidlModel = ::android::hardware::neuralnetworks::V1_1::Model;
 using ModelBuilder = ::android::nn::ModelBuilder;
 using Result = ::android::nn::wrapper::Result;
+using SampleDriver = ::android::nn::sample_driver::SampleDriver;
 using WrapperCompilation = ::android::nn::wrapper::Compilation;
 using WrapperModel = ::android::nn::wrapper::Model;
 using WrapperOperandType = ::android::nn::wrapper::OperandType;
@@ -221,16 +223,18 @@ void graphDump([[maybe_unused]] const char* name, [[maybe_unused]] const Wrapper
 // (0..7) does the device support; does the device support the OEM
 // operation.  The subset is represented with a bitmask, in which
 // operation kind K corresponds to the bit (1 << K).
-class PartitioningIDevice : public V1_0::IDevice {
+class PartitioningDriver : public SampleDriver {
 public:
     enum OEM { OEMNo, OEMYes };
 
-    PartitioningIDevice(Capabilities capabilities, uint32_t operationMask, OEM oem = OEMNo) :
-            mCapabilities(capabilities), mOperationMask(operationMask), mOEM(oem) {}
-    ~PartitioningIDevice() override {}
+    PartitioningDriver(const char *name, Capabilities capabilities,
+                       uint32_t operationMask, OEM oem = OEMNo) :
+            SampleDriver(name), mCapabilities(capabilities),
+            mOperationMask(operationMask), mOEM(oem) {}
+    ~PartitioningDriver() override {}
 
-    Return<ErrorStatus> prepareModel(const V1_0::Model&,
-                                     const sp<IPreparedModelCallback>& cb) override {
+    Return<ErrorStatus> prepareModel_1_1(const Model&,
+                                         const sp<IPreparedModelCallback>& cb) override {
         cb->notify(ErrorStatus::NONE, nullptr);
         return ErrorStatus::NONE;
     }
@@ -238,14 +242,12 @@ public:
         return DeviceStatus::AVAILABLE;
     }
 
-    Return<void> getCapabilities(getCapabilities_cb cb) override {
+    Return<void> getCapabilities_1_1(getCapabilities_1_1_cb cb) override {
         cb(ErrorStatus::NONE, mCapabilities);
         return Void();
     }
-    Return<void> getSupportedOperations(const V1_0::Model& modelV1_0,
-                                        getSupportedOperations_cb cb) override {
-        V1_1::Model model = android::nn::convertToV1_1(modelV1_0);
-
+    Return<void> getSupportedOperations_1_1(const Model& model,
+                                            getSupportedOperations_cb cb) override {
         if (!android::nn::validateModel(model)) {
             cb(ErrorStatus::INVALID_ARGUMENT, std::vector<bool>());
             return Void();
@@ -423,13 +425,13 @@ protected:
     struct DeviceSpecification {
         DeviceSpecification(const std::string &name, Capabilities capabilities,
                             uint32_t operationMask,
-                            PartitioningIDevice::OEM oem = PartitioningIDevice::OEMNo) :
+                            PartitioningDriver::OEM oem = PartitioningDriver::OEMNo) :
                 mName(name), mCapabilities(capabilities),
                 mOperationMask(operationMask), mOEM(oem) { }
         std::string mName;
         Capabilities mCapabilities;
         uint32_t mOperationMask;
-        PartitioningIDevice::OEM mOEM;
+        PartitioningDriver::OEM mOEM;
     };
     static std::vector<std::shared_ptr<Device>>
     makeDevices(std::vector<DeviceSpecification> specifications) {
@@ -437,9 +439,10 @@ protected:
         for (const auto& specification : specifications) {
             devices.push_back(std::make_shared<Device>(
                 specification.mName,
-                new PartitioningIDevice(specification.mCapabilities,
-                                        specification.mOperationMask,
-                                        specification.mOEM)));
+                new PartitioningDriver(specification.mName.c_str(),
+                                       specification.mCapabilities,
+                                       specification.mOperationMask,
+                                       specification.mOEM)));
             devices.back()->initialize();
         }
         return devices;
@@ -1085,13 +1088,13 @@ TEST_F(PartitioningTest, OemOperations) {
         {
             {"badOEM", { .float32Performance = { .execTime = 1.5, .powerUsage = 1.5 },
                          .quantized8Performance = { .execTime = 1.5, .powerUsage = 1.5 } },
-                        ~0U, PartitioningIDevice::OEMYes},
+                        ~0U, PartitioningDriver::OEMYes},
             {"noOEM", { .float32Performance = { .execTime = 0.5, .powerUsage = 0.5 },
                         .quantized8Performance = { .execTime = 0.5, .powerUsage = 0.5 } },
-                        ~0U, PartitioningIDevice::OEMNo},
+                        ~0U, PartitioningDriver::OEMNo},
             {"goodOEM", { .float32Performance = { .execTime = 1.2, .powerUsage = 1.2 },
                           .quantized8Performance = { .execTime = 1.2, .powerUsage = 1.2 } },
-                        ~0U, PartitioningIDevice::OEMYes}
+                        ~0U, PartitioningDriver::OEMYes}
         });
     PartitioningCompilation compilationBestOEM(&model);
     ASSERT_EQ(compilationBestOEM.finish(devicesBestOEM), Result::NO_ERROR);
@@ -1104,7 +1107,7 @@ TEST_F(PartitioningTest, OemOperations) {
         {
             {"noOEM", { .float32Performance = { .execTime = 0.5, .powerUsage = 0.5 },
                         .quantized8Performance = { .execTime = 0.5, .powerUsage = 0.5 } },
-                        ~0U, PartitioningIDevice::OEMNo}
+                        ~0U, PartitioningDriver::OEMNo}
         });
     PartitioningCompilation compilationNoOEM(&model);
     ASSERT_EQ(compilationNoOEM.finish(devicesNoOEM), Result::BAD_DATA);
@@ -1112,6 +1115,42 @@ TEST_F(PartitioningTest, OemOperations) {
     // Verify that we get an error if there are no drivers (only CPU fallback).
     PartitioningCompilation compilationNoDrivers(&model);
     ASSERT_EQ(compilationNoDrivers.finish({} /* no drivers */), Result::BAD_DATA);
+}
+
+TEST_F(PartitioningTest, RelaxedFP) {
+    const auto devices = makeDevices(
+        {
+            // Best choice for non-relaxed model.
+            {"f32", { .float32Performance = { .execTime = 0.8, .powerUsage = 0.8 },
+                      .relaxedFloat32toFloat16Performance = { .execTime = 0.9, .powerUsage = 0.9 }},
+                    ~0U},
+            // Best choice for relaxed model.
+            {"f16", { .float32Performance = { .execTime = 0.9, .powerUsage = 0.9 },
+                      .relaxedFloat32toFloat16Performance = { .execTime = 0.8, .powerUsage = 0.8 }},
+                    ~0U}
+        });
+
+    auto TrivialTest = [&devices](bool doRelax, const char* expectDevice) {
+        // Trivial model consisting solely of one operation.
+        SCOPED_TRACE(expectDevice);
+        PartitioningModel model;
+        uint32_t opnd0 = model.addFloatOperand();
+        uint32_t opnd1 = model.addFloatOperand();
+        uint32_t opnd2 = model.addOperation2To1(0, opnd0, opnd1);
+        model.identifyInputsAndOutputs({ opnd0, opnd1 }, { opnd2 });
+        model.relaxComputationFloat32toFloat16(doRelax);
+        model.finish();
+        ASSERT_TRUE(model.isValid());
+        // Verify that the model will be executed on the appropriate device.
+        ExecutionPlan plan;
+        ASSERT_EQ(model.partitionTheWork(devices, ExecutePreference::PREFER_LOW_POWER, &plan),
+                  ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(plan.forTest_getKind(), ExecutionPlan::Kind::SIMPLE);
+        ASSERT_EQ(plan.forTest_simpleGetDevice()->getName(), expectDevice);
+    };
+
+    ASSERT_NO_FATAL_FAILURE(TrivialTest(false, "f32"));
+    ASSERT_NO_FATAL_FAILURE(TrivialTest(true, "f16"));
 }
 
 }  // namespace

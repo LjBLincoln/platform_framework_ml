@@ -34,16 +34,18 @@ namespace sample_driver {
 class SampleDriverMinimal : public SampleDriver {
 public:
     SampleDriverMinimal() : SampleDriver("sample-minimal") {}
-    Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override;
+    Return<void> getCapabilities_1_1(getCapabilities_1_1_cb cb) override;
     Return<void> getSupportedOperations_1_1(const V1_1::Model& model,
                                             getSupportedOperations_1_1_cb cb) override;
 };
 
-Return<void> SampleDriverMinimal::getCapabilities(getCapabilities_cb cb) {
+Return<void> SampleDriverMinimal::getCapabilities_1_1(getCapabilities_1_1_cb cb) {
     android::nn::initVLogMask();
     VLOG(DRIVER) << "getCapabilities()";
     Capabilities capabilities = {.float32Performance = {.execTime = 0.4f, .powerUsage = 0.5f},
-                                 .quantized8Performance = {.execTime = 1.0f, .powerUsage = 1.0f}};
+                                 .quantized8Performance = {.execTime = 1.0f, .powerUsage = 1.0f},
+                                 .relaxedFloat32toFloat16Performance =
+                                     {.execTime = 0.4f, .powerUsage = 0.5f}};
     cb(ErrorStatus::NONE, capabilities);
     return Void();
 }

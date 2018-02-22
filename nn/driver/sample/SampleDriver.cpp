@@ -30,6 +30,14 @@ namespace android {
 namespace nn {
 namespace sample_driver {
 
+Return<void> SampleDriver::getCapabilities(getCapabilities_cb cb) {
+    return getCapabilities_1_1(
+        [&](ErrorStatus error, const V1_1::Capabilities& capabilities) {
+            // TODO(dgross): Do we need to check compliantWithV1_0(capabilities)?
+            cb(error, convertToV1_0(capabilities));
+        });
+}
+
 Return<void> SampleDriver::getSupportedOperations(const V1_0::Model& model,
                                                   getSupportedOperations_cb cb) {
     // TODO(butlermichael): Do we validate Model as V1_0?

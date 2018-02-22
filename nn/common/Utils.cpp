@@ -373,6 +373,26 @@ bool compliantWithV1_1(V1_1::OperationType) {
     return true;
 }
 
+bool compliantWithV1_0(V1_0::Capabilities) {
+    return true;
+}
+
+bool compliantWithV1_0(const V1_1::Capabilities& capabilities) {
+    return capabilities.relaxedFloat32toFloat16Performance.execTime ==
+           capabilities.float32Performance.execTime
+           &&
+           capabilities.relaxedFloat32toFloat16Performance.powerUsage ==
+           capabilities.float32Performance.powerUsage;
+}
+
+bool compliantWithV1_1(const V1_0::Capabilities&) {
+    return true;
+}
+
+bool compliantWithV1_1(const V1_1::Capabilities&) {
+    return true;
+}
+
 bool compliantWithV1_0(const V1_0::Operation&) {
     return true;
 }
@@ -430,6 +450,29 @@ V1_1::OperationType convertToV1_1(V1_0::OperationType type) {
 
 V1_1::OperationType convertToV1_1(V1_1::OperationType type) {
     return type;
+}
+
+V1_0::Capabilities convertToV1_0(const V1_0::Capabilities& capabilities) {
+    return capabilities;
+}
+
+V1_0::Capabilities convertToV1_0(const V1_1::Capabilities& capabilities) {
+    if (!compliantWithV1_0(capabilities)) {
+        LOG(ERROR) << "Upcasting non-compliant capabilities " << toString(capabilities)
+                   << " from V1_1::Capabilities to V1_0::Capabilities";
+    }
+    return { .float32Performance = capabilities.float32Performance,
+             .quantized8Performance = capabilities.quantized8Performance };
+}
+
+V1_1::Capabilities convertToV1_1(const V1_0::Capabilities& capabilities) {
+    return { .float32Performance = capabilities.float32Performance,
+             .quantized8Performance = capabilities.quantized8Performance,
+             .relaxedFloat32toFloat16Performance = capabilities.float32Performance };
+}
+
+V1_1::Capabilities convertToV1_1(const V1_1::Capabilities& capabilities) {
+    return capabilities;
 }
 
 V1_0::Operation convertToV1_0(const V1_0::Operation& operation) {
