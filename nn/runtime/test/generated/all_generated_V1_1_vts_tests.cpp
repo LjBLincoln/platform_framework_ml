@@ -916,6 +916,36 @@ TEST_F(NeuralnetworksHidlTest, mean) {
                              mean::examples);
 }
 
+namespace mean_quant8_1 {
+std::vector<MixedTypedExample> examples = {
+// Generated mean_quant8_1 test
+#include "examples/mean_quant8_1.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/mean_quant8_1.model.cpp"
+} // namespace mean_quant8_1
+TEST_F(NeuralnetworksHidlTest, mean_quant8_1) {
+    generated_tests::Execute(device,
+                             mean_quant8_1::createTestModel,
+                             mean_quant8_1::is_ignored,
+                             mean_quant8_1::examples);
+}
+
+namespace mean_quant8_2 {
+std::vector<MixedTypedExample> examples = {
+// Generated mean_quant8_2 test
+#include "examples/mean_quant8_2.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/mean_quant8_2.model.cpp"
+} // namespace mean_quant8_2
+TEST_F(NeuralnetworksHidlTest, mean_quant8_2) {
+    generated_tests::Execute(device,
+                             mean_quant8_2::createTestModel,
+                             mean_quant8_2::is_ignored,
+                             mean_quant8_2::examples);
+}
+
 namespace mobilenet_224_gender_basic_fixed_relaxed {
 std::vector<MixedTypedExample> examples = {
 // Generated mobilenet_224_gender_basic_fixed_relaxed test
