@@ -1,12 +1,12 @@
 model = Model()
-i1 = Input("input", "TENSOR_QUANT8_ASYMM", "{4}")
+i1 = Input("input", "TENSOR_FLOAT32", "{4}")
 begins = Parameter("begins", "TENSOR_INT32", "{1}", [1])
 ends = Parameter("ends", "TENSOR_INT32", "{1}", [3])
 strides = Parameter("strides", "TENSOR_INT32", "{1}", [1])
 beginMask = Int32Scalar("beginMask", 0)
 endMask = Int32Scalar("endMask", 0)
 
-output = Output("output", "TENSOR_QUANT8_ASYMM", "{2}")
+output = Output("output", "TENSOR_FLOAT32", "{2}")
 
 model = model.Operation("STRIDED_SLICE", i1, begins, ends, strides, beginMask, endMask).To(output)
 
