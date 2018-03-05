@@ -217,15 +217,18 @@ Model createTestModel() {{
         .inputIndexes = inputIndexes,
         .outputIndexes = outputIndexes,
         .operandValues = operandValues,
-        .pools = pools,
+        .pools = pools,{relaxed_field}
     }};
-}}"""
+}}
+"""
   model = {
       "operations": generate_vts_operations(sys.stdout),
       "operand_decls": generate_vts_operands(),
       "operand_values": operand_values,
       "output_indices": ", ".join([str(i.ID()) for i in Output.get_outputs()]),
-      "input_indices": ", ".join([str(i.ID()) for i in Input.get_inputs(True)])
+      "input_indices": ", ".join([str(i.ID()) for i in Input.get_inputs(True)]),
+      "relaxed_field":
+        "\n        .relaxComputationFloat32toFloat16 = true," if (Model.isRelaxed()) else ""
   }
   print(model_fmt.format(**model), file = model_file)
 

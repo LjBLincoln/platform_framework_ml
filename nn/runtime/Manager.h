@@ -44,12 +44,16 @@ public:
 
     PerformanceInfo getFloat32Performance() const { return mFloat32Performance; }
     PerformanceInfo getQuantized8Performance() const { return mQuantized8Performance; }
+    PerformanceInfo getRelaxedFloat32toFloat16Performance() const {
+        return mRelaxedFloat32toFloat16Performance;
+    }
 
 private:
     std::string mName;
     VersionedIDevice mInterface;
     PerformanceInfo mFloat32Performance;
     PerformanceInfo mQuantized8Performance;
+    PerformanceInfo mRelaxedFloat32toFloat16Performance;
 
 #ifdef NN_DEBUGGABLE
     // For debugging: behavior of IDevice::getSupportedOperations for SampleDriver.

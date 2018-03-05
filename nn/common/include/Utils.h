@@ -160,6 +160,11 @@ bool compliantWithV1_0(V1_1::OperationType type);
 bool compliantWithV1_1(V1_0::OperationType type);
 bool compliantWithV1_1(V1_1::OperationType type);
 
+bool compliantWithV1_0(const V1_0::Capabilities& capabilities);
+bool compliantWithV1_0(const V1_1::Capabilities& capabilities);
+bool compliantWithV1_1(const V1_0::Capabilities& capabilities);
+bool compliantWithV1_1(const V1_1::Capabilities& capabilities);
+
 bool compliantWithV1_0(const V1_0::Operation& operation);
 bool compliantWithV1_0(const V1_1::Operation& operation);
 bool compliantWithV1_1(const V1_0::Operation& operation);
@@ -174,6 +179,11 @@ V1_0::OperationType convertToV1_0(V1_0::OperationType type);
 V1_0::OperationType convertToV1_0(V1_1::OperationType type);
 V1_1::OperationType convertToV1_1(V1_0::OperationType type);
 V1_1::OperationType convertToV1_1(V1_1::OperationType type);
+
+V1_0::Capabilities convertToV1_0(const V1_0::Capabilities& capabilities);
+V1_0::Capabilities convertToV1_0(const V1_1::Capabilities& capabilities);
+V1_1::Capabilities convertToV1_1(const V1_0::Capabilities& capabilities);
+V1_1::Capabilities convertToV1_1(const V1_1::Capabilities& capabilities);
 
 V1_0::Operation convertToV1_0(const V1_0::Operation& operation);
 V1_0::Operation convertToV1_0(const V1_1::Operation& operation);

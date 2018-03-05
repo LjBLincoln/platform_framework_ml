@@ -21,6 +21,7 @@
 
 #include "HalInterfaces.h"
 #include "Memory.h"
+#include "ModelBuilder.h"
 #include "NeuralNetworks.h"
 #include "Utils.h"
 
@@ -34,7 +35,6 @@ class Device;
 class ExecutionBuilder;
 class ExecutionPlan;
 class Memory;
-class ModelBuilder;
 class StepExecutor;
 
 class ExecutionStep {
@@ -46,7 +46,6 @@ public:
 
     ExecutionStep(ExecutionPlan* plan,
                   uint32_t stepIndex,
-                  std::shared_ptr<ModelBuilder> model,
                   std::shared_ptr<Device> device);
     int addOperation(int operationIndex, const ModelBuilder& fromModel);
     int addOperand(uint32_t fromOperandIndex, uint32_t* toOperandIndex,
@@ -83,7 +82,7 @@ public:
     // unchanged.
     int finishSubModel(const ModelBuilder* fromModel, bool* hasOutputOfUnknownSize);
 
-    std::shared_ptr<ModelBuilder> getSubModel() const { return mSubModel; }
+    const ModelBuilder* getSubModel() const { return &mSubModel; }
     std::shared_ptr<Device> getDevice() const { return mDevice; }
 
     // only available after calling finishSubModel()
@@ -103,7 +102,7 @@ private:
 
     ExecutionPlan* mPlan;
     uint32_t mIndex;  // index of step within plan
-    std::shared_ptr<ModelBuilder> mSubModel;
+    ModelBuilder mSubModel;
     std::shared_ptr<Device> mDevice;  // nullptr signifies CPU
     sp<IPreparedModel> mPreparedSubModel;  // not used for CPU
 

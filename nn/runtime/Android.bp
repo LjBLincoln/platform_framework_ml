@@ -98,5 +98,3 @@ ndk_library {
     // Android O-MR1
     first_version: "27",
 }
-
-subdirs = ["test"]

@@ -171,9 +171,9 @@ void compare_(
 }
 #undef VALUE_TYPE
 #undef VECTOR_TYPE
-inline void compare(const MixedTyped& golden, const MixedTyped& test) {
+inline void compare(const MixedTyped& golden, const MixedTyped& test, float fpRange = 1e-5f) {
     compare_<0>(golden, test,
-                [](float g, float t) { EXPECT_NEAR(g, t, 1.5e-5f); });
+                [fpRange](float g, float t) { EXPECT_NEAR(g, t, fpRange); });
     compare_<1>(golden, test, [](int32_t g, int32_t t) { EXPECT_EQ(g, t); });
     compare_<2>(golden, test, [](uint8_t g, uint8_t t) { EXPECT_NEAR(g, t, 1); });
 }

@@ -33,28 +33,30 @@ namespace sample_driver {
 class SampleDriverQuant : public SampleDriver {
 public:
     SampleDriverQuant() : SampleDriver("sample-quant") {}
-    Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override;
-    Return<void> getSupportedOperations(const V1_0::Model& model,
-                                        getSupportedOperations_cb cb) override;
+    Return<void> getCapabilities_1_1(getCapabilities_1_1_cb cb) override;
+    Return<void> getSupportedOperations_1_1(const V1_1::Model& model,
+                                            getSupportedOperations_1_1_cb cb) override;
 };
 
-Return<void> SampleDriverQuant::getCapabilities(getCapabilities_cb cb) {
+Return<void> SampleDriverQuant::getCapabilities_1_1(getCapabilities_1_1_cb cb) {
     android::nn::initVLogMask();
     VLOG(DRIVER) << "getCapabilities()";
     Capabilities capabilities = {.float32Performance = {.execTime = 50.0f, .powerUsage = 1.0f},
-                                 .quantized8Performance = {.execTime = 50.0f, .powerUsage = 1.0f}};
+                                 .quantized8Performance = {.execTime = 50.0f, .powerUsage = 1.0f},
+                                 .relaxedFloat32toFloat16Performance =
+                                     {.execTime = 50.0f, .powerUsage = 1.0f}};
     cb(ErrorStatus::NONE, capabilities);
     return Void();
 }
 
-Return<void> SampleDriverQuant::getSupportedOperations(const V1_0::Model& model,
-                                                       getSupportedOperations_cb cb) {
+Return<void> SampleDriverQuant::getSupportedOperations_1_1(const V1_1::Model& model,
+                                                           getSupportedOperations_1_1_cb cb) {
     VLOG(DRIVER) << "getSupportedOperations()";
     if (validateModel(model)) {
         const size_t count = model.operations.size();
         std::vector<bool> supported(count);
         for (size_t i = 0; i < count; i++) {
-            const V1_0::Operation& operation = model.operations[i];
+            const Operation& operation = model.operations[i];
             if (operation.inputs.size() > 0) {
                 const Operand& firstOperand = model.operands[operation.inputs[0]];
                 supported[i] = firstOperand.type == OperandType::TENSOR_QUANT8_ASYMM;

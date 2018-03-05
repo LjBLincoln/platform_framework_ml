@@ -653,12 +653,12 @@ bool spaceToBatchPrepare(const Shape& input,
     uint32_t paddedWidth = paddingsData[2] + width + paddingsData[3];
 
     NN_OPS_CHECK(paddedHeight % blockSizeData[0] == 0);
-    NN_OPS_CHECK(paddedHeight % blockSizeData[1] == 0);
+    NN_OPS_CHECK(paddedWidth % blockSizeData[1] == 0);
 
     output->type = input.type;
     output->dimensions = {batches * (blockSizeData[0] * blockSizeData[1]),
                           paddedHeight / blockSizeData[0],
-                          paddedHeight / blockSizeData[1],
+                          paddedWidth / blockSizeData[1],
                           channels};
     output->offset = input.offset;
     output->scale = input.scale;

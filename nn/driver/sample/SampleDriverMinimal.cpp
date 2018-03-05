@@ -34,22 +34,24 @@ namespace sample_driver {
 class SampleDriverMinimal : public SampleDriver {
 public:
     SampleDriverMinimal() : SampleDriver("sample-minimal") {}
-    Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override;
-    Return<void> getSupportedOperations(const V1_0::Model& model,
-                                        getSupportedOperations_cb cb) override;
+    Return<void> getCapabilities_1_1(getCapabilities_1_1_cb cb) override;
+    Return<void> getSupportedOperations_1_1(const V1_1::Model& model,
+                                            getSupportedOperations_1_1_cb cb) override;
 };
 
-Return<void> SampleDriverMinimal::getCapabilities(getCapabilities_cb cb) {
+Return<void> SampleDriverMinimal::getCapabilities_1_1(getCapabilities_1_1_cb cb) {
     android::nn::initVLogMask();
     VLOG(DRIVER) << "getCapabilities()";
     Capabilities capabilities = {.float32Performance = {.execTime = 0.4f, .powerUsage = 0.5f},
-                                 .quantized8Performance = {.execTime = 1.0f, .powerUsage = 1.0f}};
+                                 .quantized8Performance = {.execTime = 1.0f, .powerUsage = 1.0f},
+                                 .relaxedFloat32toFloat16Performance =
+                                     {.execTime = 0.4f, .powerUsage = 0.5f}};
     cb(ErrorStatus::NONE, capabilities);
     return Void();
 }
 
-Return<void> SampleDriverMinimal::getSupportedOperations(const V1_0::Model& model,
-                                                         getSupportedOperations_cb cb) {
+Return<void> SampleDriverMinimal::getSupportedOperations_1_1(const V1_1::Model& model,
+                                                             getSupportedOperations_1_1_cb cb) {
     VLOG(DRIVER) << "getSupportedOperations()";
     if (validateModel(model)) {
         const size_t count = model.operations.size();
@@ -57,11 +59,11 @@ Return<void> SampleDriverMinimal::getSupportedOperations(const V1_0::Model& mode
         // Simulate supporting just a few ops
         for (size_t i = 0; i < count; i++) {
             supported[i] = false;
-            const V1_0::Operation& operation = model.operations[i];
+            const Operation& operation = model.operations[i];
             switch (operation.type) {
-                case V1_0::OperationType::ADD:
-                case V1_0::OperationType::CONCATENATION:
-                case V1_0::OperationType::CONV_2D: {
+                case OperationType::ADD:
+                case OperationType::CONCATENATION:
+                case OperationType::CONV_2D: {
                     const Operand& firstOperand = model.operands[operation.inputs[0]];
                     if (firstOperand.type == OperandType::TENSOR_FLOAT32) {
                         supported[i] = true;

@@ -31,12 +31,10 @@ namespace nn {
 class CompilationBuilder;
 class Device;
 class ExecutionPlan;
-class ExecutionStep;
 class Memory;
 
 class ModelBuilder {
 public:
-    virtual ~ModelBuilder() {}
     // Adds an operand to the model.
     int addOperand(const ANeuralNetworksOperandType& type);
     int setOperandValue(uint32_t index, const void* buffer, size_t length);
@@ -47,6 +45,8 @@ public:
                      uint32_t outputCount, const uint32_t* outputs);
     int identifyInputsAndOutputs(uint32_t inputCount, const uint32_t* inputs, uint32_t outputCount,
                                  const uint32_t* outputs);
+    int relaxComputationFloat32toFloat16(bool allow);
+    bool isComputationFloat32RelaxedToFloat16() const { return mRelaxComputationFloat32toFloat16; }
 
     int finish();
     bool isFinished() const { return mCompletedModel; }
@@ -130,6 +130,12 @@ public:
     // Once the model has been finished, we should not allow further
     // modifications to the model.
     mutable bool mCompletedModel = false;
+
+    // 'true' indicates TENSOR_FLOAT32 may be calculated with range and/or
+    // precision as low as that of the IEEE 754 16-bit floating-point format.
+    // 'false' indicates TENSOR_FLOAT32 must be calculated using at least the
+    // range and precision of the IEEE 754 32-bit floating-point format.
+    bool mRelaxComputationFloat32toFloat16 = false;
 };
 
 }  // namespace nn

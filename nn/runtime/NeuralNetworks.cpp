@@ -354,6 +354,16 @@ int ANeuralNetworksModel_identifyInputsAndOutputs(ANeuralNetworksModel* model, u
     return m->identifyInputsAndOutputs(inputCount, inputs, outputCount, outputs);
 }
 
+int ANeuralNetworksModel_relaxComputationFloat32toFloat16(ANeuralNetworksModel* model,
+                                                          bool allow) {
+    if (!model) {
+        LOG(ERROR) << ("ANeuralNetworksModel_relaxComputationFloat32toFloat16 passed a nullptr");
+        return ANEURALNETWORKS_UNEXPECTED_NULL;
+    }
+    ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
+    return m->relaxComputationFloat32toFloat16(allow);
+}
+
 int ANeuralNetworksCompilation_create(ANeuralNetworksModel* model,
                                       ANeuralNetworksCompilation** compilation) {
     if (!model || !compilation) {

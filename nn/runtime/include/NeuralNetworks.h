@@ -1953,6 +1953,28 @@ int ANeuralNetworksModel_identifyInputsAndOutputs(ANeuralNetworksModel* model, u
                                                   const uint32_t* outputs);
 
 /**
+ * Specifies whether {@link ANEURALNETWORKS_TENSOR_FLOAT32} is allowed to be
+ * calculated with range and/or precision as low as that of the IEEE 754 16-bit
+ * floating-point format. By default, {@link ANEURALNETWORKS_TENSOR_FLOAT32}
+ * must be calculated using at least the range and precision of the IEEE 754
+ * 32-bit floating-point format.
+ *
+ * @param model The model to be modified.
+ * @param allow 'true' indicates {@link ANEURALNETWORKS_TENSOR_FLOAT32} may be
+ *              calculated with range and/or precision as low as that of the
+ *              IEEE 754 16-bit floating point format. 'false' indicates
+ *              {@link ANEURALNETWORKS_TENSOR_FLOAT32} must be calculated using
+ *              at least the range and precision of the IEEE 754 32-bit floating
+ *              point format.
+ *
+ * Attempting to modify a model once {@link ANeuralNetworksModel_finish} has been
+ * called will return an error.
+ *
+ * See {@link ANeuralNetworksModel} for information on multithreaded usage.
+ */
+int ANeuralNetworksModel_relaxComputationFloat32toFloat16(ANeuralNetworksModel* model, bool allow);
+
+/**
  * Create a {@link ANeuralNetworksCompilation} to compile the given model.
  *
  * <p>This only creates the object. Compilation is only performed once

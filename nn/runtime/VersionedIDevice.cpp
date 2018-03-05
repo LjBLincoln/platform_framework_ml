@@ -29,21 +29,31 @@ VersionedIDevice::VersionedIDevice(sp<V1_0::IDevice> device) :
         mDeviceV1_1(V1_1::IDevice::castFrom(mDeviceV1_0).withDefault(nullptr)) {}
 
 std::pair<ErrorStatus, Capabilities> VersionedIDevice::getCapabilities() {
-    if (mDeviceV1_0 == nullptr) {
+    std::pair<ErrorStatus, Capabilities> result;
+
+    if (mDeviceV1_1 != nullptr) {
+        Return<void> ret = mDeviceV1_1->getCapabilities_1_1(
+            [&](ErrorStatus error, const Capabilities& capabilities) {
+                result = std::make_pair(error, capabilities);
+            });
+        if (!ret.isOk()) {
+            LOG(ERROR) << "getCapabilities_1_1 failure: " << ret.description();
+            return {ErrorStatus::GENERAL_FAILURE, {}};
+        }
+    } else if (mDeviceV1_0 != nullptr) {
+        Return<void> ret = mDeviceV1_0->getCapabilities(
+            [&](ErrorStatus error, const V1_0::Capabilities& capabilities) {
+                result = std::make_pair(error, convertToV1_1(capabilities));
+            });
+        if (!ret.isOk()) {
+            LOG(ERROR) << "getCapabilities failure: " << ret.description();
+            return {ErrorStatus::GENERAL_FAILURE, {}};
+        }
+    } else {
         LOG(ERROR) << "Device not available!";
         return {ErrorStatus::DEVICE_UNAVAILABLE, {}};
     }
 
-    std::pair<ErrorStatus, Capabilities> result;
-    Return<void> ret =
-        mDeviceV1_0->getCapabilities([&](ErrorStatus error, const Capabilities& capabilities) {
-            result = std::make_pair(error, capabilities);
-        });
-
-    if (!ret.isOk()) {
-        LOG(ERROR) << "getCapabilities failure: " << ret.description();
-        return {ErrorStatus::GENERAL_FAILURE, {}};
-    }
     return result;
 }
 

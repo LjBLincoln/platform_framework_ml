@@ -52,8 +52,10 @@ bool Device::initialize() {
     } else {
         VLOG(MANAGER) << "Capab " << capabilities.float32Performance.execTime;
         VLOG(MANAGER) << "Capab " << capabilities.quantized8Performance.execTime;
+        VLOG(MANAGER) << "Capab " << capabilities.relaxedFloat32toFloat16Performance.execTime;
         mFloat32Performance = capabilities.float32Performance;
         mQuantized8Performance = capabilities.quantized8Performance;
+        mRelaxedFloat32toFloat16Performance = capabilities.relaxedFloat32toFloat16Performance;
     }
 
     return status == ErrorStatus::NONE;
