@@ -28,6 +28,7 @@ cc_defaults {
         "TestPartitioning.cpp",
         "TestPartitioningRandom.cpp",
         "TestTrivialModel.cpp",
+        "TestValidateOperations.cpp",
         "TestValidation.cpp",
         "TestWrapper.cpp",
     ],

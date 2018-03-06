@@ -208,13 +208,8 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type, uint32_t input
         LOG(ERROR) << "ANeuralNetworksModel_addOperation invalid operations type " << type;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    int n = validateOperandList(inputCount, inputs, operandCount(),
-                                "ANeuralNetworksModel_addOperation inputs");
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
-    }
-    n = validateOperandList(outputCount, outputs, operandCount(),
-                            "ANeuralNetworksModel_addOperation outputs");
+    int n = validateOperation(type, inputCount, inputs,
+                              outputCount, outputs, mOperands);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
