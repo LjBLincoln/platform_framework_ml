@@ -24,13 +24,13 @@ model = model.Operation("FULLY_CONNECTED", in0, weights, bias, act).To(out0)
 
 # Example 1. Input in operand 0,
 input0 = {in0: # input 0
-          [1, 10, 100, 1000, 10000],
+          [1, 1, 1, 1, 1],
           weights:
           [2, 3, 4, 5, 6],
           bias:
-          [900000]}
+          [9000]}
 output0 = {out0: # output 0
-           [965432]}
+           [9020]}
 
 # Instantiate an example
 Example((input0, output0))

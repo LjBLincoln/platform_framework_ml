@@ -222,8 +222,8 @@ namespace {
 bool Execute(std::function<void(Model*)> create_model,
              std::vector<Example>& examples) {
     return generated_tests::Example<float>::Execute(
-        create_model, examples, [](float golden, float test) {
-            return std::fabs(golden - test) > 1.5e-5f;
+        create_model, examples, [](float golden, float test){
+            return std::fabs(golden - test) > 0.005f;
         });
 }
 }  // namespace

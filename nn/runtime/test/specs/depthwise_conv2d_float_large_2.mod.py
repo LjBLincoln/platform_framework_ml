@@ -16,8 +16,8 @@
 
 model = Model()
 i1 = Input("op1", "TENSOR_FLOAT32", "{1, 2, 2, 4}") # depth_in = 4
-f1 = Parameter("op2", "TENSOR_FLOAT32", "{1, 2, 2, 4}", [.25, 0, 10, 100, .25, 1, 20, 100, .25, 0, 30, 100, .25, 1, 40, 100]) # depth_out = 4
-b1 = Parameter("op3", "TENSOR_FLOAT32", "{4}", [600000, 700000, 800000, 900000]) # depth_out = 4
+f1 = Parameter("op2", "TENSOR_FLOAT32", "{1, 2, 2, 4}", [.25, 0, 1, 100, .25, 1, 2, 100, .25, 0, 3, 100, .25, 1, 4, 100]) # depth_out = 4
+b1 = Parameter("op3", "TENSOR_FLOAT32", "{4}", [6000, 7000, 8000, 9000]) # depth_out = 4
 pad0 = Int32Scalar("pad0", 0)
 act = Int32Scalar("act", 0)
 stride = Int32Scalar("stride", 1)
@@ -40,7 +40,7 @@ input0 = {
   }
 # (i1 (conv) f1) + b1
 output0 = {output: # output 0
-           [600010, 700046, 830000, 900000]}
+           [6010, 7046, 11000, 9000]}
 
 # Instantiate an example
 Example((input0, output0))
