@@ -13,7 +13,7 @@ void CreateModel(Model *model) {
   // Phase 2, operations
   static float op2_init[] = {2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
   model->setOperandValue(op2, op2_init, sizeof(float) * 5);
-  static float b0_init[] = {900000.0f};
+  static float b0_init[] = {9000.0f};
   model->setOperandValue(b0, b0_init, sizeof(float) * 1);
   static int32_t act_init[] = {0};
   model->setOperandValue(act, act_init, sizeof(int32_t) * 1);
