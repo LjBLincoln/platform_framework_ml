@@ -26,6 +26,7 @@
 #include <map>
 #include <tuple>
 #include <vector>
+#include <cmath>
 
 namespace generated_tests {
 typedef std::map<int, std::vector<float>> Float32Operands;
@@ -173,7 +174,7 @@ void compare_(
 #undef VECTOR_TYPE
 inline void compare(const MixedTyped& golden, const MixedTyped& test) {
     compare_<0>(golden, test,
-                [](float g, float t) { EXPECT_NEAR(g, t, 1.e-5f); });
+                [](float g, float t) { EXPECT_NEAR(g, t, (g<0.5&&g>-0.5) ? 0.002 : fabs(g*0.004)); });
     compare_<1>(golden, test, [](int32_t g, int32_t t) { EXPECT_EQ(g, t); });
     compare_<2>(golden, test, [](uint8_t g, uint8_t t) { EXPECT_NEAR(g, t, 1); });
 }

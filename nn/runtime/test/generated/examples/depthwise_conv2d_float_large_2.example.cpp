@@ -13,7 +13,7 @@
 //Output(s)
 { // See tools/test_generator/include/TestHarness.h:MixedTyped
   // int -> FLOAT32 map
-  {{0, {600010, 700046, 830000, 900000}}},
+  {{0, {6010, 7046, 11000, 9000}}},
   // int -> INT32 map
   {},
   // int -> QUANT8_ASYMM map

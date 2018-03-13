@@ -14,9 +14,9 @@ void CreateModel(Model *model) {
   auto channelMultiplier = model->addOperand(&type2);
   auto op4 = model->addOperand(&type3);
   // Phase 2, operations
-  static float op2_init[] = {0.25f, 0.0f, 10.0f, 100.0f, 0.25f, 1.0f, 20.0f, 100.0f, 0.25f, 0.0f, 30.0f, 100.0f, 0.25f, 1.0f, 40.0f, 100.0f};
+  static float op2_init[] = {0.25f, 0.0f, 1.0f, 100.0f, 0.25f, 1.0f, 2.0f, 100.0f, 0.25f, 0.0f, 3.0f, 100.0f, 0.25f, 1.0f, 4.0f, 100.0f};
   model->setOperandValue(op2, op2_init, sizeof(float) * 16);
-  static float op3_init[] = {600000.0f, 700000.0f, 800000.0f, 900000.0f};
+  static float op3_init[] = {6000.0f, 7000.0f, 8000.0f, 9000.0f};
   model->setOperandValue(op3, op3_init, sizeof(float) * 4);
   static int32_t pad0_init[] = {0};
   model->setOperandValue(pad0, pad0_init, sizeof(int32_t) * 1);
