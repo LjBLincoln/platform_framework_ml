@@ -4,19 +4,19 @@
 //Input(s)
 { // See tools/test_generator/include/TestHarness.h:MixedTyped
   // int -> FLOAT32 map
-  {{0, {1, 2, 3, 4}}},
+  {},
   // int -> INT32 map
   {},
   // int -> QUANT8_ASYMM map
-  {}
+  {{0, {1, 2, 3, 4}}}
 },
 //Output(s)
 { // See tools/test_generator/include/TestHarness.h:MixedTyped
   // int -> FLOAT32 map
-  {{0, {2, 3}}},
+  {},
   // int -> INT32 map
   {},
   // int -> QUANT8_ASYMM map
-  {}
+  {{0, {2, 3}}}
 }
 }, // End of an example

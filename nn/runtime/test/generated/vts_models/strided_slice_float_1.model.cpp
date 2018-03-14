@@ -3,7 +3,7 @@
 Model createTestModel() {
     const std::vector<Operand> operands = {
         {
-            .type = OperandType::TENSOR_QUANT8_ASYMM,
+            .type = OperandType::TENSOR_FLOAT32,
             .dimensions = {4},
             .numberOfConsumers = 1,
             .scale = 0.0f,
@@ -57,7 +57,7 @@ Model createTestModel() {
             .location = {.poolIndex = 0, .offset = 16, .length = 4},
         },
         {
-            .type = OperandType::TENSOR_QUANT8_ASYMM,
+            .type = OperandType::TENSOR_FLOAT32,
             .dimensions = {2},
             .numberOfConsumers = 0,
             .scale = 0.0f,
