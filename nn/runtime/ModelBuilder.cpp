@@ -20,6 +20,7 @@
 
 #include "CompilationBuilder.h"
 #include "Utils.h"
+#include "ValidateHal.h"
 
 #include <map>
 #include <utility>
@@ -107,7 +108,10 @@ int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t len
             VLOG(MODEL) << "Saving large value";
             operand.lifetime = OperandLifeTime::CONSTANT_REFERENCE;
             // The values for poolIndex and offset will be set when the model is finished.
-            operand.location = {.poolIndex = 0, .offset = 0, .length = valueLength};
+            typedef decltype(operand.location.poolIndex) PoolIndexType;
+            typedef decltype(operand.location.offset) OffsetType;
+            operand.location = {.poolIndex = ~PoolIndexType(0), .offset = ~OffsetType(0),
+                                .length = valueLength};
             // We keep track of the buffers. We'll allocate the shared memory only
             // once we know the total size, to avoid needless copies.
             mLargeOperandValues.push_back(LargeValue{.operandIndex = index, .buffer = buffer});
@@ -306,6 +310,17 @@ int ModelBuilder::finish() {
     int n = copyLargeValuesToSharedMemory();
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
+    }
+
+    // TODO: Modify validation so that it can be called without creating a HAL Model.
+    // NOTE: Must copyLargeValuesToSharedMemory() before validation; otherwise,
+    //       a CONSTANT_REFERENCE operand will not have correct .poolIndex, and
+    //       validation will not work properly.
+    Model modelForValidation;
+    setHidlModel(&modelForValidation);
+    if (!validateModel(modelForValidation)) {
+        LOG(ERROR) << "ANeuralNetworksModel_finish called on invalid model";
+        return ANEURALNETWORKS_BAD_DATA;
     }
 
     // We sort the operations so that they will be in the appropriate

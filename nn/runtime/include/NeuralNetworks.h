@@ -2138,7 +2138,7 @@ int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32
  *             model. If the type is the same as specified when the model
  *             was built, NULL can be passed.
  * @param memory The memory containing the data.
- * @param offset This specifies the location of the data whithin the memory.
+ * @param offset This specifies the location of the data within the memory.
  *               The offset is in bytes from the start of memory.
  * @param length The size in bytes of the data value.
  *
@@ -2204,7 +2204,7 @@ int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int3
  *             model. If the type is the same as specified when the model
  *             was built, NULL can be passed.
  * @param memory The memory where the data is to be stored.
- * @param offset This specifies the location of the data whithin the memory.
+ * @param offset This specifies the location of the data within the memory.
  *               The offset is in bytes from the start of memory.
  * @param length The length in bytes of the data value.
  *
