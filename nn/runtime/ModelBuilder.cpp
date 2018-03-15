@@ -34,7 +34,7 @@ const uint32_t MAX_NUMBER_OF_OPERATIONS = 0xFFFFFFFE;
 int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
     if (mCompletedModel) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperand can't modify after model finished";
-        return ANEURALNETWORKS_BAD_DATA;
+        return ANEURALNETWORKS_BAD_STATE;
     }
     int n = validateOperandType(type, "ANeuralNetworksModel_addOperand", true);
     if (n != ANEURALNETWORKS_NO_ERROR) {
@@ -59,6 +59,11 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
 
 int ModelBuilder::setOperandValue(uint32_t index, const void* buffer, size_t length) {
     VLOG(MODEL) << __func__ << " for operand " << index << " size " << length;
+    if (mCompletedModel) {
+        LOG(ERROR) << "ANeuralNetworksModel_setOperandValue can't modify after model finished";
+        return ANEURALNETWORKS_BAD_STATE;
+    }
+
     if (index >= operandCount()) {
         LOG(ERROR) << "ANeuralNetworksModel_setOperandValue setting operand " << index << " of "
                    << operandCount();
@@ -152,6 +157,11 @@ int ModelBuilder::copyLargeValuesToSharedMemory() {
 int ModelBuilder::setOperandValueFromMemory(uint32_t index, const Memory* memory, uint32_t offset,
                                             size_t length) {
     VLOG(MODEL) << __func__ << " for operand " << index << " offset " << offset << " size " << length;
+    if (mCompletedModel) {
+        LOG(ERROR) << "ANeuralNetworksModel_setOperandValueFromMemory can't modify after model finished";
+        return ANEURALNETWORKS_BAD_STATE;
+    }
+
     if (index >= operandCount()) {
         LOG(ERROR) << "ANeuralNetworksModel_setOperandValueFromMemory setting operand " << index
                    << " of " << operandCount();
@@ -164,7 +174,9 @@ int ModelBuilder::setOperandValueFromMemory(uint32_t index, const Memory* memory
                    << " bytes when needing " << neededLength;
         return ANEURALNETWORKS_BAD_DATA;
     }
-    // TODO validate does not exceed length of memory
+    if (!memory->validateSize(offset, length)) {
+        return ANEURALNETWORKS_BAD_DATA;
+    }
     operand.lifetime = OperandLifeTime::CONSTANT_REFERENCE;
     operand.location = {
                 .poolIndex = mMemories.add(memory), .offset = offset, .length = neededLength};
@@ -176,7 +188,7 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type, uint32_t input
                                const uint32_t* outputs) {
     if (mCompletedModel) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperation can't modify after model finished";
-        return ANEURALNETWORKS_BAD_DATA;
+        return ANEURALNETWORKS_BAD_STATE;
     }
     if (!validCode(kNumberOfOperationTypes, kNumberOfOperationTypesOEM, type)) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperation invalid operations type " << type;
@@ -215,7 +227,7 @@ int ModelBuilder::identifyInputsAndOutputs(uint32_t inputCount, const uint32_t* 
                                       uint32_t outputCount, const uint32_t* outputs) {
     if (mCompletedModel) {
         LOG(ERROR) << "ANeuralNetworksModel_identifyInputsAndOutputs can't modify after model finished";
-        return ANEURALNETWORKS_BAD_DATA;
+        return ANEURALNETWORKS_BAD_STATE;
     }
     int n = validateOperandList(inputCount, inputs, operandCount(),
                                 "ANeuralNetworksModel_identifyInputsAndOutputs inputs");
