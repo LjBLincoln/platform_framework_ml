@@ -18,6 +18,7 @@
 
 #include "Utils.h"
 #include "NeuralNetworks.h"
+#include "NeuralNetworksOEM.h"
 
 #include <android-base/logging.h>
 #include <android-base/properties.h>
@@ -306,6 +307,16 @@ int validateOperandType(const ANeuralNetworksOperandType& type, const char* tag,
             return ANEURALNETWORKS_BAD_DATA;
         }
     }
+    if (type.type == ANEURALNETWORKS_FLOAT32 ||
+        type.type == ANEURALNETWORKS_INT32 ||
+        type.type == ANEURALNETWORKS_UINT32 ||
+        type.type == ANEURALNETWORKS_OEM_SCALAR) {
+        if (type.dimensionCount != 0 || type.dimensions != nullptr) {
+            LOG(ERROR) << tag << " Invalid dimensions for scalar type";
+            return ANEURALNETWORKS_BAD_DATA;
+        }
+    }
+
     return ANEURALNETWORKS_NO_ERROR;
 }
 

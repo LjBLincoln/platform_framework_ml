@@ -428,8 +428,7 @@ void ANeuralNetworksExecution_free(ANeuralNetworksExecution* execution) {
 int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32_t index,
                                       const ANeuralNetworksOperandType* type, const void* buffer,
                                       size_t length) {
-    // TODO: For a non-optional input, also verify that buffer is not null.
-    if (!execution) {
+    if (!execution || (!buffer && length != 0)) {
         LOG(ERROR) << "ANeuralNetworksExecution_setInput passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
@@ -454,7 +453,7 @@ int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execut
 int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int32_t index,
                                        const ANeuralNetworksOperandType* type, void* buffer,
                                        size_t length) {
-    if (!execution || !buffer) {
+    if (!execution || (!buffer && length != 0)) {
         LOG(ERROR) << "ANeuralNetworksExecution_setOutput passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
