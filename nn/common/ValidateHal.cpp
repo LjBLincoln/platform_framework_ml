@@ -104,7 +104,7 @@ static bool validateOperands(const hidl_vec<Operand>& operands,
                 if (operand.scale != 0.f) {
                     LOG(ERROR) << "Operand " << index << ": Operand of type "
                                << getOperandTypeName(operand.type) << " with a non-zero scale ("
-                               << operand.scale;
+                               << operand.scale << ")";
                     return false;
                 }
                 break;
@@ -287,7 +287,7 @@ static bool validateModelInputOutputs(const hidl_vec<uint32_t> indexes,
     const size_t operandCount = operands.size();
     for (uint32_t i : indexes) {
         if (i >= operandCount) {
-            LOG(ERROR) << "Model input or output index out of range " << i << "/" << operandCount;
+            LOG(ERROR) << "Model input or output index out of range: " << i << "/" << operandCount;
             return false;
         }
         const Operand& operand = operands[i];
@@ -296,6 +296,14 @@ static bool validateModelInputOutputs(const hidl_vec<uint32_t> indexes,
                        << " instead of the expected " << toString(lifetime);
             return false;
         }
+    }
+
+    std::vector<uint32_t> sortedIndexes = indexes;
+    std::sort(sortedIndexes.begin(), sortedIndexes.end());
+    auto adjacentI = std::adjacent_find(sortedIndexes.begin(), sortedIndexes.end());
+    if (adjacentI != sortedIndexes.end()) {
+        LOG(ERROR) << "Model input or output occurs multiple times: " << *adjacentI;
+        return false;
     }
     return true;
 }
