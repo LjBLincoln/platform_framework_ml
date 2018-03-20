@@ -157,7 +157,7 @@ TEST_F(ValidationTestModel, AddOperand) {
     EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, &invalidScalarType),
               ANEURALNETWORKS_BAD_DATA);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, &floatType),
               ANEURALNETWORKS_BAD_STATE);
@@ -186,8 +186,7 @@ TEST_F(ValidationTestModel, SetOperandValue) {
     EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 1, buffer, sizeof(float)),
               ANEURALNETWORKS_BAD_DATA);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
-
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 0, buffer, sizeof(float)),
               ANEURALNETWORKS_BAD_STATE);
@@ -243,9 +242,8 @@ TEST_F(ValidationTestModel, SetOperandValueFromMemory) {
                                                              memory, memorySize - 3,
                                                              sizeof(float)),
               ANEURALNETWORKS_BAD_DATA);
-    // Instead, this fails, because we detect the problem at finish() instead of setOperandValueFromMemory().
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
 
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_setOperandValueFromMemory(mModel, 0,
                                                              memory, 0,
@@ -272,7 +270,7 @@ TEST_F(ValidationTestModel, AddOEMOperand) {
     EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 1, buffer, kByteSizeOfOEMTensor),
               ANEURALNETWORKS_NO_ERROR);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, &OEMTensorType), ANEURALNETWORKS_BAD_STATE);
 }
@@ -295,7 +293,7 @@ TEST_F(ValidationTestModel, AddOperation) {
                                                 1, &output),
               ANEURALNETWORKS_BAD_DATA);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_AVERAGE_POOL_2D, 1, &input,
                                                 1, &output),
@@ -312,7 +310,7 @@ TEST_F(ValidationTestModel, IdentifyInputsAndOutputs) {
     EXPECT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 1, &input, 0, nullptr),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 1, &input, 1, &output),
               ANEURALNETWORKS_BAD_STATE);
@@ -322,7 +320,7 @@ TEST_F(ValidationTestModel, RelaxComputationFloat32toFloat16) {
     EXPECT_EQ(ANeuralNetworksModel_relaxComputationFloat32toFloat16(nullptr, true),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_relaxComputationFloat32toFloat16(mModel, true),
               ANEURALNETWORKS_BAD_STATE);
