@@ -94,14 +94,16 @@ static void execute(std::function<void(Model*)> createModel,
 
         // Set all inputs
         for_all(inputs, [&execution](int idx, const void* p, size_t s) {
-            ASSERT_EQ(Result::NO_ERROR, execution.setInput(idx, p, s));
+            const void* buffer = s == 0 ? nullptr : p;
+            ASSERT_EQ(Result::NO_ERROR, execution.setInput(idx, buffer, s));
         });
 
         MixedTyped test;
         // Go through all typed outputs
         resize_accordingly(golden, test);
         for_all(test, [&execution](int idx, void* p, size_t s) {
-            ASSERT_EQ(Result::NO_ERROR, execution.setOutput(idx, p, s));
+            void* buffer = s == 0 ? nullptr : p;
+            ASSERT_EQ(Result::NO_ERROR, execution.setOutput(idx, buffer, s));
         });
 
         Result r = execution.compute();
