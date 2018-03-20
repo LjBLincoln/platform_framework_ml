@@ -133,7 +133,7 @@ input0 = {input_to_input_weights:[],
 }
 
 output0 = {
-    scratch_buffer: [ 0 for x in range(n_batch * n_cell * 4) ],
+    scratch_buffer: [ 0 for x in range(n_batch * n_cell * 3) ],
     cell_state_out: [ 0 for x in range(n_batch * n_cell) ],
     output_state_out: [ 0 for x in range(n_batch * n_output) ],
 }
