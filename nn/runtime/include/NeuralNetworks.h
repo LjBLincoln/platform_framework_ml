@@ -1587,8 +1587,7 @@ enum {
  * {@link ANeuralNetworksModel_setOperandValueFromMemory}. An application
  * should typically create one shared memory object that contains every tensor
  * needed to define a model. {@link ANeuralNetworksMemory_createFromFd} can be
- * used to create shared memory from a file handle. {@link ANeuralNetworksMemory_createShared}
- * can be used to directly created shared memory.
+ * used to create shared memory from a file handle.
  *
  * Memory objects can also be used to specify the input and output arguments of
  * an execution. See {@link ANeuralNetworksExecution_setInputFromMemory}
