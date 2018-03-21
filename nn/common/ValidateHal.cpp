@@ -108,17 +108,23 @@ static bool validateOperands(const hidl_vec<Operand>& operands,
                     return false;
                 }
                 break;
-            case OperandType::TENSOR_QUANT8_ASYMM:
-                if (operand.scale == 0.f) {
+            case OperandType::TENSOR_INT32:
+                // TENSOR_INT32 may be used with or without scale, depending on the operation.
+                if (operand.scale < 0.f) {
                     LOG(ERROR) << "Operand " << index << ": Operand of type "
-                               << getOperandTypeName(operand.type) << " with a zero scale";
+                               << getOperandTypeName(operand.type) << " with a negative scale";
+                    return false;
+                }
+                break;
+            case OperandType::TENSOR_QUANT8_ASYMM:
+                if (operand.scale <= 0.f) {
+                    LOG(ERROR) << "Operand " << index << ": Operand of type "
+                               << getOperandTypeName(operand.type) << " with a non-positive scale";
                     return false;
                 }
                 break;
             default:
-                // No validation for the OEM types. No validation also for TENSOR_INT32,
-                // as tensors of this type may be used with or without scale, depending on
-                // the operation.
+                // No validation for the OEM types.
                 // TODO We should have had a separate type for TENSOR_INT32 that a scale
                 // and those who don't.  Document now and fix in the next release.
                 break;
@@ -135,6 +141,14 @@ static bool validateOperands(const hidl_vec<Operand>& operands,
                     LOG(ERROR) << "Operand " << index << ": Operand of type "
                                << getOperandTypeName(operand.type) << " with an non-zero zeroPoint "
                                << operand.zeroPoint;
+                    return false;
+                }
+                break;
+            case OperandType::TENSOR_QUANT8_ASYMM:
+                if (operand.zeroPoint < 0 || operand.zeroPoint > 255) {
+                    LOG(ERROR) << "Operand " << index << ": Operand of type "
+                               << getOperandTypeName(operand.type) << " with an invalid zeroPoint "
+                               << operand.zeroPoint << ", must be in range [0, 255]";
                     return false;
                 }
                 break;
@@ -206,6 +220,91 @@ static bool validateOperands(const hidl_vec<Operand>& operands,
     return true;
 }
 
+static bool validOperationType(V1_0::OperationType operation) {
+    switch (operation) {
+        case V1_0::OperationType::ADD:
+        case V1_0::OperationType::AVERAGE_POOL_2D:
+        case V1_0::OperationType::CONCATENATION:
+        case V1_0::OperationType::CONV_2D:
+        case V1_0::OperationType::DEPTHWISE_CONV_2D:
+        case V1_0::OperationType::DEPTH_TO_SPACE:
+        case V1_0::OperationType::DEQUANTIZE:
+        case V1_0::OperationType::EMBEDDING_LOOKUP:
+        case V1_0::OperationType::FLOOR:
+        case V1_0::OperationType::FULLY_CONNECTED:
+        case V1_0::OperationType::HASHTABLE_LOOKUP:
+        case V1_0::OperationType::L2_NORMALIZATION:
+        case V1_0::OperationType::L2_POOL_2D:
+        case V1_0::OperationType::LOCAL_RESPONSE_NORMALIZATION:
+        case V1_0::OperationType::LOGISTIC:
+        case V1_0::OperationType::LSH_PROJECTION:
+        case V1_0::OperationType::LSTM:
+        case V1_0::OperationType::MAX_POOL_2D:
+        case V1_0::OperationType::MUL:
+        case V1_0::OperationType::RELU:
+        case V1_0::OperationType::RELU1:
+        case V1_0::OperationType::RELU6:
+        case V1_0::OperationType::RESHAPE:
+        case V1_0::OperationType::RESIZE_BILINEAR:
+        case V1_0::OperationType::RNN:
+        case V1_0::OperationType::SOFTMAX:
+        case V1_0::OperationType::SPACE_TO_DEPTH:
+        case V1_0::OperationType::SVDF:
+        case V1_0::OperationType::TANH:
+        case V1_0::OperationType::OEM_OPERATION:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool validOperationType(V1_1::OperationType operation) {
+    switch (operation) {
+        case V1_1::OperationType::ADD:
+        case V1_1::OperationType::AVERAGE_POOL_2D:
+        case V1_1::OperationType::CONCATENATION:
+        case V1_1::OperationType::CONV_2D:
+        case V1_1::OperationType::DEPTHWISE_CONV_2D:
+        case V1_1::OperationType::DEPTH_TO_SPACE:
+        case V1_1::OperationType::DEQUANTIZE:
+        case V1_1::OperationType::EMBEDDING_LOOKUP:
+        case V1_1::OperationType::FLOOR:
+        case V1_1::OperationType::FULLY_CONNECTED:
+        case V1_1::OperationType::HASHTABLE_LOOKUP:
+        case V1_1::OperationType::L2_NORMALIZATION:
+        case V1_1::OperationType::L2_POOL_2D:
+        case V1_1::OperationType::LOCAL_RESPONSE_NORMALIZATION:
+        case V1_1::OperationType::LOGISTIC:
+        case V1_1::OperationType::LSH_PROJECTION:
+        case V1_1::OperationType::LSTM:
+        case V1_1::OperationType::MAX_POOL_2D:
+        case V1_1::OperationType::MUL:
+        case V1_1::OperationType::RELU:
+        case V1_1::OperationType::RELU1:
+        case V1_1::OperationType::RELU6:
+        case V1_1::OperationType::RESHAPE:
+        case V1_1::OperationType::RESIZE_BILINEAR:
+        case V1_1::OperationType::RNN:
+        case V1_1::OperationType::SOFTMAX:
+        case V1_1::OperationType::SPACE_TO_DEPTH:
+        case V1_1::OperationType::SVDF:
+        case V1_1::OperationType::TANH:
+        case V1_1::OperationType::BATCH_TO_SPACE_ND:
+        case V1_1::OperationType::DIV:
+        case V1_1::OperationType::MEAN:
+        case V1_1::OperationType::PAD:
+        case V1_1::OperationType::SPACE_TO_BATCH_ND:
+        case V1_1::OperationType::SQUEEZE:
+        case V1_1::OperationType::STRIDED_SLICE:
+        case V1_1::OperationType::SUB:
+        case V1_1::OperationType::TRANSPOSE:
+        case V1_1::OperationType::OEM_OPERATION:
+            return true;
+        default:
+            return false;
+    }
+}
+
 template<typename VersionedOperation>
 static bool validateOperations(const hidl_vec<VersionedOperation>& operations,
                                const hidl_vec<Operand>& operands) {
@@ -215,25 +314,21 @@ static bool validateOperations(const hidl_vec<VersionedOperation>& operations,
     // model outputs will be written to.
     std::vector<bool> writtenTo(operandCount, false);
     for (auto& op : operations) {
-        if (!validCode(kNumberOfOperationTypes, kNumberOfOperationTypesOEM,
-                       static_cast<uint32_t>(op.type))) {
+        if (!validOperationType(op.type)) {
             LOG(ERROR) << "Invalid operation type " << toString(op.type);
             return false;
         }
-        // TODO Validate that the number of inputs and outputs, and their types, is correct
-        // for the operation. This is currently done in CpuExecutor but should be done
-        // here for all drivers.
-        for (uint32_t i : op.inputs) {
-            if (i >= operandCount) {
-                LOG(ERROR) << "Operation input index out of range " << i << "/" << operandCount;
-                return false;
-            }
+        // TODO Validate the shapes and any known values. This is currently
+        // done in CpuExecutor but should be done here for all drivers.
+        int error =
+            validateOperation(static_cast<int32_t>(op.type), op.inputs.size(),
+                              op.inputs.size() > 0 ? op.inputs.data() : nullptr, op.outputs.size(),
+                              op.outputs.size() > 0 ? op.outputs.data() : nullptr, operands);
+        if (error != ANEURALNETWORKS_NO_ERROR) {
+            return false;
         }
+
         for (uint32_t i : op.outputs) {
-            if (i >= operandCount) {
-                LOG(ERROR) << "Operation output index out of range " << i << "/" << operandCount;
-                return false;
-            }
             const Operand& operand = operands[i];
             if (operand.lifetime != OperandLifeTime::TEMPORARY_VARIABLE &&
                 operand.lifetime != OperandLifeTime::MODEL_OUTPUT) {
