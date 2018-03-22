@@ -58,15 +58,15 @@ int ModelBuilder::addOperand(const ANeuralNetworksOperandType& type) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperand exceed max operands";
         return ANEURALNETWORKS_BAD_DATA;
     }
-    mOperands.resize(idx + 1);
-    auto& operand = mOperands[idx];
-    operand.type = static_cast<OperandType>(type.type);
-    setFromIntList(&operand.dimensions, type.dimensionCount, type.dimensions);
-    operand.numberOfConsumers = 0;
-    operand.scale = type.scale;
-    operand.zeroPoint = type.zeroPoint;
-    operand.lifetime = OperandLifeTime::TEMPORARY_VARIABLE;
-    operand.location = {.poolIndex = 0, .offset = 0, .length = 0};
+    mOperands.push_back({
+        .type = static_cast<OperandType>(type.type),
+        .dimensions = hidl_vec<uint32_t>(type.dimensions, type.dimensions + type.dimensionCount),
+        .numberOfConsumers = 0,
+        .scale = type.scale,
+        .zeroPoint = type.zeroPoint,
+        .lifetime = OperandLifeTime::TEMPORARY_VARIABLE,
+        .location = {.poolIndex = 0, .offset = 0, .length = 0},
+    });
     return ANEURALNETWORKS_NO_ERROR;
 }
 
@@ -224,16 +224,16 @@ int ModelBuilder::addOperation(ANeuralNetworksOperationType type, uint32_t input
         LOG(ERROR) << "ANeuralNetworksModel_addOperation exceed max operations";
         return ANEURALNETWORKS_BAD_DATA;
     }
-    mOperations.resize(operationIndex + 1);
-    auto& entry = mOperations[operationIndex];
-    entry.type = static_cast<OperationType>(type);
 
-    setFromIntList(&entry.inputs, inputCount, inputs);
-    setFromIntList(&entry.outputs, outputCount, outputs);
-    for (uint32_t i : entry.inputs) {
+    mOperations.push_back({
+        .type = static_cast<OperationType>(type),
+        .inputs = hidl_vec<uint32_t>(inputs, inputs + inputCount),
+        .outputs = hidl_vec<uint32_t>(outputs, outputs + outputCount),
+    });
+    for (uint32_t i : mOperations.back().inputs) {
         mOperands[i].numberOfConsumers++;
-        // TODO mOperands[i].consumers.push_back(operationIndex);
     }
+
     return ANEURALNETWORKS_NO_ERROR;
 }
 

@@ -151,12 +151,13 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
 
     // Add the operand to the submodel.
     const Operand& operand = fromModel.getOperand(fromOperandIndex);
-    ANeuralNetworksOperandType type = {.type = static_cast<int32_t>(operand.type),
-                                       .dimensionCount =
-                                               static_cast<uint32_t>(operand.dimensions.size()),
-                                       .dimensions = operand.dimensions.data(),
-                                       .scale = operand.scale,
-                                       .zeroPoint = operand.zeroPoint};
+    ANeuralNetworksOperandType type = {
+        .type = static_cast<int32_t>(operand.type),
+        .dimensionCount = static_cast<uint32_t>(operand.dimensions.size()),
+        .dimensions = operand.dimensions.size() > 0 ? operand.dimensions.data() : nullptr,
+        .scale = operand.scale,
+        .zeroPoint = operand.zeroPoint
+    };
     int n = mSubModel.addOperand(type);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         LOG(ERROR) << "Previous error occurred when partitioning the graph";

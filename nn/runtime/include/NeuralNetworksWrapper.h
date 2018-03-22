@@ -56,18 +56,17 @@ enum class Result {
 
 struct OperandType {
     ANeuralNetworksOperandType operandType;
-    // int32_t type;
     std::vector<uint32_t> dimensions;
 
-    OperandType(Type type, const std::vector<uint32_t>& d, float scale = 0.0f,
-                int32_t zeroPoint = 0)
-        : dimensions(d) {
-        operandType.type = static_cast<int32_t>(type);
-        operandType.scale = scale;
-        operandType.zeroPoint = zeroPoint;
-
-        operandType.dimensionCount = static_cast<uint32_t>(dimensions.size());
-        operandType.dimensions = dimensions.data();
+    OperandType(Type type, std::vector<uint32_t> d, float scale = 0.0f, int32_t zeroPoint = 0)
+            : dimensions(std::move(d)) {
+        operandType = {
+            .type = static_cast<int32_t>(type),
+            .dimensionCount = static_cast<uint32_t>(dimensions.size()),
+            .dimensions = dimensions.size() > 0 ? dimensions.data() : nullptr,
+            .scale = scale,
+            .zeroPoint = zeroPoint,
+        };
     }
 };
 
