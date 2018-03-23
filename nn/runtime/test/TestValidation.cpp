@@ -52,12 +52,16 @@ class ValidationTestIdentify : public ValidationTestModel {
         ANeuralNetworksOperandType tensorType{.type = ANEURALNETWORKS_TENSOR_FLOAT32,
                                               .dimensionCount = 1,
                                               .dimensions = dimensions};
+        ANeuralNetworksOperandType scalarType{.type = ANEURALNETWORKS_INT32,
+                                              .dimensionCount = 0,
+                                              .dimensions = nullptr};
         ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
         ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &scalarType), ANEURALNETWORKS_NO_ERROR);
         ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
-        uint32_t inList[2]{0, 1};
-        uint32_t outList[1]{2};
-        ASSERT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_ADD, 2, inList, 1,
+        uint32_t inList[3]{0, 1, 2};
+        uint32_t outList[1]{3};
+        ASSERT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_ADD, 3, inList, 1,
                                                     outList),
                   ANEURALNETWORKS_NO_ERROR);
     }
@@ -88,7 +92,7 @@ protected:
         ASSERT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_ADD, 3, inList, 1,
                                                     outList),
                   ANEURALNETWORKS_NO_ERROR);
-        ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 2, inList, 1, outList),
+        ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 3, inList, 1, outList),
                   ANEURALNETWORKS_NO_ERROR);
         ASSERT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
 
@@ -348,44 +352,44 @@ TEST_F(ValidationTestModel, CreateCompilation) {
 }
 
 TEST_F(ValidationTestIdentify, Ok) {
-    uint32_t inList[2]{0, 1};
-    uint32_t outList[1]{2};
+    uint32_t inList[3]{0, 1, 2};
+    uint32_t outList[1]{3};
 
-    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 2, inList, 1, outList),
+    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 3, inList, 1, outList),
               ANEURALNETWORKS_NO_ERROR);
 
     ASSERT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
 }
 
 TEST_F(ValidationTestIdentify, InputIsOutput) {
-    uint32_t inList[2]{0, 1};
-    uint32_t outList[2]{2, 0};
+    uint32_t inList[3]{0, 1, 2};
+    uint32_t outList[2]{3, 0};
 
-    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 2, inList, 2, outList),
+    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 3, inList, 2, outList),
               ANEURALNETWORKS_BAD_DATA);
 }
 
 TEST_F(ValidationTestIdentify, OutputIsInput) {
-    uint32_t inList[3]{0, 1, 2};
-    uint32_t outList[1]{2};
+    uint32_t inList[4]{0, 1, 2, 3};
+    uint32_t outList[1]{3};
 
-    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 3, inList, 1, outList),
+    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 4, inList, 1, outList),
               ANEURALNETWORKS_BAD_DATA);
 }
 
 TEST_F(ValidationTestIdentify, DuplicateInputs) {
-    uint32_t inList[3]{0, 1, 0};
-    uint32_t outList[1]{2};
+    uint32_t inList[4]{0, 1, 2, 0};
+    uint32_t outList[1]{3};
 
-    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 3, inList, 1, outList),
+    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 4, inList, 1, outList),
               ANEURALNETWORKS_BAD_DATA);
 }
 
 TEST_F(ValidationTestIdentify, DuplicateOutputs) {
-    uint32_t inList[2]{0, 1};
-    uint32_t outList[2]{2, 2};
+    uint32_t inList[3]{0, 1, 2};
+    uint32_t outList[2]{3, 3};
 
-    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 2, inList, 2, outList),
+    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 3, inList, 2, outList),
               ANEURALNETWORKS_BAD_DATA);
 }
 
