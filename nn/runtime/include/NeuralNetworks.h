@@ -1232,8 +1232,6 @@ typedef enum {
      * This operation reshapes the batch dimension (dimension 0) into M + 1 dimensions of shape
      * block_shape + [batch], interleaves these blocks back into the grid defined by the
      * spatial dimensions [1, ..., M], to obtain a result with the same rank as the input.
-     * The spatial dimensions of this intermediate result are then optionally cropped
-     * according to the amount to crop (input2) to produce the output.
      *
      * This is the reverse of SpaceToBatch.
      *
@@ -1247,8 +1245,6 @@ typedef enum {
      * 0: An n-D tensor, specifying the tensor to be reshaped
      * 1: A 1-D Tensor of type TENSOR_INT32, the block sizes for each spatial dimension of the
      *    input tensor. All values must be >= 1.
-     * 2: A 1-D Tensor of type TENSOR_INT32, the amount to crop for each spatial diemension of the
-     *    input tensor. All values must be >= 0.
      *
      * Outputs:
      * 0: A tensor of the same type as input0.

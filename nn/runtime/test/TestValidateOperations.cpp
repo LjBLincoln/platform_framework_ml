@@ -443,14 +443,23 @@ void spaceBatchOpTest(ANeuralNetworksOperationType operationCode, int32_t operan
                                              .scale = 0.0f,
                                              .zeroPoint = 0};
 
-    ANeuralNetworksOperandType cropOrPadding = blockShape;
+    ANeuralNetworksOperandType padding = blockShape;
     ANeuralNetworksOperandType output = input;
-    OperationTestBase spaceBatchTest(operationCode, {input, blockShape, cropOrPadding}, {output});
+    if (operationCode == ANEURALNETWORKS_SPACE_TO_BATCH_ND) {
+        OperationTestBase spaceBatchTest(operationCode, {input, blockShape, padding}, {output});
 
-    EXPECT_TRUE(spaceBatchTest.testMutatingInputOperandCode());
-    EXPECT_TRUE(spaceBatchTest.testMutatingInputOperandCounts());
-    EXPECT_TRUE(spaceBatchTest.testMutatingOutputOperandCode());
-    EXPECT_TRUE(spaceBatchTest.testMutatingOutputOperandCounts());
+        EXPECT_TRUE(spaceBatchTest.testMutatingInputOperandCode());
+        EXPECT_TRUE(spaceBatchTest.testMutatingInputOperandCounts());
+        EXPECT_TRUE(spaceBatchTest.testMutatingOutputOperandCode());
+        EXPECT_TRUE(spaceBatchTest.testMutatingOutputOperandCounts());
+    } else {
+        OperationTestBase spaceBatchTest(operationCode, {input, blockShape}, {output});
+
+        EXPECT_TRUE(spaceBatchTest.testMutatingInputOperandCode());
+        EXPECT_TRUE(spaceBatchTest.testMutatingInputOperandCounts());
+        EXPECT_TRUE(spaceBatchTest.testMutatingOutputOperandCode());
+        EXPECT_TRUE(spaceBatchTest.testMutatingOutputOperandCounts());
+    }
 }
 
 TEST(OperationValidationTest, SPACE_TO_BATCH_ND_float32) {

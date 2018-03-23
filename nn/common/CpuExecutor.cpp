@@ -1298,12 +1298,11 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                 svdf.Eval();
         } break;
         case OperationType::BATCH_TO_SPACE_ND: {
-            if (!allParametersPresent(3, 1)) {
+            if (!allParametersPresent(2, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
             const RunTimeOperandInfo& blockSize = mOperands[ins[1]];
-            const RunTimeOperandInfo& crops = mOperands[ins[2]];
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
