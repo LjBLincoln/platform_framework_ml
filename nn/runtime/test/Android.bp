@@ -21,6 +21,7 @@ cc_defaults {
     openmp: true,
     srcs: [
         "Bridge.cpp",
+        "TestExecution.cpp",
         "TestGenerated.cpp",
         "TestMain.cpp",
         "TestMemory.cpp",
