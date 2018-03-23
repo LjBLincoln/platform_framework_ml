@@ -234,11 +234,20 @@ bool subFloat32(const float* in1, const Shape& shape1,
     CalculateActivationRangeFloat(activation, &output_activation_min,
                                   &output_activation_max);
 
-    tflite::optimized_ops::Sub(
-            in1, convertShapeToDims(shape1),
-            in2, convertShapeToDims(shape2),
-            output_activation_min, output_activation_max,
-            out, convertShapeToDims(shapeOut));
+    bool needBroadcast = !SameShape(shape1, shape2);
+    if (needBroadcast) {
+        tflite::optimized_ops::BroadcastSub(
+                in1, convertShapeToDims(shape1),
+                in2, convertShapeToDims(shape2),
+                output_activation_min, output_activation_max,
+                out, convertShapeToDims(shapeOut));
+    } else {
+        tflite::optimized_ops::Sub(
+                in1, convertShapeToDims(shape1),
+                in2, convertShapeToDims(shape2),
+                output_activation_min, output_activation_max,
+                out, convertShapeToDims(shapeOut));
+    }
     return true;
 }
 
@@ -250,12 +259,20 @@ bool divFloat32(const float* in1, const Shape& shape1,
     CalculateActivationRangeFloat(activation, &output_activation_min,
                                   &output_activation_max);
 
-    tflite::optimized_ops::Div(
-            in1, convertShapeToDims(shape1),
-            in2, convertShapeToDims(shape2),
-            output_activation_min, output_activation_max,
-            out, convertShapeToDims(shapeOut));
-
+    bool needBroadcast = !SameShape(shape1, shape2);
+    if (needBroadcast) {
+        tflite::optimized_ops::BroadcastDiv(
+                in1, convertShapeToDims(shape1),
+                in2, convertShapeToDims(shape2),
+                output_activation_min, output_activation_max,
+                out, convertShapeToDims(shapeOut));
+    } else {
+        tflite::optimized_ops::Div(
+                in1, convertShapeToDims(shape1),
+                in2, convertShapeToDims(shape2),
+                output_activation_min, output_activation_max,
+                out, convertShapeToDims(shapeOut));
+    }
     return true;
 }
 
