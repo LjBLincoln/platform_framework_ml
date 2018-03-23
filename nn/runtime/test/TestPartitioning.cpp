@@ -443,7 +443,10 @@ protected:
                                        specification.mCapabilities,
                                        specification.mOperationMask,
                                        specification.mOEM)));
-            devices.back()->initialize();
+            if (!devices.back()->initialize()) {
+                EXPECT_NE("failed to initialize device", nullptr);
+                return {};
+            }
         }
         return devices;
     }

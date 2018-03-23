@@ -158,7 +158,7 @@ public:
     Result finish(const std::string& deviceName, ErrorStatus errorStatus) {
         std::vector<std::shared_ptr<Device>> devices;
         auto device = std::make_shared<Device>(deviceName, new TestDriver(deviceName, errorStatus));
-        device->initialize();
+        assert(device->initialize());
         devices.push_back(device);
         return static_cast<Result>(builder()->finish(devices));
     }

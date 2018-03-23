@@ -917,6 +917,7 @@ TEST_P(RandomPartitioningTest, Test) {
         const std::string name = "TestDriver(" + std::to_string(i) + ")";
         devices.push_back(std::make_shared<Device>(
             name, new TestDriver(name.c_str(), signaturesForDriver[i])));
+        ASSERT_TRUE(devices.back()->initialize());
     }
 
     // Partitioned compilation.
