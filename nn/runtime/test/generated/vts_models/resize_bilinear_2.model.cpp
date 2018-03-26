@@ -43,7 +43,7 @@ Model createTestModel() {
     const std::vector<Operation> operations = {
         {
             .type = OperationType::RESIZE_BILINEAR,
-            .inputs = {0, 3, 2},
+            .inputs = {0, 2, 3},
             .outputs = {1},
         }
     };
