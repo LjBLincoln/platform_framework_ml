@@ -1069,24 +1069,131 @@ int validateOperation(ANeuralNetworksOperationType opType,
                                                  outputCount, outputIndexes,
                                                  outExpectedTypes);
         }
-        // TODO: add validations for the following ops.
         case ANEURALNETWORKS_EMBEDDING_LOOKUP: {
-            return ANEURALNETWORKS_NO_ERROR;
+            if (inputCount != 2 || outputCount != 1) {
+                logInvalidInOutNumber(2, 1);
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            auto inputType = operands[inputIndexes[1]].type;
+            std::vector<OperandType> inExpectedTypes = {OperandType::TENSOR_INT32,
+                                                        inputType};
+            std::vector<OperandType> outExpectedTypes = {inputType};
+            return validateOperationOperandTypes(operands,
+                                                 inputCount, inputIndexes,
+                                                 inExpectedTypes,
+                                                 outputCount, outputIndexes,
+                                                 outExpectedTypes);
         }
         case ANEURALNETWORKS_HASHTABLE_LOOKUP: {
-            return ANEURALNETWORKS_NO_ERROR;
+            if (inputCount != 3 || outputCount != 2) {
+                logInvalidInOutNumber(3, 2);
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            auto inputType = operands[inputIndexes[2]].type;
+            std::vector<OperandType> inExpectedTypes = {OperandType::TENSOR_INT32,
+                                                        OperandType::TENSOR_INT32,
+                                                        inputType};
+            std::vector<OperandType> outExpectedTypes = {inputType,
+                                                         OperandType::TENSOR_QUANT8_ASYMM};
+            return validateOperationOperandTypes(operands,
+                                                 inputCount, inputIndexes,
+                                                 inExpectedTypes,
+                                                 outputCount, outputIndexes,
+                                                 outExpectedTypes);
         }
         case ANEURALNETWORKS_LSH_PROJECTION: {
-            return ANEURALNETWORKS_NO_ERROR;
+            if (inputCount != 4 || outputCount != 1) {
+                logInvalidInOutNumber(4, 1);
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            auto inputType = operands[inputIndexes[1]].type;
+            std::vector<OperandType> inExpectedTypes = {OperandType::TENSOR_FLOAT32,
+                                                        inputType,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::INT32};
+            std::vector<OperandType> outExpectedTypes = {OperandType::TENSOR_INT32};
+            return validateOperationOperandTypes(operands,
+                                                 inputCount, inputIndexes,
+                                                 inExpectedTypes,
+                                                 outputCount, outputIndexes,
+                                                 outExpectedTypes);
         }
         case ANEURALNETWORKS_LSTM: {
-            return ANEURALNETWORKS_NO_ERROR;
+            if (inputCount != 23 || outputCount != 4) {
+                logInvalidInOutNumber(23, 4);
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            std::vector<OperandType> inExpectedTypes = {OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::INT32,
+                                                        OperandType::FLOAT32,
+                                                        OperandType::FLOAT32};
+            std::vector<OperandType> outExpectedTypes = {OperandType::TENSOR_FLOAT32,
+                                                         OperandType::TENSOR_FLOAT32,
+                                                         OperandType::TENSOR_FLOAT32,
+                                                         OperandType::TENSOR_FLOAT32};
+            return validateOperationOperandTypes(operands,
+                                                 inputCount, inputIndexes,
+                                                 inExpectedTypes,
+                                                 outputCount, outputIndexes,
+                                                 outExpectedTypes);
         }
         case ANEURALNETWORKS_RNN: {
-            return ANEURALNETWORKS_NO_ERROR;
+            if (inputCount != 6 || outputCount != 2) {
+                logInvalidInOutNumber(6, 2);
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            std::vector<OperandType> inExpectedTypes = {OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::INT32};
+            std::vector<OperandType> outExpectedTypes = {OperandType::TENSOR_FLOAT32,
+                                                         OperandType::TENSOR_FLOAT32};
+            return validateOperationOperandTypes(operands,
+                                                 inputCount, inputIndexes,
+                                                 inExpectedTypes,
+                                                 outputCount, outputIndexes,
+                                                 outExpectedTypes);
         }
         case ANEURALNETWORKS_SVDF: {
-            return ANEURALNETWORKS_NO_ERROR;
+            if (inputCount != 7 || outputCount != 2) {
+                logInvalidInOutNumber(7, 2);
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+            std::vector<OperandType> inExpectedTypes = {OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::TENSOR_FLOAT32,
+                                                        OperandType::INT32,
+                                                        OperandType::INT32};
+            std::vector<OperandType> outExpectedTypes = {OperandType::TENSOR_FLOAT32,
+                                                         OperandType::TENSOR_FLOAT32};
+            return validateOperationOperandTypes(operands,
+                                                 inputCount, inputIndexes,
+                                                 inExpectedTypes,
+                                                 outputCount, outputIndexes,
+                                                 outExpectedTypes);
         }
         case ANEURALNETWORKS_BATCH_TO_SPACE_ND: {
             if (inputCount != 3 || outputCount != 1) {
