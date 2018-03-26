@@ -742,9 +742,11 @@ typedef enum {
      *   \f{eqnarray*}{
      *   i_t = 1 - f_t
      *   \f}
-     * * The cell-to-input weights (\f$W_{ci}\f$), cell-to-forget weights (\f$W_{cf}\f$), and cell-to-output
-     *   weights (\f$W_{co}\f$) either all have values or none of them have values.
-     *   If they have values, the peephole optimization is used.
+     * * The cell-to-forget weights (\f$W_{cf}\f$) and cell-to-output
+     *   weights (\f$W_{co}\f$) either both have values or neither of them have values.
+     *   If they have values, the peephole optimization is used. Additionally,
+     *   if CIFG is not used, cell-to-input weights (\f$W_{ci}\f$) is also
+     *   required to have values for peephole optimization.
      * * The projection weights (\f$W_{proj}\f$) is required only for the recurrent projection
      *   layer, and should otherwise have no value.
      * * The projection bias (\f$b_{proj}\f$) may (but not required to) have a value if the
