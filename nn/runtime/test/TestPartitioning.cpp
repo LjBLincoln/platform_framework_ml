@@ -224,6 +224,15 @@ void graphDump([[maybe_unused]] const char* name, [[maybe_unused]] const Wrapper
 // operation.  The subset is represented with a bitmask, in which
 // operation kind K corresponds to the bit (1 << K).
 class PartitioningDriver : public SampleDriver {
+private:
+    // Dummy class -- a prepared model must not be nullptr.
+    class PartitioningPreparedModel : public IPreparedModel {
+    public:
+        Return<ErrorStatus> execute(const Request&,
+                                    const sp<IExecutionCallback>&) override {
+            return ErrorStatus::DEVICE_UNAVAILABLE;
+        }
+    };
 public:
     enum OEM { OEMNo, OEMYes };
 
@@ -235,7 +244,7 @@ public:
 
     Return<ErrorStatus> prepareModel_1_1(const Model&,
                                          const sp<IPreparedModelCallback>& cb) override {
-        cb->notify(ErrorStatus::NONE, nullptr);
+        cb->notify(ErrorStatus::NONE, new PartitioningPreparedModel);
         return ErrorStatus::NONE;
     }
     Return<DeviceStatus> getStatus() override {

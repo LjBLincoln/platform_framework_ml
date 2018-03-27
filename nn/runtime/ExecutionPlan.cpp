@@ -63,7 +63,7 @@ static int compile(std::shared_ptr<Device> device,
     preparedModelCallback->wait();
     ErrorStatus prepareReturnStatus = preparedModelCallback->getStatus();
     *preparedModel = preparedModelCallback->getPreparedModel();
-    if (prepareReturnStatus != ErrorStatus::NONE || preparedModel == nullptr) {
+    if (prepareReturnStatus != ErrorStatus::NONE || *preparedModel == nullptr) {
         LOG(ERROR) << "ExecutionPlan compilation on " << device->getName() << " failed:"
                    << " prepareReturnStatus=" << toString(prepareReturnStatus)
                    << ", preparedModel=" << preparedModel->get();
