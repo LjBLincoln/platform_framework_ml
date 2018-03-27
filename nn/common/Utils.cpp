@@ -60,7 +60,7 @@ void initVLogMask() {
         {"manager", MANAGER},
         {"driver", DRIVER}};
 
-    std::vector<std::string> elements = android::base::Split(vLogSetting, " ");
+    std::vector<std::string> elements = android::base::Split(vLogSetting, " ,:");
     for (const auto& elem : elements) {
         const auto& flag = vLogFlags.find(elem);
         if (flag == vLogFlags.end()) {
