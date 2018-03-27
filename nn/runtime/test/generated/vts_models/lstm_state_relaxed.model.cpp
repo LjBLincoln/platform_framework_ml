@@ -183,31 +183,31 @@ Model createTestModel() {
             .location = {.poolIndex = 0, .offset = 0, .length = 0},
         },
         {
-            .type = OperandType::TENSOR_INT32,
-            .dimensions = {1},
+            .type = OperandType::INT32,
+            .dimensions = {},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+            .lifetime = OperandLifeTime::CONSTANT_COPY,
+            .location = {.poolIndex = 0, .offset = 0, .length = 4},
         },
         {
-            .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {1},
+            .type = OperandType::FLOAT32,
+            .dimensions = {},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+            .lifetime = OperandLifeTime::CONSTANT_COPY,
+            .location = {.poolIndex = 0, .offset = 4, .length = 4},
         },
         {
-            .type = OperandType::TENSOR_FLOAT32,
-            .dimensions = {1},
+            .type = OperandType::FLOAT32,
+            .dimensions = {},
             .numberOfConsumers = 1,
             .scale = 0.0f,
             .zeroPoint = 0,
-            .lifetime = OperandLifeTime::MODEL_INPUT,
-            .location = {.poolIndex = 0, .offset = 0, .length = 0},
+            .lifetime = OperandLifeTime::CONSTANT_COPY,
+            .location = {.poolIndex = 0, .offset = 8, .length = 4},
         },
         {
             .type = OperandType::TENSOR_FLOAT32,
@@ -255,9 +255,11 @@ Model createTestModel() {
         }
     };
 
-    const std::vector<uint32_t> inputIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22};
+    const std::vector<uint32_t> inputIndexes = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
     const std::vector<uint32_t> outputIndexes = {23, 24, 25, 26};
-    std::vector<uint8_t> operandValues = {};
+    std::vector<uint8_t> operandValues = {
+      4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
     const std::vector<hidl_memory> pools = {};
 
     return {
