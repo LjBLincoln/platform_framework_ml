@@ -197,8 +197,8 @@ protected:
     TestCompilation mCompilation;
 
     void setInputOutput(WrapperExecution* execution) {
-        assert(execution->setInput(0, &mInputBuffer, sizeof(&mInputBuffer)) == Result::NO_ERROR);
-        assert(execution->setOutput(0, &mOutputBuffer, sizeof(&mOutputBuffer)) == Result::NO_ERROR);
+        ASSERT_EQ(execution->setInput(0, &mInputBuffer, sizeof(mInputBuffer)), Result::NO_ERROR);
+        ASSERT_EQ(execution->setOutput(0, &mOutputBuffer, sizeof(mOutputBuffer)), Result::NO_ERROR);
     }
 
     float mInputBuffer  = 3.14;
@@ -224,7 +224,7 @@ TEST_P(ExecutionTest, Wait) {
     SCOPED_TRACE(kName);
     ASSERT_EQ(mCompilation.finish(kName, kForceErrorStatus), Result::NO_ERROR);
     WrapperExecution execution(&mCompilation);
-    setInputOutput(&execution);
+    ASSERT_NO_FATAL_FAILURE(setInputOutput(&execution));
     WrapperEvent event;
     ASSERT_EQ(execution.startCompute(&event), Result::NO_ERROR);
     Result waitResult = event.wait();
