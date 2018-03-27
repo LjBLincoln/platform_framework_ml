@@ -29,8 +29,12 @@ int main(int argc, char** argv) {
     // Test with the installed drivers.
     int n1 = RUN_ALL_TESTS();
 
+#ifdef TESTMAINPARTIAL
+    return n1;
+#else
     // Test with the CPU driver only.
     android::nn::DeviceManager::get()->setUseCpuOnly(true);
     int n2 = RUN_ALL_TESTS();
     return n1 | n2;
+#endif
 }
