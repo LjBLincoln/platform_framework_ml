@@ -51,6 +51,7 @@ static char static_scratch_buffer[kStaticBufferSize];
                                                                                 \
     Type* im2colData = nullptr;                                                 \
     int im2colByteSize = sizeof(Type);                                          \
+    std::unique_ptr<Type> im2colGuard;                                          \
     for (int i=0; i<4; i++) {                                                   \
         im2colByteSize *= im2colDim.sizes[i];                                   \
     }                                                                           \
@@ -58,6 +59,7 @@ static char static_scratch_buffer[kStaticBufferSize];
         im2colData = reinterpret_cast<Type *>(static_scratch_buffer);           \
     } else {                                                                    \
         im2colData = new (std::nothrow) Type[im2colByteSize / sizeof(Type)];    \
+        im2colGuard.reset(im2colData);                                          \
     }
 
 bool convFloat32(const float* inputData, const Shape& inputShape,
@@ -83,10 +85,6 @@ bool convFloat32(const float* inputData, const Shape& inputShape,
             output_activation_min, output_activation_max,
             outputData, convertShapeToDims(outputShape),
             im2colData, im2colDim);
-
-    if (im2colByteSize > kStaticBufferSize) {
-        delete[] im2colData;
-    }
     return true;
 }
 
@@ -134,10 +132,6 @@ bool convQuant8(const uint8_t* inputData, const Shape& inputShape,
             output_activation_min, output_activation_max,
             outputData, convertShapeToDims(outputShape),
             im2colData, im2colDim, &gemm_context);
-
-    if (im2colByteSize > kStaticBufferSize) {
-        delete[] im2colData;
-    }
     return true;
 }
 
