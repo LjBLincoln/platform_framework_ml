@@ -820,9 +820,10 @@ bool meanPrepare(const Shape& input,
 }
 
 bool stridedSlicePrepare(const Shape& input,
-                         const int32_t* beginData, const Shape& beginShape, int32_t beginMask,
-                         const int32_t* endData, const Shape& endShape, int32_t endMask,
+                         const int32_t* beginData, const Shape& beginShape,
+                         const int32_t* endData, const Shape& endShape,
                          const int32_t* stridesData, const Shape& stridesShape,
+                         int32_t beginMask, int32_t endMask, int32_t shrinkAxisMask,
                          Shape* output) {
     uint32_t numInputDims = getNumberOfDimensions(input);
     // StridedSlice op only supports 1D-4D input arrays.
@@ -841,8 +842,8 @@ bool stridedSlicePrepare(const Shape& input,
     NN_OPS_CHECK(stridesShape.type == OperandType::TENSOR_INT32);
 
     // Determine size of output tensor and map indices
-    std::vector<uint32_t> outDims(numInputDims);
-    for (int32_t idx = static_cast<int32_t>(numInputDims) - 1; idx >= 0; --idx) {
+    std::vector<uint32_t> outDims;
+    for (int32_t idx = 0; idx < static_cast<int32_t>(numInputDims); idx++) {
       int32_t dim = static_cast<int32_t>(getSizeOfDimension(input, idx));
       int32_t stride = stridesData[idx];
       // stride value has to be non-zero
@@ -858,7 +859,10 @@ bool stridedSlicePrepare(const Shape& input,
 
       // This is valid for both positive and negative strides
       int32_t outDim = ceil((end - begin) / static_cast<float>(stride));
-      outDims[idx] = outDim < 0 ? 0 : static_cast<uint32_t>(outDim);
+      outDim = outDim < 0 ? 0 : static_cast<uint32_t>(outDim);
+      if (!(shrinkAxisMask & (1 << idx))) {
+          outDims.push_back(outDim);
+      }
     }
 
     output->type = input.type;

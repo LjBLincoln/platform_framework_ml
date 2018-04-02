@@ -274,9 +274,10 @@ bool meanPrepare(const Shape& input,
                  Shape* output);
 
 bool stridedSlicePrepare(const Shape& input,
-                         const int32_t* beginData, const Shape& beginShape, int32_t beginMask,
-                         const int32_t* endData, const Shape& endShape, int32_t endMask,
+                         const int32_t* beginData, const Shape& beginShape,
+                         const int32_t* endData, const Shape& endShape,
                          const int32_t* stridesData, const Shape& stridesShape,
+                         int32_t beginMask, int32_t endMask, int32_t shrinkAxisMask,
                          Shape* output);
 } // namespace nn
 } // namespace android

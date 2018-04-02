@@ -5,10 +5,11 @@ ends = Parameter("ends", "TENSOR_INT32", "{1}", [3])
 strides = Parameter("strides", "TENSOR_INT32", "{1}", [1])
 beginMask = Int32Scalar("beginMask", 1)
 endMask = Int32Scalar("endMask", 0)
+shrinkAxisMask = Int32Scalar("shrinkAxisMask", 0)
 
 output = Output("output", "TENSOR_QUANT8_ASYMM", "{3}, 1.0, 0")
 
-model = model.Operation("STRIDED_SLICE", i1, begins, ends, strides, beginMask, endMask).To(output)
+model = model.Operation("STRIDED_SLICE", i1, begins, ends, strides, beginMask, endMask, shrinkAxisMask).To(output)
 
 # Example 1. Input in operand 0,
 input0 = {i1: # input 0

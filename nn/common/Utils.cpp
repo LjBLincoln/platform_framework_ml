@@ -1333,8 +1333,8 @@ int validateOperation(ANeuralNetworksOperationType opType,
                                                  outExpectedTypes);
         }
         case ANEURALNETWORKS_STRIDED_SLICE: {
-            if (inputCount != 6 || outputCount != 1) {
-                logInvalidInOutNumber(6, 1);
+            if (inputCount != 7 || outputCount != 1) {
+                logInvalidInOutNumber(7, 1);
                 return ANEURALNETWORKS_BAD_DATA;
             }
             auto inputType = operands[inputIndexes[0]].type;
@@ -1346,6 +1346,7 @@ int validateOperation(ANeuralNetworksOperationType opType,
                                    OperandType::TENSOR_INT32,
                                    OperandType::TENSOR_INT32,
                                    OperandType::INT32,
+                                   OperandType::INT32,
                                    OperandType::INT32};
                 outExpectedTypes = {OperandType::TENSOR_FLOAT32};
             } else if (inputType == OperandType::TENSOR_QUANT8_ASYMM) {
@@ -1353,6 +1354,7 @@ int validateOperation(ANeuralNetworksOperationType opType,
                                    OperandType::TENSOR_INT32,
                                    OperandType::TENSOR_INT32,
                                    OperandType::TENSOR_INT32,
+                                   OperandType::INT32,
                                    OperandType::INT32,
                                    OperandType::INT32};
                 outExpectedTypes = {OperandType::TENSOR_QUANT8_ASYMM};

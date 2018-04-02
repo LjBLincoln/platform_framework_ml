@@ -1426,6 +1426,21 @@ TEST_F(NeuralnetworksHidlTest, strided_slice_float_10) {
                              strided_slice_float_10::examples);
 }
 
+namespace strided_slice_float_11 {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_11 test
+#include "examples/strided_slice_float_11.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/strided_slice_float_11.model.cpp"
+} // namespace strided_slice_float_11
+TEST_F(NeuralnetworksHidlTest, strided_slice_float_11) {
+    generated_tests::Execute(device,
+                             strided_slice_float_11::createTestModel,
+                             strided_slice_float_11::is_ignored,
+                             strided_slice_float_11::examples);
+}
+
 namespace strided_slice_float_1 {
 std::vector<MixedTypedExample> examples = {
 // Generated strided_slice_float_1 test
@@ -1589,6 +1604,21 @@ TEST_F(NeuralnetworksHidlTest, strided_slice_qaunt8_10) {
                              strided_slice_qaunt8_10::createTestModel,
                              strided_slice_qaunt8_10::is_ignored,
                              strided_slice_qaunt8_10::examples);
+}
+
+namespace strided_slice_qaunt8_11 {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_qaunt8_11 test
+#include "examples/strided_slice_qaunt8_11.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/strided_slice_qaunt8_11.model.cpp"
+} // namespace strided_slice_qaunt8_11
+TEST_F(NeuralnetworksHidlTest, strided_slice_qaunt8_11) {
+    generated_tests::Execute(device,
+                             strided_slice_qaunt8_11::createTestModel,
+                             strided_slice_qaunt8_11::is_ignored,
+                             strided_slice_qaunt8_11::examples);
 }
 
 namespace strided_slice_quant8_1 {

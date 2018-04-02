@@ -27,9 +27,9 @@ namespace android {
 namespace nn {
 
 bool stridedSliceGeneric(const uint8_t* inputData, const Shape& inputShape,
-                         const int32_t* beginData, int32_t beginMask,
-                         const int32_t* endData, int32_t endMask,
+                         const int32_t* beginData, const int32_t* endData,
                          const int32_t* stridesData,
+                         int32_t beginMask, int32_t endMask, int32_t shrinkAxisMask,
                          uint8_t* outputData, const Shape& outputShape) {
     // This Op only supports 1-4D cases and since we use the reference 4D
     // implementation, the 1-3D tensors are mapped to 4D.
@@ -67,19 +67,22 @@ bool stridedSliceGeneric(const uint8_t* inputData, const Shape& inputShape,
 
     beginMask = ReverseMaskBits(beginMask, numInputDims);
     endMask = ReverseMaskBits(endMask, numInputDims);
+    shrinkAxisMask = ReverseMaskBits(shrinkAxisMask, numInputDims);
 
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
         tflite::reference_ops::StridedSlice(
                 reinterpret_cast<const float*>(inputData),
                 convertShapeToDims(inputShape),
-                beginMask, endMask, starts, stops, strides,
+                beginMask, endMask, shrinkAxisMask,
+                starts, stops, strides,
                 reinterpret_cast<float*>(outputData),
                 convertShapeToDims(outputShape));
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
         tflite::reference_ops::StridedSlice(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),
-                beginMask, endMask, starts, stops, strides,
+                beginMask, endMask, shrinkAxisMask,
+                starts, stops, strides,
                 reinterpret_cast<uint8_t*>(outputData),
                 convertShapeToDims(outputShape));
     } else {

@@ -1065,4 +1065,53 @@ TEST(OperationValidationTest, SVDF_float32) {
     EXPECT_TRUE(svdfTest.testMutatingOutputOperandCounts());
 }
 
+void stridedSliceOpTest(int32_t operandCode) {
+    uint32_t inputDimensions[2] = {5, 5};
+    ANeuralNetworksOperandType input = {.type = operandCode,
+                                        .dimensionCount = 2,
+                                        .dimensions = inputDimensions,
+                                        .scale = 0.0f,
+                                        .zeroPoint = 0};
+    if (operandCode == ANEURALNETWORKS_TENSOR_QUANT8_ASYMM) {
+        input.scale = 0.5f;
+    }
+    ANeuralNetworksOperandType output = input;
+
+    uint32_t beginsDimensions[1] = {2};
+    ANeuralNetworksOperandType begins = {.type = ANEURALNETWORKS_TENSOR_INT32,
+                                         .dimensionCount = 1,
+                                         .dimensions = beginsDimensions,
+                                         .scale = 0.0f,
+                                         .zeroPoint = 0};
+
+    ANeuralNetworksOperandType ends = begins;
+    ANeuralNetworksOperandType strides = begins;
+
+    ANeuralNetworksOperandType beginMask = {.type = ANEURALNETWORKS_INT32,
+                                            .dimensionCount = 0,
+                                            .dimensions = nullptr,
+                                            .scale = 0.0f,
+                                            .zeroPoint = 0};
+    ANeuralNetworksOperandType endMask = beginMask;
+    ANeuralNetworksOperandType shrinkAxisMask = beginMask;
+
+    OperationTestBase stridedSliceTest(ANEURALNETWORKS_STRIDED_SLICE,
+                                       {input, begins, ends, strides,
+                                        beginMask, endMask, shrinkAxisMask},
+                                       {output});
+
+    EXPECT_TRUE(stridedSliceTest.testMutatingInputOperandCode());
+    EXPECT_TRUE(stridedSliceTest.testMutatingInputOperandCounts());
+    EXPECT_TRUE(stridedSliceTest.testMutatingOutputOperandCode());
+    EXPECT_TRUE(stridedSliceTest.testMutatingOutputOperandCounts());
+}
+
+TEST(OperationValidationTest, STRIDED_SLICE_float32) {
+    stridedSliceOpTest(ANEURALNETWORKS_TENSOR_FLOAT32);
+}
+
+TEST(OperationValidationTest, STRIDED_SLICE_quant8) {
+    stridedSliceOpTest(ANEURALNETWORKS_TENSOR_QUANT8_ASYMM);
+}
+
 }  // end namespace

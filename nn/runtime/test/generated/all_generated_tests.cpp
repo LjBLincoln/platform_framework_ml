@@ -3375,6 +3375,20 @@ TEST_F(GeneratedTests, strided_slice_float_10) {
             strided_slice_float_10::examples);
 }
 
+namespace strided_slice_float_11 {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_11 test
+#include "generated/examples/strided_slice_float_11.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_11.model.cpp"
+} // namespace strided_slice_float_11
+TEST_F(GeneratedTests, strided_slice_float_11) {
+    execute(strided_slice_float_11::CreateModel,
+            strided_slice_float_11::is_ignored,
+            strided_slice_float_11::examples);
+}
+
 namespace strided_slice_float_1 {
 std::vector<MixedTypedExample> examples = {
 // Generated strided_slice_float_1 test
@@ -3527,6 +3541,20 @@ TEST_F(GeneratedTests, strided_slice_qaunt8_10) {
     execute(strided_slice_qaunt8_10::CreateModel,
             strided_slice_qaunt8_10::is_ignored,
             strided_slice_qaunt8_10::examples);
+}
+
+namespace strided_slice_qaunt8_11 {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_qaunt8_11 test
+#include "generated/examples/strided_slice_qaunt8_11.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_qaunt8_11.model.cpp"
+} // namespace strided_slice_qaunt8_11
+TEST_F(GeneratedTests, strided_slice_qaunt8_11) {
+    execute(strided_slice_qaunt8_11::CreateModel,
+            strided_slice_qaunt8_11::is_ignored,
+            strided_slice_qaunt8_11::examples);
 }
 
 namespace strided_slice_quant8_1 {

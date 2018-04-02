@@ -10,6 +10,7 @@ void CreateModel(Model *model) {
   auto strides = model->addOperand(&type1);
   auto beginMask = model->addOperand(&type2);
   auto endMask = model->addOperand(&type2);
+  auto shrinkAxisMask = model->addOperand(&type2);
   auto output = model->addOperand(&type0);
   // Phase 2, operations
   static int32_t begins_init[] = {-1};
@@ -22,7 +23,9 @@ void CreateModel(Model *model) {
   model->setOperandValue(beginMask, beginMask_init, sizeof(int32_t) * 1);
   static int32_t endMask_init[] = {0};
   model->setOperandValue(endMask, endMask_init, sizeof(int32_t) * 1);
-  model->addOperation(ANEURALNETWORKS_STRIDED_SLICE, {input, begins, ends, strides, beginMask, endMask}, {output});
+  static int32_t shrinkAxisMask_init[] = {0};
+  model->setOperandValue(shrinkAxisMask, shrinkAxisMask_init, sizeof(int32_t) * 1);
+  model->addOperation(ANEURALNETWORKS_STRIDED_SLICE, {input, begins, ends, strides, beginMask, endMask, shrinkAxisMask}, {output});
   // Phase 3, inputs and outputs
   model->identifyInputsAndOutputs(
     {input},
