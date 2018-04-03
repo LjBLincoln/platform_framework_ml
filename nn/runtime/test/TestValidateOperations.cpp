@@ -72,6 +72,14 @@ public:
 
     bool testMutatingInputOperandCode() {
         for (uint32_t i = 0; i < mValidInputs.size(); i++) {
+            // LSH_PROJECTION's second argument is allowed to have any type.
+            // This is the only operation that currently has a type that can be
+            // anything independent from any other type. Changing the operand
+            // type to any other type will result in a valid model for
+            // LSH_PROJECTION. If this is the case, skip the test.
+            if (mOpCode == ANEURALNETWORKS_LSH_PROJECTION && i == 1) {
+                continue;
+            }
             ANeuralNetworksOperandType newType = mValidInputs[i];
             int32_t originalOperandCode = mValidInputs[i].type;
             for (int32_t newOperandCode : kAvailableOperandCodes) {
@@ -92,6 +100,14 @@ public:
 
     bool testMutatingOutputOperandCode() {
         for (uint32_t i = 0; i < mValidOutputs.size(); i++) {
+            // LSH_PROJECTION's second argument is allowed to have any type.
+            // This is the only operation that currently has a type that can be
+            // anything independent from any other type. Changing the operand
+            // type to any other type will result in a valid model for
+            // LSH_PROJECTION. If this is the case, skip the test.
+            if (mOpCode == ANEURALNETWORKS_LSH_PROJECTION && i == 1) {
+                continue;
+            }
             ANeuralNetworksOperandType newType = mValidOutputs[i];
             int32_t originalOperandCode = mValidOutputs[i].type;
             for (int32_t newOperandCode : kAvailableOperandCodes) {
@@ -778,6 +794,275 @@ TEST(OperationValidationTest, RESIZE_BILINEAR_float32) {
     EXPECT_TRUE(resizeTest.testMutatingInputOperandCounts());
     EXPECT_TRUE(resizeTest.testMutatingOutputOperandCode());
     EXPECT_TRUE(resizeTest.testMutatingOutputOperandCounts());
+}
+
+void embeddingLookupTest(int32_t operandCode) {
+    uint32_t lookupDimensions[1] = {5};
+    ANeuralNetworksOperandType lookup = {.type = ANEURALNETWORKS_TENSOR_INT32,
+                                         .dimensionCount = 1,
+                                         .dimensions = lookupDimensions,
+                                         .scale = 0.0f,
+                                         .zeroPoint = 0};
+
+    uint32_t inputDimensions[2] = {5, 5};
+    ANeuralNetworksOperandType input = {.type = operandCode,
+                                        .dimensionCount = 2,
+                                        .dimensions = inputDimensions,
+                                        .scale = 0.0f,
+                                        .zeroPoint = 0};
+    if (operandCode == ANEURALNETWORKS_TENSOR_QUANT8_ASYMM) {
+        input.scale = 0.5f;
+    }
+    ANeuralNetworksOperandType output = input;
+
+    OperationTestBase embedLookupTest(ANEURALNETWORKS_EMBEDDING_LOOKUP,
+                                      {lookup, input}, {output});
+
+    EXPECT_TRUE(embedLookupTest.testMutatingInputOperandCode());
+    EXPECT_TRUE(embedLookupTest.testMutatingInputOperandCounts());
+    EXPECT_TRUE(embedLookupTest.testMutatingOutputOperandCode());
+    EXPECT_TRUE(embedLookupTest.testMutatingOutputOperandCounts());
+}
+
+TEST(OperationValidationTest, EMBEDDING_LOOKUP_float32) {
+    embeddingLookupTest(ANEURALNETWORKS_TENSOR_FLOAT32);
+}
+
+TEST(OperationValidationTest, EMBEDDING_LOOKUP_quant8) {
+    embeddingLookupTest(ANEURALNETWORKS_TENSOR_QUANT8_ASYMM);
+}
+
+void hashtableLookupTest(int32_t operandCode) {
+    uint32_t lookupDimensions[1] = {5};
+    ANeuralNetworksOperandType lookup = {.type = ANEURALNETWORKS_TENSOR_INT32,
+                                         .dimensionCount = 1,
+                                         .dimensions = lookupDimensions,
+                                         .scale = 0.0f,
+                                         .zeroPoint = 0};
+    ANeuralNetworksOperandType keys = lookup;
+
+    uint32_t valuesDimensions[2] = {5, 5};
+    ANeuralNetworksOperandType values = {.type = operandCode,
+                                         .dimensionCount = 2,
+                                         .dimensions = valuesDimensions,
+                                         .scale = 0.0f,
+                                         .zeroPoint = 0};
+    if (operandCode == ANEURALNETWORKS_TENSOR_QUANT8_ASYMM) {
+        values.scale = 0.5f;
+    }
+    ANeuralNetworksOperandType output = values;
+
+    ANeuralNetworksOperandType hits = lookup;
+    hits.type = ANEURALNETWORKS_TENSOR_QUANT8_ASYMM;
+    hits.scale = 1.0f;
+
+    OperationTestBase hashLookupTest(ANEURALNETWORKS_HASHTABLE_LOOKUP,
+                                      {lookup, keys, values}, {output, hits});
+
+    EXPECT_TRUE(hashLookupTest.testMutatingInputOperandCode());
+    EXPECT_TRUE(hashLookupTest.testMutatingInputOperandCounts());
+    EXPECT_TRUE(hashLookupTest.testMutatingOutputOperandCode());
+    EXPECT_TRUE(hashLookupTest.testMutatingOutputOperandCounts());
+}
+
+TEST(OperationValidationTest, HASHTABLE_LOOKUP_float32) {
+    hashtableLookupTest(ANEURALNETWORKS_TENSOR_FLOAT32);
+}
+
+TEST(OperationValidationTest, HASHTABLE_LOOKUP_quant8) {
+    hashtableLookupTest(ANEURALNETWORKS_TENSOR_QUANT8_ASYMM);
+}
+
+void lshProjectionTest(int32_t operandCode) {
+    uint32_t inputDimensions[2] = {5, 5};
+    ANeuralNetworksOperandType hash = {.type = ANEURALNETWORKS_TENSOR_FLOAT32,
+                                       .dimensionCount = 2,
+                                       .dimensions = inputDimensions,
+                                       .scale = 0.0f,
+                                       .zeroPoint = 0};
+
+    ANeuralNetworksOperandType input = hash;
+    input.type = operandCode;
+    if (operandCode == ANEURALNETWORKS_TENSOR_QUANT8_ASYMM) {
+        input.scale = 0.5f;
+    }
+
+    uint32_t weightDimensions[1] = {5};
+    ANeuralNetworksOperandType weight = {.type = ANEURALNETWORKS_TENSOR_FLOAT32,
+                                         .dimensionCount = 1,
+                                         .dimensions = weightDimensions,
+                                         .scale = 0.0f,
+                                         .zeroPoint = 0};
+
+    ANeuralNetworksOperandType type = {.type = ANEURALNETWORKS_INT32,
+                                       .dimensionCount = 0,
+                                       .dimensions = nullptr,
+                                       .scale = 0.0f,
+                                       .zeroPoint = 0};
+
+    ANeuralNetworksOperandType output = weight;
+    output.type = ANEURALNETWORKS_TENSOR_INT32;
+
+    OperationTestBase lshProjTest(ANEURALNETWORKS_LSH_PROJECTION,
+                                  {hash, input, weight, type}, {output});
+
+    EXPECT_TRUE(lshProjTest.testMutatingInputOperandCode());
+    EXPECT_TRUE(lshProjTest.testMutatingInputOperandCounts());
+    EXPECT_TRUE(lshProjTest.testMutatingOutputOperandCode());
+    EXPECT_TRUE(lshProjTest.testMutatingOutputOperandCounts());
+}
+
+TEST(OperationValidationTest, LSH_PROJECTION_float32) {
+    lshProjectionTest(ANEURALNETWORKS_TENSOR_FLOAT32);
+}
+
+TEST(OperationValidationTest, LSH_PROJECTION_quant8) {
+    lshProjectionTest(ANEURALNETWORKS_TENSOR_QUANT8_ASYMM);
+}
+
+TEST(OperationValidationTest, LSTM_float32) {
+    uint32_t oneDimensional[1] = {5};
+    uint32_t twoDimensional[2] = {5, 5};
+    ANeuralNetworksOperandType floatTensor1D = {.type = ANEURALNETWORKS_TENSOR_FLOAT32,
+                                                .dimensionCount = 1,
+                                                .dimensions = oneDimensional,
+                                                .scale = 0.0f,
+                                                .zeroPoint = 0};
+    ANeuralNetworksOperandType floatTensor2D = {.type = ANEURALNETWORKS_TENSOR_FLOAT32,
+                                                .dimensionCount = 2,
+                                                .dimensions = twoDimensional,
+                                                .scale = 0.0f,
+                                                .zeroPoint = 0};
+    ANeuralNetworksOperandType intScalar = {.type = ANEURALNETWORKS_INT32,
+                                            .dimensionCount = 0,
+                                            .dimensions = nullptr,
+                                            .scale = 0.0f,
+                                            .zeroPoint = 0};
+    ANeuralNetworksOperandType floatScalar = {.type = ANEURALNETWORKS_FLOAT32,
+                                              .dimensionCount = 0,
+                                              .dimensions = nullptr,
+                                              .scale = 0.0f,
+                                              .zeroPoint = 0};
+
+    ANeuralNetworksOperandType input = floatTensor2D;
+    ANeuralNetworksOperandType inputToInput = floatTensor2D;
+    ANeuralNetworksOperandType inputToForget = floatTensor2D;
+    ANeuralNetworksOperandType inputToCell = floatTensor2D;
+    ANeuralNetworksOperandType inputToOutput = floatTensor2D;
+    ANeuralNetworksOperandType recurrentToInput = floatTensor2D;
+    ANeuralNetworksOperandType recurrentToForget = floatTensor2D;
+    ANeuralNetworksOperandType recurrentToCell = floatTensor2D;
+    ANeuralNetworksOperandType recurrentToOutput = floatTensor2D;
+    ANeuralNetworksOperandType cellToInput = floatTensor1D;
+    ANeuralNetworksOperandType cellToForget = floatTensor1D;
+    ANeuralNetworksOperandType cellToOutput = floatTensor1D;
+    ANeuralNetworksOperandType inputGateBias = floatTensor1D;
+    ANeuralNetworksOperandType forgetGateBias = floatTensor1D;
+    ANeuralNetworksOperandType cellBias = floatTensor1D;
+    ANeuralNetworksOperandType outputGateBias = floatTensor1D;
+    ANeuralNetworksOperandType projWeights = floatTensor2D;
+    ANeuralNetworksOperandType projBias = floatTensor1D;
+    ANeuralNetworksOperandType outputStateIn = floatTensor2D;
+    ANeuralNetworksOperandType cellStateIn = floatTensor2D;
+    ANeuralNetworksOperandType activation = intScalar;
+    ANeuralNetworksOperandType clipCellState = floatScalar;
+    ANeuralNetworksOperandType clipProjLayer = floatScalar;
+
+    ANeuralNetworksOperandType scratch = floatTensor2D;
+    ANeuralNetworksOperandType outputStateOut = floatTensor2D;
+    ANeuralNetworksOperandType cellStateOut = floatTensor2D;
+    ANeuralNetworksOperandType output = floatTensor2D;
+
+    OperationTestBase lstmTest(ANEURALNETWORKS_LSTM,
+        {input, inputToInput, inputToForget, inputToCell, inputToOutput, recurrentToInput,
+         recurrentToForget, recurrentToCell, recurrentToOutput, cellToInput, cellToForget,
+         cellToOutput, inputGateBias, forgetGateBias, cellBias, outputGateBias, projWeights,
+         projBias, outputStateIn, cellStateIn, activation, clipCellState, clipProjLayer},
+        {scratch, outputStateOut, cellStateOut, output});
+
+    EXPECT_TRUE(lstmTest.testMutatingInputOperandCode());
+    EXPECT_TRUE(lstmTest.testMutatingInputOperandCounts());
+    EXPECT_TRUE(lstmTest.testMutatingOutputOperandCode());
+    EXPECT_TRUE(lstmTest.testMutatingOutputOperandCounts());
+}
+
+TEST(OperationValidationTest, RNN_float32) {
+    uint32_t oneDimensional[1] = {5};
+    uint32_t twoDimensional[2] = {5, 5};
+    ANeuralNetworksOperandType floatTensor1D = {.type = ANEURALNETWORKS_TENSOR_FLOAT32,
+                                                .dimensionCount = 1,
+                                                .dimensions = oneDimensional,
+                                                .scale = 0.0f,
+                                                .zeroPoint = 0};
+    ANeuralNetworksOperandType floatTensor2D = {.type = ANEURALNETWORKS_TENSOR_FLOAT32,
+                                                .dimensionCount = 2,
+                                                .dimensions = twoDimensional,
+                                                .scale = 0.0f,
+                                                .zeroPoint = 0};
+    ANeuralNetworksOperandType intScalar = {.type = ANEURALNETWORKS_INT32,
+                                            .dimensionCount = 0,
+                                            .dimensions = nullptr,
+                                            .scale = 0.0f,
+                                            .zeroPoint = 0};
+
+    ANeuralNetworksOperandType input = floatTensor2D;
+    ANeuralNetworksOperandType weights = floatTensor2D;
+    ANeuralNetworksOperandType recurrentWeights = floatTensor2D;
+    ANeuralNetworksOperandType bias = floatTensor1D;
+    ANeuralNetworksOperandType hiddenStateIn = floatTensor2D;
+    ANeuralNetworksOperandType activation = intScalar;
+
+    ANeuralNetworksOperandType hiddenStateOut = floatTensor2D;
+    ANeuralNetworksOperandType output = floatTensor2D;
+
+    OperationTestBase rnnTest(ANEURALNETWORKS_RNN,
+                              {input, weights, recurrentWeights, bias, hiddenStateIn, activation},
+                              {hiddenStateOut, output});
+
+    EXPECT_TRUE(rnnTest.testMutatingInputOperandCode());
+    EXPECT_TRUE(rnnTest.testMutatingInputOperandCounts());
+    EXPECT_TRUE(rnnTest.testMutatingOutputOperandCode());
+    EXPECT_TRUE(rnnTest.testMutatingOutputOperandCounts());
+}
+
+TEST(OperationValidationTest, SVDF_float32) {
+    uint32_t oneDimensional[1] = {5};
+    uint32_t twoDimensional[2] = {5, 5};
+    ANeuralNetworksOperandType floatTensor1D = {.type = ANEURALNETWORKS_TENSOR_FLOAT32,
+                                                .dimensionCount = 1,
+                                                .dimensions = oneDimensional,
+                                                .scale = 0.0f,
+                                                .zeroPoint = 0};
+    ANeuralNetworksOperandType floatTensor2D = {.type = ANEURALNETWORKS_TENSOR_FLOAT32,
+                                                .dimensionCount = 2,
+                                                .dimensions = twoDimensional,
+                                                .scale = 0.0f,
+                                                .zeroPoint = 0};
+    ANeuralNetworksOperandType intScalar = {.type = ANEURALNETWORKS_INT32,
+                                            .dimensionCount = 0,
+                                            .dimensions = nullptr,
+                                            .scale = 0.0f,
+                                            .zeroPoint = 0};
+
+    ANeuralNetworksOperandType input = floatTensor2D;
+    ANeuralNetworksOperandType weightsFeature = floatTensor2D;
+    ANeuralNetworksOperandType weightsTime = floatTensor2D;
+    ANeuralNetworksOperandType bias = floatTensor1D;
+    ANeuralNetworksOperandType stateIn = floatTensor2D;
+    ANeuralNetworksOperandType rank = intScalar;
+    ANeuralNetworksOperandType activation = intScalar;
+
+    ANeuralNetworksOperandType stateOut = floatTensor2D;
+    ANeuralNetworksOperandType output = floatTensor2D;
+
+    OperationTestBase svdfTest(ANEURALNETWORKS_SVDF,
+        {input, weightsFeature, weightsTime, bias, stateIn, rank, activation},
+        {stateOut, output});
+
+    EXPECT_TRUE(svdfTest.testMutatingInputOperandCode());
+    EXPECT_TRUE(svdfTest.testMutatingInputOperandCounts());
+    EXPECT_TRUE(svdfTest.testMutatingOutputOperandCode());
+    EXPECT_TRUE(svdfTest.testMutatingOutputOperandCounts());
 }
 
 }  // end namespace
