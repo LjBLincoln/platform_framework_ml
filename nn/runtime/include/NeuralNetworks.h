@@ -80,7 +80,7 @@ typedef enum {
      *
      * Attached to this tensor are two numbers that can be used to convert
      * the 8 bit integer to the real value and vice versa.  These two numbers are:
-     * - scale: a 32 bit non-negative floating point value.
+     * - scale: a 32 bit floating point value greater than zero.
      * - zeroPoint: an 32 bit integer, in range [0, 255].
      *
      * The formula is:
