@@ -510,7 +510,14 @@ int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event) {
 
     sp<ExecutionCallback>* e = reinterpret_cast<sp<ExecutionCallback>*>(event);
     (*e)->wait();
-    return ANEURALNETWORKS_NO_ERROR;
+    switch ((*e)->getStatus()) {
+        case ErrorStatus::NONE:
+            return ANEURALNETWORKS_NO_ERROR;
+        case ErrorStatus::INVALID_ARGUMENT:
+            return ANEURALNETWORKS_BAD_DATA;
+        default:
+            return ANEURALNETWORKS_OP_FAILED;
+    }
 }
 
 void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event) {

@@ -47,6 +47,7 @@ cc_library {
 
     target: {
         android: {
+            version_script: "libneuralnetworks.map.txt",
             shared_libs: [
                 "libbase",
                 "libcutils",

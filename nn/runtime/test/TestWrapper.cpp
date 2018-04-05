@@ -25,7 +25,7 @@ using namespace ::android::nn::wrapper;
 class WrapperTestModelFinish : public ::testing::Test {
 protected:
     void SetUp() override {
-        OperandType type(Type::FLOAT32, {1});
+        OperandType type(Type::TENSOR_FLOAT32, {1});
         mIn = mModel.addOperand(&type);
         mOut = mModel.addOperand(&type);
         mModel.addOperation(ANEURALNETWORKS_TANH, {mIn}, {mOut});

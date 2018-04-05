@@ -224,6 +224,15 @@ void graphDump([[maybe_unused]] const char* name, [[maybe_unused]] const Wrapper
 // operation.  The subset is represented with a bitmask, in which
 // operation kind K corresponds to the bit (1 << K).
 class PartitioningDriver : public SampleDriver {
+private:
+    // Dummy class -- a prepared model must not be nullptr.
+    class PartitioningPreparedModel : public IPreparedModel {
+    public:
+        Return<ErrorStatus> execute(const Request&,
+                                    const sp<IExecutionCallback>&) override {
+            return ErrorStatus::DEVICE_UNAVAILABLE;
+        }
+    };
 public:
     enum OEM { OEMNo, OEMYes };
 
@@ -235,7 +244,7 @@ public:
 
     Return<ErrorStatus> prepareModel_1_1(const Model&,
                                          const sp<IPreparedModelCallback>& cb) override {
-        cb->notify(ErrorStatus::NONE, nullptr);
+        cb->notify(ErrorStatus::NONE, new PartitioningPreparedModel);
         return ErrorStatus::NONE;
     }
     Return<DeviceStatus> getStatus() override {
@@ -443,7 +452,10 @@ protected:
                                        specification.mCapabilities,
                                        specification.mOperationMask,
                                        specification.mOEM)));
-            devices.back()->initialize();
+            if (!devices.back()->initialize()) {
+                EXPECT_NE("failed to initialize device", nullptr);
+                return {};
+            }
         }
         return devices;
     }
@@ -757,6 +769,7 @@ TEST_F(PartitioningTest, SimpleModel) {
     ASSERT_EQ(model.partitionTheWork(devicesA, ExecutePreference::PREFER_LOW_POWER, &planA),
               ANEURALNETWORKS_NO_ERROR);
     ASSERT_EQ(planA.forTest_getKind(), ExecutionPlan::Kind::SIMPLE);
+    ASSERT_NE(planA.forTest_simpleGetDevice().get(), nullptr);
     ASSERT_EQ(planA.forTest_simpleGetDevice()->getName(), "good");
 
     // Simple partition (two devices are each capable of everything, none better than CPU).
@@ -1100,6 +1113,7 @@ TEST_F(PartitioningTest, OemOperations) {
     ASSERT_EQ(compilationBestOEM.finish(devicesBestOEM), Result::NO_ERROR);
     const auto& planBestOEM = compilationBestOEM.getExecutionPlan();
     ASSERT_EQ(planBestOEM.forTest_getKind(), ExecutionPlan::Kind::SIMPLE);
+    ASSERT_NE(planBestOEM.forTest_simpleGetDevice().get(), nullptr);
     ASSERT_EQ(planBestOEM.forTest_simpleGetDevice()->getName(), "goodOEM");
 
     // Verify that we get an error if no driver can run an OEM operation.

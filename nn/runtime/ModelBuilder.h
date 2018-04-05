@@ -95,6 +95,9 @@ public:
     PerformanceInfo getPerformanceInfo(const std::shared_ptr<Device> device,
                                        uint32_t operationIndex) const;
 
+    // Return true if either mCompleteModel or mInvalidModel is true.
+    bool badState(const char* name);
+
     // Sorts the operations to be in the correct order for single threaded
     // node-at-a-time execution.
     void sortIntoRunOrder();
@@ -130,6 +133,10 @@ public:
     // Once the model has been finished, we should not allow further
     // modifications to the model.
     mutable bool mCompletedModel = false;
+
+    // Any invalid manipulation of the model will mark the model invalid.
+    // No further modifications are allowed to the model.
+    mutable bool mInvalidModel = false;
 
     // 'true' indicates TENSOR_FLOAT32 may be calculated with range and/or
     // precision as low as that of the IEEE 754 16-bit floating-point format.

@@ -28,8 +28,8 @@ weights_feature = Input("weights_feature", "TENSOR_FLOAT32", "{%d, %d}" % (featu
 weights_time = Input("weights_time", "TENSOR_FLOAT32", "{%d, %d}" % (features, memory_size))
 bias = Input("bias", "TENSOR_FLOAT32", "{%d}" % (units))
 state_in = Input("state_in", "TENSOR_FLOAT32", "{%d, %d}" % (batches, memory_size*features))
-rank_param = Input("rank_param", "TENSOR_INT32", "{1}")
-activation_param = Input("activation_param", "TENSOR_INT32", "{1}")
+rank_param = Int32Scalar("rank_param", rank)
+activation_param = Int32Scalar("activation_param", 0)
 state_out = IgnoredOutput("state_out", "TENSOR_FLOAT32", "{%d, %d}" % (batches, memory_size*features))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 
@@ -73,8 +73,6 @@ input0 = {
     ],
     bias: [],
     state_in: [0 for _ in range(batches * memory_size * features)],
-    rank_param: [rank],
-    activation_param: [0],
 }
 
 test_inputs = [

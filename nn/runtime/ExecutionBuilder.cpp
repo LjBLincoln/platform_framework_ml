@@ -34,17 +34,24 @@ namespace nn {
 int ModelArgumentInfo::setFromPointer(const Operand& operand,
                                       const ANeuralNetworksOperandType* type, void* data,
                                       uint32_t length) {
-    int n = updateDimensionInfo(operand, type);
-    if (n != ANEURALNETWORKS_NO_ERROR) {
-        return n;
+    if ((data == nullptr) != (length == 0)) {
+        LOG(ERROR) << "Data pointer must be nullptr if and only if length is zero (data = "
+                   << data << ", length = " << length << ")";
+        return ANEURALNETWORKS_BAD_DATA;
     }
     if (data == nullptr) {
-        if (length) {
-            LOG(ERROR) << "Setting argument as having no value but non-zero length passed.";
-            return ANEURALNETWORKS_BAD_DATA;
-        }
         state = ModelArgumentInfo::HAS_NO_VALUE;
     } else {
+        int n = updateDimensionInfo(operand, type);
+        if (n != ANEURALNETWORKS_NO_ERROR) {
+            return n;
+        }
+        uint32_t neededLength = sizeOfData(operand.type, dimensions);
+        if (operand.type != OperandType::OEM && neededLength != length) {
+            LOG(ERROR) << "Setting argument with invalid length: " << length
+                       << ", expected length: " << neededLength;
+            return ANEURALNETWORKS_BAD_DATA;
+        }
         state = ModelArgumentInfo::POINTER;
     }
     buffer = data;
@@ -58,6 +65,13 @@ int ModelArgumentInfo::setFromMemory(const Operand& operand, const ANeuralNetwor
     if (n != ANEURALNETWORKS_NO_ERROR) {
         return n;
     }
+    uint32_t neededLength = sizeOfData(operand.type, dimensions);
+    if (operand.type != OperandType::OEM && neededLength != length) {
+        LOG(ERROR) << "Setting argument with invalid length: " << length
+                   << ", expected length: " << neededLength;
+        return ANEURALNETWORKS_BAD_DATA;
+    }
+
     state = ModelArgumentInfo::MEMORY;
     locationAndLength = {.poolIndex = poolIndex, .offset = offset, .length = length};
     buffer = nullptr;
@@ -66,7 +80,10 @@ int ModelArgumentInfo::setFromMemory(const Operand& operand, const ANeuralNetwor
 
 int ModelArgumentInfo::setFromTemporaryMemory(const Operand& operand,
                                               uint32_t poolIndex, uint32_t offset) {
-    dimensions = operand.dimensions;
+    int n = updateDimensionInfo(operand, nullptr);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        return n;
+    }
     state = ModelArgumentInfo::MEMORY;
     locationAndLength =
             {.poolIndex = poolIndex, .offset = offset, .length = sizeOfData(operand)};
@@ -76,19 +93,31 @@ int ModelArgumentInfo::setFromTemporaryMemory(const Operand& operand,
 
 int ModelArgumentInfo::updateDimensionInfo(const Operand& operand,
                                            const ANeuralNetworksOperandType* newType) {
+    nnAssert(dimensions.empty());
     if (newType == nullptr) {
-        dimensions = hidl_vec<uint32_t>();
+        for (auto i : operand.dimensions) {
+            if (i == 0) {
+                LOG(ERROR) << "Setting input/output with unspecified dimensions";
+                return ANEURALNETWORKS_BAD_DATA;
+            }
+        }
+        dimensions = operand.dimensions;
     } else {
         uint32_t count = newType->dimensionCount;
         if (static_cast<OperandType>(newType->type) != operand.type ||
             count != operand.dimensions.size()) {
-            LOG(ERROR) << "ANeuralNetworksExecution_setInput/Output incompatible types";
+            LOG(ERROR) << "Setting input/output with incompatible types";
             return ANEURALNETWORKS_BAD_DATA;
         }
 
         dimensions = hidl_vec<uint32_t>(count);
         for (uint32_t i = 0; i < count; i++) {
-            dimensions[i] = newType->dimensions[i];
+            if (operand.dimensions[i] != 0 && operand.dimensions[i] != newType->dimensions[i]) {
+                LOG(ERROR) << "Overriding a fully specified dimension is disallowed";
+                return ANEURALNETWORKS_BAD_DATA;
+            } else {
+                dimensions[i] = newType->dimensions[i];
+            }
         }
     }
     return ANEURALNETWORKS_NO_ERROR;

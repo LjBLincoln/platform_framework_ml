@@ -44,6 +44,32 @@ protected:
     ANeuralNetworksModel* mModel = nullptr;
 };
 
+class ValidationTestIdentify : public ValidationTestModel {
+    virtual void SetUp() {
+        ValidationTestModel::SetUp();
+
+        uint32_t dimensions[]{1};
+        ANeuralNetworksOperandType tensorType{.type = ANEURALNETWORKS_TENSOR_FLOAT32,
+                                              .dimensionCount = 1,
+                                              .dimensions = dimensions};
+        ANeuralNetworksOperandType scalarType{.type = ANEURALNETWORKS_INT32,
+                                              .dimensionCount = 0,
+                                              .dimensions = nullptr};
+        ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &scalarType), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
+        uint32_t inList[3]{0, 1, 2};
+        uint32_t outList[1]{3};
+        ASSERT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_ADD, 3, inList, 1,
+                                                    outList),
+                  ANEURALNETWORKS_NO_ERROR);
+    }
+    virtual void TearDown() {
+        ValidationTestModel::TearDown();
+    }
+};
+
 class ValidationTestCompilation : public ValidationTestModel {
 protected:
     virtual void SetUp() {
@@ -53,13 +79,20 @@ protected:
         ANeuralNetworksOperandType tensorType{.type = ANEURALNETWORKS_TENSOR_FLOAT32,
                                               .dimensionCount = 1,
                                               .dimensions = dimensions};
+        ANeuralNetworksOperandType scalarType{.type = ANEURALNETWORKS_INT32,
+                                              .dimensionCount = 0,
+                                              .dimensions = nullptr};
+
         ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
         ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &scalarType), ANEURALNETWORKS_NO_ERROR);
         ASSERT_EQ(ANeuralNetworksModel_addOperand(mModel, &tensorType), ANEURALNETWORKS_NO_ERROR);
-        uint32_t inList[2]{0, 1};
-        uint32_t outList[1]{2};
-        ASSERT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_ADD, 2, inList, 1,
+        uint32_t inList[3]{0, 1, 2};
+        uint32_t outList[1]{3};
+        ASSERT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_ADD, 3, inList, 1,
                                                     outList),
+                  ANEURALNETWORKS_NO_ERROR);
+        ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 3, inList, 1, outList),
                   ANEURALNETWORKS_NO_ERROR);
         ASSERT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
 
@@ -133,7 +166,7 @@ TEST_F(ValidationTestModel, AddOperand) {
     EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, &invalidScalarType),
               ANEURALNETWORKS_BAD_DATA);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, &floatType),
               ANEURALNETWORKS_BAD_STATE);
@@ -154,11 +187,15 @@ TEST_F(ValidationTestModel, SetOperandValue) {
     EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 0, buffer, sizeof(buffer)),
               ANEURALNETWORKS_BAD_DATA);
 
+    // This should succeed.
+    EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 0, buffer, sizeof(float)),
+              ANEURALNETWORKS_NO_ERROR);
+
     // This should fail, as this operand does not exist.
     EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 1, buffer, sizeof(float)),
               ANEURALNETWORKS_BAD_DATA);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 0, buffer, sizeof(float)),
               ANEURALNETWORKS_BAD_STATE);
@@ -215,7 +252,7 @@ TEST_F(ValidationTestModel, SetOperandValueFromMemory) {
                                                              sizeof(float)),
               ANEURALNETWORKS_BAD_DATA);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_setOperandValueFromMemory(mModel, 0,
                                                              memory, 0,
@@ -242,7 +279,7 @@ TEST_F(ValidationTestModel, AddOEMOperand) {
     EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 1, buffer, kByteSizeOfOEMTensor),
               ANEURALNETWORKS_NO_ERROR);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, &OEMTensorType), ANEURALNETWORKS_BAD_STATE);
 }
@@ -265,7 +302,7 @@ TEST_F(ValidationTestModel, AddOperation) {
                                                 1, &output),
               ANEURALNETWORKS_BAD_DATA);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_addOperation(mModel, ANEURALNETWORKS_AVERAGE_POOL_2D, 1, &input,
                                                 1, &output),
@@ -282,7 +319,7 @@ TEST_F(ValidationTestModel, IdentifyInputsAndOutputs) {
     EXPECT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 1, &input, 0, nullptr),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 1, &input, 1, &output),
               ANEURALNETWORKS_BAD_STATE);
@@ -292,7 +329,7 @@ TEST_F(ValidationTestModel, RelaxComputationFloat32toFloat16) {
     EXPECT_EQ(ANeuralNetworksModel_relaxComputationFloat32toFloat16(nullptr, true),
               ANEURALNETWORKS_UNEXPECTED_NULL);
 
-    EXPECT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+    ANeuralNetworksModel_finish(mModel);
     // This should fail, as the model is already finished.
     EXPECT_EQ(ANeuralNetworksModel_relaxComputationFloat32toFloat16(mModel, true),
               ANEURALNETWORKS_BAD_STATE);
@@ -312,6 +349,48 @@ TEST_F(ValidationTestModel, CreateCompilation) {
               ANEURALNETWORKS_UNEXPECTED_NULL);
     EXPECT_EQ(ANeuralNetworksCompilation_create(mModel, nullptr), ANEURALNETWORKS_UNEXPECTED_NULL);
     EXPECT_EQ(ANeuralNetworksCompilation_create(mModel, &compilation), ANEURALNETWORKS_BAD_STATE);
+}
+
+TEST_F(ValidationTestIdentify, Ok) {
+    uint32_t inList[3]{0, 1, 2};
+    uint32_t outList[1]{3};
+
+    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 3, inList, 1, outList),
+              ANEURALNETWORKS_NO_ERROR);
+
+    ASSERT_EQ(ANeuralNetworksModel_finish(mModel), ANEURALNETWORKS_NO_ERROR);
+}
+
+TEST_F(ValidationTestIdentify, InputIsOutput) {
+    uint32_t inList[3]{0, 1, 2};
+    uint32_t outList[2]{3, 0};
+
+    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 3, inList, 2, outList),
+              ANEURALNETWORKS_BAD_DATA);
+}
+
+TEST_F(ValidationTestIdentify, OutputIsInput) {
+    uint32_t inList[4]{0, 1, 2, 3};
+    uint32_t outList[1]{3};
+
+    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 4, inList, 1, outList),
+              ANEURALNETWORKS_BAD_DATA);
+}
+
+TEST_F(ValidationTestIdentify, DuplicateInputs) {
+    uint32_t inList[4]{0, 1, 2, 0};
+    uint32_t outList[1]{3};
+
+    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 4, inList, 1, outList),
+              ANEURALNETWORKS_BAD_DATA);
+}
+
+TEST_F(ValidationTestIdentify, DuplicateOutputs) {
+    uint32_t inList[3]{0, 1, 2};
+    uint32_t outList[2]{3, 3};
+
+    ASSERT_EQ(ANeuralNetworksModel_identifyInputsAndOutputs(mModel, 3, inList, 2, outList),
+              ANEURALNETWORKS_BAD_DATA);
 }
 
 TEST_F(ValidationTestCompilation, SetPreference) {

@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+# Passing weights via shared memory
+Configuration.use_shm_for_weights = True
 model = Model()
 i87 = Int32Scalar("b87", 1)
 i88 = Int32Scalar("b88", 2)

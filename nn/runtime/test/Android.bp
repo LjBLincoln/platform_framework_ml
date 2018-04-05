@@ -20,14 +20,13 @@ cc_defaults {
     host_supported: false,
     openmp: true,
     srcs: [
+        // Subset of tests that rely only on public functionality.
         "Bridge.cpp",
         "TestGenerated.cpp",
-        "TestMain.cpp",
         "TestMemory.cpp",
         "TestMemoryInternal.cpp",
-        "TestPartitioning.cpp",
-        "TestPartitioningRandom.cpp",
         "TestTrivialModel.cpp",
+        "TestValidateOperations.cpp",
         "TestValidation.cpp",
         "TestWrapper.cpp",
     ],
@@ -57,8 +56,11 @@ cc_defaults {
 }
 
 cc_test {
-    name: "NeuralNetworksTest",
+    name: "NeuralNetworksTest_shared_partial",
     defaults: ["NeuralNetworksTest_defaults"],
+    srcs: [
+        "TestMainPartial.cpp",
+    ],
     shared_libs: [
         "libneuralnetworks",
         "libtextclassifier_hash",
@@ -71,11 +73,19 @@ cc_test {
 cc_test {
     name: "NeuralNetworksTest_static",
     defaults: ["NeuralNetworksTest_defaults"],
+    srcs: [
+        "TestMain.cpp",
+
+        // Tests that rely on non-public functionality (i.e., symbols
+        // not exported from libneuralnetworks.so).
+        "TestExecution.cpp",
+        "TestPartitioning.cpp",
+        "TestPartitioningRandom.cpp",
+    ],
     static_libs: [
         "libneuralnetworks",
         "libneuralnetworks_common",
     ],
-
     shared_libs: [
         "libcutils",
     ]

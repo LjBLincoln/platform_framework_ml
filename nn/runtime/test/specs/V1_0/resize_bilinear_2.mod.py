@@ -18,8 +18,8 @@
 model = Model()
 i1 = Input("op1", "TENSOR_FLOAT32", "{1, 2, 2, 2}")
 i2 = Output("op2", "TENSOR_FLOAT32", "{1, 3, 3, 2}")
-w = Int32Scalar("width", 3) # an int32_t scalar bias
-h = Int32Scalar("height", 3)
+h = Int32Scalar("height", 3) # an int32_t scalar bias
+w = Int32Scalar("width", 3)
 model = model.Operation("RESIZE_BILINEAR", i1, h, w).To(i2)
 
 # Example 1. Input in operand 0,

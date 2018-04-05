@@ -51,9 +51,9 @@ projection_bias = Input("projection_bias", "TENSOR_FLOAT32", "{0}")
 output_state_in = Input("output_state_in", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
 cell_state_in = Input("cell_state_in", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell))
 
-activation_param = Input("activation_param", "TENSOR_INT32", "{1}");
-cell_clip_param = Input("cell_clip_param", "TENSOR_FLOAT32", "{1}")
-proj_clip_param = Input("proj_clip_param", "TENSOR_FLOAT32", "{1}")
+activation_param = Int32Scalar("activation_param", 4)  # Tanh
+cell_clip_param = Float32Scalar("cell_clip_param", 0.)
+proj_clip_param = Float32Scalar("proj_clip_param", 0.)
 
 scratch_buffer = IgnoredOutput("scratch_buffer", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_cell * 3))
 output_state_out = Output("output_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (n_batch, n_output))
@@ -126,14 +126,10 @@ input0 = {input_to_input_weights:[],
 
           projection_weights: [],
           projection_bias: [],
-
-          activation_param: [4],  # Tanh
-          cell_clip_param: [0.],
-          proj_clip_param: [0.],
 }
 
 output0 = {
-    scratch_buffer: [ 0 for x in range(n_batch * n_cell * 4) ],
+    scratch_buffer: [ 0 for x in range(n_batch * n_cell * 3) ],
     cell_state_out: [ -0.760444, -0.0180416, 0.182264, -0.0649371 ],
     output_state_out: [ -0.364445, -0.00352185, 0.128866, -0.0516365 ],
 }

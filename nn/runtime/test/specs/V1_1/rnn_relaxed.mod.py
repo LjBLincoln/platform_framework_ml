@@ -26,7 +26,7 @@ recurrent_weights = Input("recurrent_weights", "TENSOR_FLOAT32", "{%d, %d}" % (u
 bias = Input("bias", "TENSOR_FLOAT32", "{%d}" % (units))
 hidden_state_in = Input("hidden_state_in", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 
-activation_param = Input("activation_param", "TENSOR_INT32", "{1}")
+activation_param = Int32Scalar("activation_param", 1)  # Relu
 
 hidden_state_out = IgnoredOutput("hidden_state_out", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
@@ -84,7 +84,6 @@ input0 = {
         0.10463274, 0.83918178, 0.37197268, 0.61957061, 0.3956964,
         -0.37609905
     ],
-    activation_param: [1],  # Relu
 }
 
 

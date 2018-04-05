@@ -113,20 +113,6 @@ uint32_t alignBytesNeeded(uint32_t index, size_t length);
 void logModelToInfo(const V1_0::Model& model);
 void logModelToInfo(const V1_1::Model& model);
 
-inline void setFromIntList(hidl_vec<uint32_t>* vec, uint32_t count, const uint32_t* data) {
-    vec->resize(count);
-    for (uint32_t i = 0; i < count; i++) {
-        (*vec)[i] = data[i];
-    }
-}
-
-inline void setFromIntList(std::vector<uint32_t>* vec, uint32_t count, const uint32_t* data) {
-    vec->resize(count);
-    for (uint32_t i = 0; i < count; i++) {
-        (*vec)[i] = data[i];
-    }
-}
-
 inline std::string toString(uint32_t obj) {
     return std::to_string(obj);
 }
@@ -147,6 +133,10 @@ inline bool validCode(uint32_t codeCount, uint32_t codeCountOEM, uint32_t code) 
 int validateOperandType(const ANeuralNetworksOperandType& type, const char* tag, bool allowPartial);
 int validateOperandList(uint32_t count, const uint32_t* list, uint32_t operandCount,
                         const char* tag);
+int validateOperation(ANeuralNetworksOperationType opType,
+                      uint32_t inputCount, const uint32_t* inputIndexes,
+                      uint32_t outputCount, const uint32_t* outputIndexes,
+                      const std::vector<Operand>& operands);
 
 inline size_t getSizeFromInts(int lower, int higher) {
     return (uint32_t)(lower) + ((uint64_t)(uint32_t)(higher) << 32);

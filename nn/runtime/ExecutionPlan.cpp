@@ -63,7 +63,7 @@ static int compile(std::shared_ptr<Device> device,
     preparedModelCallback->wait();
     ErrorStatus prepareReturnStatus = preparedModelCallback->getStatus();
     *preparedModel = preparedModelCallback->getPreparedModel();
-    if (prepareReturnStatus != ErrorStatus::NONE || preparedModel == nullptr) {
+    if (prepareReturnStatus != ErrorStatus::NONE || *preparedModel == nullptr) {
         LOG(ERROR) << "ExecutionPlan compilation on " << device->getName() << " failed:"
                    << " prepareReturnStatus=" << toString(prepareReturnStatus)
                    << ", preparedModel=" << preparedModel->get();
@@ -151,12 +151,13 @@ int ExecutionStep::addOperand(uint32_t fromOperandIndex, uint32_t* toOperandInde
 
     // Add the operand to the submodel.
     const Operand& operand = fromModel.getOperand(fromOperandIndex);
-    ANeuralNetworksOperandType type = {.type = static_cast<int32_t>(operand.type),
-                                       .dimensionCount =
-                                               static_cast<uint32_t>(operand.dimensions.size()),
-                                       .dimensions = operand.dimensions.data(),
-                                       .scale = operand.scale,
-                                       .zeroPoint = operand.zeroPoint};
+    ANeuralNetworksOperandType type = {
+        .type = static_cast<int32_t>(operand.type),
+        .dimensionCount = static_cast<uint32_t>(operand.dimensions.size()),
+        .dimensions = operand.dimensions.size() > 0 ? operand.dimensions.data() : nullptr,
+        .scale = operand.scale,
+        .zeroPoint = operand.zeroPoint
+    };
     int n = mSubModel.addOperand(type);
     if (n != ANEURALNETWORKS_NO_ERROR) {
         LOG(ERROR) << "Previous error occurred when partitioning the graph";
@@ -351,6 +352,8 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
         logSubModel();
     }
 
+    mSubModel.relaxComputationFloat32toFloat16(fromModel->isComputationFloat32RelaxedToFloat16());
+
     // Input order: mModelInputs, mTempsAsSubModelInputs, mOutputsAsSubModelInputs
     // Output order: mModelOutputs, mTempsAsSubModelOutputs
     //
@@ -419,8 +422,6 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
             mOutputsAsSubModelInputsIndexToFromModel.push_back(it->second);
         }
     }
-
-    mSubModel.relaxComputationFloat32toFloat16(fromModel->isComputationFloat32RelaxedToFloat16());
 
     // TODO: Move compilation elsewhere?
 
