@@ -23,7 +23,7 @@ namespace android {
 namespace nn {
 
 // If possible we will use this static buffer for the tensor.
-static constexpr int kStaticBufferSize = 1605632;
+static constexpr size_t kStaticBufferSize = 1605632;
 static char static_scratch_buffer[kStaticBufferSize];
 
 #define ANDROID_NN_CONV_PARAMETERS(Type)                                        \
@@ -50,15 +50,24 @@ static char static_scratch_buffer[kStaticBufferSize];
     }                                                                           \
                                                                                 \
     Type* im2colData = nullptr;                                                 \
-    int im2colByteSize = sizeof(Type);                                          \
-    std::unique_ptr<Type> im2colGuard;                                          \
+    uint64_t im2colByteSize = sizeof(Type);                                     \
+    std::unique_ptr<Type[]> im2colGuard;                                        \
     for (int i=0; i<4; i++) {                                                   \
         im2colByteSize *= im2colDim.sizes[i];                                   \
+    }                                                                           \
+                                                                                \
+    if (sizeof(size_t) == 4 && (im2colByteSize / sizeof(Type)) > 0xFFFFFFFF)  { \
+        LOG(ERROR) << "Conv size is too large, not enough memory";              \
+        return false;                                                           \
     }                                                                           \
     if (im2colByteSize <= kStaticBufferSize) {                                  \
         im2colData = reinterpret_cast<Type *>(static_scratch_buffer);           \
     } else {                                                                    \
         im2colData = new (std::nothrow) Type[im2colByteSize / sizeof(Type)];    \
+        if (im2colData == nullptr) {                                            \
+            LOG(ERROR) << "Conv size is too large, not enough memory";          \
+            return false;                                                       \
+        }                                                                       \
         im2colGuard.reset(im2colData);                                          \
     }
 
