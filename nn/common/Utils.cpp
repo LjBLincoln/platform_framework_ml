@@ -1451,6 +1451,47 @@ int validateOperation(ANeuralNetworksOperationType opType,
     }
 }
 
+ErrorStatus convertResultCodeToErrorStatus(int resultCode) {
+    switch (resultCode) {
+        case ANEURALNETWORKS_NO_ERROR:
+            return ErrorStatus::NONE;
+
+        case ANEURALNETWORKS_BAD_DATA:
+        case ANEURALNETWORKS_UNEXPECTED_NULL:
+            return ErrorStatus::INVALID_ARGUMENT;
+
+        default:
+            LOG(ERROR) << "Unknown result code " << resultCode
+                       << " mapped to ErrorStatus::GENERAL_FAILURE";
+        case ANEURALNETWORKS_BAD_STATE:
+        case ANEURALNETWORKS_INCOMPLETE:
+        case ANEURALNETWORKS_OP_FAILED:
+        case ANEURALNETWORKS_OUT_OF_MEMORY:
+#if 0
+        case ANEURALNETWORKS_UNMAPPABLE:  // Same as BAD_STATE per http://b/68356625
+#endif
+            return ErrorStatus::GENERAL_FAILURE;
+    }
+}
+
+int convertErrorStatusToResultCode(ErrorStatus status) {
+    switch (status) {
+        case ErrorStatus::NONE:
+            return ANEURALNETWORKS_NO_ERROR;
+
+        case ErrorStatus::INVALID_ARGUMENT:
+            return ANEURALNETWORKS_BAD_DATA;
+
+        default:
+            LOG(ERROR) << "Unknown ErrorStatus " << toString(status)
+                       << " mapped to ANEURALNETWORKS_OP_FAILED";
+        case ErrorStatus::DEVICE_UNAVAILABLE:
+        case ErrorStatus::GENERAL_FAILURE:
+        case ErrorStatus::OUTPUT_INSUFFICIENT_SIZE:
+            return ANEURALNETWORKS_OP_FAILED;
+    }
+}
+
 // Versioning
 
 bool compliantWithV1_0(V1_0::OperationType) {

@@ -227,16 +227,9 @@ TEST_P(ExecutionTest, Wait) {
     ASSERT_NO_FATAL_FAILURE(setInputOutput(&execution));
     WrapperEvent event;
     ASSERT_EQ(execution.startCompute(&event), Result::NO_ERROR);
-    Result waitResult = event.wait();
+    ASSERT_EQ(event.wait(), kExpectResult);
     if (kExpectResult == Result::NO_ERROR) {
-        ASSERT_EQ(waitResult, Result::NO_ERROR);
         ASSERT_EQ(mOutputBuffer, kOutputBufferExpected);
-    } else {
-        // If the execution fails, we expect to get a result other
-        // than NO_ERROR, but the exact mapping from the driver's
-        // failure code to the API failure code is not currently
-        // working.
-        ASSERT_NE(waitResult, Result::NO_ERROR);
     }
 }
 
