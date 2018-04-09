@@ -37,7 +37,6 @@ cc_defaults {
         "libhidltransport",
         "libhidlmemory",
         "liblog",
-        "libnativehelper",
         "libtextclassifier_hash",
         "libutils",
         "android.hardware.neuralnetworks@1.0",
