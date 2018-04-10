@@ -199,4 +199,66 @@ TEST_F(MemoryLeakTest, IterativelyInstantiate) {
     }
 }
 
+// Regression test for http://b/73663843, conv_2d trying to allocate too much memory.
+TEST_F(MemoryLeakTest, convTooLarge) {
+    WrapperModel model;
+
+    // This kernel/input size will make convQuant8 allocate 40 * 13 * 13 * 128 * 92 * 92 ~= 7G
+    // This will alloways fail on 32 bit binaries and probably fail on 64bit devices.
+    WrapperOperandType type3(WrapperType::INT32, {});
+    WrapperOperandType type2(WrapperType::TENSOR_INT32, {128}, 0.25, 0);
+    WrapperOperandType type0(WrapperType::TENSOR_QUANT8_ASYMM, {40, 104, 104, 128}, 0.5, 0);
+    WrapperOperandType type4(WrapperType::TENSOR_QUANT8_ASYMM, {40, 92, 92, 128}, 1.0, 0);
+    WrapperOperandType type1(WrapperType::TENSOR_QUANT8_ASYMM, {128, 13, 13, 128}, 0.5, 0);
+
+    // Operands
+    auto op1 = model.addOperand(&type0);
+    auto op2 = model.addOperand(&type1);
+    auto op3 = model.addOperand(&type2);
+    auto pad0 = model.addOperand(&type3);
+    auto act = model.addOperand(&type3);
+    auto stride = model.addOperand(&type3);
+    auto op4 = model.addOperand(&type4);
+
+    // Operations
+    uint8_t op2_init[128 * 13 * 13 * 128] = {};
+    model.setOperandValue(op2, op2_init, sizeof(op2_init));
+    int32_t op3_init[128] = {};
+    model.setOperandValue(op3, op3_init, sizeof(op3_init));
+    int32_t pad0_init[] = {0};
+    model.setOperandValue(pad0, pad0_init, sizeof(pad0_init));
+    int32_t act_init[] = {0};
+    model.setOperandValue(act, act_init, sizeof(act_init));
+    int32_t stride_init[] = {1};
+    model.setOperandValue(stride, stride_init, sizeof(stride_init));
+    model.addOperation(ANEURALNETWORKS_CONV_2D, {op1, op2, op3, pad0, pad0, pad0, pad0, stride, stride, act}, {op4});
+
+    // Inputs and outputs
+    model.identifyInputsAndOutputs({op1}, {op4});
+    ASSERT_TRUE(model.isValid());
+    model.finish();
+
+    // Compilation
+    WrapperCompilation compilation(&model);
+    ASSERT_EQ(WrapperResult::NO_ERROR,compilation.finish());
+    WrapperExecution execution(&compilation);
+
+    // Set input and outputs
+    static uint8_t input[40 * 104 * 104 * 128] = {};
+    ASSERT_EQ(WrapperResult::NO_ERROR, execution.setInput(0, input, sizeof(input)));
+    static uint8_t output[40 * 92 * 92 * 128] = {};
+    ASSERT_EQ(WrapperResult::NO_ERROR, execution.setOutput(0, output, sizeof(output)));
+
+    // This shouldn't segfault
+    WrapperResult r = execution.compute();
+
+    if (sizeof(size_t) == 4) {
+      // 32 bit binary
+      ASSERT_EQ(WrapperResult::OP_FAILED, r);
+    } else {
+      // 64 bit binary
+      ASSERT_TRUE((WrapperResult::OP_FAILED == r) || (WrapperResult::NO_ERROR == r));
+    }
+}
+
 }  // end namespace
