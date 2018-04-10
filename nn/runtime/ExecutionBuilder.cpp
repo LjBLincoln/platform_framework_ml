@@ -36,8 +36,9 @@ int ModelArgumentInfo::setFromPointer(const Operand& operand,
                                       const ANeuralNetworksOperandType* type, void* data,
                                       uint32_t length) {
     if ((data == nullptr) != (length == 0)) {
+        const char* dataPtrMsg = data ? "NOT_NULLPTR" : "NULLPTR";
         LOG(ERROR) << "Data pointer must be nullptr if and only if length is zero (data = "
-                   << data << ", length = " << length << ")";
+                   << dataPtrMsg << ", length = " << length << ")";
         return ANEURALNETWORKS_BAD_DATA;
     }
     if (data == nullptr) {
@@ -505,7 +506,7 @@ static void logArguments(const char* kind, const std::vector<ModelArgumentInfo> 
         std::string prefix = kind + std::string("[") + std::to_string(i) + "] = ";
         switch (arg.state) {
             case ModelArgumentInfo::POINTER:
-                VLOG(EXECUTION) << prefix << "POINTER(" << arg.buffer << ")";
+                VLOG(EXECUTION) << prefix << "POINTER(" << SHOW_IF_DEBUG(arg.buffer) << ")";
                 break;
             case ModelArgumentInfo::MEMORY:
                 VLOG(EXECUTION) << prefix << "MEMORY("
@@ -629,7 +630,7 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
     // in the design document.
     sp<ExecutionCallback> executionCallback = new ExecutionCallback();
 
-    VLOG(EXECUTION) << "Before mPreparedModel->execute() " << toString(request);
+    VLOG(EXECUTION) << "Before mPreparedModel->execute() " << SHOW_IF_DEBUG(toString(request));
     // Execute.
     // TODO: What happens to the Callback if the service dies abnormally
     // -- won't that keep the Callback live forever, because the service

@@ -193,9 +193,8 @@ int CpuExecutor::run(const V1_0::Model& model, const Request& request,
 int CpuExecutor::run(const V1_1::Model& model, const Request& request,
                      const std::vector<RunTimePoolInfo>& modelPoolInfos,
                      const std::vector<RunTimePoolInfo>& requestPoolInfos) {
-    VLOG(CPUEXE) << "CpuExecutor::run()";
-    // VLOG(CPUEXE) << "model: " << toString(model);
-    VLOG(CPUEXE) << "request: " << toString(request);
+    VLOG(CPUEXE) << "CpuExecutor::run() with request("
+                 << SHOW_IF_DEBUG(toString(request)) << ")";
 
     mModel = &model;
     mRequest = &request; // TODO check if mRequest is needed

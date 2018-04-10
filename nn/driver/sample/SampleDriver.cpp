@@ -132,7 +132,7 @@ void SamplePreparedModel::asyncExecute(const Request& request,
 
 Return<ErrorStatus> SamplePreparedModel::execute(const Request& request,
                                                  const sp<IExecutionCallback>& callback) {
-    VLOG(DRIVER) << "execute(" << toString(request) << ")";
+    VLOG(DRIVER) << "execute(" << SHOW_IF_DEBUG(toString(request)) << ")";
     if (callback.get() == nullptr) {
         LOG(ERROR) << "invalid callback passed to execute";
         return ErrorStatus::INVALID_ARGUMENT;

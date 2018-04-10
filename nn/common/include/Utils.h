@@ -69,6 +69,12 @@ enum VLogFlags {
 extern int vLogMask;
 void initVLogMask();
 
+#ifdef NN_DEBUGGABLE
+#define SHOW_IF_DEBUG(msg) msg
+#else
+#define SHOW_IF_DEBUG(msg) ""
+#endif
+
 // Assert macro, as Android does not generally support assert.
 #define nnAssert(v)                                                                            \
     do {                                                                                       \
