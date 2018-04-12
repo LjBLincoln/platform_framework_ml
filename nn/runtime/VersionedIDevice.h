@@ -143,7 +143,8 @@ public:
      *                - INVALID_ARGUMENT if one of the input arguments is
      *                  invalid
      */
-    ErrorStatus prepareModel(const Model& model, const sp<IPreparedModelCallback>& callback);
+    ErrorStatus prepareModel(const Model& model, ExecutionPreference preference,
+                             const sp<IPreparedModelCallback>& callback);
 
     /**
      * Returns the current status of a driver.

@@ -510,7 +510,7 @@ public:
         return Void();
     }
 
-    Return<ErrorStatus> prepareModel_1_1(const HidlModel& model,
+    Return<ErrorStatus> prepareModel_1_1(const HidlModel& model, ExecutionPreference preference,
                                          const sp<IPreparedModelCallback>& callback) override {
         // NOTE: We verify that all operations in the model are supported.
         ErrorStatus outStatus = ErrorStatus::INVALID_ARGUMENT;
@@ -525,7 +525,7 @@ public:
                 }
             });
         if (ret.isOk() && (outStatus == ErrorStatus::NONE)) {
-            return SampleDriver::prepareModel_1_1(model, callback);
+            return SampleDriver::prepareModel_1_1(model, preference, callback);
         } else {
             callback->notify(ErrorStatus::INVALID_ARGUMENT, nullptr);
             return ErrorStatus::INVALID_ARGUMENT;

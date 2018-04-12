@@ -80,7 +80,8 @@ public:
     // If this step has a submodel output of unknown size, sets
     // *hasOutputOfUnknownSize to true; otherwise, leaves it
     // unchanged.
-    int finishSubModel(const ModelBuilder* fromModel, bool* hasOutputOfUnknownSize);
+    int finishSubModel(const ModelBuilder* fromModel, bool* hasOutputOfUnknownSize,
+                       int32_t executionPreference);
 
     const ModelBuilder* getSubModel() const { return &mSubModel; }
     std::shared_ptr<Device> getDevice() const { return mDevice; }
@@ -203,7 +204,7 @@ public:
     void becomeSingleStep(const std::shared_ptr<Device> device,
                           const ModelBuilder* model);
 
-    int finish(const ModelBuilder* fromModel);
+    int finish(const ModelBuilder* fromModel, int32_t executionPreference);
 
     void recordTemporaryDef(uint32_t fromModelIndex, uint32_t stepIndex) {
         auto& temporaryToDefiningStep = compound()->mTemporaryToDefiningStep;
@@ -226,7 +227,7 @@ private:
     struct Body {
         virtual ~Body() {}
         virtual void dump() const = 0;
-        virtual int finish(const ModelBuilder* fromModel) = 0;
+        virtual int finish(const ModelBuilder* fromModel, int32_t executionPreference) = 0;
         bool mSuccessfulFinish = false;
     };
 
@@ -235,7 +236,7 @@ private:
                 mDevice(device), mModel(model) {}
 
         void dump() const override;
-        int finish(const ModelBuilder* fromModel) override;
+        int finish(const ModelBuilder* fromModel, int32_t executionPreference) override;
 
         std::shared_ptr<Device> mDevice;  // nullptr signifies CPU
         const ModelBuilder* mModel;
@@ -244,7 +245,7 @@ private:
 
     struct CompoundBody : Body {
         void dump() const override;
-        int finish(const ModelBuilder* fromModel) override;
+        int finish(const ModelBuilder* fromModel, int32_t executionPreference) override;
 
         // TODO: Some of the data is working state information that
         // shouldn't be needed after we've constructed but not

@@ -38,6 +38,9 @@ bool validateModel(const V1_1::Model& model);
 bool validateRequest(const Request& request, const V1_0::Model& model);
 bool validateRequest(const Request& request, const V1_1::Model& model);
 
+// Verfies that the execution preference is valid.
+bool validateExecutionPreference(ExecutionPreference preference);
+
 }  // namespace nn
 }  // namespace android
 

@@ -552,7 +552,14 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
 
         // TODO Dangerous!  In async, the model will outlive it here. Safe for now
         sp<PreparedModelCallback> preparedModelCallback = new PreparedModelCallback();
-        ErrorStatus prepareLaunchStatus = mDriver->prepareModel(model, preparedModelCallback);
+        // TODO(butlermichael): Propagate user preference to this point instead of
+        // using default value of ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER, or
+        // remove this entire block of code since it is a stale path that is only
+        // encountered on an #if-removed code.
+        ExecutionPreference preference =
+            static_cast<ExecutionPreference>(ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER);
+        ErrorStatus prepareLaunchStatus = mDriver->prepareModel(model, preference,
+                                                                preparedModelCallback);
         if (prepareLaunchStatus != ErrorStatus::NONE) {
             return convertErrorStatusToResultCode(prepareLaunchStatus);
         }

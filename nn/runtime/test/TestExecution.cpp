@@ -109,11 +109,12 @@ public:
 
     Return<ErrorStatus> prepareModel_1_1(
         const HidlModel& model,
+        ExecutionPreference preference,
         const sp<IPreparedModelCallback>& actualCallback) override {
 
         sp<PreparedModelCallback> localCallback = new PreparedModelCallback;
         Return<ErrorStatus> prepareModelReturn =
-                SampleDriver::prepareModel_1_1(model, localCallback);
+                SampleDriver::prepareModel_1_1(model, preference, localCallback);
         if (!prepareModelReturn.isOkUnchecked()) {
             return prepareModelReturn;
         }

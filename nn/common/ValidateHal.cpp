@@ -515,5 +515,11 @@ bool validateRequest(const Request& request, const V1_1::Model& model) {
     return validateRequestVersioned(request, model);
 }
 
+bool validateExecutionPreference(ExecutionPreference preference) {
+    return preference == ExecutionPreference::LOW_POWER ||
+           preference == ExecutionPreference::FAST_SINGLE_ANSWER ||
+           preference == ExecutionPreference::SUSTAINED_SPEED;
+}
+
 }  // namespace nn
 }  // namespace android

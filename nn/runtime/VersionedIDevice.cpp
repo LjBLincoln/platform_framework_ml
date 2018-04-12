@@ -89,10 +89,10 @@ std::pair<ErrorStatus, hidl_vec<bool>> VersionedIDevice::getSupportedOperations(
     return result;
 }
 
-ErrorStatus VersionedIDevice::prepareModel(const Model& model,
+ErrorStatus VersionedIDevice::prepareModel(const Model& model, ExecutionPreference preference,
                                            const sp<IPreparedModelCallback>& callback) {
     if (mDeviceV1_1 != nullptr) {
-        Return<ErrorStatus> ret = mDeviceV1_1->prepareModel_1_1(model, callback);
+        Return<ErrorStatus> ret = mDeviceV1_1->prepareModel_1_1(model, preference, callback);
         if (!ret.isOk()) {
             LOG(ERROR) << "prepareModel_1_1 failure: " << ret.description();
             return ErrorStatus::GENERAL_FAILURE;

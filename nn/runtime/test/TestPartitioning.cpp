@@ -242,7 +242,7 @@ public:
             mOperationMask(operationMask), mOEM(oem) {}
     ~PartitioningDriver() override {}
 
-    Return<ErrorStatus> prepareModel_1_1(const Model&,
+    Return<ErrorStatus> prepareModel_1_1(const Model&, ExecutionPreference,
                                          const sp<IPreparedModelCallback>& cb) override {
         cb->notify(ErrorStatus::NONE, new PartitioningPreparedModel);
         return ErrorStatus::NONE;

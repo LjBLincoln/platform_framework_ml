@@ -47,6 +47,7 @@ using ::android::hardware::neuralnetworks::V1_0::PerformanceInfo;
 using ::android::hardware::neuralnetworks::V1_0::Request;
 using ::android::hardware::neuralnetworks::V1_0::RequestArgument;
 using ::android::hardware::neuralnetworks::V1_1::Capabilities;
+using ::android::hardware::neuralnetworks::V1_1::ExecutionPreference;
 using ::android::hardware::neuralnetworks::V1_1::IDevice;
 using ::android::hardware::neuralnetworks::V1_1::Model;
 using ::android::hardware::neuralnetworks::V1_1::Operation;
