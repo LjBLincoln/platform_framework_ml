@@ -99,3 +99,9 @@ ndk_library {
     // Android O-MR1
     first_version: "27",
 }
+
+llndk_library {
+    name: "libneuralnetworks",
+    symbol_file: "libneuralnetworks.map.txt",
+    export_include_dirs: ["include"],
+}
