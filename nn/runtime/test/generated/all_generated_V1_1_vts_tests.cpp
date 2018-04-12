@@ -466,6 +466,21 @@ TEST_F(NeuralnetworksHidlTest, floor_relaxed) {
                              floor_relaxed::examples);
 }
 
+namespace fully_connected_float_4d_simple {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float_4d_simple test
+#include "examples/fully_connected_float_4d_simple.example.cpp"
+};
+// Generated model constructor
+#include "vts_models/fully_connected_float_4d_simple.model.cpp"
+} // namespace fully_connected_float_4d_simple
+TEST_F(NeuralnetworksHidlTest, fully_connected_float_4d_simple) {
+    generated_tests::Execute(device,
+                             fully_connected_float_4d_simple::createTestModel,
+                             fully_connected_float_4d_simple::is_ignored,
+                             fully_connected_float_4d_simple::examples);
+}
+
 namespace fully_connected_float_relaxed {
 std::vector<MixedTypedExample> examples = {
 // Generated fully_connected_float_relaxed test

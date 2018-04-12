@@ -350,14 +350,17 @@ bool fullyConnectedPrepare(const Shape& input,
     } else {
         NN_OPS_CHECK(input.type == bias.type);
     }
+    // The Tensorflow fully connected layer specification says that input should
+    // be of at least rank 2, so we check. Tflite doesn't check.
     NN_OPS_CHECK(getNumberOfDimensions(input) >= 2);
-    uint32_t input_size = getNumberOfElements(input);
+    NN_OPS_CHECK(getNumberOfDimensions(weights) == 2);
+    uint32_t input_n_elements = getNumberOfElements(input);
     uint32_t num_units  = getSizeOfDimension(weights, 0);
-    uint32_t batch_size = input_size / getSizeOfDimension(weights, 1);
+    uint32_t input_size = getSizeOfDimension(weights, 1);
+    uint32_t batch_size = input_n_elements / input_size;
 
     NN_OPS_CHECK(getSizeOfDimension(bias, 0) == num_units);
-    NN_OPS_CHECK(getSizeOfDimension(weights, 1) * batch_size == input_size);
-    NN_OPS_CHECK(getNumberOfDimensions(weights) == 2);
+    NN_OPS_CHECK(input_size * batch_size == input_n_elements);
 
     output->type = input.type;
     output->dimensions = {batch_size, num_units};

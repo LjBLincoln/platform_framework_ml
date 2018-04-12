@@ -462,10 +462,11 @@ typedef enum {
      * Supported tensor rank: up to 4.
      *
      * Inputs:
-     * * 0: A tensor, specifying the input. If rank is greater than 2, then it gets flattened to
-     *      a 2-D Tensor. The 2-D Tensor is handled as if dimensions corresponded to shape
-     *      [batch_size, input_size], where “batch_size” corresponds to the batching dimension,
-     *      and “input_size” is the size of the input.
+     * * 0: A tensor of at least rank 2, specifying the input. If rank is greater than 2,
+     *      then it gets flattened to a 2-D Tensor. The (flattened) 2-D Tensor is reshaped
+     *      (if necessary) to [batch_size, input_size], where "input_size" corresponds to
+     *      the number of inputs to the layer, matching the second dimension of weights, and
+     *      "batch_size" is calculated by dividing the number of elements by "input_size".
      * * 1: A 2-D tensor, specifying the weights, of shape [num_units, input_size], where
      *      "num_units" corresponds to the number of output nodes.
      * * 2: A 1-D tensor, of shape [num_units], specifying the bias.
