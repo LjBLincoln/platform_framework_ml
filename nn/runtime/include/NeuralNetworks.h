@@ -1927,7 +1927,7 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
                                       const uint32_t* outputs);
 
 /**
- * Specfifies which operands will be the model's inputs and outputs.
+ * Specifies which operands will be the model's inputs and outputs.
  *
  * An operand cannot be used for both input and output. Doing so will
  * return an error.
