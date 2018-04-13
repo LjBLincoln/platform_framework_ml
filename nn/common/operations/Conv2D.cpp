@@ -55,8 +55,8 @@ static char static_scratch_buffer[kStaticBufferSize];
     for (int i=0; i<4; i++) {                                                   \
         im2colByteSize *= im2colDim.sizes[i];                                   \
     }                                                                           \
-                                                                                \
-    if (sizeof(size_t) == 4 && (im2colByteSize / sizeof(Type)) > 0xFFFFFFFF)  { \
+    /* http://b/77982879, tflite::optimized_ops::Conv uses int for offsets */   \
+    if (im2colByteSize >= 0x7fffffff)  {                                        \
         LOG(ERROR) << "Conv size is too large, not enough memory";              \
         return false;                                                           \
     }                                                                           \
