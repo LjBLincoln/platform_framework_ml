@@ -23,6 +23,7 @@
 #include "HalInterfaces.h"
 #include "Manager.h"
 #include "ModelBuilder.h"
+#include "Utils.h"
 
 #include <mutex>
 #include <thread>
@@ -223,8 +224,9 @@ static void cpuFallbackFull(const ExecutionBuilder* executionBuilder,
                           nullptr /* no IPreparedModel */);
     executor.mapInputsAndOutputsTrivially();
     sp<ExecutionCallback> fallbackCallback;
-    if (executor.startCompute(&fallbackCallback) != ANEURALNETWORKS_NO_ERROR) {
-        executionCallback->notify(ErrorStatus::GENERAL_FAILURE);
+    int n = executor.startCompute(&fallbackCallback);
+    if (n != ANEURALNETWORKS_NO_ERROR) {
+        executionCallback->notify(convertResultCodeToErrorStatus(n));
         return;
     }
     fallbackCallback->wait();
@@ -275,7 +277,7 @@ static void asyncStartComputePartitioned(const ExecutionBuilder* executionBuilde
             if (allowFallback) {
                 cpuFallbackFull(executionBuilder, executionCallback);
             } else {
-                executionCallback->notify(ErrorStatus::GENERAL_FAILURE);
+                executionCallback->notify(convertResultCodeToErrorStatus(n));
             }
             return;
         }
@@ -297,7 +299,7 @@ static void asyncStartComputePartitioned(const ExecutionBuilder* executionBuilde
                     return;
                 }
             } else {
-                executionCallback->notify(ErrorStatus::GENERAL_FAILURE);
+                executionCallback->notify(convertResultCodeToErrorStatus(n));
                 return;
             }
         }
@@ -552,7 +554,7 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
         sp<PreparedModelCallback> preparedModelCallback = new PreparedModelCallback();
         ErrorStatus prepareLaunchStatus = mDriver->prepareModel(model, preparedModelCallback);
         if (prepareLaunchStatus != ErrorStatus::NONE) {
-            return ANEURALNETWORKS_OP_FAILED;
+            return convertErrorStatusToResultCode(prepareLaunchStatus);
         }
 
         // Immediately synchronize with callback object for now
@@ -560,7 +562,10 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
         preparedModelCallback->wait();
         ErrorStatus prepareReturnStatus = preparedModelCallback->getStatus();
         mPreparedModel = preparedModelCallback->getPreparedModel();
-        if (prepareReturnStatus != ErrorStatus::NONE || mPreparedModel == nullptr) {
+        if (prepareReturnStatus != ErrorStatus::NONE) {
+            return convertErrorStatusToResultCode(prepareReturnStatus);
+        }
+        if (mPreparedModel == nullptr) {
             return ANEURALNETWORKS_OP_FAILED;
         }
     }
@@ -628,7 +633,9 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
     Return<ErrorStatus> executeStatus = mPreparedModel->execute(request, executionCallback);
     if (!executeStatus.isOk() || executeStatus != ErrorStatus::NONE) {
         VLOG(EXECUTION) << "**Execute failed**";
-        return ANEURALNETWORKS_OP_FAILED;
+        return executeStatus.isOk()
+                ? convertErrorStatusToResultCode(executeStatus)
+                : ANEURALNETWORKS_OP_FAILED;
     }
 
     // TODO: Remove this synchronization point when the block of code below is
@@ -637,7 +644,9 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
     Return<ErrorStatus> callbackStatus = executionCallback->getStatus();
     if (!callbackStatus.isOk() || callbackStatus != ErrorStatus::NONE) {
         VLOG(EXECUTION) << "**Execute async failed**";
-        return ANEURALNETWORKS_OP_FAILED;
+        return callbackStatus.isOk()
+                ? convertErrorStatusToResultCode(callbackStatus)
+                : ANEURALNETWORKS_OP_FAILED;
     }
 
     // Copy the output data from shared memory to the output buffers.
@@ -667,9 +676,7 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
                                    const sp<IExecutionCallback>& executionCallback) {
     CpuExecutor executor;
     int err = executor.run(model, request, modelPoolInfos, requestPoolInfos);
-    ErrorStatus status = err == ANEURALNETWORKS_NO_ERROR ?
-            ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;
-    executionCallback->notify(status);
+    executionCallback->notify(convertResultCodeToErrorStatus(err));
 }
 
 int StepExecutor::startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallback) {
