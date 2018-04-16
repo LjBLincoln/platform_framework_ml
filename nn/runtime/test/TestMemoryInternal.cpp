@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 
 #include <fstream>
+#include <string>
 
 using WrapperCompilation = ::android::nn::wrapper::Compilation;
 using WrapperExecution = ::android::nn::wrapper::Execution;
@@ -40,18 +41,52 @@ using WrapperType = ::android::nn::wrapper::Type;
 namespace {
 
 // Tests to ensure that various kinds of memory leaks do not occur.
+//
+// The fixture checks that no anonymous shared memory regions are leaked by
+// comparing the count of /dev/ashmem mappings in SetUp and TearDown. This could
+// break if the test or framework starts lazily instantiating something that
+// creates a mapping - at that point the way the test works needs to be
+// reinvestigated. The filename /dev/ashmem is a documented part of the Android
+// kernel interface (see
+// https://source.android.com/devices/architecture/kernel/reqs-interfaces).
+//
+// (We can also get very unlucky and mask a memory leak by unrelated unmapping
+// somewhere else. This seems unlikely enough to not deal with.)
 class MemoryLeakTest : public ::testing::Test {
 protected:
     void SetUp() override;
+    void TearDown() override;
 
-    int mMaxMapCount = 0;
+private:
+    size_t GetAshmemMappingsCount();
+
+    size_t mStartingMapCount = 0;
 };
 
 void MemoryLeakTest::SetUp() {
-    std::ifstream maxMapCountStream("/proc/sys/vm/max_map_count");
-    if (maxMapCountStream) {
-        maxMapCountStream >> mMaxMapCount;
+    mStartingMapCount = GetAshmemMappingsCount();
+}
+
+void MemoryLeakTest::TearDown() {
+    const size_t endingMapCount = GetAshmemMappingsCount();
+    ASSERT_EQ(mStartingMapCount, endingMapCount);
+}
+
+size_t MemoryLeakTest::GetAshmemMappingsCount() {
+    std::ifstream mappingsStream("/proc/self/maps");
+    if (! mappingsStream.good()) {
+        // errno is set by std::ifstream on Linux
+        ADD_FAILURE() << "Failed to open /proc/self/maps: " << std::strerror(errno);
+        return 0;
     }
+    std::string line;
+    int mapCount = 0;
+    while (std::getline(mappingsStream, line)) {
+      if (line.find("/dev/ashmem") != std::string::npos) {
+        ++mapCount;
+      }
+    }
+    return mapCount;
 }
 
 // As well as serving as a functional test for ASharedMemory, also
@@ -60,22 +95,20 @@ void MemoryLeakTest::SetUp() {
 //
 // TODO: test non-zero offset.
 TEST_F(MemoryLeakTest, TestASharedMemory) {
-    ASSERT_GT(mMaxMapCount, 0);
-
     // Layout where to place matrix2 and matrix3 in the memory we'll allocate.
     // We have gaps to test that we don't assume contiguity.
     constexpr uint32_t offsetForMatrix2 = 20;
     constexpr uint32_t offsetForMatrix3 = offsetForMatrix2 + sizeof(matrix2) + 30;
-    constexpr uint32_t memorySize = offsetForMatrix3 + sizeof(matrix3) + 60;
+    constexpr uint32_t weightsSize = offsetForMatrix3 + sizeof(matrix3) + 60;
 
-    int weightsFd = ASharedMemory_create("weights", memorySize);
+    int weightsFd = ASharedMemory_create("weights", weightsSize);
     ASSERT_GT(weightsFd, -1);
-    uint8_t* weightsData = (uint8_t*)mmap(nullptr, memorySize, PROT_READ | PROT_WRITE,
+    uint8_t* weightsData = (uint8_t*)mmap(nullptr, weightsSize, PROT_READ | PROT_WRITE,
                                           MAP_SHARED, weightsFd, 0);
     ASSERT_NE(weightsData, nullptr);
     memcpy(weightsData + offsetForMatrix2, matrix2, sizeof(matrix2));
     memcpy(weightsData + offsetForMatrix3, matrix3, sizeof(matrix3));
-    WrapperMemory weights(memorySize, PROT_READ | PROT_WRITE, weightsFd, 0);
+    WrapperMemory weights(weightsSize, PROT_READ | PROT_WRITE, weightsFd, 0);
     ASSERT_TRUE(weights.isValid());
 
     WrapperModel model;
@@ -100,51 +133,50 @@ TEST_F(MemoryLeakTest, TestASharedMemory) {
 
     // Test the two node model.
     constexpr uint32_t offsetForMatrix1 = 20;
-    int inputFd = ASharedMemory_create("input", offsetForMatrix1 + sizeof(Matrix3x4));
+    constexpr size_t inputSize = offsetForMatrix1 + sizeof(Matrix3x4);
+    int inputFd = ASharedMemory_create("input", inputSize);
     ASSERT_GT(inputFd, -1);
-    uint8_t* inputData = (uint8_t*)mmap(nullptr, offsetForMatrix1 + sizeof(Matrix3x4),
+    uint8_t* inputData = (uint8_t*)mmap(nullptr, inputSize,
                                         PROT_READ | PROT_WRITE, MAP_SHARED, inputFd, 0);
     ASSERT_NE(inputData, nullptr);
     memcpy(inputData + offsetForMatrix1, matrix1, sizeof(Matrix3x4));
-    WrapperMemory input(offsetForMatrix1 + sizeof(Matrix3x4), PROT_READ, inputFd, 0);
+    WrapperMemory input(inputSize, PROT_READ, inputFd, 0);
     ASSERT_TRUE(input.isValid());
 
     constexpr uint32_t offsetForActual = 32;
-    int outputFd = ASharedMemory_create("output", offsetForActual + sizeof(Matrix3x4));
+    constexpr size_t outputSize = offsetForActual + sizeof(Matrix3x4);
+    int outputFd = ASharedMemory_create("output", outputSize);
     ASSERT_GT(outputFd, -1);
-    uint8_t* outputData = (uint8_t*)mmap(nullptr, offsetForActual + sizeof(Matrix3x4),
+    uint8_t* outputData = (uint8_t*)mmap(nullptr, outputSize,
                                          PROT_READ | PROT_WRITE, MAP_SHARED, outputFd, 0);
     ASSERT_NE(outputData, nullptr);
-    memset(outputData, 0, offsetForActual + sizeof(Matrix3x4));
-    WrapperMemory actual(offsetForActual + sizeof(Matrix3x4), PROT_READ | PROT_WRITE, outputFd, 0);
+    memset(outputData, 0, outputSize);
+    WrapperMemory actual(outputSize, PROT_READ | PROT_WRITE, outputFd, 0);
     ASSERT_TRUE(actual.isValid());
 
     WrapperCompilation compilation2(&model);
     ASSERT_EQ(compilation2.finish(), WrapperResult::NO_ERROR);
 
-    for (int i = 0, e = mMaxMapCount + 10; i < e; i++) {
-        SCOPED_TRACE(i);
-        WrapperExecution execution2(&compilation2);
-        ASSERT_EQ(execution2.setInputFromMemory(0, &input, offsetForMatrix1, sizeof(Matrix3x4)),
-                  WrapperResult::NO_ERROR);
-        ASSERT_EQ(execution2.setOutputFromMemory(0, &actual, offsetForActual, sizeof(Matrix3x4)),
-                  WrapperResult::NO_ERROR);
-        ASSERT_EQ(execution2.compute(), WrapperResult::NO_ERROR);
-        ASSERT_EQ(CompareMatrices(expected3,
-                                  *reinterpret_cast<Matrix3x4*>(outputData + offsetForActual)), 0);
-    }
+    WrapperExecution execution2(&compilation2);
+    ASSERT_EQ(execution2.setInputFromMemory(0, &input, offsetForMatrix1, sizeof(Matrix3x4)),
+              WrapperResult::NO_ERROR);
+    ASSERT_EQ(execution2.setOutputFromMemory(0, &actual, offsetForActual, sizeof(Matrix3x4)),
+              WrapperResult::NO_ERROR);
+    ASSERT_EQ(execution2.compute(), WrapperResult::NO_ERROR);
+    ASSERT_EQ(CompareMatrices(expected3,
+                              *reinterpret_cast<Matrix3x4*>(outputData + offsetForActual)), 0);
 
+    munmap(weightsData, weightsSize);
+    munmap(inputData, inputSize);
+    munmap(outputData, outputSize);
     close(weightsFd);
     close(inputFd);
     close(outputFd);
 }
 
 // Regression test for http://b/69621433 "MemoryFd leaks shared memory regions".
-TEST_F(MemoryLeakTest, IterativelyGetPointer) {
-    ASSERT_GT(mMaxMapCount, 0);
-
+TEST_F(MemoryLeakTest, GetPointer) {
     static const size_t size = 1;
-    const int iterations = mMaxMapCount + 10;
 
     int fd = ASharedMemory_create(nullptr, size);
     ASSERT_GE(fd, 0);
@@ -165,39 +197,29 @@ TEST_F(MemoryLeakTest, IterativelyGetPointer) {
 
         auto internalMem = reinterpret_cast<::android::nn::Memory*>(mem.get());
         uint8_t *dummy;
-        for (int i = 0; i < iterations; i++) {
-            SCOPED_TRACE(i);
-            ASSERT_EQ(internalMem->getPointer(&dummy), ANEURALNETWORKS_NO_ERROR);
-            (*dummy)++;
-        }
+        ASSERT_EQ(internalMem->getPointer(&dummy), ANEURALNETWORKS_NO_ERROR);
+        (*dummy)++;
     }
 
-    ASSERT_EQ(*buf, (uint8_t)iterations);
-
+    ASSERT_EQ(*buf, (uint8_t)1);
     ASSERT_EQ(munmap(buf, size), 0);
 
     close(fd);
 }
 
 // Regression test for http://b/69621433 "MemoryFd leaks shared memory regions".
-TEST_F(MemoryLeakTest, IterativelyInstantiate) {
-    ASSERT_GT(mMaxMapCount, 0);
+TEST_F(MemoryLeakTest, Instantiate) {
+    static const size_t size = 1;
+    int fd = ASharedMemory_create(nullptr, size);
+    ASSERT_GE(fd, 0);
+    WrapperMemory mem(size, PROT_READ | PROT_WRITE, fd, 0);
+    ASSERT_TRUE(mem.isValid());
 
-    for (int i = 0, e = mMaxMapCount + 10; i < e; i++) {
-        SCOPED_TRACE(i);
+    auto internalMem = reinterpret_cast<::android::nn::Memory*>(mem.get());
+    uint8_t *dummy;
+    ASSERT_EQ(internalMem->getPointer(&dummy), ANEURALNETWORKS_NO_ERROR);
 
-        static const size_t size = 1;
-        int fd = ASharedMemory_create(nullptr, size);
-        ASSERT_GE(fd, 0);
-        WrapperMemory mem(size, PROT_READ | PROT_WRITE, fd, 0);
-        ASSERT_TRUE(mem.isValid());
-
-        auto internalMem = reinterpret_cast<::android::nn::Memory*>(mem.get());
-        uint8_t *dummy;
-        ASSERT_EQ(internalMem->getPointer(&dummy), ANEURALNETWORKS_NO_ERROR);
-
-        close(fd);
-    }
+    close(fd);
 }
 
 #ifndef NNTEST_ONLY_PUBLIC_API
