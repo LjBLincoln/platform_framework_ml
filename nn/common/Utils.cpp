@@ -302,7 +302,7 @@ int validateOperandType(const ANeuralNetworksOperandType& type, const char* tag,
             LOG(ERROR) << tag << " OperandType invalid zeroPoint " << type.zeroPoint;
             return ANEURALNETWORKS_BAD_DATA;
         }
-        if (type.scale < 0.f) {
+        if (type.scale <= 0.f) {
             LOG(ERROR) << tag << " OperandType invalid scale " << type.scale;
             return ANEURALNETWORKS_BAD_DATA;
         }
