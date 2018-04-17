@@ -33,6 +33,7 @@
 
 namespace generated_tests {
 using namespace android::nn::wrapper;
+using namespace test_helper;
 
 void graphDump([[maybe_unused]] const char* name, [[maybe_unused]] const Model& model) {
 #ifdef GRAPH
@@ -132,14 +133,15 @@ static void execute(std::function<void(Model*)> createModel,
 using namespace android::nn::wrapper;
 
 // Mixed-typed examples
-typedef generated_tests::MixedTypedExampleType MixedTypedExample;
+typedef test_helper::MixedTypedExampleType MixedTypedExample;
 
 class GeneratedTests : public ::testing::Test {
-   protected:
+protected:
     virtual void SetUp() {}
 };
 
 // Testcases generated from runtime/test/specs/*.mod.py
+using namespace test_helper;
 using namespace generated_tests;
 #include "generated/all_generated_tests.cpp"
 // End of testcases generated from runtime/test/specs/*.mod.py

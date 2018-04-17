@@ -28,7 +28,7 @@
 #include <tuple>
 #include <vector>
 
-namespace generated_tests {
+namespace test_helper {
 
 constexpr const size_t gMaximumNumberOfErrorMessages = 10;
 
@@ -204,6 +204,6 @@ inline void compare(const MixedTyped& golden, const MixedTyped& test, float fpRa
     EXPECT_EQ(size_t{0}, totalNumberOfErrors);
 }
 
-};  // namespace generated_tests
+};  // namespace test_helper
 
 #endif  // ANDROID_ML_NN_TOOLS_TEST_GENERATOR_TEST_HARNESS_H

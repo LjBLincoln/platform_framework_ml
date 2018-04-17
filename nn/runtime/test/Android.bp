@@ -26,6 +26,7 @@ cc_defaults {
         "TestMemory.cpp",
         "TestMemoryInternal.cpp",
         "TestTrivialModel.cpp",
+        "TestUnknownDimensions.cpp",
         "TestValidateOperations.cpp",
         "TestValidation.cpp",
         "TestWrapper.cpp",
