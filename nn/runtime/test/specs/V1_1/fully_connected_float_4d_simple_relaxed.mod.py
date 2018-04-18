@@ -29,6 +29,7 @@ bias = Parameter("b0", "TENSOR_FLOAT32", "{3}", [1, 2, 3])
 out0 = Output("op3", "TENSOR_FLOAT32", "{2, 3}")
 act = Int32Scalar("act", 0)
 model = model.Operation("FULLY_CONNECTED", in0, weights, bias, act).To(out0)
+model = model.RelaxedExecution(True)
 
 # Example 1. Input in operand 0,
 input0 = {in0: # input 0
