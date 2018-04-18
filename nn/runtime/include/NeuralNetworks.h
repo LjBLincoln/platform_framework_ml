@@ -61,27 +61,23 @@ __BEGIN_DECLS
  * and {@link ANEURALNETWORKS_INT32}.
  */
 typedef enum {
-    /** The following entries are used to declare scalars. */
-
     /** A 32 bit floating point scalar value. */
-    ANEURALNETWORKS_FLOAT32 = 0,
+    ANEURALNETWORKS_FLOAT32             = 0,
     /** A signed 32 bit integer scalar value. */
-    ANEURALNETWORKS_INT32 = 1,
+    ANEURALNETWORKS_INT32               = 1,
     /** An unsigned 32 bit integer scalar value. */
-    ANEURALNETWORKS_UINT32 = 2,
-
-    /** The following entries are used to declare tensors. */
+    ANEURALNETWORKS_UINT32              = 2,
 
     /** A tensor of 32 bit floating point values. */
-    ANEURALNETWORKS_TENSOR_FLOAT32 = 3,
+    ANEURALNETWORKS_TENSOR_FLOAT32      = 3,
     /** A tensor of 32 bit integer values. */
-    ANEURALNETWORKS_TENSOR_INT32 = 4,
+    ANEURALNETWORKS_TENSOR_INT32        = 4,
     /** A tensor of 8 bit integers that represent real numbers.
      *
-     * Attached to this tensor are two numbers that can be used to convert
-     * the 8 bit integer to the real value and vice versa.  These two numbers are:
+     * Attached to this tensor are two numbers that can be used to convert the
+     * 8 bit integer to the real value and vice versa. These two numbers are:
      * - scale: a 32 bit floating point value greater than zero.
-     * - zeroPoint: an 32 bit integer, in range [0, 255].
+     * - zeroPoint: a 32 bit integer, in range [0, 255].
      *
      * The formula is:
      * real_value = (integer_value - zeroPoint) * scale.
@@ -413,12 +409,12 @@ typedef enum {
      * to create the output tensor.
      *
      * For example, if Values has shape of [40, 200, 300] and
-     * Lookups has shape of [3], we would expect all three values
-     * found in Lookups to be  between 0 and 39. The resulting tensor will
+     * Lookups has shape of [3], all three values found in Lookups are
+     * expected to be between 0 and 39. The resulting tensor must
      * have shape of [3, 200, 300].
      *
-     * If a value in Lookups is out of bounds, the operation will fail
-     * and an error will be reported.
+     * If a value in Lookups is out of bounds, the operation must fail
+     * and an error must be reported.
      *
      * Inputs:
      * * 0: Lookups. A 1-D tensor of {@link ANEURALNETWORKS_TENSOR_INT32} type.
@@ -499,17 +495,17 @@ typedef enum {
      * same index as the Maps entry that matches the value in Lookups.
      *
      * For a hit, the corresponding sub-tensor of Values is included
-     * in the Output tensor.  For a miss, the corresponding sub-tensor in
-     * Output will have zero values.
+     * in the Output tensor. For a miss, the corresponding sub-tensor in
+     * Output must have zero values.
      *
      * For example, if Values has shape of [40, 200, 300],
      * Keys should have a shape of [40]. If Lookups tensor has shape
-     * of [3], we're concatenating three slices, so the resulting tensor
-     * will have the shape of [3, 200, 300]. If the first entry in
-     * Lookups has the value 123456, we'll look for that value in Keys tensor.
-     * If the sixth entry of Keys contains 123456, we'll select the sixth
-     * slice of Values. If no entry in Keys has 123456, a slice of zeroes
-     * will be concatenated.
+     * of [3], three slices are being concatenated, so the resulting tensor
+     * must have the shape of [3, 200, 300]. If the first entry in Lookups
+     * has the value 123456, that value must be located in Keys tensor.
+     * If the sixth entry of Keys contains 123456, the sixth slice of Values
+     * must be selected. If no entry in Keys has 123456, a slice of zeroes
+     * must be concatenated.
      *
      * Inputs:
      * * 0: Lookups. A 1-D {@link ANEURALNETWORKS_TENSOR_INT32} tensor with shape [ k ].
@@ -1016,7 +1012,7 @@ typedef enum {
 
     /** Resizes images to given size using the bilinear interpretation.
      *
-     * Resized images will be distorted if their output aspect ratio is not the same as
+     * Resized images must be distorted if their output aspect ratio is not the same as
      * input aspect ratio. The corner pixels of output may not be the same as
      * corner pixels of input.
      *
@@ -1388,7 +1384,7 @@ typedef enum {
      * 0: An n-D tensor, the tensor to be squeezed.
      * 1: An optional 1-D tensor of type TENSOR_INT32. The dimensions to squeeze. If specified
      *    only squeezes the dimensions listed. Otherwise, squeezes all dimensions.
-     *    The dimension index starts at 0. An error will be reported if squeezing a dimension that
+     *    The dimension index starts at 0. An error must be reported if squeezing a dimension that
      *    is not 1.
      *
      * Outputs:
@@ -1425,7 +1421,7 @@ typedef enum {
      *    the fullest possible range in that dimension is used instead.
      * 6: An INT32 value, shrink_axis_mask. An int32 mask. If the ith bit of shrink_axis_mask is
      *    set, it implies that the ith specification shrinks the dimensionality by 1. A slice of
-     *    size 1 starting from begin[i] in the dimension will be preserved.
+     *    size 1 starting from begin[i] in the dimension must be preserved.
      *
      * Outputs:
      * 0: A tensor of the same type as input0.
