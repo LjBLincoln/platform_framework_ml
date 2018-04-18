@@ -71,7 +71,6 @@ Model createTestModel() {
         .outputIndexes = outputIndexes,
         .operandValues = operandValues,
         .pools = pools,
-        .relaxComputationFloat32toFloat16 = true,
     };
 }
 

@@ -23,8 +23,6 @@ void CreateModel(Model *model) {
   model->identifyInputsAndOutputs(
     {op1},
     {op3});
-  // Phase 4: set relaxed execution
-  model->relaxComputationFloat32toFloat16(true);
   assert(model->isValid());
 }
 
