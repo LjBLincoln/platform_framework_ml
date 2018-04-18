@@ -61,10 +61,12 @@ Return<ErrorStatus> SampleDriver::prepareModel(const V1_0::Model& model,
         callback->notify(ErrorStatus::INVALID_ARGUMENT, nullptr);
         return ErrorStatus::INVALID_ARGUMENT;
     }
-    return prepareModel_1_1(convertToV1_1(model), callback);
+    return prepareModel_1_1(convertToV1_1(model), ExecutionPreference::FAST_SINGLE_ANSWER,
+                            callback);
 }
 
 Return<ErrorStatus> SampleDriver::prepareModel_1_1(const V1_1::Model& model,
+                                                   ExecutionPreference preference,
                                                    const sp<IPreparedModelCallback>& callback) {
     if (VLOG_IS_ON(DRIVER)) {
         VLOG(DRIVER) << "prepareModel_1_1";
@@ -74,7 +76,7 @@ Return<ErrorStatus> SampleDriver::prepareModel_1_1(const V1_1::Model& model,
         LOG(ERROR) << "invalid callback passed to prepareModel";
         return ErrorStatus::INVALID_ARGUMENT;
     }
-    if (!validateModel(model)) {
+    if (!validateModel(model) || !validateExecutionPreference(preference)) {
         callback->notify(ErrorStatus::INVALID_ARGUMENT, nullptr);
         return ErrorStatus::INVALID_ARGUMENT;
     }
@@ -118,8 +120,7 @@ void SamplePreparedModel::asyncExecute(const Request& request,
     }
 
     CpuExecutor executor;
-    V1_1::Model model = convertToV1_1(mModel);
-    int n = executor.run(model, request, mPoolInfos, requestPoolInfos);
+    int n = executor.run(mModel, request, mPoolInfos, requestPoolInfos);
     VLOG(DRIVER) << "executor.run returned " << n;
     ErrorStatus executionStatus =
             n == ANEURALNETWORKS_NO_ERROR ? ErrorStatus::NONE : ErrorStatus::GENERAL_FAILURE;

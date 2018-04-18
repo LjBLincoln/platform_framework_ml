@@ -184,7 +184,13 @@ static bool setInfoAndAllocateIfNeeded(RunTimeOperandInfo* info, const Shape& sh
 
 // Ignore the .pools entry in model and request.  This will have been taken care of
 // by the caller.
-int CpuExecutor::run(const Model& model, const Request& request,
+int CpuExecutor::run(const V1_0::Model& model, const Request& request,
+                     const std::vector<RunTimePoolInfo>& modelPoolInfos,
+                     const std::vector<RunTimePoolInfo>& requestPoolInfos) {
+    return run(convertToV1_1(model), request, modelPoolInfos, requestPoolInfos);
+}
+
+int CpuExecutor::run(const V1_1::Model& model, const Request& request,
                      const std::vector<RunTimePoolInfo>& modelPoolInfos,
                      const std::vector<RunTimePoolInfo>& requestPoolInfos) {
     VLOG(CPUEXE) << "CpuExecutor::run()";
@@ -1298,12 +1304,11 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                 svdf.Eval();
         } break;
         case OperationType::BATCH_TO_SPACE_ND: {
-            if (!allParametersPresent(3, 1)) {
+            if (!allParametersPresent(2, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
             const RunTimeOperandInfo& blockSize = mOperands[ins[1]];
-            const RunTimeOperandInfo& crops = mOperands[ins[2]];
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
@@ -1409,7 +1414,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
                                        outShape);
         } break;
         case OperationType::STRIDED_SLICE: {
-            if (!allParametersPresent(6, 1)) {
+            if (!allParametersPresent(7, 1)) {
                 return ANEURALNETWORKS_BAD_DATA;
             }
             const RunTimeOperandInfo& input = mOperands[ins[0]];
@@ -1418,26 +1423,27 @@ int CpuExecutor::executeOperation(const Operation& operation) {
             const RunTimeOperandInfo& strides = mOperands[ins[3]];
             int32_t beginMask = getScalarData<int32_t>(mOperands[ins[4]]);
             int32_t endMask = getScalarData<int32_t>(mOperands[ins[5]]);
+            int32_t shrinkAxisMask = getScalarData<int32_t>(mOperands[ins[6]]);
 
             RunTimeOperandInfo& output = mOperands[outs[0]];
             Shape outShape = output.shape();
 
             success = stridedSlicePrepare(input.shape(),
                                           reinterpret_cast<const int32_t*>(begins.buffer),
-                                          begins.shape(), beginMask,
+                                          begins.shape(),
                                           reinterpret_cast<const int32_t*>(ends.buffer),
-                                          ends.shape(), endMask,
+                                          ends.shape(),
                                           reinterpret_cast<const int32_t*>(strides.buffer),
                                           strides.shape(),
+                                          beginMask, endMask, shrinkAxisMask,
                                           &outShape) &&
                       setInfoAndAllocateIfNeeded(&output, outShape) &&
                       stridedSliceGeneric(input.buffer,
                                           input.shape(),
                                           reinterpret_cast<const int32_t*>(begins.buffer),
-                                          beginMask,
                                           reinterpret_cast<const int32_t*>(ends.buffer),
-                                          endMask ,
                                           reinterpret_cast<const int32_t*>(strides.buffer),
+                                          beginMask, endMask, shrinkAxisMask,
                                           output.buffer,
                                           outShape);
         } break;

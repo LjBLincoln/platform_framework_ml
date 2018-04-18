@@ -21,15 +21,6 @@ Model createTestModel() {
             .location = {.poolIndex = 0, .offset = 0, .length = 8},
         },
         {
-            .type = OperandType::TENSOR_INT32,
-            .dimensions = {2, 2},
-            .numberOfConsumers = 1,
-            .scale = 0.0f,
-            .zeroPoint = 0,
-            .lifetime = OperandLifeTime::CONSTANT_COPY,
-            .location = {.poolIndex = 0, .offset = 8, .length = 16},
-        },
-        {
             .type = OperandType::TENSOR_FLOAT32,
             .dimensions = {1, 2, 2, 2},
             .numberOfConsumers = 0,
@@ -43,15 +34,15 @@ Model createTestModel() {
     const std::vector<Operation> operations = {
         {
             .type = OperationType::BATCH_TO_SPACE_ND,
-            .inputs = {0, 1, 2},
-            .outputs = {3},
+            .inputs = {0, 1},
+            .outputs = {2},
         }
     };
 
     const std::vector<uint32_t> inputIndexes = {0};
-    const std::vector<uint32_t> outputIndexes = {3};
+    const std::vector<uint32_t> outputIndexes = {2};
     std::vector<uint8_t> operandValues = {
-      2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      2, 0, 0, 0, 2, 0, 0, 0
     };
     const std::vector<hidl_memory> pools = {};
 

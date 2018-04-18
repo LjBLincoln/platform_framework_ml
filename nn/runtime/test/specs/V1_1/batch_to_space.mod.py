@@ -1,10 +1,9 @@
 model = Model()
 i1 = Input("input", "TENSOR_FLOAT32", "{4, 1, 1, 2}")
 block = Parameter("block_size", "TENSOR_INT32", "{2}", [2, 2])
-crops = Parameter("crops", "TENSOR_INT32", "{2, 2}", [0, 0, 0, 0])
 output = Output("output", "TENSOR_FLOAT32", "{1, 2, 2, 2}")
 
-model = model.Operation("BATCH_TO_SPACE_ND", i1, block, crops).To(output)
+model = model.Operation("BATCH_TO_SPACE_ND", i1, block).To(output)
 
 # Example 1. Input in operand 0,
 input0 = {i1: # input 0

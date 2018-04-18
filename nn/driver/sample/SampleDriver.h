@@ -41,7 +41,7 @@ public:
                                         getSupportedOperations_cb cb) override;
     Return<ErrorStatus> prepareModel(const V1_0::Model& model,
                                      const sp<IPreparedModelCallback>& callback) override;
-    Return<ErrorStatus> prepareModel_1_1(const V1_1::Model& model,
+    Return<ErrorStatus> prepareModel_1_1(const V1_1::Model& model, ExecutionPreference preference,
                                          const sp<IPreparedModelCallback>& callback) override;
     Return<DeviceStatus> getStatus() override;
 

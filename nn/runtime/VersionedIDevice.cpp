@@ -33,7 +33,7 @@ std::pair<ErrorStatus, Capabilities> VersionedIDevice::getCapabilities() {
 
     if (mDeviceV1_1 != nullptr) {
         Return<void> ret = mDeviceV1_1->getCapabilities_1_1(
-            [&](ErrorStatus error, const Capabilities& capabilities) {
+            [&result](ErrorStatus error, const Capabilities& capabilities) {
                 result = std::make_pair(error, capabilities);
             });
         if (!ret.isOk()) {
@@ -42,7 +42,7 @@ std::pair<ErrorStatus, Capabilities> VersionedIDevice::getCapabilities() {
         }
     } else if (mDeviceV1_0 != nullptr) {
         Return<void> ret = mDeviceV1_0->getCapabilities(
-            [&](ErrorStatus error, const V1_0::Capabilities& capabilities) {
+            [&result](ErrorStatus error, const V1_0::Capabilities& capabilities) {
                 result = std::make_pair(error, convertToV1_1(capabilities));
             });
         if (!ret.isOk()) {
@@ -63,7 +63,7 @@ std::pair<ErrorStatus, hidl_vec<bool>> VersionedIDevice::getSupportedOperations(
 
     if (mDeviceV1_1 != nullptr) {
         Return<void> ret = mDeviceV1_1->getSupportedOperations_1_1(
-            model, [&](ErrorStatus error, const hidl_vec<bool>& supported) {
+            model, [&result](ErrorStatus error, const hidl_vec<bool>& supported) {
                 result = std::make_pair(error, supported);
             });
         if (!ret.isOk()) {
@@ -72,7 +72,7 @@ std::pair<ErrorStatus, hidl_vec<bool>> VersionedIDevice::getSupportedOperations(
         }
     } else if (mDeviceV1_0 != nullptr && compliantWithV1_0(model)) {
         Return<void> ret = mDeviceV1_0->getSupportedOperations(
-            convertToV1_0(model), [&](ErrorStatus error, const hidl_vec<bool>& supported) {
+            convertToV1_0(model), [&result](ErrorStatus error, const hidl_vec<bool>& supported) {
                 result = std::make_pair(error, supported);
             });
         if (!ret.isOk()) {
@@ -89,10 +89,10 @@ std::pair<ErrorStatus, hidl_vec<bool>> VersionedIDevice::getSupportedOperations(
     return result;
 }
 
-ErrorStatus VersionedIDevice::prepareModel(const Model& model,
+ErrorStatus VersionedIDevice::prepareModel(const Model& model, ExecutionPreference preference,
                                            const sp<IPreparedModelCallback>& callback) {
     if (mDeviceV1_1 != nullptr) {
-        Return<ErrorStatus> ret = mDeviceV1_1->prepareModel_1_1(model, callback);
+        Return<ErrorStatus> ret = mDeviceV1_1->prepareModel_1_1(model, preference, callback);
         if (!ret.isOk()) {
             LOG(ERROR) << "prepareModel_1_1 failure: " << ret.description();
             return ErrorStatus::GENERAL_FAILURE;

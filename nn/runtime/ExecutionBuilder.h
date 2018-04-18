@@ -22,7 +22,6 @@
 #include "Memory.h"
 #include "ModelBuilder.h"
 #include "NeuralNetworks.h"
-#include "VersionedIDevice.h"
 
 #include <unordered_map>
 #include <vector>
@@ -38,6 +37,7 @@ class ExecutionPlan;
 class Memory;
 class ModelBuilder;
 class StepExecutor;
+class VersionedIDevice;
 
 // TODO move length out of DataLocation
 struct ModelArgumentInfo {

@@ -57,6 +57,15 @@ Model createTestModel() {
             .location = {.poolIndex = 0, .offset = 16, .length = 4},
         },
         {
+            .type = OperandType::INT32,
+            .dimensions = {},
+            .numberOfConsumers = 1,
+            .scale = 0.0f,
+            .zeroPoint = 0,
+            .lifetime = OperandLifeTime::CONSTANT_COPY,
+            .location = {.poolIndex = 0, .offset = 20, .length = 4},
+        },
+        {
             .type = OperandType::TENSOR_QUANT8_ASYMM,
             .dimensions = {2},
             .numberOfConsumers = 0,
@@ -70,15 +79,15 @@ Model createTestModel() {
     const std::vector<Operation> operations = {
         {
             .type = OperationType::STRIDED_SLICE,
-            .inputs = {0, 1, 2, 3, 4, 5},
-            .outputs = {6},
+            .inputs = {0, 1, 2, 3, 4, 5, 6},
+            .outputs = {7},
         }
     };
 
     const std::vector<uint32_t> inputIndexes = {0};
-    const std::vector<uint32_t> outputIndexes = {6};
+    const std::vector<uint32_t> outputIndexes = {7};
     std::vector<uint8_t> operandValues = {
-      1, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      1, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     };
     const std::vector<hidl_memory> pools = {};
 

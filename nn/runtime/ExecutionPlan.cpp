@@ -38,17 +38,16 @@ using ::android::hardware::neuralnetworks::V1_0::implementation::PreparedModelCa
 namespace android {
 namespace nn {
 
-static int compile(std::shared_ptr<Device> device,
-                   const ModelBuilder* model,
-                   sp<IPreparedModel>* preparedModel) {
+static int compile(std::shared_ptr<Device> device, const ModelBuilder* model,
+                   int32_t executionPreference, sp<IPreparedModel>* preparedModel) {
     nnAssert(device != nullptr);  // nullptr indicates CPU
     // Compilation logic copied from ExecutionBuilder::startComputeOnDevice().
     Model hidlModel;
     model->setHidlModel(&hidlModel);
 
     sp<PreparedModelCallback> preparedModelCallback = new PreparedModelCallback();
-    Return<ErrorStatus> prepareLaunchStatus =
-            device->getInterface()->prepareModel(hidlModel, preparedModelCallback);
+    Return<ErrorStatus> prepareLaunchStatus = device->getInterface()->prepareModel(
+        hidlModel, static_cast<ExecutionPreference>(executionPreference), preparedModelCallback);
     if (!prepareLaunchStatus.isOk()) {
         LOG(ERROR) << "ExecutionStep::finishSubModel compilation failed due to transport error: "
                    << prepareLaunchStatus.description();
@@ -347,7 +346,8 @@ static void convertModelInputsOrOutputs(
     }
 }
 
-int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutputOfUnknownSize) {
+int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutputOfUnknownSize,
+                                  int32_t executionPreference) {
     if (VLOG_IS_ON(COMPILATION)) {
         logSubModel();
     }
@@ -430,7 +430,7 @@ int ExecutionStep::finishSubModel(const ModelBuilder* fromModel, bool* hasOutput
     }
 
     VLOG(COMPILATION) << "ExecutionStep::finishSubModel, compilation";
-    return compile(mDevice, &mSubModel, &mPreparedSubModel);
+    return compile(mDevice, &mSubModel, executionPreference, &mPreparedSubModel);
 }
 
 void ExecutionStep::dump() const {
@@ -443,10 +443,12 @@ void ExecutionStep::dump() const {
     }
 }
 
-int ExecutionPlan::CompoundBody::finish(const ModelBuilder* fromModel) {
+int ExecutionPlan::CompoundBody::finish(const ModelBuilder* fromModel,
+                                        int32_t executionPreference) {
     findTempsAsSubModelOutputs();
     for (const auto& step : mSteps) {
-        int n = step->finishSubModel(fromModel, &mHasSubModelOutputOfUnknownSize);
+        int n = step->finishSubModel(fromModel, &mHasSubModelOutputOfUnknownSize,
+                                     executionPreference);
         if (n != ANEURALNETWORKS_NO_ERROR) {
             VLOG(COMPILATION) << "ExecutionPlan::CompoundBody::finish -- finishSubModel failed";
             return n;
@@ -461,21 +463,22 @@ int ExecutionPlan::CompoundBody::finish(const ModelBuilder* fromModel) {
     return ANEURALNETWORKS_NO_ERROR;
 }
 
-int ExecutionPlan::SimpleBody::finish([[maybe_unused]] const ModelBuilder* fromModel) {
+int ExecutionPlan::SimpleBody::finish([[maybe_unused]] const ModelBuilder* fromModel,
+                                      int32_t executionPreference) {
     if (mDevice == nullptr) {
         mSuccessfulFinish = true;
         return ANEURALNETWORKS_NO_ERROR;
     }
 
     VLOG(COMPILATION) << "ExecutionPlan::SimpleBody::finish, compilation";
-    const int n = compile(mDevice, mModel, &mPreparedModel);
+    const int n = compile(mDevice, mModel, executionPreference, &mPreparedModel);
     mSuccessfulFinish = (n == ANEURALNETWORKS_NO_ERROR);
     return n;
 }
 
-int ExecutionPlan::finish(const ModelBuilder* fromModel) {
+int ExecutionPlan::finish(const ModelBuilder* fromModel, int32_t executionPreference) {
     nnAssert(mBody != nullptr);
-    return mBody->finish(fromModel);
+    return mBody->finish(fromModel, executionPreference);
 }
 
 ExecutionPlan::Controller::Controller(
@@ -779,7 +782,7 @@ int ModelBuilder::partitionTheWork(const std::vector<std::shared_ptr<Device>>& d
             }
         }
         plan->becomeSingleStep(nullptr /* CPU */, this);
-        return plan->finish(this);
+        return plan->finish(this, preference);
     }
 
     // Figure out where each operation will best execute.
@@ -801,7 +804,7 @@ int ModelBuilder::partitionTheWork(const std::vector<std::shared_ptr<Device>>& d
                           << bestDeviceIndex << " = "
                           << (cpu ? "CPU" : devices[bestDeviceIndex]->getName());
         plan->becomeSingleStep(cpu ? nullptr : devices[bestDeviceIndex], this);
-        return plan->finish(this);
+        return plan->finish(this, preference);
     }
 
     // No easy solution, we need to split the work.
@@ -860,7 +863,7 @@ int ModelBuilder::partitionTheWork(const std::vector<std::shared_ptr<Device>>& d
         }
     }
 
-    int n = plan->finish(this);
+    int n = plan->finish(this, preference);
     if (VLOG_IS_ON(COMPILATION)) {
         Model model;
         setHidlModel(&model);

@@ -80,7 +80,7 @@ typedef enum {
      *
      * Attached to this tensor are two numbers that can be used to convert
      * the 8 bit integer to the real value and vice versa.  These two numbers are:
-     * - scale: a 32 bit non-negative floating point value.
+     * - scale: a 32 bit floating point value greater than zero.
      * - zeroPoint: an 32 bit integer, in range [0, 255].
      *
      * The formula is:
@@ -1232,8 +1232,6 @@ typedef enum {
      * This operation reshapes the batch dimension (dimension 0) into M + 1 dimensions of shape
      * block_shape + [batch], interleaves these blocks back into the grid defined by the
      * spatial dimensions [1, ..., M], to obtain a result with the same rank as the input.
-     * The spatial dimensions of this intermediate result are then optionally cropped
-     * according to the amount to crop (input2) to produce the output.
      *
      * This is the reverse of SpaceToBatch.
      *
@@ -1247,8 +1245,6 @@ typedef enum {
      * 0: An n-D tensor, specifying the tensor to be reshaped
      * 1: A 1-D Tensor of type TENSOR_INT32, the block sizes for each spatial dimension of the
      *    input tensor. All values must be >= 1.
-     * 2: A 1-D Tensor of type TENSOR_INT32, the amount to crop for each spatial diemension of the
-     *    input tensor. All values must be >= 0.
      *
      * Outputs:
      * 0: A tensor of the same type as input0.
@@ -1419,6 +1415,13 @@ typedef enum {
      *    tensor to be sliced. The length must be of rank(input0).
      * 3: A 1-D Tensor of type TENSOR_INT32, the strides of the dimensions of the input
      *    tensor to be sliced. The length must be of rank(input0).
+     * 4: An INT32 value, begin_mask. If the ith bit of begin_mask is set, begin[i] is ignored
+     *    and the fullest possible range in that dimension is used instead.
+     * 5: An INT32 value, end_mask. If the ith bit of end_mask is set, end[i] is ignored and
+     *    the fullest possible range in that dimension is used instead.
+     * 6: An INT32 value, shrink_axis_mask. An int32 mask. If the ith bit of shrink_axis_mask is
+     *    set, it implies that the ith specification shrinks the dimensionality by 1. A slice of
+     *    size 1 starting from begin[i] in the dimension will be preserved.
      *
      * Outputs:
      * 0: A tensor of the same type as input0.

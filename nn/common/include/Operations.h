@@ -227,9 +227,9 @@ bool meanGeneric(const uint8_t* inputData, const Shape& inputShape,
                  uint8_t* outputData, const Shape& outputShape);
 
 bool stridedSliceGeneric(const uint8_t* inputData, const Shape& inputShape,
-                         const int32_t* beginData, int32_t beginMask,
-                         const int32_t* endData, int32_t endMask,
+                         const int32_t* beginData, const int32_t* endData,
                          const int32_t* stridesData,
+                         int32_t beginMask, int32_t endMask, int32_t shrinkAxisMask,
                          uint8_t* outputData, const Shape& outputShape);
 } // namespace nn
 } // namespace android
