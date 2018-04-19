@@ -21,6 +21,7 @@
 #include "TestMemory.h"
 
 #include "NeuralNetworksWrapper.h"
+#include "Manager.h"
 #include "Memory.h"
 
 #include <android/sharedmem.h>
@@ -199,16 +200,19 @@ TEST_F(MemoryLeakTest, IterativelyInstantiate) {
     }
 }
 
+#ifndef NNTEST_ONLY_PUBLIC_API
 // Regression test for http://b/73663843, conv_2d trying to allocate too much memory.
 TEST_F(MemoryLeakTest, convTooLarge) {
+    android::nn::DeviceManager::get()->setUseCpuOnly(true);
     WrapperModel model;
 
-    // This kernel/input size will make convQuant8 allocate 40 * 13 * 13 * 128 * 92 * 92 ~= 7G
-    // This will alloways fail on 32 bit binaries and probably fail on 64bit devices.
+    // This kernel/input size will make convQuant8 allocate 12 * 13 * 13 * 128 * 92 * 92, which is
+    // just outside of signed int range (0x82F56000) - this will fail due to CPU implementation
+    // limitations
     WrapperOperandType type3(WrapperType::INT32, {});
     WrapperOperandType type2(WrapperType::TENSOR_INT32, {128}, 0.25, 0);
-    WrapperOperandType type0(WrapperType::TENSOR_QUANT8_ASYMM, {40, 104, 104, 128}, 0.5, 0);
-    WrapperOperandType type4(WrapperType::TENSOR_QUANT8_ASYMM, {40, 92, 92, 128}, 1.0, 0);
+    WrapperOperandType type0(WrapperType::TENSOR_QUANT8_ASYMM, {12, 104, 104, 128}, 0.5, 0);
+    WrapperOperandType type4(WrapperType::TENSOR_QUANT8_ASYMM, {12, 92, 92, 128}, 1.0, 0);
     WrapperOperandType type1(WrapperType::TENSOR_QUANT8_ASYMM, {128, 13, 13, 128}, 0.5, 0);
 
     // Operands
@@ -244,21 +248,16 @@ TEST_F(MemoryLeakTest, convTooLarge) {
     WrapperExecution execution(&compilation);
 
     // Set input and outputs
-    static uint8_t input[40 * 104 * 104 * 128] = {};
+    static uint8_t input[12 * 104 * 104 * 128] = {};
     ASSERT_EQ(WrapperResult::NO_ERROR, execution.setInput(0, input, sizeof(input)));
-    static uint8_t output[40 * 92 * 92 * 128] = {};
+    static uint8_t output[12 * 92 * 92 * 128] = {};
     ASSERT_EQ(WrapperResult::NO_ERROR, execution.setOutput(0, output, sizeof(output)));
 
     // This shouldn't segfault
     WrapperResult r = execution.compute();
 
-    if (sizeof(size_t) == 4) {
-      // 32 bit binary
-      ASSERT_EQ(WrapperResult::OP_FAILED, r);
-    } else {
-      // 64 bit binary
-      ASSERT_TRUE((WrapperResult::OP_FAILED == r) || (WrapperResult::NO_ERROR == r));
-    }
+    ASSERT_EQ(WrapperResult::OP_FAILED, r);
 }
+#endif // NNTEST_ONLY_PUBLIC_API
 
 }  // end namespace
