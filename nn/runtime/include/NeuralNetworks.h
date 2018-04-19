@@ -1015,7 +1015,8 @@ typedef enum {
     /** Resizes images to given size using the bilinear interpretation.
      *
      * Resized images will be distorted if their output aspect ratio is not the same as
-     * input aspect ratio.
+     * input aspect ratio. The corner pixels of output may not be the same as
+     * corner pixels of input.
      *
      * Supported tensor types:
      * * {@link ANEURALNETWORKS_TENSOR_FLOAT32}
