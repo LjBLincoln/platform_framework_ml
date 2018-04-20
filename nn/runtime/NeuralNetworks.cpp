@@ -276,7 +276,7 @@ int ANeuralNetworksModel_create(ANeuralNetworksModel** model) {
         LOG(ERROR) << "ANeuralNetworksModel_create passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
-    ModelBuilder* m = new ModelBuilder();
+    ModelBuilder* m = new (std::nothrow) ModelBuilder();
     if (m == nullptr) {
         *model = nullptr;
         return ANEURALNETWORKS_OUT_OF_MEMORY;

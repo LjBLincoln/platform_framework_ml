@@ -29,7 +29,7 @@ int Memory::create(uint32_t size) {
     mMemory = mapMemory(mHidlMemory);
     if (mMemory == nullptr) {
         LOG(ERROR) << "Memory::create failed";
-        return ANEURALNETWORKS_OP_FAILED;
+        return ANEURALNETWORKS_OUT_OF_MEMORY;
     }
     return ANEURALNETWORKS_NO_ERROR;
 }
