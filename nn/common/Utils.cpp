@@ -1467,9 +1467,7 @@ ErrorStatus convertResultCodeToErrorStatus(int resultCode) {
         case ANEURALNETWORKS_INCOMPLETE:
         case ANEURALNETWORKS_OP_FAILED:
         case ANEURALNETWORKS_OUT_OF_MEMORY:
-#if 0
-        case ANEURALNETWORKS_UNMAPPABLE:  // Same as BAD_STATE per http://b/68356625
-#endif
+        case ANEURALNETWORKS_UNMAPPABLE:
             return ErrorStatus::GENERAL_FAILURE;
     }
 }
