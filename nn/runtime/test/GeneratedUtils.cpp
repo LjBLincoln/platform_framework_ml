@@ -31,6 +31,17 @@
 #include <map>
 #include <thread>
 
+// Systrace is not available from CTS tests due to platform layering
+// constraints. We reuse the NNTEST_ONLY_PUBLIC_API flag, as that should also be
+// the case for CTS (public APIs only).
+#ifndef NNTEST_ONLY_PUBLIC_API
+#include "Tracing.h"
+#else
+#define NNTRACE_FULL_RAW(...)
+#define NNTRACE_APP(...)
+#define NNTRACE_APP_SWITCH(...)
+#endif
+
 namespace generated_tests {
 using namespace android::nn::wrapper;
 using namespace test_helper;
@@ -62,9 +73,13 @@ static void printAll(std::ostream& os, const MixedTyped& test) {
 }
 
 Compilation createAndCompileModel(Model* model, std::function<void(Model*)> createModel) {
+    NNTRACE_APP(NNTRACE_PHASE_PREPARATION, "createAndCompileModel");
+
     createModel(model);
     model->finish();
     graphDump("", *model);
+
+    NNTRACE_APP_SWITCH(NNTRACE_PHASE_COMPILATION, "createAndCompileModel");
     Compilation compilation(model);
     compilation.finish();
 
@@ -86,6 +101,7 @@ void executeWithCompilation(Model* model, Compilation* compilation,
     // If in relaxed mode, set the error range to be 5ULP of FP16.
     float fpRange = !model->isRelaxed() ? 1e-5f : 5.0f * 0.0009765625f;
     for (auto& example : examples) {
+        NNTRACE_APP(NNTRACE_PHASE_EXECUTION, "executeWithCompilation example");
         SCOPED_TRACE(exampleNo);
         // TODO: We leave it as a copy here.
         // Should verify if the input gets modified by the test later.
@@ -94,6 +110,7 @@ void executeWithCompilation(Model* model, Compilation* compilation,
 
         Execution execution(compilation);
 
+        NNTRACE_APP_SWITCH(NNTRACE_PHASE_INPUTS_AND_OUTPUTS, "executeWithCompilation example");
         // Set all inputs
         for_all(inputs, [&execution](int idx, const void* p, size_t s) {
             const void* buffer = s == 0 ? nullptr : p;
@@ -108,9 +125,11 @@ void executeWithCompilation(Model* model, Compilation* compilation,
             ASSERT_EQ(Result::NO_ERROR, execution.setOutput(idx, buffer, s));
         });
 
+        NNTRACE_APP_SWITCH(NNTRACE_PHASE_EXECUTION, "executeWithCompilation example");
         Result r = execution.compute();
         ASSERT_EQ(Result::NO_ERROR, r);
 
+        NNTRACE_APP_SWITCH(NNTRACE_PHASE_RESULTS, "executeWithCompilation example");
         // Dump all outputs for the slicing tool
         if (dumpToFile) {
             s << "output" << exampleNo << " = {\n";
@@ -133,6 +152,7 @@ void executeOnce(std::function<void(Model*)> createModel,
                  std::function<bool(int)> isIgnored,
                  std::vector<MixedTypedExample>& examples,
                  std::string dumpFile) {
+    NNTRACE_APP(NNTRACE_PHASE_OVERALL, "executeOnce");
     Model model;
     Compilation compilation = createAndCompileModel(&model, createModel);
     executeWithCompilation(&model, &compilation, isIgnored, examples, dumpFile);
@@ -142,6 +162,7 @@ void executeOnce(std::function<void(Model*)> createModel,
 void executeMultithreadedOwnCompilation(std::function<void(Model*)> createModel,
                                         std::function<bool(int)> isIgnored,
                                         std::vector<MixedTypedExample>& examples) {
+    NNTRACE_APP(NNTRACE_PHASE_OVERALL, "executeMultithreadedOwnCompilation");
     SCOPED_TRACE("MultithreadedOwnCompilation");
     std::vector<std::thread> threads;
     for (int i = 0; i < 10; i++) {
@@ -157,6 +178,7 @@ void executeMultithreadedOwnCompilation(std::function<void(Model*)> createModel,
 void executeMultithreadedSharedCompilation(std::function<void(Model*)> createModel,
                                            std::function<bool(int)> isIgnored,
                                            std::vector<MixedTypedExample>& examples) {
+    NNTRACE_APP(NNTRACE_PHASE_OVERALL, "executeMultithreadedSharedCompilation");
     SCOPED_TRACE("MultithreadedSharedCompilation");
     Model model;
     Compilation compilation = createAndCompileModel(&model, createModel);

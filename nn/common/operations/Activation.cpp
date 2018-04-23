@@ -19,11 +19,14 @@
 
 #include "tensorflow/contrib/lite/kernels/internal/optimized/optimized_ops.h"
 
+#include "Tracing.h"
+
 namespace android {
 namespace nn {
 
 bool reluFloat32(const float* inputData, const Shape& inputShape,
                  float* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("reluFloat32");
     int numElements = getNumberOfElements(inputShape);
     for (int i=0; i<numElements; i++, inputData++, outputData++) {
         *outputData = std::max(0.f, *inputData);
@@ -33,6 +36,7 @@ bool reluFloat32(const float* inputData, const Shape& inputShape,
 
 bool relu1Float32(const float* inputData, const Shape& inputShape,
                   float* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("relu1Float32");
     int numElements = getNumberOfElements(inputShape);
     for (int i=0; i<numElements; i++, inputData++, outputData++) {
         *outputData = std::min(std::max(-1.f, *inputData), 1.f);
@@ -42,6 +46,7 @@ bool relu1Float32(const float* inputData, const Shape& inputShape,
 
 bool relu6Float32(const float* inputData, const Shape& inputShape,
                   float* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("relu6Float32");
     int numElements = getNumberOfElements(inputShape);
     for (int i=0; i<numElements; i++, inputData++, outputData++) {
         *outputData = std::min(std::max(0.f, *inputData), 6.f);
@@ -51,6 +56,7 @@ bool relu6Float32(const float* inputData, const Shape& inputShape,
 
 bool tanhFloat32(const float* inputData, const Shape& inputShape,
                  float* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("tanhFloat32");
     int numElements = getNumberOfElements(inputShape);
     for (int i=0; i<numElements; i++, inputData++, outputData++) {
         *outputData = std::tanh(*inputData);
@@ -60,6 +66,7 @@ bool tanhFloat32(const float* inputData, const Shape& inputShape,
 
 bool logisticFloat32(const float* inputData, const Shape& inputShape,
                      float* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("logisticFloat32");
     int numElements = getNumberOfElements(inputShape);
     for (int i=0; i<numElements; i++, inputData++, outputData++) {
         *outputData = 1.f / (1.f + std::exp(-*inputData));
@@ -70,6 +77,7 @@ bool logisticFloat32(const float* inputData, const Shape& inputShape,
 bool softmaxFloat32(const float* inputData, const Shape& inputShape,
                     const float beta,
                     float* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("softmaxFloat32");
     tflite::Dims<4> dim;
     if (getNumberOfDimensions(inputShape) == 2) {
         uint32_t batch_size = getSizeOfDimension(inputShape, 0);
@@ -85,6 +93,7 @@ bool softmaxFloat32(const float* inputData, const Shape& inputShape,
         return false;
     }
 
+    NNTRACE_COMP_SWITCH("optimized_ops::Softmax");
     tflite::optimized_ops::Softmax(inputData, dim, beta,
                                    outputData, dim);
     return true;
@@ -107,18 +116,21 @@ bool softmaxFloat32(const float* inputData, const Shape& inputShape,
 
 bool reluQuant8(const uint8_t* inputData, const Shape& inputShape,
                 uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("reluQuant8");
     ANDROID_NN_RELUX_QUANT8(kActivationRelu)
     return true;
 }
 
 bool relu1Quant8(const uint8_t* inputData, const Shape& inputShape,
                  uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("relu1Quant8");
     ANDROID_NN_RELUX_QUANT8(kActivationRelu1)
     return true;
 }
 
 bool relu6Quant8(const uint8_t* inputData, const Shape& inputShape,
                  uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("relu6Quant8");
     ANDROID_NN_RELUX_QUANT8(kActivationRelu6)
     return true;
 }
@@ -127,6 +139,7 @@ bool relu6Quant8(const uint8_t* inputData, const Shape& inputShape,
 
 bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
                     uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("logisticQuant8");
     if (outputShape.offset != 0 || outputShape.scale != 1.f / 256) {
         LOG(ERROR) << "incorrect scale / offset for output";
         return false;
@@ -149,6 +162,7 @@ bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
     int32_t input_range_radius =
             CalculateInputRadius(kInputIntegerBits, input_left_shift);
 
+    NNTRACE_COMP_SWITCH("optimized_ops::Logistic");
     tflite::optimized_ops::Logistic(
             inputData, convertShapeToDims(inputShape),
             inputShape.offset, input_range_radius,
@@ -161,6 +175,7 @@ bool logisticQuant8(const uint8_t* inputData, const Shape& inputShape,
 bool softmaxQuant8(const uint8_t* inputData, const Shape& inputShape,
                    const float beta,
                    uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("softmaxQuant8");
     tflite::Dims<4> dim;
     if (getNumberOfDimensions(inputShape) == 2) {
         uint32_t batch_size = getSizeOfDimension(inputShape, 0);
@@ -196,6 +211,7 @@ bool softmaxQuant8(const uint8_t* inputData, const Shape& inputShape,
     float diff_min = -1.0f * CalculateInputRadius(kScaledDiffIntegerBits,
                                                   input_left_shift);
 
+    NNTRACE_COMP_SWITCH("optimized_ops::Softmax");
     tflite::optimized_ops::Softmax(inputData, dim, input_multiplier,
                                    input_left_shift, diff_min,
                                    outputData, dim);

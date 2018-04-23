@@ -20,6 +20,7 @@
 
 #include "CpuExecutor.h"
 #include "HalInterfaces.h"
+#include "Tracing.h"
 #include "ValidateHal.h"
 
 #include <android-base/logging.h>
@@ -31,6 +32,8 @@ namespace nn {
 namespace sample_driver {
 
 Return<void> SampleDriver::getCapabilities(getCapabilities_cb cb) {
+    NNTRACE_FULL(NNTRACE_LAYER_DRIVER, NNTRACE_PHASE_INITIALIZATION,
+                 "SampleDriver::getCapabilities");
     return getCapabilities_1_1(
         [&](ErrorStatus error, const V1_1::Capabilities& capabilities) {
             // TODO(dgross): Do we need to check compliantWithV1_0(capabilities)?
@@ -40,6 +43,8 @@ Return<void> SampleDriver::getCapabilities(getCapabilities_cb cb) {
 
 Return<void> SampleDriver::getSupportedOperations(const V1_0::Model& model,
                                                   getSupportedOperations_cb cb) {
+    NNTRACE_FULL(NNTRACE_LAYER_DRIVER, NNTRACE_PHASE_COMPILATION,
+                 "SampleDriver::getSupportedOperations");
     if (!validateModel(model)) {
         VLOG(DRIVER) << "getSupportedOperations";
         std::vector<bool> supported;
@@ -51,6 +56,8 @@ Return<void> SampleDriver::getSupportedOperations(const V1_0::Model& model,
 
 Return<ErrorStatus> SampleDriver::prepareModel(const V1_0::Model& model,
                                                const sp<IPreparedModelCallback>& callback) {
+    NNTRACE_FULL(NNTRACE_LAYER_DRIVER, NNTRACE_PHASE_COMPILATION,
+                 "SampleDriver::prepareModel");
     if (callback.get() == nullptr) {
         VLOG(DRIVER) << "prepareModel";
         LOG(ERROR) << "invalid callback passed to prepareModel";
@@ -68,6 +75,8 @@ Return<ErrorStatus> SampleDriver::prepareModel(const V1_0::Model& model,
 Return<ErrorStatus> SampleDriver::prepareModel_1_1(const V1_1::Model& model,
                                                    ExecutionPreference preference,
                                                    const sp<IPreparedModelCallback>& callback) {
+    NNTRACE_FULL(NNTRACE_LAYER_DRIVER, NNTRACE_PHASE_COMPILATION,
+                 "SampleDriver::prepareModel_1_1");
     if (VLOG_IS_ON(DRIVER)) {
         VLOG(DRIVER) << "prepareModel_1_1";
         logModelToInfo(model);
@@ -92,6 +101,8 @@ Return<ErrorStatus> SampleDriver::prepareModel_1_1(const V1_1::Model& model,
 }
 
 Return<DeviceStatus> SampleDriver::getStatus() {
+    NNTRACE_FULL(NNTRACE_LAYER_DRIVER, NNTRACE_PHASE_UNSPECIFIED,
+                 "SampleDriver::getStatus");
     VLOG(DRIVER) << "getStatus()";
     return DeviceStatus::AVAILABLE;
 }
@@ -113,12 +124,16 @@ bool SamplePreparedModel::initialize() {
 
 void SamplePreparedModel::asyncExecute(const Request& request,
                                        const sp<IExecutionCallback>& callback) {
+    NNTRACE_FULL(NNTRACE_LAYER_DRIVER, NNTRACE_PHASE_INPUTS_AND_OUTPUTS,
+                 "SampleDriver::asyncExecute");
     std::vector<RunTimePoolInfo> requestPoolInfos;
     if (!setRunTimePoolInfosFromHidlMemories(&requestPoolInfos, request.pools)) {
         callback->notify(ErrorStatus::GENERAL_FAILURE);
         return;
     }
 
+    NNTRACE_FULL_SWITCH(NNTRACE_LAYER_DRIVER, NNTRACE_PHASE_EXECUTION,
+                        "SampleDriver::asyncExecute");
     CpuExecutor executor;
     int n = executor.run(mModel, request, mPoolInfos, requestPoolInfos);
     VLOG(DRIVER) << "executor.run returned " << n;
@@ -132,6 +147,8 @@ void SamplePreparedModel::asyncExecute(const Request& request,
 
 Return<ErrorStatus> SamplePreparedModel::execute(const Request& request,
                                                  const sp<IExecutionCallback>& callback) {
+    NNTRACE_FULL(NNTRACE_LAYER_DRIVER, NNTRACE_PHASE_EXECUTION,
+                 "SampleDriver::execute");
     VLOG(DRIVER) << "execute(" << SHOW_IF_DEBUG(toString(request)) << ")";
     if (callback.get() == nullptr) {
         LOG(ERROR) << "invalid callback passed to execute";

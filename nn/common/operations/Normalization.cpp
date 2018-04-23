@@ -19,11 +19,14 @@
 
 #include "tensorflow/contrib/lite/kernels/internal/optimized/optimized_ops.h"
 
+#include "Tracing.h"
+
 namespace android {
 namespace nn {
 
 bool l2normFloat32(const float* inputData, const Shape& inputShape,
                    float* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("optimized_ops::L2Normalization::float");
     tflite::optimized_ops::L2Normalization<tflite::FusedActivationFunctionType::kNone>(
             inputData, convertShapeToDims(inputShape),
             outputData, convertShapeToDims(outputShape));
@@ -33,6 +36,7 @@ bool l2normFloat32(const float* inputData, const Shape& inputShape,
 
 bool l2normQuant8(const uint8_t* inputData, const Shape& inputShape,
                   uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("optimized_ops::L2Normalization::uint8");
     tflite::optimized_ops::L2Normalization(
             inputData, convertShapeToDims(inputShape),
             inputShape.offset,
@@ -44,6 +48,7 @@ bool l2normQuant8(const uint8_t* inputData, const Shape& inputShape,
 bool localResponseNormFloat32(const float* inputData, const Shape& inputShape,
                               int32_t radius, float bias, float alpha, float beta,
                               float* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("optimized_ops::LocalResponseNormalization::float");
     tflite::optimized_ops::LocalResponseNormalization(
             inputData, convertShapeToDims(inputShape),
             radius, bias, alpha, beta,

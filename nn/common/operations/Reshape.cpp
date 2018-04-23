@@ -24,11 +24,14 @@
 #include "tensorflow/contrib/lite/kernels/internal/optimized/optimized_ops.h"
 #include "tensorflow/contrib/lite/kernels/internal/reference/reference_ops.h"
 
+#include "Tracing.h"
+
 namespace android {
 namespace nn {
 
 bool reshapeGeneric(const void* inputData, const Shape& inputShape,
                     void* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("reshapeGeneric");
     size_t count = sizeOfData(inputShape.type, inputShape.dimensions);
     memcpy(outputData, inputData, count);
     return true;
@@ -36,6 +39,7 @@ bool reshapeGeneric(const void* inputData, const Shape& inputShape,
 
 bool resizeBilinearFloat32(const float* inputData, const Shape& inputShape,
                            float* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("resizeBilinearFloat32");
     int32_t height = (int32_t) getSizeOfDimension(outputShape, 1);
     int32_t width  = (int32_t) getSizeOfDimension(outputShape, 2);
 
@@ -44,6 +48,7 @@ bool resizeBilinearFloat32(const float* inputData, const Shape& inputShape,
     Shape outDimShape;
     outDimShape.dimensions = {1, 1, 1, 2};
 
+    NNTRACE_COMP_SWITCH("optimized_ops::ResizeBilinear");
     tflite::optimized_ops::ResizeBilinear(
             inputData, convertShapeToDims(inputShape),
             outDimData, convertShapeToDims(outDimShape),
@@ -54,14 +59,17 @@ bool resizeBilinearFloat32(const float* inputData, const Shape& inputShape,
 bool depthToSpaceGeneric(const uint8_t* inputData, const Shape& inputShape,
                          int32_t blockSize,
                          uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("depthToSpaceGeneric");
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
-       tflite::optimized_ops::DepthToSpace(
-                reinterpret_cast<const float*>(inputData),
-                convertShapeToDims(inputShape),
-                blockSize,
-                reinterpret_cast<float*>(outputData),
-                convertShapeToDims(outputShape));
+        NNTRACE_COMP_SWITCH("optimized_ops::DepthToSpace::float");
+        tflite::optimized_ops::DepthToSpace(
+                 reinterpret_cast<const float*>(inputData),
+                 convertShapeToDims(inputShape),
+                 blockSize,
+                 reinterpret_cast<float*>(outputData),
+                 convertShapeToDims(outputShape));
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NNTRACE_COMP_SWITCH("optimized_ops::DepthToSpace::uint8");
         tflite::optimized_ops::DepthToSpace(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),
@@ -78,7 +86,9 @@ bool depthToSpaceGeneric(const uint8_t* inputData, const Shape& inputShape,
 bool spaceToDepthGeneric(const uint8_t* inputData, const Shape& inputShape,
                          int32_t blockSize,
                          uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("spaceToDepthGeneric");
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
+        NNTRACE_COMP_SWITCH("optimized_ops::SpaceToDepth::float");
         tflite::optimized_ops::SpaceToDepth(
                 reinterpret_cast<const float*>(inputData),
                 convertShapeToDims(inputShape),
@@ -86,6 +96,7 @@ bool spaceToDepthGeneric(const uint8_t* inputData, const Shape& inputShape,
                 reinterpret_cast<float*>(outputData),
                 convertShapeToDims(outputShape));
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NNTRACE_COMP_SWITCH("optimized_ops::SpaceToDepth::uint8");
         tflite::optimized_ops::SpaceToDepth(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),
@@ -102,6 +113,7 @@ bool spaceToDepthGeneric(const uint8_t* inputData, const Shape& inputShape,
 bool padGeneric(const uint8_t* inputData, const Shape& inputShape,
                 const int32_t* paddings,
                 uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("padGeneric");
     int32_t numInputDims = static_cast<int32_t>(getNumberOfDimensions(inputShape));
 
     std::vector<int> beforePadding;
@@ -113,6 +125,7 @@ bool padGeneric(const uint8_t* inputData, const Shape& inputShape,
     }
 
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
+        NNTRACE_COMP_SWITCH("optimized_ops::Pad::float");
         tflite::optimized_ops::Pad(
                 reinterpret_cast<const float*>(inputData),
                 convertShapeToDims(inputShape),
@@ -120,6 +133,7 @@ bool padGeneric(const uint8_t* inputData, const Shape& inputShape,
                 reinterpret_cast<float*>(outputData),
                 convertShapeToDims(outputShape));
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NNTRACE_COMP_SWITCH("optimized_ops::Pad::uint8");
         tflite::optimized_ops::Pad(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),
@@ -136,18 +150,21 @@ bool padGeneric(const uint8_t* inputData, const Shape& inputShape,
 bool batchToSpaceGeneric(const uint8_t* inputData, const Shape& inputShape,
                          const int32_t* blockSize,
                          uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("batchToSpaceGeneric");
     // Needed by low level implementation, but not really used.
     tflite::Dims<4> blockSizeDim, cropsDim;
     const int32 crops[4] = {0, 0, 0, 0};
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
-       tflite::optimized_ops::BatchToSpaceND(
-                reinterpret_cast<const float*>(inputData),
-                convertShapeToDims(inputShape),
-                blockSize, blockSizeDim,
-                crops, cropsDim,
-                reinterpret_cast<float*>(outputData),
-                convertShapeToDims(outputShape));
+        NNTRACE_COMP_SWITCH("optimized_ops::BatchToSpaceND::float");
+        tflite::optimized_ops::BatchToSpaceND(
+                 reinterpret_cast<const float*>(inputData),
+                 convertShapeToDims(inputShape),
+                 blockSize, blockSizeDim,
+                 crops, cropsDim,
+                 reinterpret_cast<float*>(outputData),
+                 convertShapeToDims(outputShape));
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NNTRACE_COMP_SWITCH("optimized_ops::BatchToSpaceND::uint8");
         tflite::optimized_ops::BatchToSpaceND(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),
@@ -166,9 +183,11 @@ bool spaceToBatchGeneric(const uint8_t* inputData, const Shape& inputShape,
                          const int32_t* blockSize,
                          const int32_t* padding, const Shape& paddingShape,
                          uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("spaceToBatchGeneric");
     // Needed by low level implementation, but not really used.
     tflite::Dims<4> blockSizeDim;
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
+        NNTRACE_COMP_SWITCH("optimized_ops::SpaceToBatchND::float");
         tflite::optimized_ops::SpaceToBatchND(
                 reinterpret_cast<const float*>(inputData),
                 convertShapeToDims(inputShape),
@@ -177,6 +196,7 @@ bool spaceToBatchGeneric(const uint8_t* inputData, const Shape& inputShape,
                 reinterpret_cast<float*>(outputData),
                 convertShapeToDims(outputShape));
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NNTRACE_COMP_SWITCH("optimized_ops::SpaceToBatchND::uint8");
         tflite::optimized_ops::SpaceToBatchND(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),
@@ -193,6 +213,7 @@ bool spaceToBatchGeneric(const uint8_t* inputData, const Shape& inputShape,
 
 bool squeezeGeneric(const void* inputData, const Shape& inputShape,
                     void* outputData, const Shape& outputShape) {
+    NNTRACE_COMP("squeezeGeneric");
     size_t count = sizeOfData(inputShape.type, inputShape.dimensions);
     memcpy(outputData, inputData, count);
     return true;
@@ -201,6 +222,7 @@ bool squeezeGeneric(const void* inputData, const Shape& inputShape,
 bool transposeGeneric(const uint8_t* inputData, const Shape& inputShape,
                       const int32_t* perm, const Shape& permShape,
                       uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("transposeGeneric");
     // Reverse the permuted axes and convert to 4D due to the way Dims are
     // constructed.
     const int32_t kOutputDimensionNum = 4;
@@ -215,6 +237,7 @@ bool transposeGeneric(const uint8_t* inputData, const Shape& inputShape,
         reversed_perm[k] = k;
     }
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
+        NNTRACE_COMP_SWITCH("optimized_ops::Transpose::float");
         tflite::reference_ops::Transpose(
                 reinterpret_cast<const float*>(inputData),
                 convertShapeToDims(inputShape),
@@ -222,6 +245,7 @@ bool transposeGeneric(const uint8_t* inputData, const Shape& inputShape,
                 convertShapeToDims(outputShape),
                 reversed_perm);
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NNTRACE_COMP_SWITCH("optimized_ops::Transpose::uint8");
         tflite::reference_ops::Transpose(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),

@@ -27,6 +27,7 @@ cc_defaults {
     ],
     shared_libs: [
         "libbase",
+        "libcutils",
         "libdl",
         "libhardware",
         "libhidlbase",

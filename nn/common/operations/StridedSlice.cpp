@@ -23,6 +23,8 @@
 
 #include "tensorflow/contrib/lite/kernels/internal/reference/reference_ops.h"
 
+#include "Tracing.h"
+
 namespace android {
 namespace nn {
 
@@ -31,6 +33,7 @@ bool stridedSliceGeneric(const uint8_t* inputData, const Shape& inputShape,
                          const int32_t* stridesData,
                          int32_t beginMask, int32_t endMask, int32_t shrinkAxisMask,
                          uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("stridedSliceGeneric");
     // This Op only supports 1-4D cases and since we use the reference 4D
     // implementation, the 1-3D tensors are mapped to 4D.
     const int kMaxDim = 4;
@@ -56,6 +59,7 @@ bool stridedSliceGeneric(const uint8_t* inputData, const Shape& inputShape,
     endMask = ReverseMaskBits(endMask, numInputDims);
 
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
+        NNTRACE_COMP_SWITCH("reference_ops::StridedSlice::float");
         tflite::reference_ops::StridedSlice(
                 reinterpret_cast<const float*>(inputData),
                 convertShapeToDims(inputShape),
@@ -64,6 +68,7 @@ bool stridedSliceGeneric(const uint8_t* inputData, const Shape& inputShape,
                 reinterpret_cast<float*>(outputData),
                 convertShapeToDims(outputShape));
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
+        NNTRACE_COMP_SWITCH("reference_ops::StridedSlice::uint8");
         tflite::reference_ops::StridedSlice(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),

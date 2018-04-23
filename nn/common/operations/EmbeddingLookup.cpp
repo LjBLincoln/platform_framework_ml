@@ -20,6 +20,8 @@
 #include "HalInterfaces.h"
 #include "Operations.h"
 
+#include "Tracing.h"
+
 namespace android {
 namespace nn {
 
@@ -32,6 +34,7 @@ EmbeddingLookup::EmbeddingLookup(const Operation& operation,
 }
 
 bool EmbeddingLookup::Eval() {
+  NNTRACE_COMP("EmbeddingLookup::Eval");
   const int row_size = value_->shape().dimensions[0];
   const int total_bytes = sizeOfData(value_->type, value_->dimensions);
   const int row_bytes = total_bytes/row_size;

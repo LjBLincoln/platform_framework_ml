@@ -29,6 +29,7 @@
 #include "Memory.h"
 #include "NeuralNetworksOEM.h"
 #include "ModelBuilder.h"
+#include "Tracing.h"
 #include "Utils.h"
 
 #include <memory>
@@ -251,6 +252,7 @@ using namespace android::nn;
 
 int ANeuralNetworksMemory_createFromFd(size_t size, int prot, int fd, size_t offset,
                                        ANeuralNetworksMemory** memory) {
+    NNTRACE_RT(NNTRACE_PHASE_PREPARATION, "ANeuralNetworksMemory_createFromFd");
     *memory = nullptr;
     std::unique_ptr<MemoryFd> m = std::make_unique<MemoryFd>();
     if (m == nullptr) {
@@ -265,12 +267,14 @@ int ANeuralNetworksMemory_createFromFd(size_t size, int prot, int fd, size_t off
 }
 
 void ANeuralNetworksMemory_free(ANeuralNetworksMemory* memory) {
+    NNTRACE_RT(NNTRACE_PHASE_TERMINATION, "ANeuralNetworksMemory_free");
     // No validation.  Free of nullptr is valid.
     Memory* m = reinterpret_cast<Memory*>(memory);
     delete m;
 }
 
 int ANeuralNetworksModel_create(ANeuralNetworksModel** model) {
+    NNTRACE_RT(NNTRACE_PHASE_PREPARATION, "ANeuralNetworksModel_create");
     initVLogMask();
     if (!model) {
         LOG(ERROR) << "ANeuralNetworksModel_create passed a nullptr";
@@ -286,12 +290,14 @@ int ANeuralNetworksModel_create(ANeuralNetworksModel** model) {
 }
 
 void ANeuralNetworksModel_free(ANeuralNetworksModel* model) {
+    NNTRACE_RT(NNTRACE_PHASE_TERMINATION, "ANeuralNetworksModel_free");
     // No validation.  Free of nullptr is valid.
     ModelBuilder* m = reinterpret_cast<ModelBuilder*>(model);
     delete m;
 }
 
 int ANeuralNetworksModel_finish(ANeuralNetworksModel* model) {
+    NNTRACE_RT(NNTRACE_PHASE_PREPARATION, "ANeuralNetworksModel_finish");
     if (!model) {
         LOG(ERROR) << "ANeuralNetworksModel_finish passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -302,6 +308,7 @@ int ANeuralNetworksModel_finish(ANeuralNetworksModel* model) {
 
 int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
                                     const ANeuralNetworksOperandType* type) {
+    NNTRACE_RT(NNTRACE_PHASE_PREPARATION, "ANeuralNetworksModel_addOperand");
     if (!model || !type) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperand passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -312,6 +319,7 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
 
 int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t index,
                                          const void* buffer, size_t length) {
+    NNTRACE_RT(NNTRACE_PHASE_PREPARATION, "ANeuralNetworksModel_setOperandValue");
     if (!model || (!buffer && length != 0)) {
         LOG(ERROR) << "ANeuralNetworksModel_setOperandValue passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -323,6 +331,7 @@ int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t in
 int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, int32_t index,
                                                    const ANeuralNetworksMemory* memory,
                                                    size_t offset, size_t length) {
+    NNTRACE_RT(NNTRACE_PHASE_PREPARATION, "ANeuralNetworksModel_setOperandValueFromMemory");
     if (!model || !memory) {
         LOG(ERROR) << "ANeuralNetworksModel_setOperandValue passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -336,6 +345,7 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
                                       ANeuralNetworksOperationType type, uint32_t inputCount,
                                       const uint32_t* inputs, uint32_t outputCount,
                                       const uint32_t* outputs) {
+    NNTRACE_RT(NNTRACE_PHASE_PREPARATION, "ANeuralNetworksModel_addOperation");
     if (!model || !inputs || !outputs) {
         LOG(ERROR) << "ANeuralNetworksModel_addOperation passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -347,6 +357,7 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
 int ANeuralNetworksModel_identifyInputsAndOutputs(ANeuralNetworksModel* model, uint32_t inputCount,
                                                   const uint32_t* inputs, uint32_t outputCount,
                                                   const uint32_t* outputs) {
+    NNTRACE_RT(NNTRACE_PHASE_PREPARATION, "ANeuralNetworksModel_identifyInputsAndOutputs");
     if (!model || !inputs || !outputs) {
         LOG(ERROR) << ("ANeuralNetworksModel_identifyInputsAndOutputs passed a nullptr");
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -357,6 +368,7 @@ int ANeuralNetworksModel_identifyInputsAndOutputs(ANeuralNetworksModel* model, u
 
 int ANeuralNetworksModel_relaxComputationFloat32toFloat16(ANeuralNetworksModel* model,
                                                           bool allow) {
+    NNTRACE_RT(NNTRACE_PHASE_PREPARATION, "ANeuralNetworksModel_relaxComputationFloat32toFloat16");
     if (!model) {
         LOG(ERROR) << ("ANeuralNetworksModel_relaxComputationFloat32toFloat16 passed a nullptr");
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -367,6 +379,7 @@ int ANeuralNetworksModel_relaxComputationFloat32toFloat16(ANeuralNetworksModel* 
 
 int ANeuralNetworksCompilation_create(ANeuralNetworksModel* model,
                                       ANeuralNetworksCompilation** compilation) {
+    NNTRACE_RT(NNTRACE_PHASE_COMPILATION, "ANeuralNetworksCompilation_create");
     if (!model || !compilation) {
         LOG(ERROR) << "ANeuralNetworksCompilation_create passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -380,6 +393,7 @@ int ANeuralNetworksCompilation_create(ANeuralNetworksModel* model,
 }
 
 void ANeuralNetworksCompilation_free(ANeuralNetworksCompilation* compilation) {
+    NNTRACE_RT(NNTRACE_PHASE_TERMINATION, "ANeuralNetworksCompilation_free");
     // No validation.  Free of nullptr is valid.
     // TODO specification says that a compilation-in-flight can be deleted
     CompilationBuilder* c = reinterpret_cast<CompilationBuilder*>(compilation);
@@ -388,6 +402,7 @@ void ANeuralNetworksCompilation_free(ANeuralNetworksCompilation* compilation) {
 
 int ANeuralNetworksCompilation_setPreference(ANeuralNetworksCompilation* compilation,
                                              int32_t preference) {
+    NNTRACE_RT(NNTRACE_PHASE_COMPILATION, "ANeuralNetworksCompilation_setPreference");
     if (!compilation) {
         LOG(ERROR) << "ANeuralNetworksCompilation_setPreference passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -397,6 +412,7 @@ int ANeuralNetworksCompilation_setPreference(ANeuralNetworksCompilation* compila
 }
 
 int ANeuralNetworksCompilation_finish(ANeuralNetworksCompilation* compilation) {
+    NNTRACE_RT(NNTRACE_PHASE_COMPILATION, "ANeuralNetworksCompilation_finish");
     if (!compilation) {
         LOG(ERROR) << "ANeuralNetworksCompilation_finish passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -407,6 +423,7 @@ int ANeuralNetworksCompilation_finish(ANeuralNetworksCompilation* compilation) {
 
 int ANeuralNetworksExecution_create(ANeuralNetworksCompilation* compilation,
                                     ANeuralNetworksExecution** execution) {
+    NNTRACE_RT(NNTRACE_PHASE_EXECUTION, "ANeuralNetworksExecution_create");
     if (!compilation || !execution) {
         LOG(ERROR) << "ANeuralNetworksExecution_create passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -420,6 +437,7 @@ int ANeuralNetworksExecution_create(ANeuralNetworksCompilation* compilation,
 }
 
 void ANeuralNetworksExecution_free(ANeuralNetworksExecution* execution) {
+    NNTRACE_RT(NNTRACE_PHASE_TERMINATION, "ANeuralNetworksExecution_free");
     // TODO specification says that an execution-in-flight can be deleted
     // No validation.  Free of nullptr is valid.
     ExecutionBuilder* r = reinterpret_cast<ExecutionBuilder*>(execution);
@@ -429,6 +447,7 @@ void ANeuralNetworksExecution_free(ANeuralNetworksExecution* execution) {
 int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32_t index,
                                       const ANeuralNetworksOperandType* type, const void* buffer,
                                       size_t length) {
+    NNTRACE_RT(NNTRACE_PHASE_INPUTS_AND_OUTPUTS, "ANeuralNetworksExecution_setInput");
     if (!execution || (!buffer && length != 0)) {
         LOG(ERROR) << "ANeuralNetworksExecution_setInput passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -441,6 +460,7 @@ int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execut
                                                 const ANeuralNetworksOperandType* type,
                                                 const ANeuralNetworksMemory* memory, size_t offset,
                                                 size_t length) {
+    NNTRACE_RT(NNTRACE_PHASE_INPUTS_AND_OUTPUTS, "ANeuralNetworksExecution_setInputFromMemory");
     if (!execution || !memory) {
         LOG(ERROR) << "ANeuralNetworksExecution_setInputFromMemory passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -454,6 +474,7 @@ int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execut
 int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int32_t index,
                                        const ANeuralNetworksOperandType* type, void* buffer,
                                        size_t length) {
+    NNTRACE_RT(NNTRACE_PHASE_INPUTS_AND_OUTPUTS, "ANeuralNetworksExecution_setOutput");
     if (!execution || (!buffer && length != 0)) {
         LOG(ERROR) << "ANeuralNetworksExecution_setOutput passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -466,6 +487,7 @@ int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execu
                                                  const ANeuralNetworksOperandType* type,
                                                  const ANeuralNetworksMemory* memory, size_t offset,
                                                  size_t length) {
+    NNTRACE_RT(NNTRACE_PHASE_INPUTS_AND_OUTPUTS, "ANeuralNetworksExecution_setOutputFromMemory");
     if (!execution || !memory) {
         LOG(ERROR) << "ANeuralNetworksExecution_setOutputFromMemory passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -478,6 +500,7 @@ int ANeuralNetworksExecution_setOutputFromMemory(ANeuralNetworksExecution* execu
 
 int ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution* execution,
                                           ANeuralNetworksEvent** event) {
+    NNTRACE_RT(NNTRACE_PHASE_EXECUTION, "ANeuralNetworksExecution_startCompute");
     if (!execution || !event) {
         LOG(ERROR) << "ANeuralNetworksExecution_startCompute passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -504,6 +527,7 @@ int ANeuralNetworksExecution_startCompute(ANeuralNetworksExecution* execution,
 }
 
 int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event) {
+    NNTRACE_RT(NNTRACE_PHASE_EXECUTION, "ANeuralNetworksEvent_wait");
     if (event == nullptr) {
         LOG(ERROR) << "ANeuralNetworksEvent_wait passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
@@ -515,6 +539,7 @@ int ANeuralNetworksEvent_wait(ANeuralNetworksEvent* event) {
 }
 
 void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event) {
+    NNTRACE_RT(NNTRACE_PHASE_TERMINATION, "ANeuralNetworksEvent_free");
     // No validation.  Free of nullptr is valid.
     if (event) {
         sp<ExecutionCallback>* e = reinterpret_cast<sp<ExecutionCallback>*>(event);

@@ -19,6 +19,8 @@
 #include "CpuExecutor.h"
 #include "HalInterfaces.h"
 
+#include "Tracing.h"
+
 namespace android {
 namespace nn {
 
@@ -38,6 +40,7 @@ inline const T *GetBuffer(const RunTimeOperandInfo* operand) {
 
 SVDF::SVDF(const Operation& operation,
            std::vector<RunTimeOperandInfo>& operands) {
+    NNTRACE_TRANS("SVDF::SVDF");
     input_ = GetInput(operation, operands, kInputTensor);
     weights_feature_ = GetInput(operation, operands, kWeightsFeatureTensor);
     weights_time_ = GetInput(operation, operands, kWeightsTimeTensor);
@@ -56,6 +59,7 @@ bool SVDF::Prepare(const Operation &operation,
                    std::vector<RunTimeOperandInfo> &operands,
                    Shape *stateShape,
                    Shape *outputShape) {
+  NNTRACE_TRANS("SVDF::Prepare");
   // Check we have all the inputs and outputs we need.
   const int num_inputs = NumInputsWithValues(operation, operands);
 
@@ -103,6 +107,8 @@ bool SVDF::Prepare(const Operation &operation,
 }
 
 bool SVDF::Eval() {
+    NNTRACE_COMP("SVDF::Eval");
+
     const int rank = params_.rank_;
     const int batch_size = SizeOfDimension(input_, 0);
     const int input_size = SizeOfDimension(input_, 1);
