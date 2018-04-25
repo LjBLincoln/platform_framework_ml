@@ -22,6 +22,7 @@ void CreateModel(Model *model) {
     {lookup, weight},
     {output});
   assert(model->isValid());
+  model->finish();
 }
 
 bool is_ignored(int i) {
