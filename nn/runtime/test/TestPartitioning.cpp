@@ -1014,6 +1014,7 @@ TEST_F(PartitioningTest, SetPartitioning) {
     PartitioningCompilation cPWithoutFallback(&model);
     ASSERT_EQ(cPWithoutFallback.setPartitioning(DeviceManager::kPartitioningWithoutFallback), Result::NO_ERROR);
     ASSERT_EQ(cPWithoutFallback.finish(devices), Result::OP_FAILED);
+    ASSERT_TRUE(cPWithoutFallback.getExecutionPlan().forTest_hasSubModelOutputsOfUnknownSize());
     ASSERT_EQ(cPWithoutFallback.getExecutionPlan().forTest_getKind(), ExecutionPlan::Kind::ERROR);
 }
 
