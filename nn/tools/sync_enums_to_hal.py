@@ -226,6 +226,7 @@ if __name__ == '__main__':
         hal.append("    /**\n")
         line = line.replace("/** ", " * ")
       # Match naming changes in HAL vs framework
+      line = line.replace("@link OperandCode", "@link OperandType")
       line = line.replace("@link ANEURALNETWORKS_", "@link OperandType::")
       line = line.replace("ANEURALNETWORKS_", "")
       line = line.replace("FuseCode", "FusedActivationFunc")
