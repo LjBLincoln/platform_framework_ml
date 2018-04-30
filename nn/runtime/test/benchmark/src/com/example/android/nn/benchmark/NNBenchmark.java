@@ -22,6 +22,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
 
+import java.util.List;
+import java.io.IOException;
+
 public class NNBenchmark extends Activity {
     protected static final String TAG = "NN_BENCHMARK";
 
@@ -59,10 +62,6 @@ public class NNBenchmark extends Activity {
 
         private boolean mBenchmarkMode;
 
-        void runTest() {
-            mTest.runTest();
-        }
-
         Processor(boolean benchmarkMode) {
             mBenchmarkMode = benchmarkMode;
         }
@@ -74,7 +73,8 @@ public class NNBenchmark extends Activity {
         }
 
         // Method to retreive benchmark results for instrumentation tests.
-        float getInstrumentationResult(NNTestList.TestName t) {
+        float getInstrumentationResult(NNTestList.TestName t)
+                throws BenchmarkException, IOException {
             mTest = changeTest(t);
             Result r = getBenchmark();
             return r.totalTime / r.iterations * 1000.f;
@@ -82,26 +82,24 @@ public class NNBenchmark extends Activity {
 
         // Run one loop of kernels for at least the specified minimum time.
         // The function returns the average time in ms for the test run
-        private Result runBenchmarkLoop(float minTime) {
+        private Result runBenchmarkLoop(float minTime) throws BenchmarkException, IOException {
             Result r = new Result();
-            long start = java.lang.System.currentTimeMillis();
 
             r.testInfo = mTest.getTestInfo();
-            do {
-                // Run the kernel
-                mTest.runTest();
-                r.iterations ++;
 
-                long current = java.lang.System.currentTimeMillis();
-                r.totalTime = (current - start) / 1000.f;
-            } while (r.totalTime < minTime);
+            // Run the kernel
+            List<InferenceResult> inferenceResults = mTest.runBenchmark(minTime);
 
+            for (InferenceResult iresult : inferenceResults) {
+                r.iterations++;
+                r.totalTime += iresult.mComputeTimeSec;
+            }
             return r;
         }
 
 
         // Get a benchmark result for a specific test
-        private Result getBenchmark() {
+        private Result getBenchmark() throws BenchmarkException, IOException {
             mDoingBenchmark = true;
 
             long result = 0;
@@ -117,74 +115,81 @@ public class NNBenchmark extends Activity {
             // Run the actual benchmark
             Result r = runBenchmarkLoop(runtime);
 
-            Log.v(TAG, "Test: time=" + r.totalTime +"s,  iterations=" + r.iterations +
+            Log.v(TAG, "Test: time=" + r.totalTime + "s,  iterations=" + r.iterations +
                     ", avg=" + r.totalTime / r.iterations * 1000.f + " " + r.testInfo);
 
             mDoingBenchmark = false;
             return r;
         }
 
+        @Override
         public void run() {
             while (mRun) {
                 // Our loop for launching tests or benchmarks
-                synchronized(this) {
+                synchronized (this) {
                     // We may have been asked to exit while waiting
                     if (!mRun) return;
                 }
 
-                if (mBenchmarkMode) {
-                    // Loop over the tests we want to benchmark
-                    for (int ct=0; (ct < mTestList.length) && mRun; ct++) {
+                try {
+                    if (mBenchmarkMode) {
+                        // Loop over the tests we want to benchmark
+                        for (int ct = 0; (ct < mTestList.length) && mRun; ct++) {
 
-                        // For reproducibility we wait a short time for any sporadic work
-                        // created by the user touching the screen to launch the test to pass.
-                        // Also allows for things to settle after the test changes.
-                        try {
-                            sleep(250);
-                        } catch(InterruptedException e) {
-                        }
+                            // For reproducibility we wait a short time for any sporadic work
+                            // created by the user touching the screen to launch the test to pass.
+                            // Also allows for things to settle after the test changes.
+                            try {
+                                sleep(250);
+                            } catch (InterruptedException e) {
+                            }
 
-                        // If we just ran a test, we destroy it here to relieve some memory pressure
-                        if (mTest != null) {
-                            mTest.destroy();
-                        }
+                            // If we just ran a test, we destroy it here to relieve some memory
+                            // pressure
 
-                        // Select the next test
-                        mTest = changeTest(mTestList[ct]);
-                        // If the user selected the "long pause" option, wait
-                        if (mTogglePause) {
-                            for (int i=0; (i < 100) && mRun; i++) {
-                                try {
-                                    sleep(100);
-                                } catch(InterruptedException e) {
+                            if (mTest != null) {
+                                mTest.destroy();
+                            }
+
+                            // Select the next test
+                            mTest = changeTest(mTestList[ct]);
+                            // If the user selected the "long pause" option, wait
+                            if (mTogglePause) {
+                                for (int i = 0; (i < 100) && mRun; i++) {
+                                    try {
+                                        sleep(100);
+                                    } catch (InterruptedException e) {
+                                    }
                                 }
                             }
-                        }
 
-                        // Run the test
-                        Result r = getBenchmark();
-                        mTestResults[ct] = r.totalTime / r.iterations * 1000.f;
-                        mTestInfo[ct] = r.testInfo;
+                            // Run the test
+                            Result r = getBenchmark();
+                            mTestResults[ct] = r.totalTime / r.iterations * 1000.f;
+                            mTestInfo[ct] = r.testInfo;
+                        }
+                        onBenchmarkFinish(mRun);
+                    } else {
+                        // Run the kernel
+                        mTest.runOneInference();
                     }
-                    onBenchmarkFinish(mRun);
-                } else {
-                    // Run the kernel
-                    runTest();
+                } catch (IOException | BenchmarkException e) {
+                    e.printStackTrace();
+                    break;
                 }
             }
-
         }
 
         public void exit() {
             mRun = false;
 
-            synchronized(this) {
+            synchronized (this) {
                 notifyAll();
             }
 
             try {
                 this.join();
-            } catch(InterruptedException e) {
+            } catch (InterruptedException e) {
             }
 
             if (mTest != null) {

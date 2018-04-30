@@ -25,8 +25,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
-public class NNTestBase  {
+public class NNTestBase {
     protected final boolean USE_NNAPI = true;
 
     // Used to load the 'native-lib' library on application startup.
@@ -35,19 +38,28 @@ public class NNTestBase  {
     }
 
     private synchronized native long initModel(String modelFileName);
+
     private synchronized native void destroyModel(long modelHandle);
+
     private synchronized native boolean resizeInputTensors(long modelHandle, int[] inputShape);
-    private synchronized native boolean runBenchmark(long modelHandle, boolean useNNAPI);
+
+    private synchronized native boolean runBenchmark(long modelHandle,
+            List<InferenceInOut> inOutList,
+            List<InferenceResult> resultList,
+            int inferencesMaxCount, float maxTimeout);
 
     protected NNBenchmark mActivity;
     protected TextView mText;
     private String mModelName;
     private long mModelHandle;
     private int[] mInputShape;
+    private InferenceInOut.FromAssets[] mInputOutputAssets;
 
-    public NNTestBase(String modelName, int[] inputShape) {
+    public NNTestBase(String modelName, int[] inputShape,
+            InferenceInOut.FromAssets[] inputOutputAssets) {
         mModelName = modelName;
         mInputShape = inputShape;
+        mInputOutputAssets = inputOutputAssets;
         mModelHandle = 0;
     }
 
@@ -68,10 +80,38 @@ public class NNTestBase  {
         return mModelName;
     }
 
-    public void runTest() {
-        if (mModelHandle != 0) {
-            runBenchmark(mModelHandle, USE_NNAPI);
+    private List<InferenceInOut> loadInputOutputAssets() throws IOException {
+        // TODO: Caching, dont read inputs for every inference
+        List<InferenceInOut> inOutList = new ArrayList<>();
+        for (InferenceInOut.FromAssets ioAsset : mInputOutputAssets) {
+            inOutList.add(ioAsset.readAssets(mActivity.getAssets()));
         }
+        return inOutList;
+    }
+
+    public InferenceResult runOneInference() throws IOException, BenchmarkException {
+        return runBenchmark(1, 1.0f).get(0);
+    }
+
+    public List<InferenceResult> runBenchmark(float timeoutSec)
+            throws IOException, BenchmarkException {
+        // Run as many as possible before timeout.
+        return runBenchmark(0xFFFFFFF, timeoutSec);
+    }
+
+    private List<InferenceResult> runBenchmark(int inferencesMaxCount, float timeoutSec)
+            throws IOException, BenchmarkException {
+        if (mModelHandle != 0) {
+            List<InferenceInOut> inOutList = loadInputOutputAssets();
+            List<InferenceResult> resultList = new ArrayList<>();
+
+            if (runBenchmark(mModelHandle, inOutList, resultList, inferencesMaxCount, timeoutSec)) {
+                return resultList;
+            } else {
+                throw new BenchmarkException("Failed to run benchmark");
+            }
+        }
+        throw new IllegalStateException("mModelHandle is null");
     }
 
     public void destroy() {
@@ -95,14 +135,14 @@ public class NNTestBase  {
 
             byte[] buffer = new byte[1024];
             int read;
-            while((read = in.read(buffer)) != -1){
+            while ((read = in.read(buffer)) != -1) {
                 out.write(buffer, 0, read);
             }
             out.flush();
 
             in.close();
             out.close();
-        } catch(IOException e) {
+        } catch (IOException e) {
             Log.e(NNBenchmark.TAG, "Failed to copy asset file: " + modelAssetName, e);
             return null;
         }

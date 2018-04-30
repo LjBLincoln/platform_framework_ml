@@ -22,8 +22,8 @@ public class NNTestList {
      */
     public enum TestName {
 
-        MobileNet_FLOAT ("MobileNet float32", 160.f),
-        MobileNet_QUANT8 ("MobileNet quantized", 50.f);
+        MobileNet_FLOAT("MobileNet float32", 160.f),
+        MobileNet_QUANT8("MobileNet quantized", 50.f);
 
         private final String name;
         public final float baseline;
@@ -32,6 +32,7 @@ public class NNTestList {
             name = s;
             baseline = base;
         }
+
         private TestName(String s) {
             name = s;
             baseline = 1.f;
@@ -44,14 +45,21 @@ public class NNTestList {
     }
 
     static NNTestBase newTest(TestName testName) {
-        switch(testName) {
+        switch (testName) {
             case MobileNet_FLOAT:
-                return new NNTestBase("mobilenet_float", new int[]{1, 224, 224, 3});
+                return new NNTestBase("mobilenet_float", new int[]{1, 224, 224, 3},
+                        new InferenceInOut.FromAssets[]{
+                                new InferenceInOut.FromAssets("mobilenet_float/panda.input",
+                                        "mobilenet_float/panda.output", 4)
+                        });
             case MobileNet_QUANT8:
-                return new NNTestBase("mobilenet_quantized", new int[]{1, 224, 224, 3});
+                return new NNTestBase("mobilenet_quantized", new int[]{1, 224, 224, 3},
+                        new InferenceInOut.FromAssets[]{
+                                new InferenceInOut.FromAssets("mobilenet_quantized/panda.input",
+                                        "mobilenet_quantized/panda.output", 1)
+                        });
             default:
                 return null;
         }
     }
 }
-

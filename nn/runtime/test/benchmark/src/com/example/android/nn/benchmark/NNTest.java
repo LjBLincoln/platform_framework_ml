@@ -25,6 +25,8 @@ import android.util.Log;
 
 import com.example.android.nn.benchmark.NNTestList.TestName;
 
+import java.io.IOException;
+
 /**
  * NNAPI benchmark test.
  * To run the test, please use command
@@ -67,7 +69,11 @@ public class NNTest extends ActivityInstrumentationTestCase2<NNBenchmark> {
             mTestName = testName;
         }
         public void run() {
-            mResult = mActivity.mProcessor.getInstrumentationResult(mTestName);
+            try {
+                mResult = mActivity.mProcessor.getInstrumentationResult(mTestName);
+            } catch (IOException | BenchmarkException e) {
+                e.printStackTrace();
+            }
             Log.v(NNBenchmark.TAG,
                     "Benchmark for test \"" + mTestName.toString() + "\" is: " + mResult);
             synchronized(this) {

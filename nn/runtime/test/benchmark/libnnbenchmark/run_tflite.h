@@ -23,6 +23,21 @@
 #include <unistd.h>
 #include <vector>
 
+// Inputs and expected outputs for inference
+struct InferenceInOut {
+  uint8_t *input;
+  size_t input_size;
+
+  uint8_t *output;
+  size_t output_size;
+};
+
+// Result of a single inference
+struct InferenceResult {
+  float computeTimeSec;
+  float squareError;
+};
+
 class BenchmarkModel {
 public:
     explicit BenchmarkModel(const char* modelfile);
@@ -30,8 +45,14 @@ public:
 
     bool resizeInputTensors(std::vector<int> shape);
     bool setInput(const uint8_t* dataPtr, size_t length);
-    bool runBenchmark(int num_inferences,
-                      bool use_nnapi);
+    float getOutputError(const uint8_t* dataPtr, size_t length);
+    bool runInference(bool use_nnapi);
+
+    bool benchmark(const std::vector<InferenceInOut> &inOutData,
+                   int inferencesMaxCount,
+                   float timeout,
+                   std::vector<InferenceResult> *result);
+
 
 private:
     std::unique_ptr<tflite::FlatBufferModel> mTfliteModel;
