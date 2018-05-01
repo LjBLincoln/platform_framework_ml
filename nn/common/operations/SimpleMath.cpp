@@ -288,23 +288,39 @@ bool meanGeneric(const uint8_t* inputData, const Shape& inputShape,
 
     bool result = true;
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
-        tflite::reference_ops::Mean<float>(
-                const_cast<float*>(reinterpret_cast<const float*>(inputData)),
-                reinterpret_cast<const int*>(inputShape.dimensions.data()),
-                getNumberOfDimensions(inputShape),
-                reinterpret_cast<float*>(outputData),
-                reinterpret_cast<const int*>(outputShape.dimensions.data()),
-                getNumberOfDimensions(outputShape),
-                axis, axisSize, keepDims, scratchBuffer, resolvedAxis);
+        float* tempSumBuffer = new (std::nothrow) float[getNumberOfElements(outputShape)];
+        if (!tempSumBuffer) {
+            LOG(ERROR) << "Failed to allocate tempSumBuffer for MEAN";
+            result = false;
+        } else {
+            tflite::reference_ops::Mean<float, float>(
+                    const_cast<float*>(reinterpret_cast<const float*>(inputData)),
+                    reinterpret_cast<const int*>(inputShape.dimensions.data()),
+                    getNumberOfDimensions(inputShape),
+                    reinterpret_cast<float*>(outputData),
+                    reinterpret_cast<const int*>(outputShape.dimensions.data()),
+                    getNumberOfDimensions(outputShape),
+                    axis, axisSize, keepDims, scratchBuffer, resolvedAxis,
+                    tempSumBuffer);
+            delete[] tempSumBuffer;
+        }
     } else if (inputShape.type == OperandType::TENSOR_QUANT8_ASYMM) {
-        tflite::reference_ops::Mean<uint8_t>(
-                const_cast<uint8_t*>(inputData),
-                reinterpret_cast<const int*>(inputShape.dimensions.data()),
-                getNumberOfDimensions(inputShape),
-                outputData,
-                reinterpret_cast<const int*>(outputShape.dimensions.data()),
-                getNumberOfDimensions(outputShape),
-                axis, axisSize, keepDims, scratchBuffer, resolvedAxis);
+        int32_t* tempSumBuffer = new (std::nothrow) int32_t[getNumberOfElements(outputShape)];
+        if (!tempSumBuffer) {
+            LOG(ERROR) << "Failed to allocate tempSumBuffer for MEAN";
+            result = false;
+        } else {
+            tflite::reference_ops::Mean<uint8_t, int32_t>(
+                    const_cast<uint8_t*>(inputData),
+                    reinterpret_cast<const int*>(inputShape.dimensions.data()),
+                    getNumberOfDimensions(inputShape),
+                    outputData,
+                    reinterpret_cast<const int*>(outputShape.dimensions.data()),
+                    getNumberOfDimensions(outputShape),
+                    axis, axisSize, keepDims, scratchBuffer, resolvedAxis,
+                    tempSumBuffer);
+            delete[] tempSumBuffer;
+        }
     } else {
         LOG(ERROR) << "Unsupported data type";
         result = false;

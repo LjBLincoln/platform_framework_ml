@@ -41,22 +41,9 @@ bool stridedSliceGeneric(const uint8_t* inputData, const Shape& inputShape,
 
     int32_t numInputDims = static_cast<int32_t>(getNumberOfDimensions(inputShape));
     for (int32_t idx = numInputDims - 1; idx >= 0; --idx) {
-      int32_t dim = static_cast<int32_t>(getSizeOfDimension(inputShape, idx));
-      int32_t stride = stridesData[idx];
-      // stride value has to be non-zero
-      NN_OPS_CHECK(stride != 0);
-      bool positiveStride = stride > 0;
-
-      int32_t begin = beginMask & (1 << idx)
-              ? positiveStride ? 0 : dim - 1
-              : ClampedIndex(beginData[idx], dim, positiveStride);
-      int32_t end = endMask & (1 << idx)
-              ? positiveStride ? dim : -1
-              : ClampedIndex(endData[idx], dim, positiveStride);
-
-      starts.emplace_back(begin);
-      stops.emplace_back(end);
-      strides.emplace_back(stride);
+      starts.emplace_back(beginData[idx]);
+      stops.emplace_back(endData[idx]);
+      strides.emplace_back(stridesData[idx]);
     }
 
     for (int i = numInputDims; i < kMaxDim; i++) {
@@ -67,13 +54,12 @@ bool stridedSliceGeneric(const uint8_t* inputData, const Shape& inputShape,
 
     beginMask = ReverseMaskBits(beginMask, numInputDims);
     endMask = ReverseMaskBits(endMask, numInputDims);
-    shrinkAxisMask = ReverseMaskBits(shrinkAxisMask, numInputDims);
 
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
         tflite::reference_ops::StridedSlice(
                 reinterpret_cast<const float*>(inputData),
                 convertShapeToDims(inputShape),
-                beginMask, endMask, shrinkAxisMask,
+                beginMask, endMask,
                 starts, stops, strides,
                 reinterpret_cast<float*>(outputData),
                 convertShapeToDims(outputShape));
@@ -81,7 +67,7 @@ bool stridedSliceGeneric(const uint8_t* inputData, const Shape& inputShape,
         tflite::reference_ops::StridedSlice(
                 reinterpret_cast<const uint8_t*>(inputData),
                 convertShapeToDims(inputShape),
-                beginMask, endMask, shrinkAxisMask,
+                beginMask, endMask,
                 starts, stops, strides,
                 reinterpret_cast<uint8_t*>(outputData),
                 convertShapeToDims(outputShape));

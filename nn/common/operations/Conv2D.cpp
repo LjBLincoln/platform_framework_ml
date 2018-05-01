@@ -86,11 +86,14 @@ bool convFloat32(const float* inputData, const Shape& inputShape,
     CalculateActivationRangeFloat(activation, &output_activation_min,
                                   &output_activation_max);
 
+    int32_t dilationWidthFactor = 1, dilationHeightFactor = 1;
     tflite::optimized_ops::Conv(
             inputData, convertShapeToDims(inputShape),
             filterData, convertShapeToDims(filterShape),
             biasData, convertShapeToDims(biasShape),
-            stride_width, stride_height, paddingWidth, paddingHeight,
+            stride_width, stride_height,
+            dilationWidthFactor, dilationHeightFactor,
+            paddingWidth, paddingHeight,
             output_activation_min, output_activation_max,
             outputData, convertShapeToDims(outputShape),
             im2colData, im2colDim);
