@@ -138,7 +138,7 @@ bool batchToSpaceGeneric(const uint8_t* inputData, const Shape& inputShape,
                          uint8_t* outputData, const Shape& outputShape) {
     // Needed by low level implementation, but not really used.
     tflite::Dims<4> blockSizeDim, cropsDim;
-    const int32 crops[2] = {0, 0};
+    const int32 crops[4] = {0, 0, 0, 0};
     if (inputShape.type == OperandType::TENSOR_FLOAT32) {
        tflite::optimized_ops::BatchToSpaceND(
                 reinterpret_cast<const float*>(inputData),
