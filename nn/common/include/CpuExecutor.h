@@ -22,6 +22,7 @@
 #include "Utils.h"
 
 #include <algorithm>
+#include <android-base/macros.h>
 #include <vector>
 
 namespace android {
@@ -135,6 +136,43 @@ private:
     // Runtime information about all the operands.
     std::vector<RunTimeOperandInfo> mOperands;
 };
+
+// Class for setting reasonable OpenMP threading settings. (OpenMP is used by
+// the Eigen matrix library.)
+//
+// Currently sets a low blocktime: the time OpenMP threads busy-wait for more
+// work before going to sleep. See b/79159165, https://reviews.llvm.org/D18577.
+// The default is 200ms, we set to 1ms here. This should allow for the threads
+// to not sleep before the next operation, but release CPU to other work
+// quickly.
+//
+// The OpenMP settings are thread-local (applying only to worker threads formed
+// from that thread), see https://software.intel.com/en-us/node/522688 and
+// http://lists.llvm.org/pipermail/openmp-dev/2016-July/001432.html. This class
+// ensures that within the scope in which an object is instantiated we use the
+// right settings (scopes may be nested), as long as no other library changes
+// them.  (Note that in current NNAPI usage only one instance is used in the
+// CpuExecutor thread).
+//
+// TODO(mikie): consider also setting the number of threads used. Using as many
+// threads as there are cores results in more variable performance: if we don't
+// get all cores for our threads, the latency is doubled as we wait for one core
+// to do twice the amount of work. Reality is complicated though as not all
+// cores are the same. Decision to be based on benchmarking against a
+// representative set of workloads and devices. I'm keeping the code here for
+// reference.
+class ScopedOpenmpSettings {
+public:
+    ScopedOpenmpSettings();
+    ~ScopedOpenmpSettings();
+    DISALLOW_COPY_AND_ASSIGN(ScopedOpenmpSettings);
+private:
+    int mBlocktimeInitial;
+#if NNAPI_LIMIT_CPU_THREADS
+    int mMaxThreadsInitial;
+#endif
+};
+
 
 namespace {
 
