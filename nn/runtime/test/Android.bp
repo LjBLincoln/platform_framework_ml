@@ -21,10 +21,11 @@ cc_defaults {
     openmp: true,
     srcs: [
         // Subset of tests that rely only on public functionality.
-        "Bridge.cpp",
+        //
+        // Changes to this list must be reflected in cts/tests/tests/neuralnetworks/Android.mk
+        // to ensure CTS tests coverage.
         "TestGenerated.cpp",
         "TestMemory.cpp",
-        "TestMemoryInternal.cpp",
         "TestTrivialModel.cpp",
         "TestUnknownDimensions.cpp",
         "TestValidateOperations.cpp",
@@ -45,12 +46,7 @@ cc_defaults {
         "android.hidl.allocator@1.0",
         "android.hidl.memory@1.0",
     ],
-    static_libs: [
-        "libneuralnetworks_common",
-        "libSampleDriver",
-    ],
     header_libs: [
-        "libneuralnetworks_private_headers",
         "libneuralnetworks_generated_test_harness_headers",
     ],
 }
@@ -68,9 +64,6 @@ cc_test {
         "libneuralnetworks",
         "libtextclassifier_hash",
     ],
-    static_libs: [
-        "libneuralnetworks_common",
-    ],
 }
 
 cc_test {
@@ -79,17 +72,23 @@ cc_test {
     srcs: [
         "TestMain.cpp",
 
+        "Bridge.cpp",
         // Tests that rely on non-public functionality (i.e., symbols
         // not exported from libneuralnetworks.so).
         "TestExecution.cpp",
+        "TestMemoryInternal.cpp",
         "TestPartitioning.cpp",
         "TestPartitioningRandom.cpp",
     ],
     static_libs: [
         "libneuralnetworks",
         "libneuralnetworks_common",
+        "libSampleDriver",
     ],
     shared_libs: [
         "libcutils",
-    ]
+    ],
+    header_libs: [
+        "libneuralnetworks_private_headers",
+    ],
 }
