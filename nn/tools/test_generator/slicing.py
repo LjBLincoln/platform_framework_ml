@@ -42,6 +42,7 @@ import contextlib
 import test_generator
 import pprint
 # Stuff from test generator
+from test_generator import Configuration
 from test_generator import Example
 from test_generator import Float32Scalar
 from test_generator import Input
@@ -70,6 +71,9 @@ def import_source():
   if os.path.exists(args.spec):
     test_generator.FileNames.SpecFile = os.path.basename(args.spec)
     exec (open(args.spec).read())
+  else:
+    print("cannot find file %s" % args.spec)
+    sys.exit(1)
 
   return (args.model, args.example, args.number)
 

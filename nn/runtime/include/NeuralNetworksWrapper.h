@@ -91,6 +91,7 @@ public:
     Memory(Memory&& other) { *this = std::move(other); }
     Memory& operator=(Memory&& other) {
         if (this != &other) {
+            ANeuralNetworksMemory_free(mMemory);
             mMemory = other.mMemory;
             mValid = other.mValid;
             other.mMemory = nullptr;
@@ -127,6 +128,7 @@ public:
     Model(Model&& other) { *this = std::move(other); }
     Model& operator=(Model&& other) {
         if (this != &other) {
+            ANeuralNetworksModel_free(mModel);
             mModel = other.mModel;
             mNextOperandId = other.mNextOperandId;
             mValid = other.mValid;
@@ -226,6 +228,7 @@ public:
     Event(Event&& other) { *this = std::move(other); }
     Event& operator=(Event&& other) {
         if (this != &other) {
+            ANeuralNetworksEvent_free(mEvent);
             mEvent = other.mEvent;
             other.mEvent = nullptr;
         }
@@ -255,12 +258,19 @@ public:
 
     ~Compilation() { ANeuralNetworksCompilation_free(mCompilation); }
 
+    // Disallow copy semantics to ensure the runtime object can only be freed
+    // once. Copy semantics could be enabled if some sort of reference counting
+    // or deep-copy system for runtime objects is added later.
     Compilation(const Compilation&) = delete;
     Compilation& operator=(const Compilation&) = delete;
 
+    // Move semantics to remove access to the runtime object from the wrapper
+    // object that is being moved. This ensures the runtime object will be
+    // freed only once.
     Compilation(Compilation&& other) { *this = std::move(other); }
     Compilation& operator=(Compilation&& other) {
         if (this != &other) {
+            ANeuralNetworksCompilation_free(mCompilation);
             mCompilation = other.mCompilation;
             other.mCompilation = nullptr;
         }
@@ -303,6 +313,7 @@ public:
     Execution(Execution&& other) { *this = std::move(other); }
     Execution& operator=(Execution&& other) {
         if (this != &other) {
+            ANeuralNetworksExecution_free(mExecution);
             mExecution = other.mExecution;
             other.mExecution = nullptr;
         }

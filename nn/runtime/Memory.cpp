@@ -29,7 +29,7 @@ int Memory::create(uint32_t size) {
     mMemory = mapMemory(mHidlMemory);
     if (mMemory == nullptr) {
         LOG(ERROR) << "Memory::create failed";
-        return ANEURALNETWORKS_OP_FAILED;
+        return ANEURALNETWORKS_OUT_OF_MEMORY;
     }
     return ANEURALNETWORKS_NO_ERROR;
 }
@@ -125,7 +125,7 @@ int MemoryFd::getPointer(uint8_t** buffer) const {
 }
 
 uint32_t MemoryTracker::add(const Memory* memory) {
-    VLOG(MODEL) << __func__ << " for " << memory;
+    VLOG(MODEL) << __func__ << "(" << SHOW_IF_DEBUG(memory) << ")";
     // See if we already have this memory. If so,
     // return its index.
     auto i = mKnown.find(memory);

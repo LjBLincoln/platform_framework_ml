@@ -268,7 +268,7 @@ void logModelToInfo(const V1_0::Model& model) {
     LOG(INFO) << "inputIndexes" << toString(model.inputIndexes);
     LOG(INFO) << "outputIndexes" << toString(model.outputIndexes);
     LOG(INFO) << "operandValues size" << model.operandValues.size();
-    LOG(INFO) << "pools" << toString(model.pools);
+    LOG(INFO) << "pools" << SHOW_IF_DEBUG(toString(model.pools));
 }
 
 void logModelToInfo(const V1_1::Model& model) {
@@ -278,7 +278,7 @@ void logModelToInfo(const V1_1::Model& model) {
     LOG(INFO) << "inputIndexes" << toString(model.inputIndexes);
     LOG(INFO) << "outputIndexes" << toString(model.outputIndexes);
     LOG(INFO) << "operandValues size" << model.operandValues.size();
-    LOG(INFO) << "pools" << toString(model.pools);
+    LOG(INFO) << "pools" << SHOW_IF_DEBUG(toString(model.pools));
 }
 
 // Validates the type. The used dimensions can be underspecified.
@@ -302,7 +302,7 @@ int validateOperandType(const ANeuralNetworksOperandType& type, const char* tag,
             LOG(ERROR) << tag << " OperandType invalid zeroPoint " << type.zeroPoint;
             return ANEURALNETWORKS_BAD_DATA;
         }
-        if (type.scale < 0.f) {
+        if (type.scale <= 0.f) {
             LOG(ERROR) << tag << " OperandType invalid scale " << type.scale;
             return ANEURALNETWORKS_BAD_DATA;
         }
@@ -1467,9 +1467,7 @@ ErrorStatus convertResultCodeToErrorStatus(int resultCode) {
         case ANEURALNETWORKS_INCOMPLETE:
         case ANEURALNETWORKS_OP_FAILED:
         case ANEURALNETWORKS_OUT_OF_MEMORY:
-#if 0
-        case ANEURALNETWORKS_UNMAPPABLE:  // Same as BAD_STATE per http://b/68356625
-#endif
+        case ANEURALNETWORKS_UNMAPPABLE:
             return ErrorStatus::GENERAL_FAILURE;
     }
 }
@@ -1697,7 +1695,7 @@ V1_0::Model convertToV1_0(const V1_0::Model& model) {
 
 V1_0::Model convertToV1_0(const V1_1::Model& model) {
     if (!compliantWithV1_0(model)) {
-        LOG(ERROR) << "Upcasting non-compliant model " << toString(model)
+        LOG(ERROR) << "Upcasting non-compliant model " << SHOW_IF_DEBUG(toString(model))
                    << " from V1_1::Model to V1_0::Model";
     }
     return {.operands = model.operands,

@@ -103,7 +103,7 @@ int CompilationBuilder::createExecution(ExecutionBuilder **execution) {
         *execution = nullptr;
         return ANEURALNETWORKS_BAD_STATE;
     }
-    *execution = new ExecutionBuilder(this);
+    *execution = new (std::nothrow) ExecutionBuilder(this);
     return (*execution ? ANEURALNETWORKS_NO_ERROR : ANEURALNETWORKS_OUT_OF_MEMORY);
 }
 

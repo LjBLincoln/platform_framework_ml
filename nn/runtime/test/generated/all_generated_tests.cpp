@@ -2115,6 +2115,20 @@ TEST_F(GeneratedTests, avg_pool_float_4_relaxed) {
             avg_pool_float_4_relaxed::examples);
 }
 
+namespace avg_pool_float_5_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated avg_pool_float_5_relaxed test
+#include "generated/examples/avg_pool_float_5_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/avg_pool_float_5_relaxed.model.cpp"
+} // namespace avg_pool_float_5_relaxed
+TEST_F(GeneratedTests, avg_pool_float_5_relaxed) {
+    execute(avg_pool_float_5_relaxed::CreateModel,
+            avg_pool_float_5_relaxed::is_ignored,
+            avg_pool_float_5_relaxed::examples);
+}
+
 namespace batch_to_space_float_1 {
 std::vector<MixedTypedExample> examples = {
 // Generated batch_to_space_float_1 test
@@ -2127,6 +2141,20 @@ TEST_F(GeneratedTests, batch_to_space_float_1) {
     execute(batch_to_space_float_1::CreateModel,
             batch_to_space_float_1::is_ignored,
             batch_to_space_float_1::examples);
+}
+
+namespace batch_to_space_float_1_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated batch_to_space_float_1_relaxed test
+#include "generated/examples/batch_to_space_float_1_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/batch_to_space_float_1_relaxed.model.cpp"
+} // namespace batch_to_space_float_1_relaxed
+TEST_F(GeneratedTests, batch_to_space_float_1_relaxed) {
+    execute(batch_to_space_float_1_relaxed::CreateModel,
+            batch_to_space_float_1_relaxed::is_ignored,
+            batch_to_space_float_1_relaxed::examples);
 }
 
 namespace batch_to_space {
@@ -2155,6 +2183,20 @@ TEST_F(GeneratedTests, batch_to_space_quant8_1) {
     execute(batch_to_space_quant8_1::CreateModel,
             batch_to_space_quant8_1::is_ignored,
             batch_to_space_quant8_1::examples);
+}
+
+namespace batch_to_space_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated batch_to_space_relaxed test
+#include "generated/examples/batch_to_space_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/batch_to_space_relaxed.model.cpp"
+} // namespace batch_to_space_relaxed
+TEST_F(GeneratedTests, batch_to_space_relaxed) {
+    execute(batch_to_space_relaxed::CreateModel,
+            batch_to_space_relaxed::is_ignored,
+            batch_to_space_relaxed::examples);
 }
 
 namespace concat_float_1_relaxed {
@@ -2253,6 +2295,20 @@ TEST_F(GeneratedTests, conv_3_h3_w2_VALID_relaxed) {
     execute(conv_3_h3_w2_VALID_relaxed::CreateModel,
             conv_3_h3_w2_VALID_relaxed::is_ignored,
             conv_3_h3_w2_VALID_relaxed::examples);
+}
+
+namespace conv_float_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated conv_float_2_relaxed test
+#include "generated/examples/conv_float_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/conv_float_2_relaxed.model.cpp"
+} // namespace conv_float_2_relaxed
+TEST_F(GeneratedTests, conv_float_2_relaxed) {
+    execute(conv_float_2_relaxed::CreateModel,
+            conv_float_2_relaxed::is_ignored,
+            conv_float_2_relaxed::examples);
 }
 
 namespace conv_float_channels_relaxed {
@@ -2381,6 +2437,48 @@ TEST_F(GeneratedTests, depth_to_space_float_3_relaxed) {
             depth_to_space_float_3_relaxed::examples);
 }
 
+namespace depthwise_conv2d_float_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_float_2_relaxed test
+#include "generated/examples/depthwise_conv2d_float_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv2d_float_2_relaxed.model.cpp"
+} // namespace depthwise_conv2d_float_2_relaxed
+TEST_F(GeneratedTests, depthwise_conv2d_float_2_relaxed) {
+    execute(depthwise_conv2d_float_2_relaxed::CreateModel,
+            depthwise_conv2d_float_2_relaxed::is_ignored,
+            depthwise_conv2d_float_2_relaxed::examples);
+}
+
+namespace depthwise_conv2d_float_large_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_float_large_2_relaxed test
+#include "generated/examples/depthwise_conv2d_float_large_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv2d_float_large_2_relaxed.model.cpp"
+} // namespace depthwise_conv2d_float_large_2_relaxed
+TEST_F(GeneratedTests, depthwise_conv2d_float_large_2_relaxed) {
+    execute(depthwise_conv2d_float_large_2_relaxed::CreateModel,
+            depthwise_conv2d_float_large_2_relaxed::is_ignored,
+            depthwise_conv2d_float_large_2_relaxed::examples);
+}
+
+namespace depthwise_conv2d_float_large_2_weights_as_inputs_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_float_large_2_weights_as_inputs_relaxed test
+#include "generated/examples/depthwise_conv2d_float_large_2_weights_as_inputs_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv2d_float_large_2_weights_as_inputs_relaxed.model.cpp"
+} // namespace depthwise_conv2d_float_large_2_weights_as_inputs_relaxed
+TEST_F(GeneratedTests, depthwise_conv2d_float_large_2_weights_as_inputs_relaxed) {
+    execute(depthwise_conv2d_float_large_2_weights_as_inputs_relaxed::CreateModel,
+            depthwise_conv2d_float_large_2_weights_as_inputs_relaxed::is_ignored,
+            depthwise_conv2d_float_large_2_weights_as_inputs_relaxed::examples);
+}
+
 namespace depthwise_conv2d_float_large_relaxed {
 std::vector<MixedTypedExample> examples = {
 // Generated depthwise_conv2d_float_large_relaxed test
@@ -2409,6 +2507,34 @@ TEST_F(GeneratedTests, depthwise_conv2d_float_large_weights_as_inputs_relaxed) {
             depthwise_conv2d_float_large_weights_as_inputs_relaxed::examples);
 }
 
+namespace depthwise_conv2d_float_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_float_relaxed test
+#include "generated/examples/depthwise_conv2d_float_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv2d_float_relaxed.model.cpp"
+} // namespace depthwise_conv2d_float_relaxed
+TEST_F(GeneratedTests, depthwise_conv2d_float_relaxed) {
+    execute(depthwise_conv2d_float_relaxed::CreateModel,
+            depthwise_conv2d_float_relaxed::is_ignored,
+            depthwise_conv2d_float_relaxed::examples);
+}
+
+namespace depthwise_conv2d_float_weights_as_inputs_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated depthwise_conv2d_float_weights_as_inputs_relaxed test
+#include "generated/examples/depthwise_conv2d_float_weights_as_inputs_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/depthwise_conv2d_float_weights_as_inputs_relaxed.model.cpp"
+} // namespace depthwise_conv2d_float_weights_as_inputs_relaxed
+TEST_F(GeneratedTests, depthwise_conv2d_float_weights_as_inputs_relaxed) {
+    execute(depthwise_conv2d_float_weights_as_inputs_relaxed::CreateModel,
+            depthwise_conv2d_float_weights_as_inputs_relaxed::is_ignored,
+            depthwise_conv2d_float_weights_as_inputs_relaxed::examples);
+}
+
 namespace depthwise_conv_relaxed {
 std::vector<MixedTypedExample> examples = {
 // Generated depthwise_conv_relaxed test
@@ -2421,6 +2547,20 @@ TEST_F(GeneratedTests, depthwise_conv_relaxed) {
     execute(depthwise_conv_relaxed::CreateModel,
             depthwise_conv_relaxed::is_ignored,
             depthwise_conv_relaxed::examples);
+}
+
+namespace dequantize_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated dequantize_relaxed test
+#include "generated/examples/dequantize_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/dequantize_relaxed.model.cpp"
+} // namespace dequantize_relaxed
+TEST_F(GeneratedTests, dequantize_relaxed) {
+    execute(dequantize_relaxed::CreateModel,
+            dequantize_relaxed::is_ignored,
+            dequantize_relaxed::examples);
 }
 
 namespace div_broadcast_float {
@@ -2437,6 +2577,20 @@ TEST_F(GeneratedTests, div_broadcast_float) {
             div_broadcast_float::examples);
 }
 
+namespace div_broadcast_float_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated div_broadcast_float_relaxed test
+#include "generated/examples/div_broadcast_float_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/div_broadcast_float_relaxed.model.cpp"
+} // namespace div_broadcast_float_relaxed
+TEST_F(GeneratedTests, div_broadcast_float_relaxed) {
+    execute(div_broadcast_float_relaxed::CreateModel,
+            div_broadcast_float_relaxed::is_ignored,
+            div_broadcast_float_relaxed::examples);
+}
+
 namespace div {
 std::vector<MixedTypedExample> examples = {
 // Generated div test
@@ -2449,6 +2603,20 @@ TEST_F(GeneratedTests, div) {
     execute(div::CreateModel,
             div::is_ignored,
             div::examples);
+}
+
+namespace div_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated div_relaxed test
+#include "generated/examples/div_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/div_relaxed.model.cpp"
+} // namespace div_relaxed
+TEST_F(GeneratedTests, div_relaxed) {
+    execute(div_relaxed::CreateModel,
+            div_relaxed::is_ignored,
+            div_relaxed::examples);
 }
 
 namespace embedding_lookup_relaxed {
@@ -2477,6 +2645,76 @@ TEST_F(GeneratedTests, floor_relaxed) {
     execute(floor_relaxed::CreateModel,
             floor_relaxed::is_ignored,
             floor_relaxed::examples);
+}
+
+namespace fully_connected_float_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float_2_relaxed test
+#include "generated/examples/fully_connected_float_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_float_2_relaxed.model.cpp"
+} // namespace fully_connected_float_2_relaxed
+TEST_F(GeneratedTests, fully_connected_float_2_relaxed) {
+    execute(fully_connected_float_2_relaxed::CreateModel,
+            fully_connected_float_2_relaxed::is_ignored,
+            fully_connected_float_2_relaxed::examples);
+}
+
+namespace fully_connected_float_4d_simple {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float_4d_simple test
+#include "generated/examples/fully_connected_float_4d_simple.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_float_4d_simple.model.cpp"
+} // namespace fully_connected_float_4d_simple
+TEST_F(GeneratedTests, fully_connected_float_4d_simple) {
+    execute(fully_connected_float_4d_simple::CreateModel,
+            fully_connected_float_4d_simple::is_ignored,
+            fully_connected_float_4d_simple::examples);
+}
+
+namespace fully_connected_float_4d_simple_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float_4d_simple_relaxed test
+#include "generated/examples/fully_connected_float_4d_simple_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_float_4d_simple_relaxed.model.cpp"
+} // namespace fully_connected_float_4d_simple_relaxed
+TEST_F(GeneratedTests, fully_connected_float_4d_simple_relaxed) {
+    execute(fully_connected_float_4d_simple_relaxed::CreateModel,
+            fully_connected_float_4d_simple_relaxed::is_ignored,
+            fully_connected_float_4d_simple_relaxed::examples);
+}
+
+namespace fully_connected_float_large_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float_large_relaxed test
+#include "generated/examples/fully_connected_float_large_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_float_large_relaxed.model.cpp"
+} // namespace fully_connected_float_large_relaxed
+TEST_F(GeneratedTests, fully_connected_float_large_relaxed) {
+    execute(fully_connected_float_large_relaxed::CreateModel,
+            fully_connected_float_large_relaxed::is_ignored,
+            fully_connected_float_large_relaxed::examples);
+}
+
+namespace fully_connected_float_large_weights_as_inputs_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated fully_connected_float_large_weights_as_inputs_relaxed test
+#include "generated/examples/fully_connected_float_large_weights_as_inputs_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/fully_connected_float_large_weights_as_inputs_relaxed.model.cpp"
+} // namespace fully_connected_float_large_weights_as_inputs_relaxed
+TEST_F(GeneratedTests, fully_connected_float_large_weights_as_inputs_relaxed) {
+    execute(fully_connected_float_large_weights_as_inputs_relaxed::CreateModel,
+            fully_connected_float_large_weights_as_inputs_relaxed::is_ignored,
+            fully_connected_float_large_weights_as_inputs_relaxed::examples);
 }
 
 namespace fully_connected_float_relaxed {
@@ -2521,6 +2759,20 @@ TEST_F(GeneratedTests, hashtable_lookup_float_relaxed) {
             hashtable_lookup_float_relaxed::examples);
 }
 
+namespace l2_normalization_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated l2_normalization_2_relaxed test
+#include "generated/examples/l2_normalization_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/l2_normalization_2_relaxed.model.cpp"
+} // namespace l2_normalization_2_relaxed
+TEST_F(GeneratedTests, l2_normalization_2_relaxed) {
+    execute(l2_normalization_2_relaxed::CreateModel,
+            l2_normalization_2_relaxed::is_ignored,
+            l2_normalization_2_relaxed::examples);
+}
+
 namespace l2_normalization_large_relaxed {
 std::vector<MixedTypedExample> examples = {
 // Generated l2_normalization_large_relaxed test
@@ -2547,6 +2799,34 @@ TEST_F(GeneratedTests, l2_normalization_relaxed) {
     execute(l2_normalization_relaxed::CreateModel,
             l2_normalization_relaxed::is_ignored,
             l2_normalization_relaxed::examples);
+}
+
+namespace l2_pool_float_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated l2_pool_float_2_relaxed test
+#include "generated/examples/l2_pool_float_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/l2_pool_float_2_relaxed.model.cpp"
+} // namespace l2_pool_float_2_relaxed
+TEST_F(GeneratedTests, l2_pool_float_2_relaxed) {
+    execute(l2_pool_float_2_relaxed::CreateModel,
+            l2_pool_float_2_relaxed::is_ignored,
+            l2_pool_float_2_relaxed::examples);
+}
+
+namespace l2_pool_float_large_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated l2_pool_float_large_relaxed test
+#include "generated/examples/l2_pool_float_large_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/l2_pool_float_large_relaxed.model.cpp"
+} // namespace l2_pool_float_large_relaxed
+TEST_F(GeneratedTests, l2_pool_float_large_relaxed) {
+    execute(l2_pool_float_large_relaxed::CreateModel,
+            l2_pool_float_large_relaxed::is_ignored,
+            l2_pool_float_large_relaxed::examples);
 }
 
 namespace l2_pool_float_relaxed {
@@ -2871,6 +3151,20 @@ TEST_F(GeneratedTests, max_pool_float_3_relaxed) {
             max_pool_float_3_relaxed::examples);
 }
 
+namespace max_pool_float_4_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated max_pool_float_4_relaxed test
+#include "generated/examples/max_pool_float_4_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/max_pool_float_4_relaxed.model.cpp"
+} // namespace max_pool_float_4_relaxed
+TEST_F(GeneratedTests, max_pool_float_4_relaxed) {
+    execute(max_pool_float_4_relaxed::CreateModel,
+            max_pool_float_4_relaxed::is_ignored,
+            max_pool_float_4_relaxed::examples);
+}
+
 namespace mean_float_1 {
 std::vector<MixedTypedExample> examples = {
 // Generated mean_float_1 test
@@ -2885,6 +3179,20 @@ TEST_F(GeneratedTests, mean_float_1) {
             mean_float_1::examples);
 }
 
+namespace mean_float_1_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated mean_float_1_relaxed test
+#include "generated/examples/mean_float_1_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/mean_float_1_relaxed.model.cpp"
+} // namespace mean_float_1_relaxed
+TEST_F(GeneratedTests, mean_float_1_relaxed) {
+    execute(mean_float_1_relaxed::CreateModel,
+            mean_float_1_relaxed::is_ignored,
+            mean_float_1_relaxed::examples);
+}
+
 namespace mean_float_2 {
 std::vector<MixedTypedExample> examples = {
 // Generated mean_float_2 test
@@ -2897,6 +3205,20 @@ TEST_F(GeneratedTests, mean_float_2) {
     execute(mean_float_2::CreateModel,
             mean_float_2::is_ignored,
             mean_float_2::examples);
+}
+
+namespace mean_float_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated mean_float_2_relaxed test
+#include "generated/examples/mean_float_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/mean_float_2_relaxed.model.cpp"
+} // namespace mean_float_2_relaxed
+TEST_F(GeneratedTests, mean_float_2_relaxed) {
+    execute(mean_float_2_relaxed::CreateModel,
+            mean_float_2_relaxed::is_ignored,
+            mean_float_2_relaxed::examples);
 }
 
 namespace mean {
@@ -2939,6 +3261,20 @@ TEST_F(GeneratedTests, mean_quant8_2) {
     execute(mean_quant8_2::CreateModel,
             mean_quant8_2::is_ignored,
             mean_quant8_2::examples);
+}
+
+namespace mean_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated mean_relaxed test
+#include "generated/examples/mean_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/mean_relaxed.model.cpp"
+} // namespace mean_relaxed
+TEST_F(GeneratedTests, mean_relaxed) {
+    execute(mean_relaxed::CreateModel,
+            mean_relaxed::is_ignored,
+            mean_relaxed::examples);
 }
 
 namespace mobilenet_224_gender_basic_fixed_relaxed {
@@ -2997,6 +3333,20 @@ TEST_F(GeneratedTests, pad_float_1) {
             pad_float_1::examples);
 }
 
+namespace pad_float_1_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated pad_float_1_relaxed test
+#include "generated/examples/pad_float_1_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/pad_float_1_relaxed.model.cpp"
+} // namespace pad_float_1_relaxed
+TEST_F(GeneratedTests, pad_float_1_relaxed) {
+    execute(pad_float_1_relaxed::CreateModel,
+            pad_float_1_relaxed::is_ignored,
+            pad_float_1_relaxed::examples);
+}
+
 namespace pad {
 std::vector<MixedTypedExample> examples = {
 // Generated pad test
@@ -3009,6 +3359,20 @@ TEST_F(GeneratedTests, pad) {
     execute(pad::CreateModel,
             pad::is_ignored,
             pad::examples);
+}
+
+namespace pad_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated pad_relaxed test
+#include "generated/examples/pad_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/pad_relaxed.model.cpp"
+} // namespace pad_relaxed
+TEST_F(GeneratedTests, pad_relaxed) {
+    execute(pad_relaxed::CreateModel,
+            pad_relaxed::is_ignored,
+            pad_relaxed::examples);
 }
 
 namespace relu1_float_1_relaxed {
@@ -3081,6 +3445,20 @@ TEST_F(GeneratedTests, relu_float_1_relaxed) {
             relu_float_1_relaxed::examples);
 }
 
+namespace relu_float_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated relu_float_2_relaxed test
+#include "generated/examples/relu_float_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/relu_float_2_relaxed.model.cpp"
+} // namespace relu_float_2_relaxed
+TEST_F(GeneratedTests, relu_float_2_relaxed) {
+    execute(relu_float_2_relaxed::CreateModel,
+            relu_float_2_relaxed::is_ignored,
+            relu_float_2_relaxed::examples);
+}
+
 namespace reshape_relaxed {
 std::vector<MixedTypedExample> examples = {
 // Generated reshape_relaxed test
@@ -3107,6 +3485,20 @@ TEST_F(GeneratedTests, reshape_weights_as_inputs_relaxed) {
     execute(reshape_weights_as_inputs_relaxed::CreateModel,
             reshape_weights_as_inputs_relaxed::is_ignored,
             reshape_weights_as_inputs_relaxed::examples);
+}
+
+namespace resize_bilinear_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated resize_bilinear_2_relaxed test
+#include "generated/examples/resize_bilinear_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/resize_bilinear_2_relaxed.model.cpp"
+} // namespace resize_bilinear_2_relaxed
+TEST_F(GeneratedTests, resize_bilinear_2_relaxed) {
+    execute(resize_bilinear_2_relaxed::CreateModel,
+            resize_bilinear_2_relaxed::is_ignored,
+            resize_bilinear_2_relaxed::examples);
 }
 
 namespace resize_bilinear_relaxed {
@@ -3193,6 +3585,20 @@ TEST_F(GeneratedTests, space_to_batch_float_1) {
             space_to_batch_float_1::examples);
 }
 
+namespace space_to_batch_float_1_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_batch_float_1_relaxed test
+#include "generated/examples/space_to_batch_float_1_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/space_to_batch_float_1_relaxed.model.cpp"
+} // namespace space_to_batch_float_1_relaxed
+TEST_F(GeneratedTests, space_to_batch_float_1_relaxed) {
+    execute(space_to_batch_float_1_relaxed::CreateModel,
+            space_to_batch_float_1_relaxed::is_ignored,
+            space_to_batch_float_1_relaxed::examples);
+}
+
 namespace space_to_batch_float_2 {
 std::vector<MixedTypedExample> examples = {
 // Generated space_to_batch_float_2 test
@@ -3207,6 +3613,20 @@ TEST_F(GeneratedTests, space_to_batch_float_2) {
             space_to_batch_float_2::examples);
 }
 
+namespace space_to_batch_float_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_batch_float_2_relaxed test
+#include "generated/examples/space_to_batch_float_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/space_to_batch_float_2_relaxed.model.cpp"
+} // namespace space_to_batch_float_2_relaxed
+TEST_F(GeneratedTests, space_to_batch_float_2_relaxed) {
+    execute(space_to_batch_float_2_relaxed::CreateModel,
+            space_to_batch_float_2_relaxed::is_ignored,
+            space_to_batch_float_2_relaxed::examples);
+}
+
 namespace space_to_batch_float_3 {
 std::vector<MixedTypedExample> examples = {
 // Generated space_to_batch_float_3 test
@@ -3219,6 +3639,20 @@ TEST_F(GeneratedTests, space_to_batch_float_3) {
     execute(space_to_batch_float_3::CreateModel,
             space_to_batch_float_3::is_ignored,
             space_to_batch_float_3::examples);
+}
+
+namespace space_to_batch_float_3_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_batch_float_3_relaxed test
+#include "generated/examples/space_to_batch_float_3_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/space_to_batch_float_3_relaxed.model.cpp"
+} // namespace space_to_batch_float_3_relaxed
+TEST_F(GeneratedTests, space_to_batch_float_3_relaxed) {
+    execute(space_to_batch_float_3_relaxed::CreateModel,
+            space_to_batch_float_3_relaxed::is_ignored,
+            space_to_batch_float_3_relaxed::examples);
 }
 
 namespace space_to_batch {
@@ -3277,6 +3711,20 @@ TEST_F(GeneratedTests, space_to_batch_quant8_3) {
             space_to_batch_quant8_3::examples);
 }
 
+namespace space_to_batch_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated space_to_batch_relaxed test
+#include "generated/examples/space_to_batch_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/space_to_batch_relaxed.model.cpp"
+} // namespace space_to_batch_relaxed
+TEST_F(GeneratedTests, space_to_batch_relaxed) {
+    execute(space_to_batch_relaxed::CreateModel,
+            space_to_batch_relaxed::is_ignored,
+            space_to_batch_relaxed::examples);
+}
+
 namespace space_to_depth_float_1_relaxed {
 std::vector<MixedTypedExample> examples = {
 // Generated space_to_depth_float_1_relaxed test
@@ -3333,6 +3781,20 @@ TEST_F(GeneratedTests, squeeze_float_1) {
             squeeze_float_1::examples);
 }
 
+namespace squeeze_float_1_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated squeeze_float_1_relaxed test
+#include "generated/examples/squeeze_float_1_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/squeeze_float_1_relaxed.model.cpp"
+} // namespace squeeze_float_1_relaxed
+TEST_F(GeneratedTests, squeeze_float_1_relaxed) {
+    execute(squeeze_float_1_relaxed::CreateModel,
+            squeeze_float_1_relaxed::is_ignored,
+            squeeze_float_1_relaxed::examples);
+}
+
 namespace squeeze {
 std::vector<MixedTypedExample> examples = {
 // Generated squeeze test
@@ -3361,6 +3823,20 @@ TEST_F(GeneratedTests, squeeze_quant8_1) {
             squeeze_quant8_1::examples);
 }
 
+namespace squeeze_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated squeeze_relaxed test
+#include "generated/examples/squeeze_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/squeeze_relaxed.model.cpp"
+} // namespace squeeze_relaxed
+TEST_F(GeneratedTests, squeeze_relaxed) {
+    execute(squeeze_relaxed::CreateModel,
+            squeeze_relaxed::is_ignored,
+            squeeze_relaxed::examples);
+}
+
 namespace strided_slice_float_10 {
 std::vector<MixedTypedExample> examples = {
 // Generated strided_slice_float_10 test
@@ -3373,6 +3849,20 @@ TEST_F(GeneratedTests, strided_slice_float_10) {
     execute(strided_slice_float_10::CreateModel,
             strided_slice_float_10::is_ignored,
             strided_slice_float_10::examples);
+}
+
+namespace strided_slice_float_10_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_10_relaxed test
+#include "generated/examples/strided_slice_float_10_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_10_relaxed.model.cpp"
+} // namespace strided_slice_float_10_relaxed
+TEST_F(GeneratedTests, strided_slice_float_10_relaxed) {
+    execute(strided_slice_float_10_relaxed::CreateModel,
+            strided_slice_float_10_relaxed::is_ignored,
+            strided_slice_float_10_relaxed::examples);
 }
 
 namespace strided_slice_float_11 {
@@ -3389,6 +3879,20 @@ TEST_F(GeneratedTests, strided_slice_float_11) {
             strided_slice_float_11::examples);
 }
 
+namespace strided_slice_float_11_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_11_relaxed test
+#include "generated/examples/strided_slice_float_11_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_11_relaxed.model.cpp"
+} // namespace strided_slice_float_11_relaxed
+TEST_F(GeneratedTests, strided_slice_float_11_relaxed) {
+    execute(strided_slice_float_11_relaxed::CreateModel,
+            strided_slice_float_11_relaxed::is_ignored,
+            strided_slice_float_11_relaxed::examples);
+}
+
 namespace strided_slice_float_1 {
 std::vector<MixedTypedExample> examples = {
 // Generated strided_slice_float_1 test
@@ -3401,6 +3905,20 @@ TEST_F(GeneratedTests, strided_slice_float_1) {
     execute(strided_slice_float_1::CreateModel,
             strided_slice_float_1::is_ignored,
             strided_slice_float_1::examples);
+}
+
+namespace strided_slice_float_1_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_1_relaxed test
+#include "generated/examples/strided_slice_float_1_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_1_relaxed.model.cpp"
+} // namespace strided_slice_float_1_relaxed
+TEST_F(GeneratedTests, strided_slice_float_1_relaxed) {
+    execute(strided_slice_float_1_relaxed::CreateModel,
+            strided_slice_float_1_relaxed::is_ignored,
+            strided_slice_float_1_relaxed::examples);
 }
 
 namespace strided_slice_float_2 {
@@ -3417,6 +3935,20 @@ TEST_F(GeneratedTests, strided_slice_float_2) {
             strided_slice_float_2::examples);
 }
 
+namespace strided_slice_float_2_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_2_relaxed test
+#include "generated/examples/strided_slice_float_2_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_2_relaxed.model.cpp"
+} // namespace strided_slice_float_2_relaxed
+TEST_F(GeneratedTests, strided_slice_float_2_relaxed) {
+    execute(strided_slice_float_2_relaxed::CreateModel,
+            strided_slice_float_2_relaxed::is_ignored,
+            strided_slice_float_2_relaxed::examples);
+}
+
 namespace strided_slice_float_3 {
 std::vector<MixedTypedExample> examples = {
 // Generated strided_slice_float_3 test
@@ -3429,6 +3961,20 @@ TEST_F(GeneratedTests, strided_slice_float_3) {
     execute(strided_slice_float_3::CreateModel,
             strided_slice_float_3::is_ignored,
             strided_slice_float_3::examples);
+}
+
+namespace strided_slice_float_3_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_3_relaxed test
+#include "generated/examples/strided_slice_float_3_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_3_relaxed.model.cpp"
+} // namespace strided_slice_float_3_relaxed
+TEST_F(GeneratedTests, strided_slice_float_3_relaxed) {
+    execute(strided_slice_float_3_relaxed::CreateModel,
+            strided_slice_float_3_relaxed::is_ignored,
+            strided_slice_float_3_relaxed::examples);
 }
 
 namespace strided_slice_float_4 {
@@ -3445,6 +3991,20 @@ TEST_F(GeneratedTests, strided_slice_float_4) {
             strided_slice_float_4::examples);
 }
 
+namespace strided_slice_float_4_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_4_relaxed test
+#include "generated/examples/strided_slice_float_4_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_4_relaxed.model.cpp"
+} // namespace strided_slice_float_4_relaxed
+TEST_F(GeneratedTests, strided_slice_float_4_relaxed) {
+    execute(strided_slice_float_4_relaxed::CreateModel,
+            strided_slice_float_4_relaxed::is_ignored,
+            strided_slice_float_4_relaxed::examples);
+}
+
 namespace strided_slice_float_5 {
 std::vector<MixedTypedExample> examples = {
 // Generated strided_slice_float_5 test
@@ -3457,6 +4017,20 @@ TEST_F(GeneratedTests, strided_slice_float_5) {
     execute(strided_slice_float_5::CreateModel,
             strided_slice_float_5::is_ignored,
             strided_slice_float_5::examples);
+}
+
+namespace strided_slice_float_5_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_5_relaxed test
+#include "generated/examples/strided_slice_float_5_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_5_relaxed.model.cpp"
+} // namespace strided_slice_float_5_relaxed
+TEST_F(GeneratedTests, strided_slice_float_5_relaxed) {
+    execute(strided_slice_float_5_relaxed::CreateModel,
+            strided_slice_float_5_relaxed::is_ignored,
+            strided_slice_float_5_relaxed::examples);
 }
 
 namespace strided_slice_float_6 {
@@ -3473,6 +4047,20 @@ TEST_F(GeneratedTests, strided_slice_float_6) {
             strided_slice_float_6::examples);
 }
 
+namespace strided_slice_float_6_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_6_relaxed test
+#include "generated/examples/strided_slice_float_6_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_6_relaxed.model.cpp"
+} // namespace strided_slice_float_6_relaxed
+TEST_F(GeneratedTests, strided_slice_float_6_relaxed) {
+    execute(strided_slice_float_6_relaxed::CreateModel,
+            strided_slice_float_6_relaxed::is_ignored,
+            strided_slice_float_6_relaxed::examples);
+}
+
 namespace strided_slice_float_7 {
 std::vector<MixedTypedExample> examples = {
 // Generated strided_slice_float_7 test
@@ -3485,6 +4073,20 @@ TEST_F(GeneratedTests, strided_slice_float_7) {
     execute(strided_slice_float_7::CreateModel,
             strided_slice_float_7::is_ignored,
             strided_slice_float_7::examples);
+}
+
+namespace strided_slice_float_7_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_7_relaxed test
+#include "generated/examples/strided_slice_float_7_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_7_relaxed.model.cpp"
+} // namespace strided_slice_float_7_relaxed
+TEST_F(GeneratedTests, strided_slice_float_7_relaxed) {
+    execute(strided_slice_float_7_relaxed::CreateModel,
+            strided_slice_float_7_relaxed::is_ignored,
+            strided_slice_float_7_relaxed::examples);
 }
 
 namespace strided_slice_float_8 {
@@ -3501,6 +4103,20 @@ TEST_F(GeneratedTests, strided_slice_float_8) {
             strided_slice_float_8::examples);
 }
 
+namespace strided_slice_float_8_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_8_relaxed test
+#include "generated/examples/strided_slice_float_8_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_8_relaxed.model.cpp"
+} // namespace strided_slice_float_8_relaxed
+TEST_F(GeneratedTests, strided_slice_float_8_relaxed) {
+    execute(strided_slice_float_8_relaxed::CreateModel,
+            strided_slice_float_8_relaxed::is_ignored,
+            strided_slice_float_8_relaxed::examples);
+}
+
 namespace strided_slice_float_9 {
 std::vector<MixedTypedExample> examples = {
 // Generated strided_slice_float_9 test
@@ -3513,6 +4129,20 @@ TEST_F(GeneratedTests, strided_slice_float_9) {
     execute(strided_slice_float_9::CreateModel,
             strided_slice_float_9::is_ignored,
             strided_slice_float_9::examples);
+}
+
+namespace strided_slice_float_9_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_float_9_relaxed test
+#include "generated/examples/strided_slice_float_9_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_float_9_relaxed.model.cpp"
+} // namespace strided_slice_float_9_relaxed
+TEST_F(GeneratedTests, strided_slice_float_9_relaxed) {
+    execute(strided_slice_float_9_relaxed::CreateModel,
+            strided_slice_float_9_relaxed::is_ignored,
+            strided_slice_float_9_relaxed::examples);
 }
 
 namespace strided_slice {
@@ -3683,6 +4313,20 @@ TEST_F(GeneratedTests, strided_slice_quant8_9) {
             strided_slice_quant8_9::examples);
 }
 
+namespace strided_slice_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated strided_slice_relaxed test
+#include "generated/examples/strided_slice_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/strided_slice_relaxed.model.cpp"
+} // namespace strided_slice_relaxed
+TEST_F(GeneratedTests, strided_slice_relaxed) {
+    execute(strided_slice_relaxed::CreateModel,
+            strided_slice_relaxed::is_ignored,
+            strided_slice_relaxed::examples);
+}
+
 namespace sub_broadcast_float {
 std::vector<MixedTypedExample> examples = {
 // Generated sub_broadcast_float test
@@ -3697,6 +4341,20 @@ TEST_F(GeneratedTests, sub_broadcast_float) {
             sub_broadcast_float::examples);
 }
 
+namespace sub_broadcast_float_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated sub_broadcast_float_relaxed test
+#include "generated/examples/sub_broadcast_float_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/sub_broadcast_float_relaxed.model.cpp"
+} // namespace sub_broadcast_float_relaxed
+TEST_F(GeneratedTests, sub_broadcast_float_relaxed) {
+    execute(sub_broadcast_float_relaxed::CreateModel,
+            sub_broadcast_float_relaxed::is_ignored,
+            sub_broadcast_float_relaxed::examples);
+}
+
 namespace sub {
 std::vector<MixedTypedExample> examples = {
 // Generated sub test
@@ -3709,6 +4367,20 @@ TEST_F(GeneratedTests, sub) {
     execute(sub::CreateModel,
             sub::is_ignored,
             sub::examples);
+}
+
+namespace sub_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated sub_relaxed test
+#include "generated/examples/sub_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/sub_relaxed.model.cpp"
+} // namespace sub_relaxed
+TEST_F(GeneratedTests, sub_relaxed) {
+    execute(sub_relaxed::CreateModel,
+            sub_relaxed::is_ignored,
+            sub_relaxed::examples);
 }
 
 namespace svdf2_relaxed {
@@ -3781,6 +4453,20 @@ TEST_F(GeneratedTests, transpose_float_1) {
             transpose_float_1::examples);
 }
 
+namespace transpose_float_1_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated transpose_float_1_relaxed test
+#include "generated/examples/transpose_float_1_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/transpose_float_1_relaxed.model.cpp"
+} // namespace transpose_float_1_relaxed
+TEST_F(GeneratedTests, transpose_float_1_relaxed) {
+    execute(transpose_float_1_relaxed::CreateModel,
+            transpose_float_1_relaxed::is_ignored,
+            transpose_float_1_relaxed::examples);
+}
+
 namespace transpose {
 std::vector<MixedTypedExample> examples = {
 // Generated transpose test
@@ -3807,4 +4493,18 @@ TEST_F(GeneratedTests, transpose_quant8_1) {
     execute(transpose_quant8_1::CreateModel,
             transpose_quant8_1::is_ignored,
             transpose_quant8_1::examples);
+}
+
+namespace transpose_relaxed {
+std::vector<MixedTypedExample> examples = {
+// Generated transpose_relaxed test
+#include "generated/examples/transpose_relaxed.example.cpp"
+};
+// Generated model constructor
+#include "generated/models/transpose_relaxed.model.cpp"
+} // namespace transpose_relaxed
+TEST_F(GeneratedTests, transpose_relaxed) {
+    execute(transpose_relaxed::CreateModel,
+            transpose_relaxed::is_ignored,
+            transpose_relaxed::examples);
 }

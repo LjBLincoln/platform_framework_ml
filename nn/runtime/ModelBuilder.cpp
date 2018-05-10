@@ -301,7 +301,7 @@ int ModelBuilder::createCompilation(CompilationBuilder** compilation) {
         *compilation = nullptr;
         return ANEURALNETWORKS_BAD_STATE;
     }
-    *compilation = new CompilationBuilder(this);
+    *compilation = new (std::nothrow) CompilationBuilder(this);
     return (*compilation ? ANEURALNETWORKS_NO_ERROR : ANEURALNETWORKS_OUT_OF_MEMORY);
 }
 

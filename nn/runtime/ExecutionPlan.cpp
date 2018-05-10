@@ -583,7 +583,8 @@ int ExecutionPlan::next(std::shared_ptr<Controller> controller,
                         std::shared_ptr<StepExecutor>* executor) const {
     *executor = nullptr;
 
-    VLOG(EXECUTION) << "ExecutionPlan::next(" << controller << ", " << executor
+    VLOG(EXECUTION) << "ExecutionPlan::next("
+                    << SHOW_IF_DEBUG(controller << ", " << executor)
                     << "): mNextStepIndex = " << controller->mNextStepIndex;
 
     if (controller->mNextStepIndex == Controller::kBadStepIndex) {
