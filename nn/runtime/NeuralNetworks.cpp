@@ -312,7 +312,7 @@ int ANeuralNetworksModel_addOperand(ANeuralNetworksModel* model,
 
 int ANeuralNetworksModel_setOperandValue(ANeuralNetworksModel* model, int32_t index,
                                          const void* buffer, size_t length) {
-    if (!model || !buffer) {
+    if (!model || (!buffer && length != 0)) {
         LOG(ERROR) << "ANeuralNetworksModel_setOperandValue passed a nullptr";
         return ANEURALNETWORKS_UNEXPECTED_NULL;
     }
