@@ -16,7 +16,7 @@ void CreateModel(Model *model) {
   // Phase 2, operations
   static int32_t begins_init[] = {0, 0};
   model->setOperandValue(begins, begins_init, sizeof(int32_t) * 2);
-  static int32_t ends_init[] = {2, 3};
+  static int32_t ends_init[] = {1, 3};
   model->setOperandValue(ends, ends_init, sizeof(int32_t) * 2);
   static int32_t strides_init[] = {1, 1};
   model->setOperandValue(strides, strides_init, sizeof(int32_t) * 2);
