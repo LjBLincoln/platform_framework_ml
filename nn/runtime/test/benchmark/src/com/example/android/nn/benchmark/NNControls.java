@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Parcelable;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
@@ -62,7 +63,7 @@ public class NNControls extends Activity {
     }
 
     void init() {
-        for (int i=0; i < NNTestList.TestName.values().length; i++) {
+        for (int i = 0; i < NNTestList.TestName.values().length; i++) {
             mTestList.add(NNTestList.TestName.values()[i].toString());
         }
 
@@ -130,11 +131,18 @@ public class NNControls extends Activity {
 
     float rebase(float v, NNTestList.TestName t) {
         if (v > 0.001) {
-            v = t.baseline / v;
+            v = t.baseline / (v * 1000.0f);
         }
         return v;
     }
 
+    String getResultShortSummary(BenchmarkResult br, NNTestList.TestName t) {
+        java.text.DecimalFormat df = new java.text.DecimalFormat("######.##");
+
+        return df.format(rebase(br.getMeanTimeSec(), t)) +
+                "X, n=" + br.mIterations + ", μ=" + df.format(br.getMeanTimeSec() * 1000.0)
+                + "ms, σ=" + df.format(br.mTimeStdDeviation * 1000.0) + "ms";
+    }
 
     private void writeResults() {
         // write result into a file
@@ -150,7 +158,7 @@ public class NNControls extends Activity {
             Log.v(NNBenchmark.TAG, "Saved results in: " + resultFile.getAbsolutePath());
             java.text.DecimalFormat df = new java.text.DecimalFormat("######.##");
 
-            for (int ct=0; ct < NNTestList.TestName.values().length; ct++) {
+            for (int ct = 0; ct < NNTestList.TestName.values().length; ct++) {
                 NNTestList.TestName t = NNTestList.TestName.values()[ct];
                 final float r = mResults[ct];
                 float r2 = rebase(r, t);
@@ -164,26 +172,27 @@ public class NNControls extends Activity {
         }
     }
 
+
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == 0) {
             if (resultCode == RESULT_OK) {
-                java.text.DecimalFormat df = new java.text.DecimalFormat("######.##");
                 mResults = new float[NNTestList.TestName.values().length];
                 mInfo = new String[NNTestList.TestName.values().length];
 
-                float r[] = data.getFloatArrayExtra("results");
+                Parcelable r[] = data.getParcelableArrayExtra("results");
                 String inf[] = data.getStringArrayExtra("testinfo");
                 int id[] = data.getIntArrayExtra("tests");
 
                 String mOutResult = "";
-                for (int ct=0; ct < id.length; ct++) {
+                for (int ct = 0; ct < id.length; ct++) {
                     NNTestList.TestName t = NNTestList.TestName.values()[id[ct]];
-                    String s = t.toString() + "   " + df.format(rebase(r[ct], t)) +
-                            "X,   " + df.format(r[ct]) + "ms";
+                    BenchmarkResult br = (BenchmarkResult) r[ct];
+
+                    String s = t.toString() + " " + getResultShortSummary(br, t);
                     mTestList.set(id[ct], s);
                     mTestListAdapter.notifyDataSetChanged();
                     mOutResult += s + '\n';
-                    mResults[id[ct]] = r[ct];
+                    mResults[id[ct]] = ((BenchmarkResult) r[ct]).getMeanTimeSec();
                 }
 
                 mResultView.setText(mOutResult);
@@ -194,14 +203,14 @@ public class NNControls extends Activity {
 
     public void btnSelAll(View v) {
         NNTestList.TestName t[] = NNTestList.TestName.values();
-        for (int i=0; i < t.length; i++) {
+        for (int i = 0; i < t.length; i++) {
             mTestListView.setItemChecked(i, true);
         }
     }
 
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle presses on the action bar items
-        switch(item.getItemId()) {
+        switch (item.getItemId()) {
             case R.id.action_settings:
                 NNSettings newFragment = new NNSettings(mSettings);
                 newFragment.show(getFragmentManager(), "settings");
@@ -213,7 +222,7 @@ public class NNControls extends Activity {
 
     public void btnSelNone(View v) {
         NNTestList.TestName t[] = NNTestList.TestName.values();
-        for (int i=0; i < t.length; i++) {
+        for (int i = 0; i < t.length; i++) {
             mTestListView.setItemChecked(i, false);
         }
     }

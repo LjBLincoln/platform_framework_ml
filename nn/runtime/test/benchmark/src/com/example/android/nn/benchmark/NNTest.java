@@ -37,7 +37,6 @@ import java.io.IOException;
 public class NNTest extends ActivityInstrumentationTestCase2<NNBenchmark> {
     // Only run 1 iteration now to fit the MediumTest time requirement.
     // One iteration means running the tests continuous for 1s.
-    private int mIteration = 1;
     private NNBenchmark mActivity;
 
     public NNTest() {
@@ -64,7 +63,7 @@ public class NNTest extends ActivityInstrumentationTestCase2<NNBenchmark> {
 
     class TestAction implements Runnable {
         TestName mTestName;
-        float mResult;
+        BenchmarkResult mResult;
         public TestAction(TestName testName) {
             mTestName = testName;
         }
@@ -80,7 +79,8 @@ public class NNTest extends ActivityInstrumentationTestCase2<NNBenchmark> {
                 this.notify();
             }
         }
-        public float getBenchmark() {
+
+        public BenchmarkResult getBenchmark() {
             return mResult;
         }
     }
@@ -101,17 +101,13 @@ public class NNTest extends ActivityInstrumentationTestCase2<NNBenchmark> {
 
     public void runTest(TestAction ta, String testName) {
         float sum = 0;
-        for (int i = 0; i < mIteration; i++) {
-            runOnUiThread(ta);
-            float bmValue = ta.getBenchmark();
-            Log.v(NNBenchmark.TAG, "results for iteration " + i + " is " + bmValue);
-            sum += bmValue;
-        }
-        float avgResult = sum/mIteration;
+        runOnUiThread(ta);
+        BenchmarkResult bmValue = ta.getBenchmark();
 
         // post result to INSTRUMENTATION_STATUS
         Bundle results = new Bundle();
-        results.putFloat(testName + "_avg", avgResult);
+        // Reported in ms
+        results.putFloat(testName + "_avg", bmValue.getMeanTimeSec() * 1000.0f);
         getInstrumentation().sendStatus(Activity.RESULT_OK, results);
     }
 

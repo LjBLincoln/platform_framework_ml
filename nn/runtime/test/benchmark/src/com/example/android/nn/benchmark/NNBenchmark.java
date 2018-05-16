@@ -29,8 +29,7 @@ public class NNBenchmark extends Activity {
     protected static final String TAG = "NN_BENCHMARK";
 
     private int mTestList[];
-    private float mTestResults[];
-    private String mTestInfo[];
+    private BenchmarkResult mTestResults[];
 
     private TextView mTextView;
     private boolean mToggleLong;
@@ -44,8 +43,7 @@ public class NNBenchmark extends Activity {
     // Initialize the parameters for Instrumentation tests.
     protected void prepareInstrumentationTest() {
         mTestList = new int[1];
-        mTestResults = new float[1];
-        mTestInfo = new String[1];
+        mTestResults = new BenchmarkResult[1];
         mDemoMode = false;
         mProcessor = new Processor(!mDemoMode);
     }
@@ -66,40 +64,45 @@ public class NNBenchmark extends Activity {
             mBenchmarkMode = benchmarkMode;
         }
 
-        class Result {
-            float totalTime;
-            int iterations;
-            String testInfo;
-        }
-
         // Method to retreive benchmark results for instrumentation tests.
-        float getInstrumentationResult(NNTestList.TestName t)
+        BenchmarkResult getInstrumentationResult(NNTestList.TestName t)
                 throws BenchmarkException, IOException {
             mTest = changeTest(t);
-            Result r = getBenchmark();
-            return r.totalTime / r.iterations * 1000.f;
+            return getBenchmark();
         }
 
         // Run one loop of kernels for at least the specified minimum time.
         // The function returns the average time in ms for the test run
-        private Result runBenchmarkLoop(float minTime) throws BenchmarkException, IOException {
-            Result r = new Result();
-
-            r.testInfo = mTest.getTestInfo();
-
+        private BenchmarkResult runBenchmarkLoop(float minTime)
+                throws BenchmarkException, IOException {
             // Run the kernel
             List<InferenceResult> inferenceResults = mTest.runBenchmark(minTime);
+            float totalTime = 0;
+            int iterations = 0;
+            float totalError = 0;
 
             for (InferenceResult iresult : inferenceResults) {
-                r.iterations++;
-                r.totalTime += iresult.mComputeTimeSec;
+                iterations++;
+                totalTime += iresult.mComputeTimeSec;
+                totalError += iresult.mMeanSquaredError;
             }
-            return r;
+
+            float inferenceMean = (totalTime / iterations);
+
+            float variance = 0.0f;
+            for (InferenceResult iresult : inferenceResults) {
+                float v = (iresult.mComputeTimeSec - inferenceMean);
+                variance += v * v;
+            }
+            variance /= iterations;
+
+            return new BenchmarkResult(totalTime, iterations, (float) Math.sqrt(variance),
+                    totalError, mTest.getTestInfo());
         }
 
 
         // Get a benchmark result for a specific test
-        private Result getBenchmark() throws BenchmarkException, IOException {
+        private BenchmarkResult getBenchmark() throws BenchmarkException, IOException {
             mDoingBenchmark = true;
 
             long result = 0;
@@ -113,10 +116,9 @@ public class NNBenchmark extends Activity {
             runBenchmarkLoop(0.3f);
 
             // Run the actual benchmark
-            Result r = runBenchmarkLoop(runtime);
+            BenchmarkResult r = runBenchmarkLoop(runtime);
 
-            Log.v(TAG, "Test: time=" + r.totalTime + "s,  iterations=" + r.iterations +
-                    ", avg=" + r.totalTime / r.iterations * 1000.f + " " + r.testInfo);
+            Log.v(TAG, "Test: " + r.toString());
 
             mDoingBenchmark = false;
             return r;
@@ -164,9 +166,7 @@ public class NNBenchmark extends Activity {
                             }
 
                             // Run the test
-                            Result r = getBenchmark();
-                            mTestResults[ct] = r.totalTime / r.iterations * 1000.f;
-                            mTestInfo[ct] = r.testInfo;
+                            mTestResults[ct] = getBenchmark();
                         }
                         onBenchmarkFinish(mRun);
                     } else {
@@ -236,7 +236,6 @@ public class NNBenchmark extends Activity {
             Intent intent = new Intent();
             intent.putExtra("tests", mTestList);
             intent.putExtra("results", mTestResults);
-            intent.putExtra("testinfo", mTestInfo);
             setResult(RESULT_OK, intent);
         } else {
             setResult(RESULT_CANCELED);
@@ -255,8 +254,7 @@ public class NNBenchmark extends Activity {
         mDemoMode = i.getBooleanExtra("demo", false);
 
         if (mTestList != null) {
-            mTestResults = new float[mTestList.length];
-            mTestInfo = new String[mTestList.length];
+            mTestResults = new BenchmarkResult[mTestList.length];
             mProcessor = new Processor(!mDemoMode);
             if (mDemoMode) {
                 mProcessor.mTest = changeTest(mTestList[0]);
