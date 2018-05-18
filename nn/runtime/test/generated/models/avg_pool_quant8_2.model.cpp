@@ -25,6 +25,7 @@ void CreateModel(Model *model) {
     {i0},
     {output});
   assert(model->isValid());
+  model->finish();
 }
 
 bool is_ignored(int i) {

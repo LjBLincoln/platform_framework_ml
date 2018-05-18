@@ -18,6 +18,7 @@ void CreateModel(Model *model) {
     {lookup, key, value},
     {output, hits});
   assert(model->isValid());
+  model->finish();
 }
 
 bool is_ignored(int i) {
