@@ -60,13 +60,40 @@ struct RunTimeOperandInfo {
 };
 
 // Used to keep a pointer to each of the memory pools.
-struct RunTimePoolInfo {
-    sp<IMemory> memory;
-    hidl_memory hidlMemory;
-    uint8_t* buffer;
+//
+// In the case of an "mmap_fd" pool, owns the mmap region
+// returned by getBuffer() -- i.e., that region goes away
+// when the RunTimePoolInfo is destroyed or is assigned to.
+class RunTimePoolInfo {
+public:
+    // If "fail" is not nullptr, and construction fails, then set *fail = true.
+    // If construction succeeds, leave *fail unchanged.
+    // getBuffer() == nullptr IFF construction fails.
+    explicit RunTimePoolInfo(const hidl_memory& hidlMemory, bool* fail);
 
-    bool set(const hidl_memory& hidlMemory);
-    bool update();
+    explicit RunTimePoolInfo(uint8_t* buffer);
+
+    // Implement move
+    RunTimePoolInfo(RunTimePoolInfo&& other);
+    RunTimePoolInfo& operator=(RunTimePoolInfo&& other);
+
+    // Forbid copy
+    RunTimePoolInfo(const RunTimePoolInfo&) = delete;
+    RunTimePoolInfo& operator=(const RunTimePoolInfo&) = delete;
+
+    ~RunTimePoolInfo() { release(); }
+
+    uint8_t* getBuffer() const { return mBuffer; }
+
+    bool update() const;
+
+private:
+    void release();
+    void moveFrom(RunTimePoolInfo&& other);
+
+    hidl_memory mHidlMemory;     // always used
+    uint8_t* mBuffer = nullptr;  // always used
+    sp<IMemory> mMemory;         // only used when hidlMemory.name() == "ashmem"
 };
 
 bool setRunTimePoolInfosFromHidlMemories(std::vector<RunTimePoolInfo>* poolInfos,
@@ -79,7 +106,10 @@ public:
     // specified in the constructor.
     // The model must outlive the executor.  We prevent it from being modified
     // while this is executing.
-    int run(const Model& model, const Request& request,
+    int run(const V1_0::Model& model, const Request& request,
+            const std::vector<RunTimePoolInfo>& modelPoolInfos,
+            const std::vector<RunTimePoolInfo>& requestPoolInfos);
+    int run(const V1_1::Model& model, const Request& request,
             const std::vector<RunTimePoolInfo>& modelPoolInfos,
             const std::vector<RunTimePoolInfo>& requestPoolInfos);
 

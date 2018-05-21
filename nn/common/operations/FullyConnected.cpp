@@ -15,9 +15,9 @@
  */
 
 #include "Operations.h"
-#include "OperationsUtils.h"
+#include "CpuOperationUtils.h"
 
-#include "internal/optimized/optimized_ops.h"
+#include "tensorflow/contrib/lite/kernels/internal/optimized/optimized_ops.h"
 
 namespace android {
 namespace nn {
@@ -27,16 +27,17 @@ bool fullyConnectedFloat32(const float* inputData, const Shape& inputShape,
                            const float* biasData, const Shape& biasShape,
                            int32_t activation,
                            float* outputData, const Shape& outputShape) {
+    float output_activation_min, output_activation_max;
+    CalculateActivationRangeFloat(activation, &output_activation_min,
+                                  &output_activation_max);
 
-    #define ANDROID_NN_FULLY_CONNECTED(activation)                              \
-        optimized_ops::FullyConnected<FusedActivationFunctionType::activation>( \
-            inputData, convertShapeToDims(inputShape),                          \
-            weightsData, convertShapeToDims(weightsShape),                      \
-            biasData, convertShapeToDims(biasShape),                            \
-            outputData, convertShapeToDims(outputShape))
+    tflite::optimized_ops::FullyConnected(
+            inputData, convertShapeToDims(inputShape),
+            weightsData, convertShapeToDims(weightsShape),
+            biasData, convertShapeToDims(biasShape),
+            output_activation_min, output_activation_max,
+            outputData, convertShapeToDims(outputShape));
 
-    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_FULLY_CONNECTED)
-    #undef ANDROID_NN_FULLY_CONNECTED
     return true;
 }
 
@@ -69,17 +70,14 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
     // Alow gemmlowp automatcally decide how many threads to use.
     gemm_context.set_max_num_threads(0);
 
-    #define ANDROID_NN_FULLY_CONNECTED(activation)                              \
-        optimized_ops::FullyConnected<FusedActivationFunctionType::activation>( \
-            inputData, convertShapeToDims(inputShape), inputOffset,             \
-            weightsData, convertShapeToDims(weightsShape), weightsOffset,       \
-            biasData, convertShapeToDims(biasShape),                            \
-            outputOffset, output_multiplier, output_shift,                      \
-            output_activation_min, output_activation_max,                       \
-            outputData, convertShapeToDims(outputShape), &gemm_context)
+    tflite::optimized_ops::FullyConnected(
+            inputData, convertShapeToDims(inputShape), inputOffset,
+            weightsData, convertShapeToDims(weightsShape), weightsOffset,
+            biasData, convertShapeToDims(biasShape),
+            outputOffset, output_multiplier, output_shift,
+            output_activation_min, output_activation_max,
+            outputData, convertShapeToDims(outputShape), &gemm_context);
 
-    ANDROID_NN_MACRO_DISPATCH(ANDROID_NN_FULLY_CONNECTED)
-    #undef ANDROID_NN_FULLY_CONNECTED
     return true;
 }
 }  // namespace nn
