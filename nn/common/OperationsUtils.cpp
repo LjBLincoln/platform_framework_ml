@@ -865,6 +865,11 @@ bool stridedSlicePrepare(const Shape& input,
       outDim = outDim < 0 ? 0 : static_cast<uint32_t>(outDim);
       if (!(shrinkAxisMask & (1 << idx))) {
           outDims.push_back(outDim);
+      } else {
+          if (outDim != 1) {
+              LOG(ERROR) << "Outdim " << idx << " is " << outDim << ", expected 1";
+              NN_OPS_CHECK(outDim == 1);
+          }
       }
     }
 

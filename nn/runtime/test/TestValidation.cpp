@@ -172,6 +172,15 @@ TEST_F(ValidationTestModel, AddOperand) {
               ANEURALNETWORKS_BAD_STATE);
 }
 
+TEST_F(ValidationTestModel, SetOptionalOperand) {
+    ANeuralNetworksOperandType floatType{
+                .type = ANEURALNETWORKS_FLOAT32, .dimensionCount = 0, .dimensions = nullptr};
+    EXPECT_EQ(ANeuralNetworksModel_addOperand(mModel, &floatType), ANEURALNETWORKS_NO_ERROR);
+
+    EXPECT_EQ(ANeuralNetworksModel_setOperandValue(mModel, 0, nullptr, 0),
+              ANEURALNETWORKS_NO_ERROR);
+}
+
 TEST_F(ValidationTestModel, SetOperandValue) {
     ANeuralNetworksOperandType floatType{
                 .type = ANEURALNETWORKS_FLOAT32, .dimensionCount = 0, .dimensions = nullptr};

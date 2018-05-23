@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-#include "Manager.h"
 #include "NeuralNetworksWrapper.h"
+
+#ifndef NNTEST_ONLY_PUBLIC_API
+#include "Manager.h"
 #include "Utils.h"
+#endif
 
 #include <gtest/gtest.h>
 
@@ -25,7 +28,9 @@ using namespace android::nn::wrapper;
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
 
+#ifndef NNTEST_ONLY_PUBLIC_API
     android::nn::initVLogMask();
+#endif
     // Test with the installed drivers.
     int n1 = RUN_ALL_TESTS();
 #ifdef NNTEST_ONLY_PUBLIC_API

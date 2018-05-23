@@ -30,7 +30,10 @@ namespace {
 const uint32_t INTENDED_SIZE = 3;
 const uint32_t OTHER_SIZE    = 2;
 const uint32_t UNKNOWN_SIZE  = 0;
-typedef float IntendedMatrix[INTENDED_SIZE][INTENDED_SIZE];
+typedef uint8_t IntendedMatrix[INTENDED_SIZE][INTENDED_SIZE];
+
+// TODO: add a float version of this test for use against drivers that don't
+// support quantized add. b/72448000
 
 // We test three basic scenarios for each tensor dimension:
 //     INTENDED_AT_COMPILE_AND_EXECUTE: set the dimension at compile
@@ -72,13 +75,13 @@ auto constantDimensionValues = testing::Values(
         DimensionKind::UNKNOWN_AT_COMPILE_INTENDED_AT_EXECUTE);
 auto ioValues = testing::Combine(ioDimensionValues, ioDimensionValues);
 auto constantValues = testing::Combine(constantDimensionValues, constantDimensionValues);
-
+auto combinedValues = testing::Combine(ioValues, ioValues, constantValues, ioValues);
 
 class UnknownDimensionsTest : public ::testing::TestWithParam<TestParams> {
 protected:
-    const IntendedMatrix ones = { { 1.f, 1.f, 1.f }, { 1.f, 1.f, 1.f }, { 1.f, 1.f, 1.f } };
-    const IntendedMatrix twos = { { 2.f, 2.f, 2.f }, { 2.f, 2.f, 2.f }, { 2.f, 2.f, 2.f } };
-    const IntendedMatrix fives = { { 5.f, 5.f, 5.f }, { 5.f, 5.f, 5.f }, { 5.f, 5.f, 5.f } };
+    const IntendedMatrix ones = { { 1, 1, 1 }, { 1, 1, 1 }, { 1, 1, 1 } };
+    const IntendedMatrix twos = { { 2, 2, 2 }, { 2, 2, 2 }, { 2, 2, 2 } };
+    const IntendedMatrix fives = { { 5, 5, 5 }, { 5, 5, 5 }, { 5, 5, 5 } };
 };
 
 TEST_P(UnknownDimensionsTest, UnknownDimensions) {
@@ -111,9 +114,10 @@ TEST_P(UnknownDimensionsTest, UnknownDimensions) {
     auto addOperand = [&model, &getDimForCompile](OperandParams params,
                                                   std::string* scope = nullptr) {
         OperandType matrixTypeWithPotentiallyUnknownDims(
-                Type::TENSOR_FLOAT32,
+                Type::TENSOR_QUANT8_ASYMM,
                 { getDimForCompile(std::get<0>(params), scope),
-                  getDimForCompile(std::get<1>(params), scope) });
+                  getDimForCompile(std::get<1>(params), scope) },
+                1.0f);
         return model.addOperand(&matrixTypeWithPotentiallyUnknownDims);
     };
     auto inputOpd0 = addOperand(paramsForInput0, &input0Scope);
@@ -160,13 +164,13 @@ TEST_P(UnknownDimensionsTest, UnknownDimensions) {
     Compilation compilation(&model);
     ASSERT_EQ(compilation.finish(), Result::NO_ERROR);
 
-    IntendedMatrix actual = { { -1.f, -1.f, -1.f }, { -1.f, -1.f, -1.f }, { -1.f, -1.f, -1.f } };
+    IntendedMatrix actual = { { 10, 10, 10 }, { 10, 10, 10 }, { 10, 10, 10 } };
     Execution execution(&compilation);
 
-    OperandType matrixTypeIntended(Type::TENSOR_FLOAT32, {INTENDED_SIZE, INTENDED_SIZE});
-    OperandType matrixTypeFirstOther(Type::TENSOR_FLOAT32, {OTHER_SIZE, INTENDED_SIZE});
-    OperandType matrixTypeSecondOther(Type::TENSOR_FLOAT32, {INTENDED_SIZE, OTHER_SIZE});
-    OperandType matrixTypeBothOther(Type::TENSOR_FLOAT32, {OTHER_SIZE, OTHER_SIZE});
+    OperandType matrixTypeIntended(Type::TENSOR_QUANT8_ASYMM, {INTENDED_SIZE, INTENDED_SIZE}, 1.0f);
+    OperandType matrixTypeFirstOther(Type::TENSOR_QUANT8_ASYMM, {OTHER_SIZE, INTENDED_SIZE}, 1.0f);
+    OperandType matrixTypeSecondOther(Type::TENSOR_QUANT8_ASYMM, {INTENDED_SIZE, OTHER_SIZE}, 1.0f);
+    OperandType matrixTypeBothOther(Type::TENSOR_QUANT8_ASYMM, {OTHER_SIZE, OTHER_SIZE}, 1.0f);
     bool allAreIntendedSizeAtExecution = true;
 
     // Helper to return appropriate "type" parameter to setInput/setOutput based
@@ -201,7 +205,7 @@ TEST_P(UnknownDimensionsTest, UnknownDimensions) {
             OTHER_SIZE : INTENDED_SIZE;
         size_t secondDim = (second == DimensionKind::UNKNOWN_AT_COMPILE_OTHER_AT_EXECUTE) ?
             OTHER_SIZE : INTENDED_SIZE;
-        return firstDim * secondDim * sizeof(float);
+        return firstDim * secondDim * sizeof(fives[0][0]);
     };
     ASSERT_EQ(execution.setInput(0, ones, sizeAtSet(paramsForInput0), typeAtSet(paramsForInput0)),
               Result::NO_ERROR);
@@ -220,15 +224,14 @@ TEST_P(UnknownDimensionsTest, UnknownDimensions) {
         return;
     }
 
-    using fvec = std::vector<float>;
+    using qvec = std::vector<uint8_t>;
     constexpr size_t count = sizeof(fives) / sizeof(fives[0][0]);
-    compare(
-        MixedTyped{{{0, fvec{&fives[0][0], &fives[0][0] + count}}}, {}, {}},
-        MixedTyped{{{0, fvec{&actual[0][0], &actual[0][0] + count}}}, {}, {}});
+    Quant8Operands expected_opds{{0, qvec{&fives[0][0], &fives[0][0] + count}}};
+    Quant8Operands actual_opds{{0, qvec{&actual[0][0], &actual[0][0] + count}}};
+    compare(MixedTyped{ {}, {}, expected_opds }, MixedTyped{ {}, {}, actual_opds });
 }
 
 INSTANTIATE_TEST_CASE_P(UnknownCombinationsTest, UnknownDimensionsTest,
-                        testing::Combine(ioValues, ioValues,
-                                         constantValues, ioValues));
+                        combinedValues);
 
 }  // end namespace

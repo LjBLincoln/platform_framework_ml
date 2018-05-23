@@ -220,6 +220,7 @@ public:
     Kind forTest_getKind() const;
     std::shared_ptr<const Device> forTest_simpleGetDevice() const;
     const std::vector<std::shared_ptr<ExecutionStep>>& forTest_compoundGetSteps() const;
+    bool forTest_hasSubModelOutputsOfUnknownSize() const;
 
 private:
     void findTempsAsSubModelOutputs();
@@ -228,6 +229,7 @@ private:
         virtual ~Body() {}
         virtual void dump() const = 0;
         virtual int finish(const ModelBuilder* fromModel, int32_t executionPreference) = 0;
+        virtual bool hasSubModelOutputsOfUnknownSize() const = 0;
         bool mSuccessfulFinish = false;
     };
 
@@ -237,6 +239,7 @@ private:
 
         void dump() const override;
         int finish(const ModelBuilder* fromModel, int32_t executionPreference) override;
+        virtual bool hasSubModelOutputsOfUnknownSize() const override { return false; }
 
         std::shared_ptr<Device> mDevice;  // nullptr signifies CPU
         const ModelBuilder* mModel;
@@ -246,6 +249,9 @@ private:
     struct CompoundBody : Body {
         void dump() const override;
         int finish(const ModelBuilder* fromModel, int32_t executionPreference) override;
+        virtual bool hasSubModelOutputsOfUnknownSize() const override {
+            return mHasSubModelOutputOfUnknownSize;
+        }
 
         // TODO: Some of the data is working state information that
         // shouldn't be needed after we've constructed but not

@@ -749,6 +749,10 @@ const std::vector<std::shared_ptr<ExecutionStep>>& ExecutionPlan::forTest_compou
     return compound()->mSteps;
 }
 
+bool ExecutionPlan::forTest_hasSubModelOutputsOfUnknownSize() const {
+    return mBody->hasSubModelOutputsOfUnknownSize();
+}
+
 void ExecutionPlan::SimpleBody::dump() const {
     VLOG(COMPILATION) << "SIMPLE for " << (mDevice == nullptr ? "CPU" : mDevice->getName());
 }
@@ -944,8 +948,8 @@ int ModelBuilder::findBestDeviceForEachOperation(
         int bestChoice = -1;
         float bestPerfVal = 0.0;  // Do not check bestPerfVal if bestChoice < 0.
         for (size_t deviceIndex = 0; deviceIndex < nonCpuDeviceCount; deviceIndex++) {
+            const auto& device = devices[deviceIndex];
             if (canDo[deviceIndex].check(operationIndex)) {
-                const auto& device = devices[deviceIndex];
                 const PerformanceInfo perf = getPerformanceInfo(device, operationIndex);
                 const float perfVal =
                             (preference == ANEURALNETWORKS_PREFER_LOW_POWER ? perf.powerUsage
@@ -954,6 +958,15 @@ int ModelBuilder::findBestDeviceForEachOperation(
                     bestChoice = deviceIndex;
                     bestPerfVal = perfVal;
                 }
+            } else {
+                // Somewhat noisy logging, but only place where the user of
+                // NNAPI can get feedback on why an operation was not run on a
+                // specific device.
+                // Logs O(operationCount * nonCpuDeviceCount) times, but
+                // typically nonCpuDeviceCount is very small.
+                VLOG(COMPILATION) << "Device " << device->getName()
+                                  << " can't do operation "
+                                  << toString(getOperation(operationIndex).type);
             }
         }
         // If it's the OEM op, we'd better have a device able to do it.

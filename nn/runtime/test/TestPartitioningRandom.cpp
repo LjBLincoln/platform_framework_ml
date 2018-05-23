@@ -58,6 +58,8 @@
 //     data, randomly assign inputs and outputs to CPU memory or to shared
 //     memory.
 //
+//     Randomly leaves dimensions unset for intermediate operands.
+//
 // (2) Randomly generate drivers based on the sample driver, each of which
 //     executes models on the CPU.  They differ according to which operations
 //     they support.
@@ -124,7 +126,7 @@ static const unsigned kMaxProblemSize = 8;
 static const unsigned kFirstSeed = 0;
 
 // Number of test cases.
-static const unsigned kNumTestCases = 200;
+static const unsigned kNumTestCases = 225;
 
 // Force all graph weights into a single pool (as we recommend to users)
 // or allow them to be distributed across multiple pools (more stress
@@ -548,11 +550,13 @@ TEST_P(RandomPartitioningTest, Test) {
 
     const unsigned problemSize = 1+randUInt(kMaxProblemSize);
     const WrapperOperandType problemType(WrapperType::TENSOR_FLOAT32, { problemSize, problemSize });
+    const WrapperOperandType unknownDimensionsType(WrapperType::TENSOR_FLOAT32, { 0, 0 });
 
     static const WrapperOperandType activationFunctionType(WrapperType::INT32, { });
 
     const unsigned numOperations = 2+randUInt(kMaxNumOperations-1);
     const bool allowDeadOperations = (randFrac() < 0.2);
+    const bool allowUnknownDimensions = (randFrac() < 0.25);
 
     // TODO: The current algorithm builds the graph in a forward
     // direction (i.e., later-generated operations consume outputs
@@ -597,6 +601,11 @@ TEST_P(RandomPartitioningTest, Test) {
     // operations (those that do not consume results produced by other
     // operations).
     unsigned rootOperationCount = 0;
+
+    // Track if we added operands with unknown dimensions. In this case,
+    // partitioned compilation will fail if such an operand is read in a
+    // different partition than it is written.
+    bool hasUnknownDimensions = false;
 
     // Generate operations.
     for (unsigned i = 0; i < numOperations; i++) {
@@ -788,7 +797,18 @@ TEST_P(RandomPartitioningTest, Test) {
 
         std::vector<uint32_t> operationOutputs(operationPattern.mNumOutputs);
         std::generate(operationOutputs.begin(), operationOutputs.end(),
-                      [&model, &problemType]{ return model.addOperand(&problemType); });
+                      [&model, &problemType, &unknownDimensionsType, &hasUnknownDimensions,
+                       allowUnknownDimensions, this]{
+                          // 3% unknowns causes ~35% of partitionings to fail
+                          // (determined by commenting out the fallback code,
+                          // running tests and noting number of failures).
+                          if (allowUnknownDimensions && randFrac() < 0.03) {
+                              hasUnknownDimensions = true;
+                              return model.addOperand(&unknownDimensionsType);
+                          } else {
+                              return model.addOperand(&problemType);
+                          }
+                      });
 
         // OPERATION ///////////////////////////////////////////////////////////////////////////////
 
@@ -921,15 +941,32 @@ TEST_P(RandomPartitioningTest, Test) {
     }
 
     // Partitioned compilation.
-    TestCompilation c2(&model);
-    ASSERT_EQ(c2.setPartitioning(DeviceManager::kPartitioningWithoutFallback), Result::NO_ERROR);
-    ASSERT_EQ(c2.finish(devices), Result::NO_ERROR);
+    // For test cases without unknown intermediate operand sizes we require the
+    // partitioning to succeed without CPU fallback. With unknown sizes we
+    // retry with a fallback if the non-fallback partitioning fails and require
+    // the fallback to succeed.
+    TestCompilation cNoFallback(&model);
+    TestCompilation cWithFallback(&model);
+    TestCompilation *c2 = nullptr;
+    ASSERT_EQ(cNoFallback.setPartitioning(DeviceManager::kPartitioningWithoutFallback),
+              Result::NO_ERROR);
+    auto compilationResult = cNoFallback.finish(devices);
+    if (hasUnknownDimensions && compilationResult == Result::OP_FAILED &&
+        cNoFallback.getExecutionPlan().forTest_hasSubModelOutputsOfUnknownSize()) {
+        ASSERT_EQ(cWithFallback.setPartitioning(DeviceManager::kPartitioningWithFallback),
+                  Result::NO_ERROR);
+        ASSERT_EQ(cWithFallback.finish(devices), Result::NO_ERROR);
+        c2 = &cWithFallback;
+    } else {
+        ASSERT_EQ(compilationResult, Result::NO_ERROR);
+        c2 = &cNoFallback;
+    }
 
 #ifdef VERBOSE
     {
         std::cout << "signatures = " << signatures.size()
                   << ", devices = " << devices.size() << std::endl;
-        const ExecutionPlan& plan = c2.getExecutionPlan();
+        const ExecutionPlan& plan = c2->getExecutionPlan();
         switch (plan.forTest_getKind()) {
             case ExecutionPlan::Kind::SIMPLE:
                 std::cout << "plan: simple" << std::endl;
@@ -1035,7 +1072,7 @@ TEST_P(RandomPartitioningTest, Test) {
     // and telling the WrapperExecution about them).
     auto prepareForExecution =
             [&model, &ioDescriptors, &ioMemories,
-             &masterInputs, &masterOutput, problemSize](WrapperExecution *e) {
+             &masterInputs, &masterOutput, problemSize, &problemType](WrapperExecution *e) {
         uint32_t inputIndex = 0, outputIndex = 0;
         for (auto &desc : ioDescriptors) {
             if (desc.getLocation() == InputOutputDescriptor::VECTOR) {
@@ -1051,7 +1088,8 @@ TEST_P(RandomPartitioningTest, Test) {
                               desc.mVector.begin() + problemSize * problemSize,
                               masterOutput);
                     e->setOutput(outputIndex++, desc.mVector.data(),
-                                 desc.mVector.size() * sizeof(float));
+                                 desc.mVector.size() * sizeof(float),
+                                 &problemType.operandType);
                 }
             } else {
                 const WrapperMemory* memory;
@@ -1070,7 +1108,8 @@ TEST_P(RandomPartitioningTest, Test) {
                     std::fill(region,
                               region + problemSize * problemSize,
                               masterOutput);
-                    e->setOutputFromMemory(outputIndex++, memory, offset, length);
+                    e->setOutputFromMemory(outputIndex++, memory, offset, length,
+                                           &problemType.operandType);
                 }
             }
         };
@@ -1119,7 +1158,7 @@ TEST_P(RandomPartitioningTest, Test) {
     }
 
     // Partitioned execution.
-    WrapperExecution e2(&c2);
+    WrapperExecution e2(c2);
     ASSERT_NO_FATAL_FAILURE(prepareForExecution(&e2));
     ASSERT_EQ(e2.compute(), Result::NO_ERROR);
 
