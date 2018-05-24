@@ -22,6 +22,7 @@ void CreateModel(Model *model) {
     {input, weights, recurrent_weights, bias, hidden_state_in, activation_param},
     {hidden_state_out, output});
   assert(model->isValid());
+  model->finish();
 }
 
 bool is_ignored(int i) {

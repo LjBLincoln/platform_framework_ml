@@ -45,6 +45,7 @@ void CreateModel(Model *model) {
     {input, input_to_input_weights, input_to_forget_weights, input_to_cell_weights, input_to_output_weights, recurrent_to_intput_weights, recurrent_to_forget_weights, recurrent_to_cell_weights, recurrent_to_output_weights, cell_to_input_weights, cell_to_forget_weights, cell_to_output_weights, input_gate_bias, forget_gate_bias, cell_gate_bias, output_gate_bias, projection_weights, projection_bias, output_state_in, cell_state_in, activation_param, cell_clip_param, proj_clip_param},
     {scratch_buffer, output_state_out, cell_state_out, output});
   assert(model->isValid());
+  model->finish();
 }
 
 bool is_ignored(int i) {
