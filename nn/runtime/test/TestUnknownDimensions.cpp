@@ -30,10 +30,6 @@ namespace {
 const uint32_t INTENDED_SIZE = 3;
 const uint32_t OTHER_SIZE    = 2;
 const uint32_t UNKNOWN_SIZE  = 0;
-typedef uint8_t IntendedMatrix[INTENDED_SIZE][INTENDED_SIZE];
-
-// TODO: add a float version of this test for use against drivers that don't
-// support quantized add. b/72448000
 
 // We test three basic scenarios for each tensor dimension:
 //     INTENDED_AT_COMPILE_AND_EXECUTE: set the dimension at compile
@@ -79,12 +75,34 @@ auto combinedValues = testing::Combine(ioValues, ioValues, constantValues, ioVal
 
 class UnknownDimensionsTest : public ::testing::TestWithParam<TestParams> {
 protected:
-    const IntendedMatrix ones = { { 1, 1, 1 }, { 1, 1, 1 }, { 1, 1, 1 } };
-    const IntendedMatrix twos = { { 2, 2, 2 }, { 2, 2, 2 }, { 2, 2, 2 } };
-    const IntendedMatrix fives = { { 5, 5, 5 }, { 5, 5, 5 }, { 5, 5, 5 } };
+  template<typename T, Type TensorType> void Test();
+  void CompareResults(std::map<int, std::vector<float>>& expected,
+                      std::map<int, std::vector<float>>& actual);
+  void CompareResults(std::map<int, std::vector<uint8_t>>& expected,
+                      std::map<int, std::vector<uint8_t>>& actual);
 };
 
-TEST_P(UnknownDimensionsTest, UnknownDimensions) {
+void UnknownDimensionsTest::CompareResults(
+        std::map<int, std::vector<uint8_t>>& expected,
+        std::map<int, std::vector<uint8_t>>& actual) {
+    // Uint8_t operands last in MixedType
+    compare(MixedTyped{ {}, {}, expected }, MixedTyped{ {}, {}, actual });
+}
+
+void UnknownDimensionsTest::CompareResults(
+        std::map<int, std::vector<float>>& expected,
+        std::map<int, std::vector<float>>& actual) {
+    // Float operands first in MixedType
+    compare(MixedTyped{ expected, {}, {} }, MixedTyped{ actual, {}, {} });
+}
+
+template<class T, Type TensorType> void UnknownDimensionsTest::Test() {
+    typedef T IntendedMatrix[INTENDED_SIZE][INTENDED_SIZE];
+    static const IntendedMatrix ones = { { 1, 1, 1 }, { 1, 1, 1 }, { 1, 1, 1 } };
+    static const IntendedMatrix twos = { { 2, 2, 2 }, { 2, 2, 2 }, { 2, 2, 2 } };
+    static const IntendedMatrix fives = { { 5, 5, 5 }, { 5, 5, 5 }, { 5, 5, 5 } };
+    const float scale = TensorType == Type::TENSOR_QUANT8_ASYMM ? 1.f : 0.f;
+
     TestParams params = GetParam();
     auto paramsForInput0 = std::get<0>(params),
          paramsForInput1 = std::get<1>(params),
@@ -111,13 +129,13 @@ TEST_P(UnknownDimensionsTest, UnknownDimensions) {
                 return UNKNOWN_SIZE;
         }
     };
-    auto addOperand = [&model, &getDimForCompile](OperandParams params,
-                                                  std::string* scope = nullptr) {
+    auto addOperand = [&model, &getDimForCompile, scale](OperandParams params,
+                                                         std::string* scope = nullptr) {
         OperandType matrixTypeWithPotentiallyUnknownDims(
-                Type::TENSOR_QUANT8_ASYMM,
+                TensorType,
                 { getDimForCompile(std::get<0>(params), scope),
                   getDimForCompile(std::get<1>(params), scope) },
-                1.0f);
+                scale);
         return model.addOperand(&matrixTypeWithPotentiallyUnknownDims);
     };
     auto inputOpd0 = addOperand(paramsForInput0, &input0Scope);
@@ -167,10 +185,10 @@ TEST_P(UnknownDimensionsTest, UnknownDimensions) {
     IntendedMatrix actual = { { 10, 10, 10 }, { 10, 10, 10 }, { 10, 10, 10 } };
     Execution execution(&compilation);
 
-    OperandType matrixTypeIntended(Type::TENSOR_QUANT8_ASYMM, {INTENDED_SIZE, INTENDED_SIZE}, 1.0f);
-    OperandType matrixTypeFirstOther(Type::TENSOR_QUANT8_ASYMM, {OTHER_SIZE, INTENDED_SIZE}, 1.0f);
-    OperandType matrixTypeSecondOther(Type::TENSOR_QUANT8_ASYMM, {INTENDED_SIZE, OTHER_SIZE}, 1.0f);
-    OperandType matrixTypeBothOther(Type::TENSOR_QUANT8_ASYMM, {OTHER_SIZE, OTHER_SIZE}, 1.0f);
+    OperandType matrixTypeIntended(TensorType, {INTENDED_SIZE, INTENDED_SIZE}, scale);
+    OperandType matrixTypeFirstOther(TensorType, {OTHER_SIZE, INTENDED_SIZE}, scale);
+    OperandType matrixTypeSecondOther(TensorType, {INTENDED_SIZE, OTHER_SIZE}, scale);
+    OperandType matrixTypeBothOther(TensorType, {OTHER_SIZE, OTHER_SIZE}, scale);
     bool allAreIntendedSizeAtExecution = true;
 
     // Helper to return appropriate "type" parameter to setInput/setOutput based
@@ -224,11 +242,19 @@ TEST_P(UnknownDimensionsTest, UnknownDimensions) {
         return;
     }
 
-    using qvec = std::vector<uint8_t>;
+    typedef std::vector<T> vec;
+    typedef std::map<int, vec> Operands;
     constexpr size_t count = sizeof(fives) / sizeof(fives[0][0]);
-    Quant8Operands expected_opds{{0, qvec{&fives[0][0], &fives[0][0] + count}}};
-    Quant8Operands actual_opds{{0, qvec{&actual[0][0], &actual[0][0] + count}}};
-    compare(MixedTyped{ {}, {}, expected_opds }, MixedTyped{ {}, {}, actual_opds });
+    Operands expected_opds{{0, vec{&fives[0][0], &fives[0][0] + count}}};
+    Operands actual_opds{{0, vec{&actual[0][0], &actual[0][0] + count}}};
+    CompareResults(expected_opds, actual_opds);
+}
+
+TEST_P(UnknownDimensionsTest, UnknownDimensionsFloat) {
+    Test<float, Type::TENSOR_FLOAT32>();
+}
+TEST_P(UnknownDimensionsTest, UnknownDimensionsQuantized) {
+    Test<uint8_t, Type::TENSOR_QUANT8_ASYMM>();
 }
 
 INSTANTIATE_TEST_CASE_P(UnknownCombinationsTest, UnknownDimensionsTest,
