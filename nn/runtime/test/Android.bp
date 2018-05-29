@@ -15,24 +15,10 @@
  */
 
 cc_defaults {
-    name: "NeuralNetworksTest_defaults",
+    name: "NeuralNetworksTest_default_libs",
     defaults: ["neuralnetworks_defaults"],
     host_supported: false,
     openmp: true,
-    srcs: [
-        // Subset of tests that rely only on public functionality.
-        //
-        // Changes to this list must be reflected in cts/tests/tests/neuralnetworks/Android.mk
-        // to ensure CTS tests coverage.
-        "generated/tests/*.cpp",
-        "GeneratedUtils.cpp",
-        "TestMemory.cpp",
-        "TestTrivialModel.cpp",
-        "TestUnknownDimensions.cpp",
-        "TestValidateOperations.cpp",
-        "TestValidation.cpp",
-        "TestWrapper.cpp",
-    ],
     shared_libs: [
         "libandroid",
         "libbase",
@@ -49,6 +35,25 @@ cc_defaults {
     ],
     header_libs: [
         "libneuralnetworks_generated_test_harness_headers",
+    ],
+}
+
+cc_defaults {
+    name: "NeuralNetworksTest_defaults",
+    defaults: ["NeuralNetworksTest_default_libs"],
+    srcs: [
+        // Subset of tests that rely only on public functionality.
+        //
+        // Changes to this list must be reflected in cts/tests/tests/neuralnetworks/Android.mk
+        // to ensure CTS tests coverage.
+        "generated/tests/*.cpp",
+        "GeneratedUtils.cpp",
+        "TestMemory.cpp",
+        "TestTrivialModel.cpp",
+        "TestUnknownDimensions.cpp",
+        "TestValidateOperations.cpp",
+        "TestValidation.cpp",
+        "TestWrapper.cpp",
     ],
 }
 
@@ -104,6 +109,44 @@ cc_test {
     // TODO(mikie): investigate ubsan as well
     name: "NeuralNetworksTest_static_asan",
     defaults: ["NeuralNetworksTest_static_defaults"],
+    sanitize: {
+      address: true,
+    },
+}
+
+cc_defaults {
+    name: "NeuralNetworksTest_mt_defaults",
+    defaults: ["NeuralNetworksTest_default_libs"],
+    srcs: [
+        "TestMain.cpp",
+        "generated/tests/*.cpp",
+        "GeneratedUtils.cpp",
+    ],
+    cflags: [
+        "-DNNTEST_MULTITHREADED"
+    ],
+    static_libs: [
+        "libneuralnetworks",
+        "libneuralnetworks_common",
+        "libSampleDriver",
+    ],
+    shared_libs: [
+        "libcutils",
+    ],
+    header_libs: [
+        "libneuralnetworks_private_headers",
+    ],
+}
+
+cc_test {
+    name: "NeuralNetworksTest_mt_static",
+    defaults: ["NeuralNetworksTest_mt_defaults"],
+}
+
+cc_test {
+    // TODO(mikie): investigate ubsan and tsan as well
+    name: "NeuralNetworksTest_mt_static_asan",
+    defaults: ["NeuralNetworksTest_mt_defaults"],
     sanitize: {
       address: true,
     },

@@ -66,8 +66,8 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
                                   &output_activation_min,
                                   &output_activation_max);
 
-    static gemmlowp::GemmContext gemm_context;
-    // Alow gemmlowp automatcally decide how many threads to use.
+    static thread_local gemmlowp::GemmContext gemm_context;
+    // Alow gemmlowp automatically decide how many threads to use.
     gemm_context.set_max_num_threads(0);
 
     tflite::optimized_ops::FullyConnected(
