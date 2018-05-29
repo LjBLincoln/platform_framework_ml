@@ -24,7 +24,8 @@ cc_defaults {
         //
         // Changes to this list must be reflected in cts/tests/tests/neuralnetworks/Android.mk
         // to ensure CTS tests coverage.
-        "TestGenerated.cpp",
+        "generated/tests/*.cpp",
+        "GeneratedUtils.cpp",
         "TestMemory.cpp",
         "TestTrivialModel.cpp",
         "TestUnknownDimensions.cpp",
@@ -49,12 +50,6 @@ cc_defaults {
     header_libs: [
         "libneuralnetworks_generated_test_harness_headers",
     ],
-    /* To enable address sanitizer, uncomment the block below
-     * here and in ../../Android.bp. You will have to
-     * do a full 'adb sync' after building. */
-    /* sanitize: {
-      address: true,
-    }, */
 }
 
 cc_test {
@@ -72,8 +67,8 @@ cc_test {
     ],
 }
 
-cc_test {
-    name: "NeuralNetworksTest_static",
+cc_defaults {
+    name: "NeuralNetworksTest_static_defaults",
     defaults: ["NeuralNetworksTest_defaults"],
     srcs: [
         "TestMain.cpp",
@@ -98,4 +93,18 @@ cc_test {
     header_libs: [
         "libneuralnetworks_private_headers",
     ],
+}
+
+cc_test {
+    name: "NeuralNetworksTest_static",
+    defaults: ["NeuralNetworksTest_static_defaults"],
+}
+
+cc_test {
+    // TODO(mikie): investigate ubsan as well
+    name: "NeuralNetworksTest_static_asan",
+    defaults: ["NeuralNetworksTest_static_defaults"],
+    sanitize: {
+      address: true,
+    },
 }
