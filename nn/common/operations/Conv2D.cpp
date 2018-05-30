@@ -26,6 +26,11 @@ namespace nn {
 static constexpr size_t kStaticBufferSize = 1605632;
 static char static_scratch_buffer[kStaticBufferSize];
 
+// executionMutex is used to protect concurrent access of the static_scratch_buffer
+// and other non-threadsafe resources like gemmlowp::GemmContext.
+// std::mutex is safe for pthreads on Android.
+static std::mutex executionMutex;
+
 #define ANDROID_NN_CONV_PARAMETERS(Type)                                        \
     uint32_t height       = getSizeOfDimension(inputShape, 1);                  \
     uint32_t width        = getSizeOfDimension(inputShape, 2);                  \
@@ -87,6 +92,9 @@ bool convFloat32(const float* inputData, const Shape& inputShape,
                                   &output_activation_max);
 
     int32_t dilationWidthFactor = 1, dilationHeightFactor = 1;
+
+    // Prevent concurrent executions that may access the scratch buffer.
+    std::unique_lock<std::mutex> lock(executionMutex);
     tflite::optimized_ops::Conv(
             inputData, convertShapeToDims(inputShape),
             filterData, convertShapeToDims(filterShape),
@@ -131,10 +139,13 @@ bool convQuant8(const uint8_t* inputData, const Shape& inputShape,
                                   &output_activation_min,
                                   &output_activation_max);
 
-    static thread_local gemmlowp::GemmContext gemm_context;
+    static gemmlowp::GemmContext gemm_context;
+
+    // Prevent concurrent executions that may access the scratch buffer and
+    // gemm_context.
+    std::unique_lock<std::mutex> lock(executionMutex);
     // Alow gemmlowp automatically decide how many threads to use.
     gemm_context.set_max_num_threads(0);
-
     tflite::optimized_ops::Conv(
             inputData, convertShapeToDims(inputShape), inputOffset,
             filterData, convertShapeToDims(filterShape), filterOffset,
