@@ -112,6 +112,29 @@ cc_test {
     sanitize: {
       address: true,
     },
+    // Declare explicit library dependency for continuous builds
+    target: {
+        android_arm: {
+            required: [
+                "libclang_rt.asan-arm-android",
+            ],
+        },
+        android_arm64: {
+            required: [
+                "libclang_rt.asan-aarch64-android",
+            ],
+        },
+        android_x86: {
+            required: [
+                "libclang_rt.asan-i686-android",
+            ],
+        },
+        android_x86_64: {
+            required: [
+                "libclang_rt.asan-x86_64-android",
+            ],
+        },
+    },
 }
 
 cc_defaults {
