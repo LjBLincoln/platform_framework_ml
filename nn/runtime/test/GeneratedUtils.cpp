@@ -29,6 +29,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <thread>
 
 namespace generated_tests {
 using namespace android::nn::wrapper;
@@ -62,10 +63,10 @@ static void printAll(std::ostream& os, const MixedTyped& test) {
 
 
 // Test driver for those generated from ml/nn/runtime/test/spec
-void execute(std::function<void(Model*)> createModel,
-             std::function<bool(int)> isIgnored,
-             std::vector<MixedTypedExample>& examples,
-             std::string dumpFile) {
+void executeOnce(std::function<void(Model*)> createModel,
+                  std::function<bool(int)> isIgnored,
+                  std::vector<MixedTypedExample>& examples,
+                  std::string dumpFile) {
     Model model;
     createModel(&model);
     model.finish();
@@ -126,6 +127,32 @@ void execute(std::function<void(Model*)> createModel,
         compare(filteredGolden, filteredTest, fpRange);
         exampleNo++;
     }
+}
+
+void executeMultithreaded(std::function<void(Model*)> createModel,
+                          std::function<bool(int)> isIgnored,
+                          std::vector<MixedTypedExample>& examples,
+                          std::string dumpFile) {
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 10; i++) {
+        threads.push_back(std::thread([&]() {
+            executeOnce(createModel, isIgnored, examples, dumpFile);
+        }));
+    }
+    std::for_each(threads.begin(), threads.end(), [](std::thread& t) {
+        t.join();
+    });
+}
+
+void execute(std::function<void(Model*)> createModel,
+             std::function<bool(int)> isIgnored,
+             std::vector<MixedTypedExample>& examples,
+             std::string dumpFile) {
+#ifndef NNTEST_MULTITHREADED
+    executeOnce(createModel, isIgnored, examples, dumpFile);
+#else  // defined(NNTEST_MULTITHREADED)
+    executeMultithreaded(createModel, isIgnored, examples, dumpFile);
+#endif  // !defined(NNTEST_MULTITHREADED)
 }
 
 }  // namespace generated_tests
