@@ -1536,7 +1536,7 @@ int CpuExecutor::executeOperation(const Operation& operation) {
 
 ScopedOpenmpSettings::ScopedOpenmpSettings() {
     mBlocktimeInitial = kmp_get_blocktime();
-    kmp_set_blocktime(1);  // ms
+    kmp_set_blocktime(20);  // ms, see b/109645291
 
 #if NNAPI_LIMIT_CPU_THREADS
     // Code not yet enabled. Choosing the number of threads to be based on

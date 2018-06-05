@@ -1409,8 +1409,7 @@ typedef enum {
      */
     ANEURALNETWORKS_TANH = 28,
 
-// TODO: change to __ANDROID_API__ >= __ANDROID_API_P__ once available.
-#if __ANDROID_API__ > __ANDROID_API_O_MR1__
+#if __ANDROID_API__ >= __ANDROID_API_P__
     // TODO: make the description easier to understand.
     /**
      * BatchToSpace for N-dimensional tensors.
@@ -1702,7 +1701,7 @@ typedef enum {
      * * 0: A tensor of the same {@link OperandCode} as input0.
      */
     ANEURALNETWORKS_TRANSPOSE = 37,
-#endif
+#endif // __ANDROID_API__ >= __ANDROID_API_P__
 } OperationCode;
 
 /**
@@ -2171,6 +2170,7 @@ int ANeuralNetworksModel_identifyInputsAndOutputs(ANeuralNetworksModel* model, u
                                                   const uint32_t* inputs, uint32_t outputCount,
                                                   const uint32_t* outputs);
 
+#if __ANDROID_API__ >= __ANDROID_API_P__
 /**
  * Specifies whether {@link ANEURALNETWORKS_TENSOR_FLOAT32} is allowed to be
  * calculated with range and/or precision as low as that of the IEEE 754 16-bit
@@ -2192,6 +2192,7 @@ int ANeuralNetworksModel_identifyInputsAndOutputs(ANeuralNetworksModel* model, u
  * See {@link ANeuralNetworksModel} for information on multithreaded usage.
  */
 int ANeuralNetworksModel_relaxComputationFloat32toFloat16(ANeuralNetworksModel* model, bool allow);
+#endif // __ANDROID_API__ >= __ANDROID_API_P__
 
 /**
  * Create a {@link ANeuralNetworksCompilation} to compile the given model.
@@ -2484,7 +2485,7 @@ void ANeuralNetworksEvent_free(ANeuralNetworksEvent* event);
 
 __END_DECLS
 
-#endif  //  __ANDROID_API__ >= 27
+#endif  // __ANDROID_API__ >= __ANDROID_API_O_MR1__
 
 #endif  // ANDROID_ML_NN_RUNTIME_NEURAL_NETWORKS_H
 

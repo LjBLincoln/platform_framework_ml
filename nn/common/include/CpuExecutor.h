@@ -142,9 +142,9 @@ private:
 //
 // Currently sets a low blocktime: the time OpenMP threads busy-wait for more
 // work before going to sleep. See b/79159165, https://reviews.llvm.org/D18577.
-// The default is 200ms, we set to 1ms here. This should allow for the threads
-// to not sleep before the next operation, but release CPU to other work
-// quickly.
+// The default is 200ms, we set to 20ms here, see b/109645291. This keeps the
+// cores enabled throughout inference computation without too much extra power
+// consumption afterwards.
 //
 // The OpenMP settings are thread-local (applying only to worker threads formed
 // from that thread), see https://software.intel.com/en-us/node/522688 and

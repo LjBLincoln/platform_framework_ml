@@ -38,26 +38,28 @@ protected:
         ASSERT_EQ(blocktimeRestored, kOpenmpDefaultBlockTime);
     }
     static const int kOpenmpDefaultBlockTime;
+    static const int kPreferredBlockTime;
 };
 
 const int OpenmpSettingsTest::kOpenmpDefaultBlockTime = 200;
+const int OpenmpSettingsTest::kPreferredBlockTime = 20;
 
 using ::android::nn::ScopedOpenmpSettings;
 
-TEST_F(OpenmpSettingsTest, Test1) {
+TEST_F(OpenmpSettingsTest, TestkPreferredBlockTime) {
     ScopedOpenmpSettings s;
     const int blocktimeSet = kmp_get_blocktime();
-    ASSERT_EQ(blocktimeSet, 1);
+    ASSERT_EQ(blocktimeSet, kPreferredBlockTime);
 }
 
 TEST_F(OpenmpSettingsTest, Test2) {
     ScopedOpenmpSettings s1;
     const int blocktimeSet1 = kmp_get_blocktime();
-    ASSERT_EQ(blocktimeSet1, 1);
+    ASSERT_EQ(blocktimeSet1, kPreferredBlockTime);
 
     ScopedOpenmpSettings s2;
     const int blocktimeSet2 = kmp_get_blocktime();
-    ASSERT_EQ(blocktimeSet2, 1);
+    ASSERT_EQ(blocktimeSet2, kPreferredBlockTime);
 }
 
 TEST_F(OpenmpSettingsTest, TestThreaded) {
@@ -76,12 +78,12 @@ TEST_F(OpenmpSettingsTest, TestThreaded) {
             ScopedOpenmpSettings s;
 
             const int blocktimeSet1 = kmp_get_blocktime();
-            ASSERT_EQ(blocktimeSet1, 1);
+            ASSERT_EQ(blocktimeSet1, kPreferredBlockTime);
 
             usleep(sleepFor);
 
             const int blocktimeSet2 = kmp_get_blocktime();
-            ASSERT_EQ(blocktimeSet2, 1);
+            ASSERT_EQ(blocktimeSet2, kPreferredBlockTime);
         }));
     }
     std::for_each(threads.begin(), threads.end(), [](std::thread& t) {
