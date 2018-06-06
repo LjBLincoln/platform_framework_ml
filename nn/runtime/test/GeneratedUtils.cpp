@@ -61,18 +61,21 @@ static void printAll(std::ostream& os, const MixedTyped& test) {
     print<uint8_t>(os, test);
 }
 
+Compilation createAndCompileModel(Model* model, std::function<void(Model*)> createModel) {
+    createModel(model);
+    model->finish();
+    graphDump("", *model);
+    Compilation compilation(model);
+    compilation.finish();
 
-// Test driver for those generated from ml/nn/runtime/test/spec
-void executeOnce(std::function<void(Model*)> createModel,
-                  std::function<bool(int)> isIgnored,
-                  std::vector<MixedTypedExample>& examples,
-                  std::string dumpFile) {
-    Model model;
-    createModel(&model);
-    model.finish();
-    graphDump("", model);
+    return compilation;
+}
+
+void executeWithCompilation(Model* model, Compilation* compilation,
+                            std::function<bool(int)> isIgnored,
+                            std::vector<MixedTypedExample>& examples,
+                            std::string dumpFile) {
     bool dumpToFile = !dumpFile.empty();
-
     std::ofstream s;
     if (dumpToFile) {
         s.open(dumpFile, std::ofstream::trunc);
@@ -80,11 +83,8 @@ void executeOnce(std::function<void(Model*)> createModel,
     }
 
     int exampleNo = 0;
-    Compilation compilation(&model);
-    compilation.finish();
-
     // If in relaxed mode, set the error range to be 5ULP of FP16.
-    float fpRange = !model.isRelaxed() ? 1e-5f : 5.0f * 0.0009765625f;
+    float fpRange = !model->isRelaxed() ? 1e-5f : 5.0f * 0.0009765625f;
     for (auto& example : examples) {
         SCOPED_TRACE(exampleNo);
         // TODO: We leave it as a copy here.
@@ -92,7 +92,7 @@ void executeOnce(std::function<void(Model*)> createModel,
         MixedTyped inputs = example.first;
         const MixedTyped& golden = example.second;
 
-        Execution execution(&compilation);
+        Execution execution(compilation);
 
         // Set all inputs
         for_all(inputs, [&execution](int idx, const void* p, size_t s) {
@@ -129,14 +129,24 @@ void executeOnce(std::function<void(Model*)> createModel,
     }
 }
 
-void executeMultithreaded(std::function<void(Model*)> createModel,
-                          std::function<bool(int)> isIgnored,
-                          std::vector<MixedTypedExample>& examples,
-                          std::string dumpFile) {
+void executeOnce(std::function<void(Model*)> createModel,
+                 std::function<bool(int)> isIgnored,
+                 std::vector<MixedTypedExample>& examples,
+                 std::string dumpFile) {
+    Model model;
+    Compilation compilation = createAndCompileModel(&model, createModel);
+    executeWithCompilation(&model, &compilation, isIgnored, examples, dumpFile);
+}
+
+
+void executeMultithreadedOwnCompilation(std::function<void(Model*)> createModel,
+                                        std::function<bool(int)> isIgnored,
+                                        std::vector<MixedTypedExample>& examples) {
+    SCOPED_TRACE("MultithreadedOwnCompilation");
     std::vector<std::thread> threads;
     for (int i = 0; i < 10; i++) {
         threads.push_back(std::thread([&]() {
-            executeOnce(createModel, isIgnored, examples, dumpFile);
+            executeOnce(createModel, isIgnored, examples, "");
         }));
     }
     std::for_each(threads.begin(), threads.end(), [](std::thread& t) {
@@ -144,14 +154,34 @@ void executeMultithreaded(std::function<void(Model*)> createModel,
     });
 }
 
+void executeMultithreadedSharedCompilation(std::function<void(Model*)> createModel,
+                                           std::function<bool(int)> isIgnored,
+                                           std::vector<MixedTypedExample>& examples) {
+    SCOPED_TRACE("MultithreadedSharedCompilation");
+    Model model;
+    Compilation compilation = createAndCompileModel(&model, createModel);
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 10; i++) {
+        threads.push_back(std::thread([&]() {
+            executeWithCompilation(&model, &compilation, isIgnored, examples, "");
+        }));
+    }
+    std::for_each(threads.begin(), threads.end(), [](std::thread& t) {
+        t.join();
+    });
+}
+
+
+// Test driver for those generated from ml/nn/runtime/test/spec
 void execute(std::function<void(Model*)> createModel,
              std::function<bool(int)> isIgnored,
              std::vector<MixedTypedExample>& examples,
-             std::string dumpFile) {
+             [[maybe_unused]] std::string dumpFile) {
 #ifndef NNTEST_MULTITHREADED
     executeOnce(createModel, isIgnored, examples, dumpFile);
 #else  // defined(NNTEST_MULTITHREADED)
-    executeMultithreaded(createModel, isIgnored, examples, dumpFile);
+    executeMultithreadedOwnCompilation(createModel, isIgnored, examples);
+    executeMultithreadedSharedCompilation(createModel, isIgnored, examples);
 #endif  // !defined(NNTEST_MULTITHREADED)
 }
 
