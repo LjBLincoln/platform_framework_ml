@@ -18,6 +18,7 @@
 #include "CpuOperationUtils.h"
 
 #include "tensorflow/contrib/lite/kernels/internal/optimized/optimized_ops.h"
+#include "tensorflow/contrib/lite/kernels/internal/reference/reference_ops.h"
 
 namespace android {
 namespace nn {
@@ -36,13 +37,25 @@ bool fullyConnectedFloat32(const float* inputData, const Shape& inputShape,
     CalculateActivationRangeFloat(activation, &output_activation_min,
                                   &output_activation_max);
 
-    tflite::optimized_ops::FullyConnected(
-            inputData, convertShapeToDims(inputShape),
-            weightsData, convertShapeToDims(weightsShape),
-            biasData, convertShapeToDims(biasShape),
-            output_activation_min, output_activation_max,
-            outputData, convertShapeToDims(outputShape));
-
+    // b/80425683, optimized implementation produces incorrect results when the
+    // number of input elements is the squre of batch_size.
+    uint32_t batch_size = getSizeOfDimension(outputShape, 0);
+    uint32_t input_n_elements = getNumberOfElements(inputShape);
+    if (batch_size * batch_size == input_n_elements) {
+        tflite::reference_ops::FullyConnected(
+                inputData, convertShapeToDims(inputShape),
+                weightsData, convertShapeToDims(weightsShape),
+                biasData, convertShapeToDims(biasShape),
+                output_activation_min, output_activation_max,
+                outputData, convertShapeToDims(outputShape));
+    } else {
+        tflite::optimized_ops::FullyConnected(
+                inputData, convertShapeToDims(inputShape),
+                weightsData, convertShapeToDims(weightsShape),
+                biasData, convertShapeToDims(biasShape),
+                output_activation_min, output_activation_max,
+                outputData, convertShapeToDims(outputShape));
+    }
     return true;
 }
 
