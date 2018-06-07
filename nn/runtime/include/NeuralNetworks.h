@@ -620,8 +620,8 @@ typedef enum {
      * * 0: A 4-D tensor, of shape [batches, height, width, depth].
      *
      * Outputs:
-     * * 0: The output 4-D tensor, of shape
-     *      [batches, out_height, out_width, depth].
+     * * 0: The output 4-D tensor, of the same shape as input
+     *      [batches, height, width, depth].
      */
     ANEURALNETWORKS_L2_NORMALIZATION = 11,
 
@@ -1306,8 +1306,8 @@ typedef enum {
      *      input height and width.
      *
      * Outputs:
-     * * 0: The output 4-D tensor, of shape [batch, height/block_size,
-     *      width/block_size, depth*block_size*block_size].
+     * * 0: The output 4-D tensor, of shape [batches, height/block_size,
+     *      width/block_size, depth_in*block_size*block_size].
      */
     ANEURALNETWORKS_SPACE_TO_DEPTH = 26,
 
@@ -1522,13 +1522,19 @@ typedef enum {
      * * 1: A 2-D Tensor of {@link ANEURALNETWORKS_TENSOR_INT32}, the paddings
      *      for each spatial dimension of the input tensor. The shape of the
      *      tensor must be {rank(input0), 2}.
-     *      padding[i, 0] specifies the number of element to be padded in the
+     *      padding[i, 0] specifies the number of elements to be padded in the
      *      front of dimension i.
-     *      padding[i, 1] specifies the number of element to be padded after the
+     *      padding[i, 1] specifies the number of elements to be padded after the
      *      end of dimension i.
      *
      * Outputs:
-     * * 0: A tensor of the same {@link OperandCode} as input0.
+     * * 0: A tensor of the same {@link OperandCode} as input0. The
+     *      output tensor has the same rank as input0, and each
+     *      dimension of the output tensor has the same size as the
+     *      corresponding dimension of the input tensor plus the size
+     *      of the padding:
+     *          output0.dimension[i] =
+     *              padding[i, 0] + input0.dimension[i] + padding[i, 1]
      */
     ANEURALNETWORKS_PAD = 32,
 
@@ -1824,6 +1830,12 @@ typedef struct ANeuralNetworksMemory ANeuralNetworksMemory;
  * <li>{@link ANeuralNetworksModel_addOperand}</li>
  * </ul>
  *
+ * This forms a graph in which each operation and operand is a node, a
+ * directed edge from an operand to an operation indicates that the
+ * operand is an input to the operation, and a directed edge from an
+ * operation to an operand indicates that the operand is an output
+ * from the operation. This graph must be acyclic.
+ *
  * A model is completed by calling {@link ANeuralNetworksModel_finish}.
  * A model is destroyed by calling {@link ANeuralNetworksModel_free}.
  *
@@ -2071,12 +2083,29 @@ int ANeuralNetworksModel_finish(ANeuralNetworksModel* model);
  *
  * The order in which the operands are added is important. The first one added
  * to a model will have the index value 0, the second 1, etc. These indexes are
- * used as operand identifiers in {@link ANeuralNetworksModel_addOperation},
+ * used as operand identifiers in
+ * {@link ANeuralNetworksModel_addOperation},
+ * {@link ANeuralNetworksModel_identifyInputsAndOutputs},
+ * {@link ANeuralNetworksModel_setOperandValue},
+ * {@link ANeuralNetworksModel_setOperandValueFromMemory},
  * {@link ANeuralNetworksExecution_setInput},
  * {@link ANeuralNetworksExecution_setInputFromMemory},
  * {@link ANeuralNetworksExecution_setOutput},
  * {@link ANeuralNetworksExecution_setOutputFromMemory} and
  * {@link ANeuralNetworksExecution_setOperandValue}.
+ *
+ * <p>Every operand must be referenced in exactly one of the following
+ * ways:<ul>
+ *    <li>It is identified as a model input with
+ *        {@link ANeuralNetworksModel_identifyInputsAndOutputs}.</li>
+ *    <li>It is identified as a constant with
+ *        {@link ANeuralNetworksModel_setOperandValue} or
+ *        {@link ANeuralNetworksModel_setOperandValueFromMemory}.</li>
+ *    <li>It is identified as an output of exactly one operation with
+ *        {@link ANeuralNetworksModel_addOperation}.</li></p>
+ * <p>An operand that is identified as a model input or as a constant
+ * must not also be identified as a model output with
+ * {@link ANeuralNetworksModel_identifyInputsAndOutputs}.</p>
  *
  * To build a model that can accommodate inputs of various sizes, as
  * you may want to do for a CNN, leave unspecified the dimensions that
@@ -2191,7 +2220,8 @@ int ANeuralNetworksModel_addOperation(ANeuralNetworksModel* model,
                                       const uint32_t* outputs);
 
 /**
- * Specifies which operands will be the model's inputs and outputs.
+ * Specifies which operands will be the model's inputs and
+ * outputs. Every model must have at least one input and one output.
  *
  * An operand cannot be used for both input and output. Doing so will
  * return an error.
