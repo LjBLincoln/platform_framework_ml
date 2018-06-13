@@ -1879,10 +1879,10 @@ typedef struct ANeuralNetworksCompilation ANeuralNetworksCompilation;
  * <p>To use:<ul>
  *    <li>Create a new execution instance by calling the
  *        {@link ANeuralNetworksExecution_create} function.</li>
- *    <li>Associate data to the model inputs with
+ *    <li>Associate input buffers or memory regions to the model inputs with
  *        {@link ANeuralNetworksExecution_setInput} or
  *        {@link ANeuralNetworksExecution_setInputFromMemory}.</li>
- *    <li>Associate output buffers to the model outputs with
+ *    <li>Associate output buffers or memory regions to the model outputs with
  *        {@link ANeuralNetworksExecution_setOutput} or
  *        {@link ANeuralNetworksExecution_setOutputFromMemory}.</li>
  *    <li>Apply the model with {@link ANeuralNetworksExecution_startCompute}.</li>
@@ -1890,6 +1890,11 @@ typedef struct ANeuralNetworksCompilation ANeuralNetworksCompilation;
  *        ANeuralNetworksEvent_wait}.</li>
  *    <li>Destroy the execution with
  *        {@link ANeuralNetworksExecution_free}.</li></ul></p>
+ *
+ * <p>An output buffer or memory region must not overlap with any
+ * other output buffer or memory region, with an input buffer or
+ * memory region, or with an operand value in a memory object
+ * ({@link ANeuralNetworksModel_setOperandValueFromMemory}).</p>
  *
  * <p>An execution cannot be modified once {@link ANeuralNetworksExecution_startCompute}
  * has been called on it.</p>
@@ -1903,7 +1908,7 @@ typedef struct ANeuralNetworksCompilation ANeuralNetworksCompilation;
  * thread to use {@link ANeuralNetworksEvent_wait} at the same time.</p>
  *
  * <p>It is also the application's responsibility to ensure that there are no other
- * uses of the request after calling {@link ANeuralNetworksExecution_free}.</p>
+ * uses of the execution after calling {@link ANeuralNetworksExecution_free}.</p>
  */
 typedef struct ANeuralNetworksExecution ANeuralNetworksExecution;
 
@@ -2086,7 +2091,9 @@ int ANeuralNetworksModel_finish(ANeuralNetworksModel* model);
  *
  * @param model The model to be modified.
  * @param type The {@link ANeuralNetworksOperandType} that describes the shape
- *             of the operand.
+ *             of the operand.  Neither the {@link ANeuralNetworksOperandType}
+ *             nor the dimensions it points to need to outlive the call to
+ *             {@link ANeuralNetworksModel_addOperand}.
  *
  * @return ANEURALNETWORKS_NO_ERROR if successful.
  */
@@ -2162,7 +2169,7 @@ int ANeuralNetworksModel_setOperandValueFromMemory(ANeuralNetworksModel* model, 
  * Add an operation to a model.
  *
  * @param model The model to be modified.
- * @param type The {@link ANeuralNetworksOperandType} of the operation.
+ * @param type The {@link ANeuralNetworksOperationType} of the operation.
  * @param inputCount The number of entries in the inputs array.
  * @param inputs An array of indexes identifying each operand.
  * @param outputCount The number of entries in the outputs array.
@@ -2366,7 +2373,9 @@ void ANeuralNetworksExecution_free(ANeuralNetworksExecution* execution);
  *             model. All other properties of the type must be the
  *             same as specified in the model. If the type is the same
  *             as specified when the model was built, NULL can be
- *             passed.
+ *             passed. Neither the {@link ANeuralNetworksOperandType}
+ *             nor the dimensions it points to need to outlive the call
+ *             to {@link ANeuralNetworksExecution_setInput}.
  * @param buffer The buffer containing the data.
  * @param length The length in bytes of the buffer.
  *
@@ -2400,7 +2409,9 @@ int ANeuralNetworksExecution_setInput(ANeuralNetworksExecution* execution, int32
  *             to the model. All other properties of the type must be
  *             the same as specified in the model. If the type is the
  *             same as specified when the model was built, NULL can be
- *             passed.
+ *             passed. Neither the {@link ANeuralNetworksOperandType}
+ *             nor the dimensions it points to need to outlive the call
+ *             to {@link ANeuralNetworksExecution_setInputFromMemory}.
  * @param memory The memory containing the data.
  * @param offset This specifies the location of the data within the memory.
  *               The offset is in bytes from the start of memory.
@@ -2437,7 +2448,9 @@ int ANeuralNetworksExecution_setInputFromMemory(ANeuralNetworksExecution* execut
  *             model. All other properties of the type must be the
  *             same as specified in the model. If the type is the same
  *             as specified when the model was built, NULL can be
- *             passed.
+ *             passed. Neither the {@link ANeuralNetworksOperandType}
+ *             nor the dimensions it points to need to outlive the call
+ *             to {@link ANeuralNetworksExecution_setOutput}.
  * @param buffer The buffer where the data is to be written.
  * @param length The length in bytes of the buffer.
  *
@@ -2471,7 +2484,9 @@ int ANeuralNetworksExecution_setOutput(ANeuralNetworksExecution* execution, int3
  *             model. All other properties of the type must be the
  *             same as specified in the model. If the type is the same
  *             as specified when the model was built, NULL can be
- *             passed.
+ *             passed. Neither the {@link ANeuralNetworksOperandType}
+ *             nor the dimensions it points to need to outlive the call
+ *             to {@link ANeuralNetworksExecution_setOutputFromMemory}.
  * @param memory The memory where the data is to be stored.
  * @param offset This specifies the location of the data within the memory.
  *               The offset is in bytes from the start of memory.

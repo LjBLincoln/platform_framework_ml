@@ -27,6 +27,11 @@ enum {
     ANEURALNETWORKS_TENSOR_OEM_BYTE = 10001,
 };  // extends OperandCode
 
+/**
+ * If a model contains an {@link ANEURALNETWORKS_OEM_OPERATION}, then
+ * either the model must contain only a single operation, or every
+ * tensor operand type in the model must be fully specified.
+ */
 enum {
     /** OEM specific operation. */
     ANEURALNETWORKS_OEM_OPERATION = 10000,
