@@ -74,7 +74,7 @@ private:
 };
 
 // Behaves like SampleDriver, except that it produces wrapped IPreparedModel.
-class TestDriver : public SampleDriver {
+class TestDriver11 : public SampleDriver {
 public:
     // Allow dummying up the error status for execution of all models
     // prepared from this driver.  If errorStatus is NONE, then
@@ -82,8 +82,8 @@ public:
     // status).  Otherwise, don't bother to execute, and just send
     // back errorStatus (as the execution status, not the launch
     // status).
-    TestDriver(const std::string& name, ErrorStatus errorStatus) :
-            SampleDriver(name.c_str()), mErrorStatus(errorStatus) { }
+    TestDriver11(const std::string& name, ErrorStatus errorStatus) :
+                 SampleDriver(name.c_str()), mErrorStatus(errorStatus) { }
 
     Return<void> getCapabilities_1_1(getCapabilities_1_1_cb _hidl_cb) override {
         android::nn::initVLogMask();
@@ -137,10 +137,34 @@ private:
     ErrorStatus mErrorStatus;
 };
 
+// Like TestDriver, but implementing 1.0
+class TestDriver10 : public V1_0::IDevice {
+public:
+    TestDriver10(const std::string& name, ErrorStatus errorStatus) : m11Driver(name, errorStatus) {}
+    Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override {
+        return m11Driver.getCapabilities(_hidl_cb);
+    }
+    Return<void> getSupportedOperations(const V1_0::Model& model,
+                                        getSupportedOperations_cb _hidl_cb) override {
+        return m11Driver.getSupportedOperations(model, _hidl_cb);
+    }
+    Return<ErrorStatus> prepareModel(
+        const V1_0::Model& model,
+        const sp<IPreparedModelCallback>& actualCallback) override {
+        return m11Driver.prepareModel(model, actualCallback);
+    }
+    Return<DeviceStatus> getStatus() override {
+        return m11Driver.getStatus();
+    }
+private:
+    TestDriver11 m11Driver;
+};
+
 // This class adds some simple utilities on top of
 // ::android::nn::wrapper::Compilation in order to provide access to
 // certain features from CompilationBuilder that are not exposed by
 // the base class.
+template<typename DriverClass>
 class TestCompilation : public WrapperCompilation {
 public:
     TestCompilation(const WrapperModel* model) : WrapperCompilation(model) {
@@ -158,7 +182,8 @@ public:
     // errorStatus (as the execution status, not the launch status).
     Result finish(const std::string& deviceName, ErrorStatus errorStatus) {
         std::vector<std::shared_ptr<Device>> devices;
-        auto device = std::make_shared<Device>(deviceName, new TestDriver(deviceName, errorStatus));
+        auto device = std::make_shared<Device>(deviceName,
+                                               new DriverClass(deviceName, errorStatus));
         assert(device->initialize());
         devices.push_back(device);
         return static_cast<Result>(builder()->finish(devices));
@@ -170,10 +195,11 @@ private:
     }
 };
 
-class ExecutionTest :
+template<class DriverClass>
+class ExecutionTestTemplate :
             public ::testing::TestWithParam<std::tuple<ErrorStatus, Result>> {
 public:
-    ExecutionTest() :
+    ExecutionTestTemplate() :
             kName(toString(std::get<0>(GetParam()))),
             kForceErrorStatus(std::get<0>(GetParam())),
             kExpectResult(std::get<1>(GetParam())),
@@ -181,6 +207,9 @@ public:
             mCompilation(&mModel) { }
 
 protected:
+    // Unit test method
+    void TestWait();
+
     const std::string kName;
 
     // Allow dummying up the error status for execution.  If
@@ -195,7 +224,7 @@ protected:
     const Result kExpectResult;
 
     WrapperModel mModel;
-    TestCompilation mCompilation;
+    TestCompilation<DriverClass> mCompilation;
 
     void setInputOutput(WrapperExecution* execution) {
         ASSERT_EQ(execution->setInput(0, &mInputBuffer, sizeof(mInputBuffer)), Result::NO_ERROR);
@@ -221,7 +250,7 @@ private:
     }
 };
 
-TEST_P(ExecutionTest, Wait) {
+template<class DriverClass> void ExecutionTestTemplate<DriverClass>::TestWait() {
     SCOPED_TRACE(kName);
     ASSERT_EQ(mCompilation.finish(kName, kForceErrorStatus), Result::NO_ERROR);
     WrapperExecution execution(&mCompilation);
@@ -234,17 +263,28 @@ TEST_P(ExecutionTest, Wait) {
     }
 }
 
-INSTANTIATE_TEST_CASE_P(Flavor, ExecutionTest,
-                        ::testing::Values(std::make_tuple(ErrorStatus::NONE,
-                                                          Result::NO_ERROR),
-                                          std::make_tuple(ErrorStatus::DEVICE_UNAVAILABLE,
-                                                          Result::OP_FAILED),
-                                          std::make_tuple(ErrorStatus::GENERAL_FAILURE,
-                                                          Result::OP_FAILED),
-                                          std::make_tuple(ErrorStatus::OUTPUT_INSUFFICIENT_SIZE,
-                                                          Result::OP_FAILED),
-                                          std::make_tuple(ErrorStatus::INVALID_ARGUMENT,
-                                                          Result::BAD_DATA)));
+auto kTestValues = ::testing::Values(std::make_tuple(ErrorStatus::NONE,
+                                                     Result::NO_ERROR),
+                                     std::make_tuple(ErrorStatus::DEVICE_UNAVAILABLE,
+                                                     Result::OP_FAILED),
+                                     std::make_tuple(ErrorStatus::GENERAL_FAILURE,
+                                                     Result::OP_FAILED),
+                                     std::make_tuple(ErrorStatus::OUTPUT_INSUFFICIENT_SIZE,
+                                                     Result::OP_FAILED),
+                                     std::make_tuple(ErrorStatus::INVALID_ARGUMENT,
+                                                     Result::BAD_DATA));
+
+class ExecutionTest11 : public ExecutionTestTemplate<TestDriver11> {};
+TEST_P(ExecutionTest11, Wait) {
+    TestWait();
+}
+INSTANTIATE_TEST_CASE_P(Flavor, ExecutionTest11, kTestValues);
+
+class ExecutionTest10 : public ExecutionTestTemplate<TestDriver10> {};
+TEST_P(ExecutionTest10, Wait) {
+    TestWait();
+}
+INSTANTIATE_TEST_CASE_P(Flavor, ExecutionTest10, kTestValues);
 
 }  // namespace
 }  // namespace android
