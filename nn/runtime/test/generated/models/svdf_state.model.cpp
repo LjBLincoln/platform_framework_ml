@@ -24,6 +24,7 @@ void CreateModel(Model *model) {
     {input, weights_feature, weights_time, bias, state_in, rank_param, activation_param},
     {state_out, output});
   assert(model->isValid());
+  model->finish();
 }
 
 bool is_ignored(int i) {

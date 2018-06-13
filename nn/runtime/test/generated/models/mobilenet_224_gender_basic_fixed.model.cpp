@@ -669,4 +669,5 @@ void CreateModel(Model *model) {
     {op86},
     {op85});
   assert(model->isValid());
+  model->finish();
 }
