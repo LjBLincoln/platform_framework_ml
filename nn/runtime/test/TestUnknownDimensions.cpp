@@ -53,9 +53,11 @@ const uint32_t UNKNOWN_SIZE  = 0;
 //     have a different size).
 //
 // All relevant combinations of the basic scenarios are then iterated over in
-// TestAll. Note that we don't use googletest's parametrized tests (TEST_P) as
+// TestAll. Note that we don't want to just use googletest's parametrized tests (TEST_P) as
 // the 16k combinations generated too many lines of output for the test
-// infrastructure to handle correctly.
+// infrastructure to handle correctly. However, running all 16k in one test
+// makes the ASAN version take so long that the automatic test runner things the
+// command has become unresponsinve, so we split on the first level.
 enum class DimensionKind { INTENDED_AT_COMPILE_AND_EXECUTE,
                            INTENDED_AT_COMPILE_NOT_SET_AT_EXECUTE,
                            UNKNOWN_AT_COMPILE_INTENDED_AT_EXECUTE,
@@ -74,7 +76,7 @@ std::vector<OperandParams> Combine(const std::vector<DimensionKind>& firsts,
 auto ioValues = Combine(ioDimensionValues, ioDimensionValues);
 auto constantValues = Combine(constantDimensionValues, constantDimensionValues);
 
-class UnknownDimensionsTest : public ::testing::Test {
+class UnknownDimensionsTest : public ::testing::TestWithParam<OperandParams> {
 protected:
     template<class T, Type TensorType> void TestOne(
             const OperandParams& paramsForInput0, const OperandParams& paramsForInput1,
@@ -261,24 +263,25 @@ std::vector<OperandParams> Combine(const std::vector<DimensionKind>& firsts,
 }
 
 template<class T, Type TensorType> void UnknownDimensionsTest::TestAll() {
-    for (auto paramsForInput0: ioValues) {
-        for (auto paramsForInput1: ioValues) {
-            for (auto paramsForConst: constantValues) {
-                for (auto paramsForOutput: ioValues) {
-                    TestOne<T, TensorType>(paramsForInput0, paramsForInput1,
-                                           paramsForConst, paramsForOutput);
-                }
+    const OperandParams paramsForInput0 = GetParam();
+    for (auto paramsForInput1: ioValues) {
+        for (auto paramsForConst: constantValues) {
+            for (auto paramsForOutput: ioValues) {
+                TestOne<T, TensorType>(paramsForInput0, paramsForInput1,
+                                       paramsForConst, paramsForOutput);
             }
         }
     }
 }
 
-TEST_F(UnknownDimensionsTest, Float) {
+TEST_P(UnknownDimensionsTest, Float) {
     TestAll<float, Type::TENSOR_FLOAT32>();
 }
 
-TEST_F(UnknownDimensionsTest, Quantized) {
+TEST_P(UnknownDimensionsTest, Quantized) {
     TestAll<uint8_t, Type::TENSOR_QUANT8_ASYMM>();
 }
 
+INSTANTIATE_TEST_CASE_P(UnknownCombinationsTest, UnknownDimensionsTest,
+                        ::testing::ValuesIn(ioValues));
 }  // end namespace
