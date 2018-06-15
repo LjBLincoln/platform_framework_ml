@@ -31,6 +31,7 @@ void CreateModel(Model *model) {
     {op1},
     {op3});
   assert(model->isValid());
+  model->finish();
 }
 
 bool is_ignored(int i) {
