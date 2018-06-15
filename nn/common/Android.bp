@@ -112,8 +112,8 @@ cc_library_static {
 
 }
 
-cc_defaults {
-    name: "neuralnetworks_op_test_defaults",
+cc_test {
+    name: "NeuralNetworksTest_operations",
     shared_libs: [
         "libneuralnetworks",
     ],
@@ -122,63 +122,9 @@ cc_defaults {
     ],
     cflags: [
         "-Wno-extern-c-compat",
-    ]
-}
-
-cc_test {
-    name: "embedding_lookup_test",
-    defaults: ["neuralnetworks_op_test_defaults"],
+    ],
     srcs: [
-        "operations/EmbeddingLookupTest.cpp",
-    ],
-}
-
-cc_test {
-    name: "hashtable_lookup_test",
-    defaults: ["neuralnetworks_op_test_defaults"],
-    srcs: [
-        "operations/HashtableLookupTest.cpp",
-    ],
-}
-
-cc_test {
-    name: "lsh_projection_test",
-    defaults: ["neuralnetworks_op_test_defaults"],
-    srcs: [
-        "operations/LSHProjectionTest.cpp",
-    ],
-    local_include_dirs: [ "include" ],
-    header_libs: [
-        "tensorflow_headers",
-    ],
-}
-
-cc_test {
-    name: "lstm_test",
-    defaults: ["neuralnetworks_op_test_defaults"],
-    srcs: [
-        "operations/LSTMTest.cpp",
-    ],
-    local_include_dirs: [ "include" ],
-    header_libs: [
-        "tensorflow_headers",
-    ],
-}
-
-cc_test {
-    name: "rnn_test",
-    defaults: ["neuralnetworks_op_test_defaults"],
-    srcs: [
-        "operations/RNNTest.cpp",
-    ],
-    local_include_dirs: [ "include" ],
-}
-
-cc_test {
-    name: "svdf_test",
-    defaults: ["neuralnetworks_op_test_defaults"],
-    srcs: [
-        "operations/SVDFTest.cpp",
+        "operations/*Test.cpp",
     ],
     local_include_dirs: [ "include" ],
     header_libs: [

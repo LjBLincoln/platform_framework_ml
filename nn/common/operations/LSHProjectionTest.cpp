@@ -153,7 +153,7 @@ TEST(LSHProjectionOpTest2, DenseWithThreeInputs) {
 }
 
 TEST(LSHProjectionOpTest2, SparseWithTwoInputs) {
-  LSHProjectionOpModel m(LSHProjectionType_SPARSE, {4, 2}, {3, 2}, {});
+  LSHProjectionOpModel m(LSHProjectionType_SPARSE, {4, 2}, {3, 2}, {0});
 
   m.SetInput({12345, 54321, 67890, 9876, -12345678, -87654321});
   m.SetHash({0.123, 0.456, -0.321, -0.654, 1.234, 5.678, -4.321, -8.765});
