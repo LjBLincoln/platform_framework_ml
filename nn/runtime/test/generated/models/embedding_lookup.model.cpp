@@ -13,6 +13,7 @@ void CreateModel(Model *model) {
     {index, value},
     {output});
   assert(model->isValid());
+  model->finish();
 }
 
 bool is_ignored(int i) {

@@ -816,6 +816,7 @@ if __name__ == '__main__':
              file=model_file)
       # Boilerplate
       print ("  assert(model->isValid());", file=model_file);
+      print ("  model->finish();", file=model_file);
       print ("}", file=model_file)
       print (IgnoredOutput.gen_ignored(), file=model_file)
 

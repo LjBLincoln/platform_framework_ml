@@ -18,6 +18,7 @@ void CreateModel(Model *model) {
     {hash, lookup, weight, type_param},
     {output});
   assert(model->isValid());
+  model->finish();
 }
 
 bool is_ignored(int i) {
