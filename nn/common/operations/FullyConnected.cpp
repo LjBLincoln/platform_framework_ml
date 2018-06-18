@@ -18,6 +18,9 @@
 #include "CpuOperationUtils.h"
 
 #include "tensorflow/contrib/lite/kernels/internal/optimized/optimized_ops.h"
+#include "tensorflow/contrib/lite/kernels/internal/reference/reference_ops.h"
+
+#include "Tracing.h"
 
 namespace android {
 namespace nn {
@@ -32,17 +35,32 @@ bool fullyConnectedFloat32(const float* inputData, const Shape& inputShape,
                            const float* biasData, const Shape& biasShape,
                            int32_t activation,
                            float* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("fullyConnectedFloat32");
     float output_activation_min, output_activation_max;
     CalculateActivationRangeFloat(activation, &output_activation_min,
                                   &output_activation_max);
 
-    tflite::optimized_ops::FullyConnected(
-            inputData, convertShapeToDims(inputShape),
-            weightsData, convertShapeToDims(weightsShape),
-            biasData, convertShapeToDims(biasShape),
-            output_activation_min, output_activation_max,
-            outputData, convertShapeToDims(outputShape));
-
+    // b/80425683, optimized implementation produces incorrect results when the
+    // number of input elements is the squre of batch_size.
+    uint32_t batch_size = getSizeOfDimension(outputShape, 0);
+    uint32_t input_n_elements = getNumberOfElements(inputShape);
+    if (batch_size * batch_size == input_n_elements) {
+        NNTRACE_COMP_SWITCH("reference_ops::FullyConnected");
+        tflite::reference_ops::FullyConnected(
+                inputData, convertShapeToDims(inputShape),
+                weightsData, convertShapeToDims(weightsShape),
+                biasData, convertShapeToDims(biasShape),
+                output_activation_min, output_activation_max,
+                outputData, convertShapeToDims(outputShape));
+    } else {
+        NNTRACE_COMP_SWITCH("optimized_ops::FullyConnected");
+        tflite::optimized_ops::FullyConnected(
+                inputData, convertShapeToDims(inputShape),
+                weightsData, convertShapeToDims(weightsShape),
+                biasData, convertShapeToDims(biasShape),
+                output_activation_min, output_activation_max,
+                outputData, convertShapeToDims(outputShape));
+    }
     return true;
 }
 
@@ -51,6 +69,7 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
                           const int32_t* biasData, const Shape& biasShape,
                           int32_t activation,
                           uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("fullyConnectedQuant8");
     int32_t inputOffset = -inputShape.offset;
     int32_t weightsOffset = -weightsShape.offset;
     int32_t outputOffset = outputShape.offset;
@@ -78,6 +97,7 @@ bool fullyConnectedQuant8(const uint8_t* inputData, const Shape& inputShape,
     // Alow gemmlowp automatically decide how many threads to use.
     gemm_context.set_max_num_threads(0);
 
+    NNTRACE_COMP_SWITCH("optimized_ops::FullyConnected");
     tflite::optimized_ops::FullyConnected(
             inputData, convertShapeToDims(inputShape), inputOffset,
             weightsData, convertShapeToDims(weightsShape), weightsOffset,

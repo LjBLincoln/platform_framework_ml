@@ -20,6 +20,7 @@
 
 #include "NeuralNetworks.h"
 #include "Operations.h"
+#include "Tracing.h"
 
 #include "Eigen/Core"
 #include <omp.h>
@@ -189,12 +190,14 @@ static bool setInfoAndAllocateIfNeeded(RunTimeOperandInfo* info, const Shape& sh
 int CpuExecutor::run(const V1_0::Model& model, const Request& request,
                      const std::vector<RunTimePoolInfo>& modelPoolInfos,
                      const std::vector<RunTimePoolInfo>& requestPoolInfos) {
+    NNTRACE_CPU(NNTRACE_PHASE_EXECUTION, "run::V1_0");
     return run(convertToV1_1(model), request, modelPoolInfos, requestPoolInfos);
 }
 
 int CpuExecutor::run(const V1_1::Model& model, const Request& request,
                      const std::vector<RunTimePoolInfo>& modelPoolInfos,
                      const std::vector<RunTimePoolInfo>& requestPoolInfos) {
+    NNTRACE_CPU(NNTRACE_PHASE_EXECUTION, "run::V1_1");
     VLOG(CPUEXE) << "CpuExecutor::run() with request("
                  << SHOW_IF_DEBUG(toString(request)) << ")";
 

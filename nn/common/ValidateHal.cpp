@@ -18,6 +18,7 @@
 
 #include "ValidateHal.h"
 #include "NeuralNetworks.h"
+#include "Tracing.h"
 #include "Utils.h"
 
 #include <android-base/logging.h>
@@ -405,6 +406,8 @@ static bool validateModelInputOutputs(const hidl_vec<uint32_t> indexes,
 
 template<typename VersionedModel>
 static bool validateModelVersioned(const VersionedModel& model) {
+    NNTRACE_FULL(NNTRACE_LAYER_UTILITY, NNTRACE_PHASE_UNSPECIFIED,
+                 "validateModelVersioned");
     return (validateOperands(model.operands, model.operandValues, model.pools) &&
             validateOperations(model.operations, model.operands) &&
             validateModelInputOutputs(model.inputIndexes, model.operands,

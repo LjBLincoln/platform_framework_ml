@@ -24,6 +24,8 @@
 #include "tensorflow/contrib/lite/kernels/internal/optimized/optimized_ops.h"
 #include "tensorflow/contrib/lite/kernels/internal/reference/reference_ops.h"
 
+#include "Tracing.h"
+
 namespace android {
 namespace nn {
 
@@ -50,9 +52,11 @@ bool addFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
                 float* out, const Shape& shapeOut) {
+    NNTRACE_TRANS("addFloat32");
     bool needBroadcast = !SameShape(shape1, shape2);
 
     if (needBroadcast) {
+        NNTRACE_COMP_SWITCH("optimized_ops::BroadcastAdd");
         #define ANDROID_NN_BROADCAST_ADD(activation)                                              \
             tflite::optimized_ops::BroadcastAdd<tflite::FusedActivationFunctionType::activation>( \
                     in1, convertShapeToDims(shape1),                                              \
@@ -66,6 +70,7 @@ bool addFloat32(const float* in1, const Shape& shape1,
         CalculateActivationRangeFloat(activation, &output_activation_min,
                                       &output_activation_max);
 
+        NNTRACE_COMP_SWITCH("optimized_ops::Add");
         tflite::optimized_ops::Add(
                 in1, convertShapeToDims(shape1),
                 in2, convertShapeToDims(shape2),
@@ -80,6 +85,7 @@ bool addQuant8(const uint8_t* in1, const Shape& shape1,
                const uint8_t* in2, const Shape& shape2,
                int32_t activation,
                uint8_t* out, const Shape& shapeOut) {
+    NNTRACE_TRANS("addQuant8");
     bool needBroadcast = !SameShape(shape1, shape2);
 
     const int32_t input1_offset = -shape1.offset;
@@ -118,6 +124,7 @@ bool addQuant8(const uint8_t* in1, const Shape& shape1,
                                   &output_activation_max);
 
     if (needBroadcast) {
+        NNTRACE_COMP_SWITCH("optimized_ops::BroadcastAdd");
         tflite::optimized_ops::BroadcastAdd(
                 left_shift,
                 in1, convertShapeToDims(shape1),
@@ -128,6 +135,7 @@ bool addQuant8(const uint8_t* in1, const Shape& shape1,
                 output_activation_min, output_activation_max,
                 out, convertShapeToDims(shapeOut));
     } else {
+        NNTRACE_COMP_SWITCH("optimized_ops::Add");
         #define ANDROID_NN_NORMAL_ADD(activation)                                        \
             tflite::optimized_ops::Add<tflite::FusedActivationFunctionType::activation>( \
                     left_shift,                                                          \
@@ -150,10 +158,12 @@ bool mulFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
                 float* out, const Shape& shapeOut) {
+    NNTRACE_TRANS("mulFloat32");
     bool needBroadcast = !SameShape(shape1, shape2);
 
     if (needBroadcast) {
-    #define ANDROID_NN_BROADCAST_MUL(activation)                                              \
+        NNTRACE_COMP_SWITCH("optimized_ops::BroadcastMul");
+        #define ANDROID_NN_BROADCAST_MUL(activation)                                          \
         tflite::optimized_ops::BroadcastMul<tflite::FusedActivationFunctionType::activation>( \
                 in1, convertShapeToDims(shape1),                                              \
                 in2, convertShapeToDims(shape2),                                              \
@@ -166,6 +176,7 @@ bool mulFloat32(const float* in1, const Shape& shape1,
         CalculateActivationRangeFloat(activation, &output_activation_min,
                                       &output_activation_max);
 
+        NNTRACE_COMP_SWITCH("optimized_ops::Mul");
         tflite::optimized_ops::Mul(
                 in1, convertShapeToDims(shape1),
                 in2, convertShapeToDims(shape2),
@@ -180,6 +191,7 @@ bool mulQuant8(const uint8_t* in1, const Shape& shape1,
                const uint8_t* in2, const Shape& shape2,
                int32_t activation,
                uint8_t* out, const Shape& shapeOut) {
+    NNTRACE_TRANS("mulQuant8");
     const int32_t input1_offset = -shape1.offset;
     const int32_t input2_offset = -shape2.offset;
     const int32_t output_offset = shapeOut.offset;
@@ -198,6 +210,7 @@ bool mulQuant8(const uint8_t* in1, const Shape& shape1,
                                   &output_activation_max);
 
     // Use BROADCAST version to handle the normal case.
+    NNTRACE_COMP_SWITCH("optimized_ops::BroadcastMul");
     tflite::optimized_ops::BroadcastMul(
                 in1, convertShapeToDims(shape1), input1_offset,
                 in2, convertShapeToDims(shape2), input2_offset,
@@ -211,7 +224,9 @@ bool mulQuant8(const uint8_t* in1, const Shape& shape1,
 bool floorFloat32(const float* inputData,
                   float* outputData,
                   const Shape& shape) {
+    NNTRACE_TRANS("floorFloat32");
     tflite::Dims<4> dim = convertShapeToDims(shape);
+    NNTRACE_COMP_SWITCH("optimized_ops::Floor");
     tflite::optimized_ops::Floor(inputData, dim, outputData, dim);
     return true;
 }
@@ -219,7 +234,9 @@ bool floorFloat32(const float* inputData,
 bool dequantizeQuant8ToFloat32(const uint8_t* inputData,
                                float* outputData,
                                const Shape& shape) {
+    NNTRACE_TRANS("dequantizeQuant8ToFloat32");
     tflite::Dims<4> dim = convertShapeToDims(shape);
+    NNTRACE_COMP_SWITCH("optimized_ops::Dequantize");
     tflite::optimized_ops::Dequantize(inputData, dim,
                                       shape.offset, shape.scale,
                                       outputData, dim);
@@ -230,18 +247,21 @@ bool subFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
                 float* out, const Shape& shapeOut) {
+    NNTRACE_TRANS("subFloat32");
     float output_activation_min, output_activation_max;
     CalculateActivationRangeFloat(activation, &output_activation_min,
                                   &output_activation_max);
 
     bool needBroadcast = !SameShape(shape1, shape2);
     if (needBroadcast) {
+        NNTRACE_COMP_SWITCH("optimized_ops::BroadcastSub");
         tflite::optimized_ops::BroadcastSub(
                 in1, convertShapeToDims(shape1),
                 in2, convertShapeToDims(shape2),
                 output_activation_min, output_activation_max,
                 out, convertShapeToDims(shapeOut));
     } else {
+        NNTRACE_COMP_SWITCH("optimized_ops::Sub");
         tflite::optimized_ops::Sub(
                 in1, convertShapeToDims(shape1),
                 in2, convertShapeToDims(shape2),
@@ -255,18 +275,21 @@ bool divFloat32(const float* in1, const Shape& shape1,
                 const float* in2, const Shape& shape2,
                 int32_t activation,
                 float* out, const Shape& shapeOut) {
+    NNTRACE_TRANS("divFloat32");
     float output_activation_min, output_activation_max;
     CalculateActivationRangeFloat(activation, &output_activation_min,
                                   &output_activation_max);
 
     bool needBroadcast = !SameShape(shape1, shape2);
     if (needBroadcast) {
+        NNTRACE_COMP_SWITCH("optimized_ops::BroadcastDiv");
         tflite::optimized_ops::BroadcastDiv(
                 in1, convertShapeToDims(shape1),
                 in2, convertShapeToDims(shape2),
                 output_activation_min, output_activation_max,
                 out, convertShapeToDims(shapeOut));
     } else {
+        NNTRACE_COMP_SWITCH("optimized_ops::Div");
         tflite::optimized_ops::Div(
                 in1, convertShapeToDims(shape1),
                 in2, convertShapeToDims(shape2),
@@ -279,6 +302,7 @@ bool divFloat32(const float* in1, const Shape& shape1,
 bool meanGeneric(const uint8_t* inputData, const Shape& inputShape,
                  const int32_t* axis, const Shape& axisShape, bool keepDims,
                  uint8_t* outputData, const Shape& outputShape) {
+    NNTRACE_TRANS("meanGeneric");
     // Creates a temp index to iterate through input data.
     int32_t* scratchBuffer = new int32_t[getNumberOfDimensions(inputShape)];
 
@@ -293,6 +317,7 @@ bool meanGeneric(const uint8_t* inputData, const Shape& inputShape,
             LOG(ERROR) << "Failed to allocate tempSumBuffer for MEAN";
             result = false;
         } else {
+            NNTRACE_COMP_SWITCH("optimized_ops::Mean");
             tflite::reference_ops::Mean<float, float>(
                     const_cast<float*>(reinterpret_cast<const float*>(inputData)),
                     reinterpret_cast<const int*>(inputShape.dimensions.data()),
@@ -310,6 +335,7 @@ bool meanGeneric(const uint8_t* inputData, const Shape& inputShape,
             LOG(ERROR) << "Failed to allocate tempSumBuffer for MEAN";
             result = false;
         } else {
+            NNTRACE_COMP_SWITCH("optimized_ops::Mean");
             tflite::reference_ops::Mean<uint8_t, int32_t>(
                     const_cast<uint8_t*>(inputData),
                     reinterpret_cast<const int*>(inputShape.dimensions.data()),

@@ -51,35 +51,41 @@ const uint32_t UNKNOWN_SIZE  = 0;
 //     (addOperand) time, use OTHER_SIZE at execute (setInput/setOutput) time.
 //     This should give an error at execute time (as the constant value will
 //     have a different size).
+//
+// All relevant combinations of the basic scenarios are then iterated over in
+// TestAll. Note that we don't want to just use googletest's parametrized tests (TEST_P) as
+// the 16k combinations generated too many lines of output for the test
+// infrastructure to handle correctly. However, running all 16k in one test
+// makes the ASAN version take so long that the automatic test runner things the
+// command has become unresponsinve, so we split on the first level.
 enum class DimensionKind { INTENDED_AT_COMPILE_AND_EXECUTE,
                            INTENDED_AT_COMPILE_NOT_SET_AT_EXECUTE,
                            UNKNOWN_AT_COMPILE_INTENDED_AT_EXECUTE,
                            UNKNOWN_AT_COMPILE_OTHER_AT_EXECUTE };
 typedef std::tuple<DimensionKind, DimensionKind> OperandParams;
-typedef std::tuple<OperandParams,  // first input
-                   OperandParams,  // second input
-                   OperandParams,  // constant
-                   OperandParams   // output
-                  > TestParams;
-// All relevant combinations of the basic scenarios are then created with TEST_P
-auto ioDimensionValues = testing::Values(DimensionKind::INTENDED_AT_COMPILE_AND_EXECUTE,
-                                         DimensionKind::INTENDED_AT_COMPILE_NOT_SET_AT_EXECUTE,
-                                         DimensionKind::UNKNOWN_AT_COMPILE_INTENDED_AT_EXECUTE,
-                                         DimensionKind::UNKNOWN_AT_COMPILE_OTHER_AT_EXECUTE);
-auto constantDimensionValues = testing::Values(
+std::vector<DimensionKind> ioDimensionValues = {
+    DimensionKind::INTENDED_AT_COMPILE_AND_EXECUTE,
+    DimensionKind::INTENDED_AT_COMPILE_NOT_SET_AT_EXECUTE,
+    DimensionKind::UNKNOWN_AT_COMPILE_INTENDED_AT_EXECUTE,
+    DimensionKind::UNKNOWN_AT_COMPILE_OTHER_AT_EXECUTE };
+std::vector<DimensionKind> constantDimensionValues = {
         DimensionKind::INTENDED_AT_COMPILE_NOT_SET_AT_EXECUTE,
-        DimensionKind::UNKNOWN_AT_COMPILE_INTENDED_AT_EXECUTE);
-auto ioValues = testing::Combine(ioDimensionValues, ioDimensionValues);
-auto constantValues = testing::Combine(constantDimensionValues, constantDimensionValues);
-auto combinedValues = testing::Combine(ioValues, ioValues, constantValues, ioValues);
+        DimensionKind::UNKNOWN_AT_COMPILE_INTENDED_AT_EXECUTE };
+std::vector<OperandParams> Combine(const std::vector<DimensionKind>& firsts,
+                                   const std::vector<DimensionKind>& seconds);
+auto ioValues = Combine(ioDimensionValues, ioDimensionValues);
+auto constantValues = Combine(constantDimensionValues, constantDimensionValues);
 
-class UnknownDimensionsTest : public ::testing::TestWithParam<TestParams> {
+class UnknownDimensionsTest : public ::testing::TestWithParam<OperandParams> {
 protected:
-  template<typename T, Type TensorType> void Test();
-  void CompareResults(std::map<int, std::vector<float>>& expected,
-                      std::map<int, std::vector<float>>& actual);
-  void CompareResults(std::map<int, std::vector<uint8_t>>& expected,
-                      std::map<int, std::vector<uint8_t>>& actual);
+    template<class T, Type TensorType> void TestOne(
+            const OperandParams& paramsForInput0, const OperandParams& paramsForInput1,
+            const OperandParams& paramsForConst, const OperandParams& paramsForOutput);
+    template<class T, Type TensorType> void TestAll();
+    void CompareResults(std::map<int, std::vector<float>>& expected,
+                        std::map<int, std::vector<float>>& actual);
+    void CompareResults(std::map<int, std::vector<uint8_t>>& expected,
+                        std::map<int, std::vector<uint8_t>>& actual);
 };
 
 void UnknownDimensionsTest::CompareResults(
@@ -96,18 +102,14 @@ void UnknownDimensionsTest::CompareResults(
     compare(MixedTyped{ expected, {}, {} }, MixedTyped{ actual, {}, {} });
 }
 
-template<class T, Type TensorType> void UnknownDimensionsTest::Test() {
+template<class T, Type TensorType> void UnknownDimensionsTest::TestOne(
+        const OperandParams& paramsForInput0, const OperandParams& paramsForInput1,
+        const OperandParams& paramsForConst, const OperandParams& paramsForOutput) {
     typedef T IntendedMatrix[INTENDED_SIZE][INTENDED_SIZE];
     static const IntendedMatrix ones = { { 1, 1, 1 }, { 1, 1, 1 }, { 1, 1, 1 } };
     static const IntendedMatrix twos = { { 2, 2, 2 }, { 2, 2, 2 }, { 2, 2, 2 } };
     static const IntendedMatrix fives = { { 5, 5, 5 }, { 5, 5, 5 }, { 5, 5, 5 } };
     const float scale = TensorType == Type::TENSOR_QUANT8_ASYMM ? 1.f : 0.f;
-
-    TestParams params = GetParam();
-    auto paramsForInput0 = std::get<0>(params),
-         paramsForInput1 = std::get<1>(params),
-         paramsForConst  = std::get<2>(params),
-         paramsForOutput = std::get<3>(params);
 
     Model model;
     std::string input0Scope("Input 0:"), input1Scope("Input 1:"),
@@ -147,8 +149,7 @@ template<class T, Type TensorType> void UnknownDimensionsTest::Test() {
     auto constantOpd0 = addOperand(paramsForConst, &constantScope);
     auto outputOpd0 = addOperand(paramsForOutput, &outputScope);
 
-    // Make the gtest failure easier to read, TEST_P just outputs a list of
-    // numbers
+    // Make the gtest failure easier to read
     SCOPED_TRACE(input0Scope);
     SCOPED_TRACE(input1Scope);
     SCOPED_TRACE(constantScope);
@@ -250,14 +251,37 @@ template<class T, Type TensorType> void UnknownDimensionsTest::Test() {
     CompareResults(expected_opds, actual_opds);
 }
 
-TEST_P(UnknownDimensionsTest, UnknownDimensionsFloat) {
-    Test<float, Type::TENSOR_FLOAT32>();
+std::vector<OperandParams> Combine(const std::vector<DimensionKind>& firsts,
+                                   const std::vector<DimensionKind>& seconds) {
+    std::vector<OperandParams> ret;
+    for (auto first: firsts) {
+        for (auto second: seconds) {
+            ret.push_back({first, second});
+        }
+    }
+    return ret;
 }
-TEST_P(UnknownDimensionsTest, UnknownDimensionsQuantized) {
-    Test<uint8_t, Type::TENSOR_QUANT8_ASYMM>();
+
+template<class T, Type TensorType> void UnknownDimensionsTest::TestAll() {
+    const OperandParams paramsForInput0 = GetParam();
+    for (auto paramsForInput1: ioValues) {
+        for (auto paramsForConst: constantValues) {
+            for (auto paramsForOutput: ioValues) {
+                TestOne<T, TensorType>(paramsForInput0, paramsForInput1,
+                                       paramsForConst, paramsForOutput);
+            }
+        }
+    }
+}
+
+TEST_P(UnknownDimensionsTest, Float) {
+    TestAll<float, Type::TENSOR_FLOAT32>();
+}
+
+TEST_P(UnknownDimensionsTest, Quantized) {
+    TestAll<uint8_t, Type::TENSOR_QUANT8_ASYMM>();
 }
 
 INSTANTIATE_TEST_CASE_P(UnknownCombinationsTest, UnknownDimensionsTest,
-                        combinedValues);
-
+                        ::testing::ValuesIn(ioValues));
 }  // end namespace

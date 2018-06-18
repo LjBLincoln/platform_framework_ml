@@ -23,6 +23,7 @@
 #include "HalInterfaces.h"
 #include "Manager.h"
 #include "ModelBuilder.h"
+#include "Tracing.h"
 #include "Utils.h"
 
 #include <mutex>
@@ -219,6 +220,7 @@ int ExecutionBuilder::setOutputFromMemory(uint32_t index, const ANeuralNetworksO
 // Ensure that executionCallback->notify() is called.
 static void cpuFallbackFull(const ExecutionBuilder* executionBuilder,
                             const sp<ExecutionCallback>& executionCallback) {
+    NNTRACE_RT(NNTRACE_PHASE_EXECUTION, "cpuFallbackFull");
     VLOG(EXECUTION) << "cpuFallbackFull";
     StepExecutor executor(executionBuilder, executionBuilder->getModel(),
                           nullptr /* no VersionedIDevice, so CPU */,
@@ -244,6 +246,7 @@ static bool cpuFallbackPartial(const ExecutionBuilder* executionBuilder,
                                const ExecutionPlan* plan,
                                std::shared_ptr<ExecutionPlan::Controller> controller,
                                const sp<ExecutionCallback>& executionCallback) {
+    NNTRACE_RT(NNTRACE_PHASE_EXECUTION, "cpuFallbackPartial");
     VLOG(EXECUTION) << "cpuFallbackPartial";
     std::shared_ptr<StepExecutor> executor;
     int n = plan->fallback(controller, &executor);
@@ -578,6 +581,7 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
         }
     }
 
+    NNTRACE_RT(NNTRACE_PHASE_INPUTS_AND_OUTPUTS, "StepExecutor::startComputeOnDevice");
     // We separate the input & output pools so that we reduce the copying done if we
     // do an eventual remoting (hidl_memory->update()).  We could also use it to set
     // protection on read only memory but that's not currently done.
@@ -618,6 +622,9 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
         request.pools[i] = mMemories[i]->getHidlMemory();
     }
 
+    NNTRACE_FULL_SWITCH(NNTRACE_LAYER_IPC, NNTRACE_PHASE_EXECUTION,
+                        "StepExecutor::startComputeOnDevice::execute");
+
     // Prepare the callback for asynchronous execution. sp<ExecutionCallback>
     // object is returned when the execution has been successfully launched,
     // otherwise a nullptr is returned. The executionCallback is abstracted in
@@ -649,6 +656,8 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
     // TODO: Remove this synchronization point when the block of code below is
     // removed.
     executionCallback->wait();
+    NNTRACE_FULL_SWITCH(NNTRACE_LAYER_RUNTIME, NNTRACE_PHASE_EXECUTION,
+                        "StepExecutor::startComputeOnDevice::waited");
     Return<ErrorStatus> callbackStatus = executionCallback->getStatus();
     if (!callbackStatus.isOk() || callbackStatus != ErrorStatus::NONE) {
         VLOG(EXECUTION) << "**Execute async failed**";
@@ -661,6 +670,7 @@ int StepExecutor::startComputeOnDevice(sp<ExecutionCallback>* synchronizationCal
     // TODO: Move this block of code somewhere else. It should not be in the
     // startCompute function.
     // TODO: outputMemory->update(); outputMemory->commit()
+    NNTRACE_RT_SWITCH(NNTRACE_PHASE_RESULTS, "StepExecutor::startComputeOnDevice");
     for (auto& info : mOutputs) {
         if (info.state == ModelArgumentInfo::POINTER) {
             DataLocation& loc = info.locationAndLength;
@@ -682,6 +692,7 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
                                    const std::vector<RunTimePoolInfo>& modelPoolInfos,
                                    const std::vector<RunTimePoolInfo>& requestPoolInfos,
                                    const sp<IExecutionCallback>& executionCallback) {
+    NNTRACE_RT(NNTRACE_PHASE_EXECUTION, "asyncStartComputeOnCpu");
     CpuExecutor executor;
     int err = executor.run(model, request, modelPoolInfos, requestPoolInfos);
     executionCallback->notify(convertResultCodeToErrorStatus(err));
@@ -689,6 +700,8 @@ static void asyncStartComputeOnCpu(const Model& model, const Request& request,
 
 int StepExecutor::startComputeOnCpu(sp<ExecutionCallback>* synchronizationCallback) {
     // TODO: use a thread pool
+    // TODO(mikie): this could have NNTRACE so we could measure the overhead of
+    //              spinning up a new thread.
 
     Model model;
     mModel->setHidlModel(&model);

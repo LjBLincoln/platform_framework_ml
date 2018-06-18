@@ -20,6 +20,8 @@
 #include "HalInterfaces.h"
 #include "util/hash/farmhash.h"
 
+#include "Tracing.h"
+
 namespace android {
 namespace nn {
 
@@ -141,6 +143,8 @@ void DenseLshProjection(const RunTimeOperandInfo* hash,
 }
 
 bool LSHProjection::Eval() {
+  NNTRACE_COMP("LSHProjection::Eval");
+
   int32_t* out_buf = reinterpret_cast<int32_t*>(output_->buffer);
 
   switch (type_) {

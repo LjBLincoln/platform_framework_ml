@@ -16,6 +16,7 @@
 
 #include "VersionedIDevice.h"
 
+#include "Tracing.h"
 #include "Utils.h"
 
 #include <android-base/logging.h>
@@ -32,6 +33,7 @@ std::pair<ErrorStatus, Capabilities> VersionedIDevice::getCapabilities() {
     std::pair<ErrorStatus, Capabilities> result;
 
     if (mDeviceV1_1 != nullptr) {
+        NNTRACE_FULL(NNTRACE_LAYER_IPC, NNTRACE_PHASE_INITIALIZATION, "getCapabilities_1_1");
         Return<void> ret = mDeviceV1_1->getCapabilities_1_1(
             [&result](ErrorStatus error, const Capabilities& capabilities) {
                 result = std::make_pair(error, capabilities);
@@ -41,8 +43,10 @@ std::pair<ErrorStatus, Capabilities> VersionedIDevice::getCapabilities() {
             return {ErrorStatus::GENERAL_FAILURE, {}};
         }
     } else if (mDeviceV1_0 != nullptr) {
+        NNTRACE_FULL(NNTRACE_LAYER_IPC, NNTRACE_PHASE_INITIALIZATION, "getCapabilities");
         Return<void> ret = mDeviceV1_0->getCapabilities(
             [&result](ErrorStatus error, const V1_0::Capabilities& capabilities) {
+                // Time taken to convert capabilities is trivial
                 result = std::make_pair(error, convertToV1_1(capabilities));
             });
         if (!ret.isOk()) {
@@ -62,6 +66,7 @@ std::pair<ErrorStatus, hidl_vec<bool>> VersionedIDevice::getSupportedOperations(
     std::pair<ErrorStatus, hidl_vec<bool>> result;
 
     if (mDeviceV1_1 != nullptr) {
+        NNTRACE_FULL(NNTRACE_LAYER_IPC, NNTRACE_PHASE_COMPILATION, "getSupportedOperations_1_1");
         Return<void> ret = mDeviceV1_1->getSupportedOperations_1_1(
             model, [&result](ErrorStatus error, const hidl_vec<bool>& supported) {
                 result = std::make_pair(error, supported);
@@ -71,8 +76,10 @@ std::pair<ErrorStatus, hidl_vec<bool>> VersionedIDevice::getSupportedOperations(
             return {ErrorStatus::GENERAL_FAILURE, {}};
         }
     } else if (mDeviceV1_0 != nullptr && compliantWithV1_0(model)) {
+        V1_0::Model model10 = convertToV1_0(model);
+        NNTRACE_FULL(NNTRACE_LAYER_IPC, NNTRACE_PHASE_COMPILATION, "getSupportedOperations_1_0");
         Return<void> ret = mDeviceV1_0->getSupportedOperations(
-            convertToV1_0(model), [&result](ErrorStatus error, const hidl_vec<bool>& supported) {
+            model10, [&result](ErrorStatus error, const hidl_vec<bool>& supported) {
                 result = std::make_pair(error, supported);
             });
         if (!ret.isOk()) {
@@ -98,17 +105,35 @@ ErrorStatus VersionedIDevice::prepareModel(const Model& model, ExecutionPreferen
             return ErrorStatus::GENERAL_FAILURE;
         }
         return static_cast<ErrorStatus>(ret);
-    } else if (mDeviceV1_0 != nullptr && compliantWithV1_0(model)) {
-        Return<ErrorStatus> ret = mDeviceV1_0->prepareModel(convertToV1_0(model), callback);
-        if (!ret.isOk()) {
-            LOG(ERROR) << "prepareModel failure: " << ret.description();
+    } else if (mDeviceV1_0 != nullptr) {
+        bool compliant = false;
+        V1_0::Model model10;
+        {
+            // Attribute time spent in model inspection and conversion to
+            // Runtime, as the time may be substantial (0.03ms for mobilenet,
+            // but could be larger for other models).
+            NNTRACE_FULL_SUBTRACT(NNTRACE_LAYER_RUNTIME, NNTRACE_PHASE_COMPILATION,
+                                  "VersionedIDevice::prepareModel");
+            compliant = compliantWithV1_0(model);
+            if (compliant) {
+                model10 = convertToV1_0(model);  // copy is elided
+            }
+        }
+        if (compliant) {
+            Return<ErrorStatus> ret = mDeviceV1_0->prepareModel(model10, callback);
+            if (!ret.isOk()) {
+                LOG(ERROR) << "prepareModel failure: " << ret.description();
+                return ErrorStatus::GENERAL_FAILURE;
+            }
+            return static_cast<ErrorStatus>(ret);
+        } else {
+            // TODO: partition the model such that v1.1 ops are not passed to v1.0
+            // device
+            LOG(ERROR) << "Could not handle prepareModel!";
             return ErrorStatus::GENERAL_FAILURE;
         }
-        return static_cast<ErrorStatus>(ret);
     } else {
-        // TODO: partition the model such that v1.1 ops are not passed to v1.0
-        // device
-        LOG(ERROR) << "Could not handle prepareModel!";
+        LOG(ERROR) << "prepareModel called with no device";
         return ErrorStatus::GENERAL_FAILURE;
     }
 }

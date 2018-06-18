@@ -19,11 +19,14 @@
 #include "CpuExecutor.h"
 #include "HalInterfaces.h"
 
+#include "Tracing.h"
+
 namespace android {
 namespace nn {
 
 RNN::RNN(const Operation& operation,
          std::vector<RunTimeOperandInfo>& operands) {
+  NNTRACE_TRANS("RNN::RNN");
   input_ = GetInput(operation, operands, kInputTensor);
   weights_ = GetInput(operation, operands, kWeightsTensor);
   recurrent_weights_ = GetInput(operation, operands, kRecurrentWeightsTensor);
@@ -41,6 +44,7 @@ bool RNN::Prepare(const Operation &operation,
                   std::vector<RunTimeOperandInfo> &operands,
                   Shape *hiddenStateShape,
                   Shape *outputShape) {
+  NNTRACE_TRANS("RNN::Prepare");
   // Check we have all the inputs and outputs we need.
   const int num_inputs = NumInputsWithValues(operation, operands);
   NN_CHECK(num_inputs == 5 || num_inputs == 6);
@@ -78,6 +82,8 @@ bool RNN::Prepare(const Operation &operation,
 }
 
 bool RNN::Eval() {
+  NNTRACE_COMP("RNN::Eval");
+
   const float* bias_ptr = reinterpret_cast<float*>(bias_->buffer);
 
   const uint32_t batch_size = input_->shape().dimensions[0];

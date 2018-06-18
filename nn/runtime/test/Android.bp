@@ -22,6 +22,7 @@ cc_defaults {
     shared_libs: [
         "libandroid",
         "libbase",
+        "libcutils",
         "libhidlbase",
         "libhidltransport",
         "libhidlmemory",
@@ -106,7 +107,6 @@ cc_test {
 }
 
 cc_test {
-    // TODO(mikie): investigate ubsan as well
     name: "NeuralNetworksTest_static_asan",
     defaults: ["NeuralNetworksTest_static_defaults"],
     sanitize: {
@@ -134,6 +134,18 @@ cc_test {
                 "libclang_rt.asan-x86_64-android",
             ],
         },
+    },
+}
+
+cc_test {
+    name: "NeuralNetworksTest_static_ubsan",
+    defaults: ["NeuralNetworksTest_static_defaults"],
+    sanitize: {
+      undefined: true,
+      all_undefined: true,
+      diag: {
+        undefined: true,
+      },
     },
 }
 
@@ -167,7 +179,7 @@ cc_test {
 }
 
 cc_test {
-    // TODO(mikie): investigate ubsan and tsan as well
+    // Note: tsan not supported on Android (yet)
     name: "NeuralNetworksTest_mt_static_asan",
     defaults: ["NeuralNetworksTest_mt_defaults"],
     sanitize: {

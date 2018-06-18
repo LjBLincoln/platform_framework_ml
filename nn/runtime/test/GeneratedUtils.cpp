@@ -31,6 +31,17 @@
 #include <map>
 #include <thread>
 
+// Systrace is not available from CTS tests due to platform layering
+// constraints. We reuse the NNTEST_ONLY_PUBLIC_API flag, as that should also be
+// the case for CTS (public APIs only).
+#ifndef NNTEST_ONLY_PUBLIC_API
+#include "Tracing.h"
+#else
+#define NNTRACE_FULL_RAW(...)
+#define NNTRACE_APP(...)
+#define NNTRACE_APP_SWITCH(...)
+#endif
+
 namespace generated_tests {
 using namespace android::nn::wrapper;
 using namespace test_helper;
@@ -61,18 +72,25 @@ static void printAll(std::ostream& os, const MixedTyped& test) {
     print<uint8_t>(os, test);
 }
 
+Compilation createAndCompileModel(Model* model, std::function<void(Model*)> createModel) {
+    NNTRACE_APP(NNTRACE_PHASE_PREPARATION, "createAndCompileModel");
 
-// Test driver for those generated from ml/nn/runtime/test/spec
-void executeOnce(std::function<void(Model*)> createModel,
-                  std::function<bool(int)> isIgnored,
-                  std::vector<MixedTypedExample>& examples,
-                  std::string dumpFile) {
-    Model model;
-    createModel(&model);
-    model.finish();
-    graphDump("", model);
+    createModel(model);
+    model->finish();
+    graphDump("", *model);
+
+    NNTRACE_APP_SWITCH(NNTRACE_PHASE_COMPILATION, "createAndCompileModel");
+    Compilation compilation(model);
+    compilation.finish();
+
+    return compilation;
+}
+
+void executeWithCompilation(Model* model, Compilation* compilation,
+                            std::function<bool(int)> isIgnored,
+                            std::vector<MixedTypedExample>& examples,
+                            std::string dumpFile) {
     bool dumpToFile = !dumpFile.empty();
-
     std::ofstream s;
     if (dumpToFile) {
         s.open(dumpFile, std::ofstream::trunc);
@@ -80,20 +98,19 @@ void executeOnce(std::function<void(Model*)> createModel,
     }
 
     int exampleNo = 0;
-    Compilation compilation(&model);
-    compilation.finish();
-
     // If in relaxed mode, set the error range to be 5ULP of FP16.
-    float fpRange = !model.isRelaxed() ? 1e-5f : 5.0f * 0.0009765625f;
+    float fpRange = !model->isRelaxed() ? 1e-5f : 5.0f * 0.0009765625f;
     for (auto& example : examples) {
+        NNTRACE_APP(NNTRACE_PHASE_EXECUTION, "executeWithCompilation example");
         SCOPED_TRACE(exampleNo);
         // TODO: We leave it as a copy here.
         // Should verify if the input gets modified by the test later.
         MixedTyped inputs = example.first;
         const MixedTyped& golden = example.second;
 
-        Execution execution(&compilation);
+        Execution execution(compilation);
 
+        NNTRACE_APP_SWITCH(NNTRACE_PHASE_INPUTS_AND_OUTPUTS, "executeWithCompilation example");
         // Set all inputs
         for_all(inputs, [&execution](int idx, const void* p, size_t s) {
             const void* buffer = s == 0 ? nullptr : p;
@@ -108,9 +125,11 @@ void executeOnce(std::function<void(Model*)> createModel,
             ASSERT_EQ(Result::NO_ERROR, execution.setOutput(idx, buffer, s));
         });
 
+        NNTRACE_APP_SWITCH(NNTRACE_PHASE_EXECUTION, "executeWithCompilation example");
         Result r = execution.compute();
         ASSERT_EQ(Result::NO_ERROR, r);
 
+        NNTRACE_APP_SWITCH(NNTRACE_PHASE_RESULTS, "executeWithCompilation example");
         // Dump all outputs for the slicing tool
         if (dumpToFile) {
             s << "output" << exampleNo << " = {\n";
@@ -129,14 +148,26 @@ void executeOnce(std::function<void(Model*)> createModel,
     }
 }
 
-void executeMultithreaded(std::function<void(Model*)> createModel,
-                          std::function<bool(int)> isIgnored,
-                          std::vector<MixedTypedExample>& examples,
-                          std::string dumpFile) {
+void executeOnce(std::function<void(Model*)> createModel,
+                 std::function<bool(int)> isIgnored,
+                 std::vector<MixedTypedExample>& examples,
+                 std::string dumpFile) {
+    NNTRACE_APP(NNTRACE_PHASE_OVERALL, "executeOnce");
+    Model model;
+    Compilation compilation = createAndCompileModel(&model, createModel);
+    executeWithCompilation(&model, &compilation, isIgnored, examples, dumpFile);
+}
+
+
+void executeMultithreadedOwnCompilation(std::function<void(Model*)> createModel,
+                                        std::function<bool(int)> isIgnored,
+                                        std::vector<MixedTypedExample>& examples) {
+    NNTRACE_APP(NNTRACE_PHASE_OVERALL, "executeMultithreadedOwnCompilation");
+    SCOPED_TRACE("MultithreadedOwnCompilation");
     std::vector<std::thread> threads;
     for (int i = 0; i < 10; i++) {
         threads.push_back(std::thread([&]() {
-            executeOnce(createModel, isIgnored, examples, dumpFile);
+            executeOnce(createModel, isIgnored, examples, "");
         }));
     }
     std::for_each(threads.begin(), threads.end(), [](std::thread& t) {
@@ -144,14 +175,35 @@ void executeMultithreaded(std::function<void(Model*)> createModel,
     });
 }
 
+void executeMultithreadedSharedCompilation(std::function<void(Model*)> createModel,
+                                           std::function<bool(int)> isIgnored,
+                                           std::vector<MixedTypedExample>& examples) {
+    NNTRACE_APP(NNTRACE_PHASE_OVERALL, "executeMultithreadedSharedCompilation");
+    SCOPED_TRACE("MultithreadedSharedCompilation");
+    Model model;
+    Compilation compilation = createAndCompileModel(&model, createModel);
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 10; i++) {
+        threads.push_back(std::thread([&]() {
+            executeWithCompilation(&model, &compilation, isIgnored, examples, "");
+        }));
+    }
+    std::for_each(threads.begin(), threads.end(), [](std::thread& t) {
+        t.join();
+    });
+}
+
+
+// Test driver for those generated from ml/nn/runtime/test/spec
 void execute(std::function<void(Model*)> createModel,
              std::function<bool(int)> isIgnored,
              std::vector<MixedTypedExample>& examples,
-             std::string dumpFile) {
+             [[maybe_unused]] std::string dumpFile) {
 #ifndef NNTEST_MULTITHREADED
     executeOnce(createModel, isIgnored, examples, dumpFile);
 #else  // defined(NNTEST_MULTITHREADED)
-    executeMultithreaded(createModel, isIgnored, examples, dumpFile);
+    executeMultithreadedOwnCompilation(createModel, isIgnored, examples);
+    executeMultithreadedSharedCompilation(createModel, isIgnored, examples);
 #endif  // !defined(NNTEST_MULTITHREADED)
 }
 

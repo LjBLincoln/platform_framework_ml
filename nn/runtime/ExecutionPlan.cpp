@@ -23,6 +23,7 @@
 #include "ExecutionBuilder.h"
 #include "Manager.h"
 #include "ModelBuilder.h"
+#include "Tracing.h"
 #include "Utils.h"
 
 #include <functional>
@@ -46,6 +47,10 @@ static int compile(std::shared_ptr<Device> device, const ModelBuilder* model,
     model->setHidlModel(&hidlModel);
 
     sp<PreparedModelCallback> preparedModelCallback = new PreparedModelCallback();
+
+    // Note that some work within VersionedIDevice will be subtracted from the
+    // IPC layer
+    NNTRACE_FULL(NNTRACE_LAYER_IPC, NNTRACE_PHASE_COMPILATION, "prepareModel");
     Return<ErrorStatus> prepareLaunchStatus = device->getInterface()->prepareModel(
         hidlModel, static_cast<ExecutionPreference>(executionPreference), preparedModelCallback);
     if (!prepareLaunchStatus.isOk()) {
