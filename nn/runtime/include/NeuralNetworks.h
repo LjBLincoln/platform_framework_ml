@@ -1780,15 +1780,54 @@ typedef enum {
 
 /**
  * Result codes.
+ *
+ * <p>Any NNAPI function can return any result code, including result codes not
+ * currently documented. Any value other than {@link ANEURALNETWORKS_NO_ERROR}
+ * indicates a failure of some kind.</p>
+ *
+ * <p>Additional information about the nature of a failure can be obtained from
+ * the device log after enabling NNAPI debugging by setting the debug.nn.vlog
+ * property to 1, e.g., by calling "adb shell setprop debug.nn.vlog 1".</p>
  */
 typedef enum {
+    /**
+     * Operation was succesful.
+     */
     ANEURALNETWORKS_NO_ERROR = 0,
+
+    /**
+     * Failure caused by not enough available memory.
+     */
     ANEURALNETWORKS_OUT_OF_MEMORY = 1,
+
     ANEURALNETWORKS_INCOMPLETE = 2,
+
+    /**
+     * Failure caused by unexpected null argument.
+     */
     ANEURALNETWORKS_UNEXPECTED_NULL = 3,
+
+    /**
+     * Failure caused by invalid function arguments, invalid model definition,
+     * invalid execution definition or invalid data at execution time.
+     */
     ANEURALNETWORKS_BAD_DATA = 4,
+
+    /**
+     * Failure caused by failed model execution.
+     */
     ANEURALNETWORKS_OP_FAILED = 5,
+
+    /**
+     * Failure caused by object being in the wrong state.
+     */
     ANEURALNETWORKS_BAD_STATE = 6,
+
+    /**
+     * Failure caused by not being able to map a file into memory.
+     * This may be caused by a file descriptor not being mappable.
+     * Mitigate by reading its content into memory.
+     */
     ANEURALNETWORKS_UNMAPPABLE = 7,
 } ResultCode;
 
